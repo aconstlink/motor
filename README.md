@@ -1,2 +1,3 @@
 # motor
-Software Framework for Audio/Visual/Interactive Real-Time Applications
+
+motor is a software framework for real-time interactive audio/visual applications and is a personal endeavour into real-time engine coding. 
