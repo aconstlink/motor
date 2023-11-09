@@ -21,11 +21,19 @@ if( TARGET alrecord )
   if( MOTOR_TARGET_OS_WIN )
 
     if( MOTOR_COMPILER_MSC )
-      set( unwanted_compiler_options "/wd4204" )
+      set( unwanted_compiler_options "/wd4204 /wd4018" )
       target_compile_options( alrecord PRIVATE ${unwanted_compiler_options} )
     endif()
 
   endif()
+endif()
+
+if( TARGET alcommon )
+set_target_properties( alcommon PROPERTIES FOLDER "motor/externals/openal-soft" )
+endif()
+
+if( TARGET al-excommon )
+set_target_properties( al-excommon PROPERTIES FOLDER "motor/externals/openal-soft" )
 endif()
 
 if( TARGET altonegen )
@@ -53,7 +61,7 @@ if( TARGET OpenAL )
   if( MOTOR_TARGET_OS_WIN )
 
     if( MOTOR_COMPILER_MSC )
-      set( unwanted_compiler_options "/wd4834" )
+      set( unwanted_compiler_options "/wd4834 /wd4018" )
       target_compile_options( OpenAL PRIVATE ${unwanted_compiler_options} )
     endif()
 
