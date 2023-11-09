@@ -95,38 +95,38 @@ endif()
 ################################################################
 
 set( subdirs_header_only 
-    "core"
-    "ntd"
-    "math"
-    "nsl"
-    "property"
-    "collide"
+    #"core"
+    #"ntd"
+    #"math"
+    #"nsl"
+    #"property"
+    #"collide"
     )
 
 set( subdirs  )
 
 if( TARGET OpenGL::GL )
-    list( APPEND subdirs "ogl" )
+    #list( APPEND subdirs "ogl" )
 endif()
 
 list( APPEND subdirs
-    "application"
-    "memory"
-    "log"
-    "concurrent"
-    "io"
-    "system"
-    "graphics"
-    "gfx"
-    "device"
-    "format"
-    "audio"
-    "geometry"
-    "font"
-    "tool"
-    "physics"
-    "profile"
-    ${subdirs_header_only}
+    #"application"
+    #"memory"
+    #"log"
+    #"concurrent"
+    #"io"
+    #"system"
+    #"graphics"
+    #"gfx"
+    #"device"
+    #"format"
+    #"audio"
+    #"geometry"
+    #"font"
+    #"tool"
+    #"physics"
+    #"profile"
+    #${subdirs_header_only}
     )
 
 

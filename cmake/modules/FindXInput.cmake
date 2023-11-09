@@ -3,23 +3,23 @@ set( XINPUT_FOUND False )
 
 message( STATUS ">>> FindXInput.cmake >>>" )
 
-if( NATUS_TARGET_ARCH_BIT_64 )
+if( MOTOR_TARGET_ARCH_BIT_64 )
   set( INT_ARCH "/x64" ) 
 endif()
 
 #see config_platform_sdk.cmake
 set( SEARCH_XINPUT_INCLUDE_PATHS 
-  ${NATUS_WINSDK_INCLUDE_PATHS}
+  ${MOTOR_WINSDK_INCLUDE_PATHS}
   )
 
 #see config_platform_sdk.cmake
 set( XINPUT_LIBRARIES_SEARCH_PATHS 
-  ${NATUS_WINSDK_LIBRARY_PATHS}
+  ${MOTOR_WINSDK_LIBRARY_PATHS}
   )
 
 message( STATUS "[XInput] : Looking in:" )
-message( STATUS "[XInput] : ${NATUS_WINSDK_INCLUDE_PATHS}" )
-message( STATUS "[XInput] : ${NATUS_WINSDK_LIBRARY_PATHS}" )
+message( STATUS "[XInput] : ${MOTOR_WINSDK_INCLUDE_PATHS}" )
+message( STATUS "[XInput] : ${MOTOR_WINSDK_LIBRARY_PATHS}" )
 
 find_path( XINPUT_INCLUDE_DIRECTORY 
     NAMES "Xinput.h"

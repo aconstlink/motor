@@ -36,20 +36,17 @@ if( MSVC_IDE OR MSVC )
     elseif( MSVC_VERSION GREATER 1919 AND MSVC_VERSION LESS 1930 )
       set( MOTOR_COMPILER_MSC_16 on )
       set( MOTOR_CXX_STANDARD 17 )
-    elseif( MSVC_VERSION GREATER 1919 AND MSVC_VERSION LESS 1930 )
-      set( MOTOR_COMPILER_MSC_16 on )
+    elseif( MSVC_VERSION GREATER 1929 AND MSVC_VERSION LESS 1938 )
+      set( MOTOR_COMPILER_MSC_17 on )
       set( MOTOR_CXX_STANDARD 17 )
     else()
       message( FATAL "MSVC Compiler not yet supported" )
     endif()
 
-    #add_definitions( -DMOTOR_COMPILER_MSC )
-    #set( MOTOR_COMPILER_DEFINITION_PUBLIC MOTOR_COMPILER_MSC )
-
 elseif( CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX )
 
     set( MOTOR_COMPILER_GNU ON )
-    #add_definitions( -DMOTOR_COMPILER_GNU )
+    
 else()
 
     message( FATAL_ERROR "Unsupported compiler")
