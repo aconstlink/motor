@@ -1,0 +1,15 @@
+
+#pragma once
+
+#include <string>
+
+namespace motor
+{
+    namespace core
+    {
+        // allocator missing!
+        using string_t = std::string ;
+
+        using string_cref_t = string_t const & ;
+    }
+}

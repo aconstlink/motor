@@ -1,0 +1,13 @@
+#pragma once
+
+#include <map>
+
+namespace motor
+{
+    namespace core
+    {
+        // allocator missing!
+        template< typename Kty, typename Ty >
+        using map = std::map< Kty, Ty > ;
+    }
+}
