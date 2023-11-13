@@ -127,8 +127,8 @@ void_t global::error_and_exit( motor::core::string_cref_t msg ) noexcept
 //*************************************************************************************
 void_t global::error_and_exit( bool_t const condition, motor::core::string_cref_t msg ) noexcept
 {
-    motor::log::global::message( condition, motor::log::log_level::error, msg ) ;
-    std::exit( 1 ) ;
+    if( motor::log::global::message( condition, motor::log::log_level::error, msg ) )
+        std::exit( 1 ) ;
 }
 
 //*************************************************************************************
