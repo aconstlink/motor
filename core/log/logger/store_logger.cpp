@@ -4,7 +4,8 @@
 using namespace motor::log ;
 
 //********************************************************************
-store_logger::store_logger( void_t ) noexcept
+store_logger::store_logger( void_t ) noexcept : _stores( this_t::stores_t::allocator_type(
+    "[log::store_logger] : stored messages") )
 {
     _stores.resize( max_elems ) ;
 }

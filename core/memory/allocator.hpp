@@ -2,6 +2,8 @@
 
 #include "global.h"
 
+#include <iostream>
+
 namespace motor
 {
     namespace memory
@@ -9,6 +11,9 @@ namespace motor
         template< typename T, typename mem_t = motor::memory::global >
         class allocator
         {
+            typedef allocator< T, mem_t > __this_t ;
+            motor_this_typedefs( __this_t ) ;
+
         public:
 
             typedef T value_type ;
@@ -25,13 +30,15 @@ namespace motor
 
         public:
 
-            allocator( void_t ) throw( ) {}
-            allocator( allocator const& rhv ) throw( ) : _purpose( rhv._purpose ) {}
-            allocator( allocator&& rhv ) throw( ) : _purpose( ::std::move( rhv._purpose ) ) {}
+            allocator( void_t ) throw( ) { std::cout << "alloc" << std::endl ;}
+            allocator( this_cref_t rhv ) throw( ) : _purpose( rhv._purpose ) {}
+            allocator( this_rref_t rhv ) throw( ) : _purpose( ::std::move( rhv._purpose ) ) {}
             allocator( motor::memory::purpose_cref_t purpose ) throw( ) : _purpose( purpose ) {}
 
             template< typename U >
-            allocator( allocator<U> const& /*rhv*/ ) throw( ) {}
+            allocator( allocator<U> const& rhv ) throw( ) : _purpose( rhv._purpose ) {}
+
+            ~allocator( void_t ) {}
 
         public:
 
@@ -43,6 +50,26 @@ namespace motor
             bool_t operator != ( allocator const& rhv ) const
             {
                 return _purpose != rhv._purpose ;
+            }
+
+            template <class U>     
+            this_ref_t operator=( allocator<U> const &) throw()
+            {
+                _purpose = rhv._purpose ;
+                return *this ;
+            }
+
+
+            this_ref_t operator = ( this_cref_t rhv ) throw()
+            {
+                _purpose = rhv._purpose ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) throw()
+            {
+                _purpose = std::move( rhv._purpose ) ;
+                return *this ;
             }
 
         public:

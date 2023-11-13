@@ -7,7 +7,8 @@
 using namespace motor::log ;
 
 //*************************************************************************************
-system::system( void_t ) noexcept
+system::system( void_t ) noexcept : _loggers( this_t::loggers_t::allocator_type(
+    "[log::system::system] : log system loggers")) 
 {
     _this_default_logger = new std_cerr_logger( ) ;
     _default_logger = _this_default_logger ;
