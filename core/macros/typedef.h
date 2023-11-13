@@ -3,6 +3,7 @@
 
 #define motor_typedefs_extend( from_, to_ )                                \
     typedef to_ ## _t * to_ ## _ptr_t ;                                 \
+    typedef to_ ## _t * to_ ## _mtr_t ;                                 \
     typedef to_ ## _t * to_ ## _vtr_t ;                                 \
     typedef to_ ## _t & to_ ## _ref_t ;                                 \
     typedef to_ ## _t && to_ ## _rref_t ;                               \
@@ -14,7 +15,10 @@
     typedef to_ ## _cref_t to_ ## _in_t ;                               \
     typedef to_ ## _ref_t to_ ## _out_t ;                               \
     typedef to_ ## _ref_t to_ ## _inout_t ;                             \
-    typedef to_ ## _t * & to_ ## _ptr_ref_t
+    typedef to_ ## _t * & to_ ## _ptr_ref_t ;                           \
+    typedef to_ ## _t * && to_ ## _ptr_rref_t ;                         \
+    typedef to_ ## _t * & to_ ## _mtr_ref_t ;                           \
+    typedef to_ ## _t * && to_ ## _mtr_rref_t
 
 
 #define motor_typedef_extend( what_ ) motor_typedefs_extend( what_, what_ )

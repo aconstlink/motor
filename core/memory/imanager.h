@@ -10,7 +10,19 @@ namespace motor
     {
         class MOTOR_CORE_API imanager
         {
-        public:
+        public: // managed interface
+
+            virtual void_ptr_t create( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept  = 0 ;
+            virtual void_ptr_t create( size_t const sib ) noexcept = 0 ;
+
+            // duplicates a managed pointer.
+            virtual void_ptr_t create( void_ptr_t ) noexcept = 0;
+
+            // returns same pointer if ref count is not 0
+            // otherwise nullptr is returned
+            virtual void_ptr_t release( void_ptr_t ) noexcept = 0 ;
+
+        public: // raw interface
 
             virtual void_ptr_t alloc( size_t const sib, motor::memory::purpose_cref_t purpose ) = 0 ;
             virtual void_ptr_t alloc( size_t const sib ) = 0 ;

@@ -18,6 +18,7 @@ namespace motor
             struct memory_info
             {
                 size_t sib ;
+                size_t rc ; // refcount
                 motor::memory::purpose_t purpose ;
             } ;
             typedef motor::core::map< void_ptr_t, memory_info > ptr_to_info_t ;
@@ -41,8 +42,21 @@ namespace motor
             static this_ptr_t create( void_t ) noexcept ;
             static void_t destroy( this_ptr_t ) noexcept ;
 
-        public:
 
+        public: // managed interface
+
+            virtual void_ptr_t create( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept ;
+            virtual void_ptr_t create( size_t const sib ) noexcept ;
+
+            // duplicates a managed pointer.
+            virtual void_ptr_t create( void_ptr_t ) noexcept ;
+
+            // returns same pointer if ref count is not 0
+            // otherwise nullptr is returned
+            virtual void_ptr_t release( void_ptr_t ) noexcept ;
+
+        public: // raw interface
+            
             virtual void_ptr_t alloc( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept ;
             virtual void_ptr_t alloc( size_t const sib ) noexcept ;
             virtual void_t dealloc( void_ptr_t ) noexcept ;
@@ -52,6 +66,11 @@ namespace motor
             virtual void_t dump_to_std( void_t ) const noexcept ;
 
             virtual void_t destroy( void_t ) noexcept ;
+
+        private:
+
+            void_ptr_t alloc( size_t const sib, motor::memory::purpose_cref_t purpose, bool_t const managed ) noexcept ;
+            void_ptr_t dealloc( void_ptr_t, bool_t const managed ) noexcept ;
         };
         motor_typedef( manager ) ;
     }
