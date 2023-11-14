@@ -95,7 +95,7 @@ endif()
 ################################################################
 
 set( subdirs_header_only 
-    
+    "std"
     #"math"
     #"nsl"
     #"property"
@@ -110,6 +110,8 @@ endif()
 
 list( APPEND subdirs
     "core"
+    "log"
+    "memory"
     #"application"    
     #"concurrent"
     #"io"

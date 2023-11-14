@@ -41,13 +41,16 @@
 #define motor_class_proto_typedefs(x)                                      \
     class x ;                                                           \
     typedef x * x ## _ptr_t ;                                           \
+    typedef x * x ## _mtr_t ;                                           \
     typedef x * x ## _vtr_t ;                                           \
     typedef x const * x ## _cptr_t ;                                    \
     typedef x * const x ## _ptrc_t ;                                    \
     typedef x const * const x ## _cptrc_t ;                             \
     typedef x && x ## _rref_t ;                                         \
     typedef x & x ## _inout_t ;                                         \
-    typedef x & x ## _ref_t
+    typedef x & x ## _ref_t ;                                           \
+    typedef x * & x ## _mtr_ref_t ;                                           \
+    typedef x * && x ## _mtr_rref_t
 
 #define motor_struct_proto_typedefs(x)                                     \
     struct x ;                                                          \

@@ -2,8 +2,6 @@
 
 #include "typedefs.h"
 
-#include <motor/core/std/string>
-
 namespace motor
 {
     namespace log
@@ -17,7 +15,7 @@ namespace motor
 
         namespace detail
         {
-            static const motor::core::string_t __result_strings[] = {
+            static char const * __result_strings[] = {
                 "need to fill"
             } ;
         }

@@ -1,33 +1,40 @@
 
-
 set( sources 
     "api.h"
+    "result.h"
+    "typedefs.h"
+    "function.h"
 
-    "header_only.cpp"
-    "types.hpp"
+    "global.h"
+    "global.cpp"
+    "log_level.h"
 
-    "macros/common.h"
-    "macros/typedef.h"
-    "macros/function.h"
-    "macros/move.h"    
+    "isystem.h"
+    "system/system.h"
+    "system/system.cpp"
+    
+    "ilogger.h"
+    "logger/std_cerr_logger.h"
+    "logger/std_cerr_logger.cpp"
+    "logger/store_logger.h"
+    "logger/store_logger.cpp"
     )
 
 motor_vs_src_dir( sources )
 
-
 add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
-add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
+add_library( ${cur_alias_name} ALIAS ${cur_lib_name} ) 
 
-
-target_compile_definitions( ${cur_lib_name} PUBLIC -DMOTOR_LITTLE_ENDIAN=0 )
-target_compile_definitions( ${cur_lib_name} PUBLIC -DMOTOR_BIG_ENDIAN=1 )
-target_compile_definitions( ${cur_lib_name} PUBLIC -DMOTOR_BYTE_ORDER=${MOTOR_TARGET_ARCH_BIG_ENDIAN} )
+target_link_libraries( ${cur_lib_name} 
+    INTERFACE motor::std
+    PUBLIC motor::memory 
+    )
 
 ###########################################################
 # SECTION: Build Tree
 ###########################################################
 
-#motor_export( ${CUR_LIB_NAME} )
+#motor_export( ${cur_lib_name} )
 
 ###########################################################
 # SECTION: Install
@@ -35,3 +42,5 @@ target_compile_definitions( ${cur_lib_name} PUBLIC -DMOTOR_BYTE_ORDER=${MOTOR_TA
 
 install_headers( "${sources}" "include/${PROJECT_NAME}/${cur_lib_name}" )
 install_library( ${cur_lib_name} ${PROJECT_NAME}-targets )
+
+

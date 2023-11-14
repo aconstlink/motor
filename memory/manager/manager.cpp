@@ -1,9 +1,11 @@
 
 #include "manager.h"
 
-#include <motor/core/log/global.h>
 #include <iostream>
 #include <cstdlib>
+#include <cassert>
+#include <iostream>
+#include <string>
 
 using namespace motor::memory ;
 
@@ -32,7 +34,7 @@ void_t manager::destroy( this_ptr_t ptr ) noexcept
 }
 
 //*************************************************************************************
-void_ptr_t manager::create( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept 
+void_ptr_t manager::create( size_t const sib, char_cptr_t purpose ) noexcept 
 {
     return this_t::alloc( sib, purpose, true ) ;
 }
@@ -50,11 +52,8 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
 
     auto iter = _ptr_to_info.find( ptr ) ;
 
-    motor::log::global_t::error_and_exit( iter == _ptr_to_info.end(), 
-                "[manager::create] : ptr is not found in manager." ) ;
-
-    motor::log::global_t::error_and_exit( iter->second.rc == size_t(-1), 
-                "[manager::create] : non-managed pointer is not ref counted." ) ;
+    assert( iter != _ptr_to_info.end() && "[manager::create] : ptr is not found in manager." ) ;
+    assert( iter->second.rc != size_t(-1) && "[manager::create] : non-managed pointer is not ref counted." ) ;
 
     ++iter->second.rc ;
 
@@ -68,7 +67,7 @@ void_ptr_t manager::release( void_ptr_t ptr ) noexcept
 }
 
 //*************************************************************************************
-void_ptr_t manager::alloc( size_t const sib, motor::memory::purpose_cref_t purpose, bool_t const managed ) noexcept 
+void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept 
 {
     if( sib == 0 ) return nullptr ;
 
@@ -82,7 +81,7 @@ void_ptr_t manager::alloc( size_t const sib, motor::memory::purpose_cref_t purpo
 }
 
 //*************************************************************************************
-void_ptr_t manager::alloc( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept 
+void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose ) noexcept 
 {
     return this_t::alloc( sib, purpose, false ) ;
 }
@@ -102,13 +101,11 @@ void_ptr_t manager::dealloc( void_ptr_t ptr, bool_t const managed ) noexcept
         lock_t lk(_mtx) ;
         auto iter = _ptr_to_info.find( ptr ) ;
 
-        motor::log::global_t::error_and_exit( iter == _ptr_to_info.end(), 
-                "[manager::dealloc] : ptr location not found in manager." ) ;
+        assert( iter != _ptr_to_info.end() && "[manager::create] : ptr is not found in manager." ) ;
 
         if( managed )
         {
-            motor::log::global_t::error_and_exit( iter->second.rc == size_t(-1), 
-                "[manager::release] : non-managed pointer can not be released." ) ;
+            assert( iter->second.rc != size_t(-1) && "[manager::create] : non-managed pointer is not ref counted." ) ;
 
             if( --(iter->second.rc) != size_t(0) )
             {
@@ -136,7 +133,7 @@ size_t manager::get_sib( void_t ) const noexcept
 }
 
 //*************************************************************************************
-bool_t manager::get_purpose( void_ptr_t ptr, motor::memory::purpose_ref_t pout ) const noexcept 
+bool_t manager::get_purpose( void_ptr_t ptr, char_cptr_t & pout ) const noexcept 
 {
     if( ptr == nullptr ) return false ;
 
@@ -144,8 +141,9 @@ bool_t manager::get_purpose( void_ptr_t ptr, motor::memory::purpose_ref_t pout )
         lock_t lk( _mtx ) ;
         auto const iter = _ptr_to_info.find( ptr ) ;
 
-        if( motor::log::global::error( iter == _ptr_to_info.end(),
-            "[manager::get_purpose] : ptr location not found" ) )
+        if( iter == _ptr_to_info.end() ) return false ;
+        //if( motor::log::global::error( iter == _ptr_to_info.end(),
+          //  "[manager::get_purpose] : ptr location not found" ) )
             return false ;
 
         pout = iter->second.purpose ;        
@@ -162,10 +160,28 @@ void_t manager::dump_to_std( void_t ) const noexcept
     std::cout << "***************************************************" << std::endl ;
     std::cout << "[manager::dump_to_std] : Dump to std [" << _allocated_sib << "] sib" << std::endl ;
 
+    size_t sib_less_100 = 0 ;
+    size_t num_entries_less_100 = 0 ;
+
     for( auto iter : _ptr_to_info )
     {
-        std::cout << iter.second.purpose << "; sib: " << std::to_string(iter.second.sib) << 
+        if( iter.second.sib < 100 )
+        {
+            sib_less_100 += iter.second.sib ;
+            ++num_entries_less_100 ;
+            continue ;
+        }
+
+        std::string p(iter.second.purpose!= nullptr ? iter.second.purpose : "") ;
+        std::cout << p << 
+            "; sib: " << std::to_string(iter.second.sib) << 
             "; rc: " << std::to_string(iter.second.rc) << std::endl ;
+    }
+
+    if( num_entries_less_100 > 0 )
+    {
+        std::cout << "[manager::dump_to_std] : " << std::to_string(num_entries_less_100) << 
+            " # of entries with sib < 100 in total sib [" << std::to_string(sib_less_100) << "]" << std::endl ;
     }
 
     if( _ptr_to_info.empty() )

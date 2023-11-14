@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../api.h"
+#include "api.h"
 #include "typedefs.h"
 #include <mutex>
 
@@ -8,7 +8,7 @@ namespace motor
 {
     namespace memory
     {
-        class MOTOR_CORE_API global
+        class MOTOR_MEMORY_API global
         {
             motor_this_typedefs( global ) ;
 
@@ -37,7 +37,7 @@ namespace motor
 
         public: // managed interface
 
-            static void_ptr_t create( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept ;
+            static void_ptr_t create( size_t const sib, char_cptr_t purpose ) noexcept ;
             static void_ptr_t create( size_t const sib ) noexcept ;
 
             // duplicates a managed pointer.
@@ -49,12 +49,12 @@ namespace motor
 
         public: // raw interface
 
-            static void_ptr_t alloc( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept ;
+            static void_ptr_t alloc( size_t const sib, char_cptr_t purpose ) noexcept ;
             static void_ptr_t alloc( size_t const sib ) noexcept ;
             static void_ptr_t dealloc( void_ptr_t ) noexcept ;
             static size_t get_sib( void_t ) noexcept ;
 
-            static bool_t get_purpose( void_ptr_t, motor::memory::purpose_ref_t ) noexcept ;
+            static bool_t get_purpose( void_ptr_t, char_cptr_t & ) noexcept ;
 
             static void_t dump_to_std( void_t ) noexcept ;
 
@@ -69,7 +69,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* create( motor::memory::purpose_cref_t purpose )
+            static T* create( char_cptr_t purpose )
             {
                 return new( this_t::create( sizeof( T ), purpose ) ) T() ;
             }
@@ -81,7 +81,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* create( T const& acopy, motor::memory::purpose_cref_t purpose )
+            static T* create( T const& acopy, char_cptr_t purpose )
             {
                 return new( this_t::create( sizeof( T ), purpose ) ) T( acopy ) ;
             }
@@ -93,7 +93,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* create( T&& amove, motor::memory::purpose_cref_t purpose )
+            static T* create( T&& amove, char_cptr_t purpose )
             {
                 return new( this_t::create( sizeof( T ), purpose ) )T( std::move( amove ) ) ;
             }
@@ -117,7 +117,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* alloc( motor::memory::purpose_cref_t purpose )
+            static T* alloc( char_cptr_t purpose )
             {
                 void_ptr_t ptr = this_t::alloc( sizeof( T ), purpose ) ;
                 return new( ptr )T() ;
@@ -131,7 +131,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* alloc( T const& acopy, motor::memory::purpose_cref_t purpose )
+            static T* alloc( T const& acopy, char_cptr_t purpose )
             {
                 void_ptr_t ptr = this_t::alloc( sizeof( T ), purpose ) ;
                 return new( ptr )T( acopy ) ;
@@ -145,7 +145,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* alloc( T&& amove, motor::memory::purpose_cref_t purpose )
+            static T* alloc( T&& amove, char_cptr_t purpose )
             {
                 void_ptr_t ptr = this_t::alloc( sizeof( T ), purpose ) ;
                 return new( ptr )T( std::move( amove ) ) ;
@@ -169,7 +169,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* alloc( size_t const n, motor::memory::purpose_cref_t purpose )
+            static T* alloc( size_t const n, char_cptr_t purpose )
             {
                 T* ptr = this_t::alloc_raw<T>( n, purpose ) ;
                 for( size_t i = 0; i < n; ++i ) new( ptr + i )T() ;
@@ -183,7 +183,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* alloc_raw( size_t const n, motor::memory::purpose_cref_t purpose )
+            static T* alloc_raw( size_t const n, char_cptr_t purpose )
             {
                 return reinterpret_cast< T* >( this_t::alloc( sizeof( T ) * n, purpose ) ) ;
             }

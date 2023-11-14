@@ -3,7 +3,7 @@
 
 #include "../ilogger.h"
 
-#include <motor/core/std/vector>
+#include <motor/std/vector>
 
 #include <functional>
 #include <mutex>
@@ -12,7 +12,7 @@ namespace motor
 {
     namespace log
     {
-        class MOTOR_CORE_API store_logger : public  motor::log::ilogger
+        class MOTOR_LOG_API store_logger : public  motor::log::ilogger
         {
             motor_this_typedefs( store_logger ) ;
 
@@ -20,14 +20,16 @@ namespace motor
 
             struct store_data
             {
+                ~store_data( void_t ) {}
                 motor::log::log_level ll ;
                 motor::core::string_t msg ;
+                //std::string msg ;
             };
             motor_typedef( store_data );
 
         private:
 
-            size_t const max_elems = 10000 ;
+            size_t const max_elems = 1000 ;
             motor_typedefs( motor::core::vector< store_data_t >, stores );
 
             mutable std::mutex _mtx ;

@@ -2,29 +2,35 @@
 set( sources 
     "typedefs.h"
 
-    "vector.hpp"
-    "list.hpp"
-    "map.hpp"
-    "stack.hpp"
+    "string"
+    "vector"
+    "map"
+    "unordered"
 
-    "filesystem.hpp"
-    "string.hpp"
+    #"vector.hpp"
+    #"list.hpp"
+    #"map.hpp"
+    #"stack.hpp"
 
-    "insertion_sort.hpp"
+    #"filesystem.hpp"
+    #"string.hpp"
 
-    "string/utf8.hpp"
-    "string/split.hpp"
+    #"insertion_sort.hpp"
+
+    #"string/utf8.hpp"
+    #"string/split.hpp"
 
     "header_only.cpp"
     )
 
-natus_vs_src_dir( sources )
+motor_vs_src_dir( sources )
 
-add_library( ${cur_lib_name} ${NATUS_LIBRARY_BUILD_TYPE} ${sources} )
+add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
 add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
 target_link_libraries( ${cur_lib_name}
-        PUBLIC natus::memory
+        PUBLIC motor::memory
+        PUBLIC motor::core
         PUBLIC ghc_filesystem
 )
 
@@ -32,7 +38,7 @@ target_link_libraries( ${cur_lib_name}
 # SECTION: Build Tree
 ###########################################################
 
-#natus_export( ${to_be_included} )
+#motor_export( ${to_be_included} )
 
 ###########################################################
 # SECTION: Install

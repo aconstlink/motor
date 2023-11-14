@@ -47,7 +47,8 @@ motor::log::result store_logger::log( motor::log::log_level const ll, motor::cor
 
     _cp_start = _cp_start > _stores.size() ? 0 : _cp_start ;
 
-    _stores[ _cp_end ] = sd ;
+    //_stores[ _cp_end ] = sd ;
+    _stores.emplace_back( sd ) ;
 
     return motor::log::result::ok ;
 }

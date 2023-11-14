@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../api.h"
+#include "api.h"
 
 #include "typedefs.h"
 #include "function.h"
@@ -13,7 +13,7 @@ namespace motor
 {
     namespace log
     {
-        class MOTOR_CORE_API global
+        class MOTOR_LOG_API global
         {
             motor_this_typedefs( global ) ;
 

@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <motor/core/memory/allocator.hpp>
+#include <motor/memory/allocator.hpp>
 #include <vector>
 
 namespace motor

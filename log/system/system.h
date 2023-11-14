@@ -4,8 +4,8 @@
 #include "../isystem.h"
 #include "../logger/store_logger.h"
 
-#include <motor/core/std/string>
-#include <motor/core/std/vector>
+#include <motor/std/string>
+#include <motor/std/vector>
 
 namespace motor
 {

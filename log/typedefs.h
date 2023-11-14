@@ -1,10 +1,11 @@
 #pragma once
 
+#include <motor/std/string>
+
 #include <motor/core/types.hpp>
 #include <motor/core/macros/common.h>
 #include <motor/core/macros/typedef.h>
 #include <motor/core/macros/move.h>
-#include <motor/core/std/string>
 
 namespace motor
 {

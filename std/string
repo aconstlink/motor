@@ -1,0 +1,19 @@
+
+#pragma once
+
+#include <motor/memory/allocator.hpp>
+#include <string>
+
+namespace motor
+{
+    namespace core
+    {
+        // allocator missing!
+        //using string_t = std::string ;
+
+        using string_t = std::basic_string< char, std::char_traits<char>,
+            motor::memory::allocator< char > > ;
+
+        using string_cref_t = string_t const & ;
+    }
+}

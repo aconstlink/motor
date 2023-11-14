@@ -40,9 +40,9 @@ global::this_ptr_t global::init( void_t ) noexcept
         if( global_t::_ptr != nullptr ) return this_t::_ptr ;
         
         this_t::_ptr = new this_t() ;
-
-        this_t::status( "[online] : natus log" ) ;
     }
+    this_t::status( "[online] : natus log" ) ;
+
 
     return this_t::_ptr ;
 }

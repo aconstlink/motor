@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <motor/core/api.h>
+#include "api.h"
 
 #include "result.h"
 #include "log_level.h"
@@ -10,7 +10,7 @@ namespace motor
 {
     namespace log
     {
-        class MOTOR_CORE_API ilogger
+        class MOTOR_LOG_API ilogger
         {
         public:
             virtual ~ilogger( void_t ) {}

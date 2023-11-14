@@ -3,8 +3,6 @@
 
 #include "manager/manager.h"
 
-#include <motor/core/log/global.h>
-
 using namespace motor::memory ;
 
 std::mutex global::_mtx ;
@@ -40,9 +38,8 @@ global::this_ptr_t global::init( void_t ) noexcept
 
         if( this_t::_ptr != nullptr ) return this_t::_ptr ;
         this_t::_ptr = new this_t() ;
-
-        motor::log::global_t::status( "[online] : natus memory" ) ;
     }
+    //motor::log::global_t::status( "[online] : natus memory" ) ;
 
     return this_t::_ptr ;
 }
@@ -70,7 +67,7 @@ void global::dump_to_std( void_t ) noexcept
 }
 
 //*************************************************************************************
-void_ptr_t global::create( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept 
+void_ptr_t global::create( size_t const sib, char_cptr_t purpose ) noexcept 
 {
     return this_t::get()->_manager->create( sib, purpose ) ;
 }
@@ -94,7 +91,7 @@ void_ptr_t global::release( void_ptr_t ptr ) noexcept
 }
 
 //*************************************************************************************
-void_ptr_t global::alloc( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept 
+void_ptr_t global::alloc( size_t const sib, char_cptr_t purpose ) noexcept 
 {
     return this_t::get()->_manager->alloc( sib, purpose ) ;
 }
@@ -122,7 +119,7 @@ size_t global::get_sib( void_t ) noexcept
 }
 
 //*************************************************************************************
-bool_t global::get_purpose( void_ptr_t ptr, motor::memory::purpose_ref_t pout ) noexcept 
+bool_t global::get_purpose( void_ptr_t ptr, char_cptr_t & pout ) noexcept 
 {
     return this_t::get()->_manager->get_purpose( ptr, pout ) ;
 }

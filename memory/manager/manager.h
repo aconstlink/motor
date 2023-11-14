@@ -2,7 +2,7 @@
 
 #include "../imanager.h"
 
-#include <motor/core/std/map>
+#include <motor/std/map>
 
 #include <mutex>
 
@@ -11,7 +11,7 @@ namespace motor
 {
     namespace memory
     {
-        class MOTOR_CORE_API manager : public motor::memory::imanager
+        class MOTOR_MEMORY_API manager : public motor::memory::imanager
         {
             motor_this_typedefs( manager ) ;
 
@@ -19,7 +19,7 @@ namespace motor
             {
                 size_t sib ;
                 size_t rc ; // refcount
-                motor::memory::purpose_t purpose ;
+                char_cptr_t purpose ;
             } ;
             typedef motor::core::map< void_ptr_t, memory_info > ptr_to_info_t ;
 
@@ -45,7 +45,7 @@ namespace motor
 
         public: // managed interface
 
-            virtual void_ptr_t create( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept ;
+            virtual void_ptr_t create( size_t const sib, char_cptr_t purpose ) noexcept ;
             virtual void_ptr_t create( size_t const sib ) noexcept ;
 
             // duplicates a managed pointer.
@@ -57,11 +57,11 @@ namespace motor
 
         public: // raw interface
             
-            virtual void_ptr_t alloc( size_t const sib, motor::memory::purpose_cref_t purpose ) noexcept ;
+            virtual void_ptr_t alloc( size_t const sib, char_cptr_t purpose ) noexcept ;
             virtual void_ptr_t alloc( size_t const sib ) noexcept ;
             virtual void_t dealloc( void_ptr_t ) noexcept ;
             virtual size_t get_sib( void_t ) const noexcept ;
-            virtual bool_t get_purpose( void_ptr_t, motor::memory::purpose_ref_t ) const noexcept ;
+            virtual bool_t get_purpose( void_ptr_t, char_cptr_t & ) const noexcept ;
 
             virtual void_t dump_to_std( void_t ) const noexcept ;
 
@@ -69,7 +69,7 @@ namespace motor
 
         private:
 
-            void_ptr_t alloc( size_t const sib, motor::memory::purpose_cref_t purpose, bool_t const managed ) noexcept ;
+            void_ptr_t alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept ;
             void_ptr_t dealloc( void_ptr_t, bool_t const managed ) noexcept ;
         };
         motor_typedef( manager ) ;
