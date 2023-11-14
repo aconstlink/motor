@@ -6,9 +6,6 @@
 
 namespace motor
 {
-    // allocator missing!
-    //using string_t = std::string ;
-
     using string_t = std::basic_string< char, std::char_traits<char>,
         motor::memory::allocator< char > > ;
 
