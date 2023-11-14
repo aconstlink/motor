@@ -22,7 +22,7 @@ namespace motor
             {
                 ~store_data( void_t ) {}
                 motor::log::log_level ll ;
-                motor::core::string_t msg ;
+                motor::string_t msg ;
                 //std::string msg ;
             };
             motor_typedef( store_data );
@@ -30,7 +30,7 @@ namespace motor
         private:
 
             size_t const max_elems = 1000 ;
-            motor_typedefs( motor::core::vector< store_data_t >, stores );
+            motor_typedefs( motor::vector< store_data_t >, stores );
 
             mutable std::mutex _mtx ;
             stores_t _stores ;
@@ -53,7 +53,7 @@ namespace motor
 
         public:
 
-            virtual motor::log::result log( motor::log::log_level const ll, motor::core::string_cref_t msg ) noexcept ;
+            virtual motor::log::result log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept ;
 
             size_t get_max_items( void_t ) const noexcept ;
             size_t get_num_items( void_t ) const noexcept ;

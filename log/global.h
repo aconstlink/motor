@@ -48,18 +48,18 @@ namespace motor
 
         public:
 
-            static void_t message( log_level const level, motor::core::string_cref_t msg ) noexcept ;
-            static bool_t message( bool_t const condition, log_level const level, motor::core::string_cref_t msg ) noexcept ;
-            static void_t status( motor::core::string_cref_t msg ) noexcept ;
-            static bool_t status( bool_t const condition, motor::core::string_cref_t msg ) noexcept ;
-            static void_t warning( motor::core::string_cref_t msg ) noexcept ;
-            static bool_t warning( bool_t const condition, motor::core::string_cref_t msg ) noexcept ;
-            static void_t error( motor::core::string_cref_t msg ) noexcept ;
-            static void_t error_and_exit( motor::core::string_cref_t msg ) noexcept ;
-            static void_t error_and_exit( bool_t const condition, motor::core::string_cref_t msg ) noexcept ;
-            static bool_t error( bool_t const condition, motor::core::string_cref_t msg ) noexcept ;
-            static void_t critical( motor::core::string_cref_t msg ) noexcept ;
-            static bool_t critical( bool_t const condition, motor::core::string_cref_t msg ) noexcept ;
+            static void_t message( log_level const level, motor::string_cref_t msg ) noexcept ;
+            static bool_t message( bool_t const condition, log_level const level, motor::string_cref_t msg ) noexcept ;
+            static void_t status( motor::string_cref_t msg ) noexcept ;
+            static bool_t status( bool_t const condition, motor::string_cref_t msg ) noexcept ;
+            static void_t warning( motor::string_cref_t msg ) noexcept ;
+            static bool_t warning( bool_t const condition, motor::string_cref_t msg ) noexcept ;
+            static void_t error( motor::string_cref_t msg ) noexcept ;
+            static void_t error_and_exit( motor::string_cref_t msg ) noexcept ;
+            static void_t error_and_exit( bool_t const condition, motor::string_cref_t msg ) noexcept ;
+            static bool_t error( bool_t const condition, motor::string_cref_t msg ) noexcept ;
+            static void_t critical( motor::string_cref_t msg ) noexcept ;
+            static bool_t critical( bool_t const condition, motor::string_cref_t msg ) noexcept ;
 
         };
         motor_typedef( global ) ;

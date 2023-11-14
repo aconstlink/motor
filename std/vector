@@ -6,9 +6,6 @@
 
 namespace motor
 {
-    namespace core
-    {
-        template< typename T > 
-        using vector = std::vector<T, motor::memory::allocator< T > >;
-    }
+    template< typename T > 
+    using vector = std::vector<T, motor::memory::allocator< T > >;
 }

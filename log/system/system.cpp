@@ -46,7 +46,7 @@ void_t system::destroy( this_ptr_t ptr ) noexcept
 }
 
 //*************************************************************************************
-motor::log::result system::log( motor::log::log_level const ll, motor::core::string_cref_t msg ) noexcept
+motor::log::result system::log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept
 {
     for( auto * logger : _loggers ) logger->log( ll, msg ) ;
     return motor::log::result::ok ;

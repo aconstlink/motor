@@ -21,7 +21,7 @@ namespace motor
                 size_t rc ; // refcount
                 char_cptr_t purpose ;
             } ;
-            typedef motor::core::map< void_ptr_t, memory_info > ptr_to_info_t ;
+            typedef motor::map< void_ptr_t, memory_info > ptr_to_info_t ;
 
             typedef std::mutex mutex_t ;
             typedef std::unique_lock< mutex_t > lock_t ;

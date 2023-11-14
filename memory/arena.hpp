@@ -48,7 +48,7 @@ namespace motor
 
             };
             motor_typedef( page ) ;
-            motor_typedefs( motor::core::vector< page_ptr_t >, pages ) ;
+            motor_typedefs( motor::vector< page_ptr_t >, pages ) ;
 
         private:
 

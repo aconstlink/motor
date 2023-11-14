@@ -32,7 +32,7 @@ store_logger::~store_logger( void_t ) noexcept
 {}
 
 //********************************************************************
-motor::log::result store_logger::log( motor::log::log_level const ll, motor::core::string_cref_t msg ) noexcept
+motor::log::result store_logger::log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept
 {
     this_t::store_data_t sd ;
     sd.ll = ll ;

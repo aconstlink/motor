@@ -15,7 +15,7 @@ namespace motor
         class system : public isystem
         {
             motor_this_typedefs( system ) ;
-            motor_typedefs( motor::core::vector< motor::log::ilogger_ptr_t >, loggers ) ;
+            motor_typedefs( motor::vector< motor::log::ilogger_ptr_t >, loggers ) ;
 
             loggers_t _loggers ;
             motor::log::store_logger_t _slogger ;
@@ -36,7 +36,7 @@ namespace motor
             system( this_rref_t ) noexcept ;
             virtual ~system( void_t ) noexcept ;
 
-            virtual motor::log::result log( motor::log::log_level const ll, motor::core::string_cref_t msg ) noexcept ;
+            virtual motor::log::result log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept ;
             virtual motor::log::result add_logger( motor::log::ilogger_ptr_t lptr ) noexcept ;
             virtual motor::log::ilogger_ptr_t set_default_logger( motor::log::ilogger_ptr_t lptr ) noexcept ;
 

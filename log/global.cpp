@@ -75,76 +75,76 @@ motor::log::store_logger_cptr_t global::get_store( void_t ) noexcept
 }
 
 //*************************************************************************************
-void_t global::message( log_level const level, motor::core::string_cref_t msg ) noexcept
+void_t global::message( log_level const level, motor::string_cref_t msg ) noexcept
 {
     this_t::get()->__default_log_system->log( level, msg ) ;
 }
 
 //*************************************************************************************
-bool_t global::message( bool_t const condition, log_level const level, motor::core::string_cref_t msg ) noexcept
+bool_t global::message( bool_t const condition, log_level const level, motor::string_cref_t msg ) noexcept
 {
     if( condition ) motor::log::global::message( level, msg ) ;
     return condition ;
 }
 
 //*************************************************************************************
-void_t global::status( motor::core::string_cref_t msg ) noexcept
+void_t global::status( motor::string_cref_t msg ) noexcept
 {
     motor::log::global::message( motor::log::log_level::status, msg ) ;
 }
 
 //*************************************************************************************
-bool_t global::status( bool_t const condition, motor::core::string_cref_t msg ) noexcept
+bool_t global::status( bool_t const condition, motor::string_cref_t msg ) noexcept
 {
     return motor::log::global::message( condition, motor::log::log_level::status, msg ) ;
 }
 
 //*************************************************************************************
-void_t global::warning( motor::core::string_cref_t msg ) noexcept
+void_t global::warning( motor::string_cref_t msg ) noexcept
 {
     motor::log::global::message( motor::log::log_level::warning, msg ) ;
 }
 
 //*************************************************************************************
-bool_t global::warning( bool_t const condition, motor::core::string_cref_t msg ) noexcept
+bool_t global::warning( bool_t const condition, motor::string_cref_t msg ) noexcept
 {
     return motor::log::global::message( condition, motor::log::log_level::warning, msg ) ;
 }
 
 //*************************************************************************************
-void_t global::error( motor::core::string_cref_t msg ) noexcept
+void_t global::error( motor::string_cref_t msg ) noexcept
 {
     motor::log::global::message( motor::log::log_level::error, msg ) ;
 }
 
 //*************************************************************************************
-void_t global::error_and_exit( motor::core::string_cref_t msg ) noexcept
+void_t global::error_and_exit( motor::string_cref_t msg ) noexcept
 {
     motor::log::global::message( motor::log::log_level::error, msg ) ;
     std::exit( 1 ) ; 
 }
 
 //*************************************************************************************
-void_t global::error_and_exit( bool_t const condition, motor::core::string_cref_t msg ) noexcept
+void_t global::error_and_exit( bool_t const condition, motor::string_cref_t msg ) noexcept
 {
     if( motor::log::global::message( condition, motor::log::log_level::error, msg ) )
         std::exit( 1 ) ;
 }
 
 //*************************************************************************************
-bool_t global::error( bool_t const condition, motor::core::string_cref_t msg ) noexcept
+bool_t global::error( bool_t const condition, motor::string_cref_t msg ) noexcept
 {
     return motor::log::global::message( condition, motor::log::log_level::error, msg ) ;
 }
 
 //*************************************************************************************
-void_t global::critical( motor::core::string_cref_t msg ) noexcept
+void_t global::critical( motor::string_cref_t msg ) noexcept
 {
     motor::log::global::message( motor::log::log_level::critical, msg ) ;
 }
 
 //*************************************************************************************
-bool_t global::critical( bool_t const condition, motor::core::string_cref_t msg ) noexcept
+bool_t global::critical( bool_t const condition, motor::string_cref_t msg ) noexcept
 {
     return motor::log::global::message( condition, motor::log::log_level::critical, msg ) ;
 }
