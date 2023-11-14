@@ -3,6 +3,7 @@
 #include "api.h"
 #include "typedefs.h"
 #include <mutex>
+#include <functional>
 
 namespace motor
 {
@@ -20,6 +21,11 @@ namespace motor
 
             static std::mutex _mtx ;
             static this_ptr_t _ptr ;
+
+        private:
+
+            using get_manager_funk_t = std::function< motor::memory::imanager_ptr_t ( void_t ) > ;
+            static get_manager_funk_t get_mgr ;
 
         public:
 
