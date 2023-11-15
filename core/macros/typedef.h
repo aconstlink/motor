@@ -34,6 +34,9 @@
     typedef this_t & this_ref_t ;                                       \
     typedef this_t const & this_cref_t ;                                \
     typedef this_t * this_ptr_t ;                                       \
+    typedef this_t * this_mtr_t ;                                       \
+    typedef this_t * & this_mtr_ref_t ;                                       \
+    typedef this_t * && this_mtr_rref_t ;                                       \
     typedef this_t const * this_cptr_t ;                                \
     typedef this_t && this_rref_t ;                                     \
     typedef this_t & this_inout_t
