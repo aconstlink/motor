@@ -68,36 +68,48 @@ namespace motor
 
         public: // managed interface
 
+            // creates managed pointer with ref count == 1
+            // user must release created pointer
             template< typename T >
             static T * create( void_t ) noexcept
             {
                 return new( this_t::create( sizeof( T ) ) ) T() ;
             }
 
+            // creates managed pointer with ref count == 1
+            // user must release created pointer
             template< typename T >
             static T* create( char_cptr_t purpose )
             {
                 return new( this_t::create( sizeof( T ), purpose ) ) T() ;
             }
 
+            // creates managed pointer with ref count == 1
+            // user must release created pointer
             template< typename T >
             static T* create( T const & acopy )
             {
                 return new( this_t::create( sizeof( T ) ) ) T( acopy ) ;
             }
 
+            // creates managed pointer with ref count == 1
+            // user must release created pointer
             template< typename T >
             static T* create( T const& acopy, char_cptr_t purpose )
             {
                 return new( this_t::create( sizeof( T ), purpose ) ) T( acopy ) ;
             }
 
+            // creates managed pointer with ref count == 1
+            // user must release created pointer
             template< typename T >
             static T* create( T&& amove )
             {
                 return new( this_t::create( sizeof( T ) ) )T( std::move( amove ) ) ;
             }
 
+            // creates managed pointer with ref count == 1
+            // user must release created pointer
             template< typename T >
             static T* create( T&& amove, char_cptr_t purpose )
             {
@@ -235,30 +247,10 @@ namespace motor
                     reinterpret_cast< void_ptr_t >( ptr ) ) ) ;
         }
 
-        // return the input ptr but 
-        // sets the input ptr to nullptr
-        template< typename T >
-        static T * move_ptr( T * & ptr ) noexcept
-        {
-            T * tmp = ptr ;
-            ptr = nullptr ;
-            return tmp ;
-        }
-
-        // return the input ptr but 
-        // sets the input ptr to nullptr
-        template< typename T >
-        static T * move_ptr( T * && ptr ) noexcept
-        {
-            return ptr ;
-        }
-
         template< typename T >
         T * release_ptr( T * ptr ) noexcept
         {
-            return reinterpret_cast< T*>(
-                motor::memory::global_t::release( 
-                    reinterpret_cast< void_ptr_t >( ptr ) ) ) ;
+            return motor::memory::global_t::release( ptr );
         }
     }
 }
