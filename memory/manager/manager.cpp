@@ -175,7 +175,7 @@ void_t manager::dump_to_std( void_t ) const noexcept
         std::string p(iter.second.purpose!= nullptr ? iter.second.purpose : "") ;
         std::cout << p << 
             "; sib: " << std::to_string(iter.second.sib) << 
-            "; rc: " << std::to_string(iter.second.rc) << std::endl ;
+            "; rc: " << (iter.second.rc != size_t(-1) ? std::to_string(iter.second.rc) : "-") << std::endl ;
     }
 
     if( num_entries_less_100 > 0 )
