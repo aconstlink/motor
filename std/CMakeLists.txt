@@ -1,19 +1,12 @@
 
 set( sources 
-    "typedefs.h"
 
     "string"
     "vector"
     "map"
     "unordered"
 
-    #"vector.hpp"
-    #"list.hpp"
-    #"map.hpp"
-    #"stack.hpp"
-
     #"filesystem.hpp"
-    #"string.hpp"
 
     #"insertion_sort.hpp"
 

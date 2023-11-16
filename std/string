@@ -10,4 +10,10 @@ namespace motor
         motor::memory::allocator< char > > ;
 
     using string_cref_t = string_t const & ;
+    using string_ref_t = string_t & ;
+
+    static string_t from_std( std::string const & b ) noexcept
+    {
+        return string_t( b.c_str() ) ;
+    }
 }
