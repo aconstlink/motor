@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../api.h"
+#include "api.h"
 #include "typedefs.h"
 
 namespace motor
@@ -9,7 +9,8 @@ namespace motor
     namespace memory
     {
         class MOTOR_MEMORY_API imanager
-        {
+        {           
+
         public: // managed interface
 
             virtual void_ptr_t create( size_t const sib, char_cptr_t purpose ) noexcept  = 0 ;
@@ -19,8 +20,9 @@ namespace motor
             virtual void_ptr_t create( void_ptr_t ) noexcept = 0;
 
             // returns same pointer if ref count is not 0
-            // otherwise nullptr is returned
-            virtual void_ptr_t release( void_ptr_t ) noexcept = 0 ;
+            // otherwise nullptr is returned. If ref count reaches 0,
+            // the release funk should be called
+            virtual void_ptr_t release( void_ptr_t, void_funk_t ) noexcept = 0 ;
 
         public: // raw interface
 

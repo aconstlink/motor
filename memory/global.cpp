@@ -92,9 +92,9 @@ void_ptr_t global::create( void_ptr_t ptr ) noexcept
 }
 
 //*************************************************************************************
-void_ptr_t global::release( void_ptr_t ptr ) noexcept 
+void_ptr_t global::release( void_ptr_t ptr, motor::memory::void_funk_t funk ) noexcept 
 {
-    return this_t::get_mgr()->release( ptr ) ;
+    return this_t::get_mgr()->release( ptr, funk ) ;
 }
 
 //*************************************************************************************

@@ -61,12 +61,6 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
 }
 
 //*************************************************************************************
-void_ptr_t manager::release( void_ptr_t ptr ) noexcept 
-{
-    return this_t::dealloc( ptr, true ) ;
-}
-
-//*************************************************************************************
 void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept 
 {
     if( sib == 0 ) return nullptr ;
@@ -93,7 +87,7 @@ void_ptr_t manager::alloc( size_t const sib ) noexcept
 }
 
 //*************************************************************************************
-void_ptr_t manager::dealloc( void_ptr_t ptr, bool_t const managed ) noexcept 
+void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk ) noexcept 
 {
     if( ptr == nullptr ) return nullptr ;
 
@@ -101,21 +95,19 @@ void_ptr_t manager::dealloc( void_ptr_t ptr, bool_t const managed ) noexcept
         lock_t lk(_mtx) ;
         auto iter = _ptr_to_info.find( ptr ) ;
 
-        assert( iter != _ptr_to_info.end() && "[manager::create] : ptr is not found in manager." ) ;
+        assert( iter != _ptr_to_info.end() && "[manager::release] : ptr is not found in manager." ) ;
 
-        if( managed )
+        assert( iter->second.rc != size_t(-1) && "[manager::release] : non-managed pointer is not ref counted." ) ;
+
+        if( --(iter->second.rc) != size_t(0) )
         {
-            assert( iter->second.rc != size_t(-1) && "[manager::create] : non-managed pointer is not ref counted." ) ;
-
-            if( --(iter->second.rc) != size_t(0) )
-            {
-                return ptr ;
-            }
+            return ptr ;
         }
         
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }
+    rel_funk() ;
     free( ptr ) ;
     return nullptr ;
 }
@@ -123,7 +115,18 @@ void_ptr_t manager::dealloc( void_ptr_t ptr, bool_t const managed ) noexcept
 //*************************************************************************************
 void manager::dealloc( void_ptr_t ptr ) noexcept 
 {
-    this_t::dealloc( ptr, false ) ;
+    if( ptr == nullptr ) return ;
+
+    {
+        lock_t lk(_mtx) ;
+        auto iter = _ptr_to_info.find( ptr ) ;
+
+        assert( iter != _ptr_to_info.end() && "[manager::dealloc] : ptr is not found in manager." ) ;
+        
+        _allocated_sib -= iter->second.sib ;
+        _ptr_to_info.erase( iter ) ;
+    }
+    free( ptr ) ;
 }
 
 //*************************************************************************************

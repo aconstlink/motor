@@ -2,7 +2,7 @@
 set( sources
     "api.h"
     "typedefs.h"
-    
+
     "allocator.hpp"
     "global.h"
     "global.cpp"

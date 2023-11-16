@@ -2,6 +2,7 @@
 
 #include "api.h"
 #include "typedefs.h"
+
 #include <mutex>
 #include <functional>
 
@@ -51,7 +52,7 @@ namespace motor
 
             // returns same pointer if ref count is not 0
             // otherwise nullptr is returned
-            static void_ptr_t release( void_ptr_t ) noexcept ;
+            static void_ptr_t release( void_ptr_t, motor::memory::void_funk_t ) noexcept ;
 
         public: // raw interface
 
@@ -120,9 +121,9 @@ namespace motor
             static T* release( T* ptr )
             {
                 if( ptr == nullptr ) return nullptr ;
-                ( *ptr ).~T() ;
                 return reinterpret_cast<T*> ( 
-                    this_t::release( reinterpret_cast< void_ptr_t >( ptr ) ) ) ;
+                    this_t::release( reinterpret_cast< void_ptr_t >( ptr ), 
+                        [=]( void_t ){ ( *ptr ).~T() ; } ) ) ;
             }
 
         public: // raw interface 
@@ -237,6 +238,42 @@ namespace motor
             }
         };
         motor_typedef( global ) ;
+
+        template< typename T >
+        static T * create( void_t ) noexcept
+        {
+            return global_t::create<T>() ;
+        }
+        
+        template< typename T >
+        static T* create( char_cptr_t purpose )
+        {
+            return global_t::create<T>( purpose ) ;
+        }
+
+        template< typename T >
+        static T* create( T const & acopy )
+        {
+            return global_t::create<T>( acopy ) ;
+        }
+
+        template< typename T >
+        static T* create( T const& acopy, char_cptr_t purpose )
+        {
+            return global_t::create<T>( acopy, purpose ) ;
+        }
+
+        template< typename T >
+        static T* create( T&& amove )
+        {
+            return global_t::create<T>( std::move( amove ) ) ;
+        }
+
+        template< typename T >
+        static T* create( T&& amove, char_cptr_t purpose )
+        {
+            return global_t::create<T>( std::move( amove ), purpose ) ;
+        }
 
         // increment internal ref-count
         template< typename T >

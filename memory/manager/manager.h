@@ -56,7 +56,7 @@ namespace motor
 
             // returns same pointer if ref count is not 0
             // otherwise nullptr is returned
-            virtual void_ptr_t release( void_ptr_t ) noexcept ;
+            virtual void_ptr_t release( void_ptr_t, motor::memory::void_funk_t ) noexcept ;
 
         public: // raw interface
             
@@ -73,7 +73,6 @@ namespace motor
         private:
 
             void_ptr_t alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept ;
-            void_ptr_t dealloc( void_ptr_t, bool_t const managed ) noexcept ;
         };
         motor_typedef( manager ) ;
     }
