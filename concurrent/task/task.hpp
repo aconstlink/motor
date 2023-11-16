@@ -100,10 +100,24 @@ namespace motor
                 return other ;
             }
 
-            this_ptr_t then( this_ptr_t other ) noexcept
+            this_ptr_t in_between( this_mtr_moved_t other ) noexcept
+            {
+                other->inc_incoming() ;
+                _inbetweens.emplace_back( other ) ;
+                return other ;
+            }
+
+            this_ptr_t then( this_mtr_t other ) noexcept
             {
                 other->inc_incoming() ;
                 _thens.emplace_back( motor::memory::copy_ptr(other) ) ;
+                return other ;
+            }
+
+            this_mtr_t then( this_mtr_moved_t other ) noexcept
+            {
+                other->inc_incoming() ;
+                _thens.emplace_back( other ) ;
                 return other ;
             }
             
