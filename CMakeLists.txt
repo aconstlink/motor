@@ -114,7 +114,7 @@ list( APPEND subdirs
     "memory"
     #"application"    
     "concurrent"
-    #"io"
+    "io"
     #"system"
     #"graphics"
     #"gfx"

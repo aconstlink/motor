@@ -1,20 +1,24 @@
 
+
 set( sources 
+    "api.h"
+    "result.h"
+    "protos.h"
+    "typedefs.h"
+    "global.h"
+    "global.cpp"
+    "monitor.hpp"
+    "obfuscator.hpp"
+    "location.hpp"
 
-    "string"
-    "vector"
-    "map"
-    "unordered"
-    "filesystem"
-    "stack"
-    "sstream"
+    "handle.h"
+    "handle.cpp"
+   
+    "system.h"
+    "system.cpp"
 
-    #"insertion_sort.hpp"
-
-    #"string/utf8.hpp"
-    "string_split.hpp"
-
-    "header_only.cpp"
+    "database.h"
+    "database.cpp"
     )
 
 motor_vs_src_dir( sources )
@@ -22,17 +26,22 @@ motor_vs_src_dir( sources )
 add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
 add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
+
 target_link_libraries( ${cur_lib_name}
+        PUBLIC motor::concurrent
+        PUBLIC motor::log
         PUBLIC motor::memory
-        PUBLIC motor::core
-        PUBLIC ghc_filesystem
-)
+        INTERFACE motor::core
+        INTERFACE ghc_filesystem
+        
+    )
+
 
 ###########################################################
 # SECTION: Build Tree
 ###########################################################
 
-#motor_export( ${to_be_included} )
+#motor_export( ${cur_lib_name} )
 
 ###########################################################
 # SECTION: Install
@@ -40,6 +49,3 @@ target_link_libraries( ${cur_lib_name}
 
 install_headers( "${sources}" "include/${PROJECT_NAME}/${cur_lib_name}" )
 install_library( ${cur_lib_name} ${PROJECT_NAME}-targets )
-
-
-

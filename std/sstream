@@ -1,0 +1,12 @@
+
+#pragma once
+
+#include <motor/memory/allocator.hpp>
+#include <sstream>
+
+namespace motor
+{
+    using stringstream_t = std::basic_stringstream< char, std::char_traits<char>,
+        motor::memory::allocator< char > > ;
+
+}

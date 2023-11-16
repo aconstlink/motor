@@ -1,0 +1,151 @@
+#pragma once
+
+#include "vector"
+
+#include <functional>
+#include <cassert>
+
+namespace motor
+{
+    /// not thread safe stack
+    template< typename O, size_t pre_alloc >
+    class stack
+    {
+        using this_t = motor::stack< O, pre_alloc > ;
+        using this_cref_t = this_t const & ;
+        using this_ref_t = this_t & ;
+        using this_rref_t = this_t && ;
+
+        using object_t = O ;
+        using object_cref_t = object_t const & ;
+        using object_ref_t = object_t & ;
+
+        using stack_t = motor::vector< object_t > ;
+
+        using for_each_funk_t = std::function< void( object_cref_t, bool const, bool const ) > ;
+
+    private:
+
+        stack_t _stack ;
+
+        /// one above top of stack
+        /// top of stack is last pushed
+        size_t _cur_pos = 0 ;
+
+    private:
+
+        /// checks the size of the stack and resizes
+        /// by pre_alloc
+        void check_and_resize( void )
+        {
+            if( _cur_pos < _stack.size() ) return ;
+            _stack.resize( _stack.size() + pre_alloc ) ;
+        }
+
+    public:
+
+        stack( void ) noexcept
+        {
+            _stack.resize( pre_alloc ) ;
+        }
+
+        stack( this_cref_t rhv ) noexcept
+        {
+            *this = rhv ;
+        }
+
+        stack( this_rref_t rhv ) noexcept
+        {
+            *this = ::std::move( rhv ) ;
+        }
+
+        this_ref_t operator = ( this_cref_t rhv ) noexcept
+        {
+            _cur_pos = rhv._cur_pos ;
+            _stack = rhv._stack ;
+            return *this ;
+        }
+
+        this_ref_t operator = ( this_rref_t rhv ) noexcept
+        {
+            _cur_pos = rhv._cur_pos ;
+            rhv._cur_pos = 0 ;
+            _stack = ::std::move( rhv._stack ) ;
+            return *this ;
+        }
+
+    public:
+
+        void push( object_cref_t rhv ) noexcept
+        {
+            check_and_resize() ;
+            _stack[ _cur_pos ] = rhv ;
+            ++_cur_pos ;
+        }
+
+        object_t pop( void ) noexcept
+        {
+            assert( _cur_pos > 0 ) ;
+            --_cur_pos ;
+            return std::move( _stack[ _cur_pos ] ) ;
+        }
+
+        void pop( object_ref_t obj_out ) noexcept
+        {
+            assert( _cur_pos > 0 ) ;
+            --_cur_pos ;
+            obj_out = ::std::move( _stack[ _cur_pos ] ) ;
+        }
+
+        size_t size( void ) const noexcept
+        {
+            return _cur_pos ;
+        }
+
+        bool has_item( void ) const noexcept
+        {
+            return this_t::size() != 0 ;
+        }
+
+        object_cref_t top( void ) const noexcept
+        {
+            assert( _cur_pos != 0 ) ;
+            return _stack.at( _cur_pos - 1 ) ;
+        }
+
+        bool top( object_ref_t out_ ) const noexcept
+        {
+            if( _cur_pos == 0 ) return false ;
+            out_ = top() ;
+            return true ;
+        }
+
+        object_cref_t operator [] ( size_t const i ) const noexcept
+        {
+            assert( _cur_pos >= i ) ;
+            return _stack[ i ] ;
+        }
+
+    public:
+
+        void bottom_to_top( for_each_funk_t funk ) noexcept
+        {
+            if( _cur_pos == 0 ) return ;
+
+            for( size_t i = 0; i < _cur_pos; ++i )
+            {
+                funk( _stack[ i ], i == 0, i == _cur_pos - 1 ) ;
+            }
+        }
+
+        void top_to_bottom( for_each_funk_t funk ) noexcept
+        {
+            if( _cur_pos == 0 ) return ;
+
+            for( size_t i = _cur_pos - 1; i != size_t( -1 ); --i )
+            {
+                funk( _stack[ i ], i == 0, i == _cur_pos - 1 ) ;
+            }
+        }
+    };
+}
