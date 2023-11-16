@@ -14,6 +14,8 @@ namespace motor
             using this_rref_t = this_t && ;
 
             using type_t = T ;
+            using type_ref_t = type_t & ;
+            using type_cref_t = type_t const & ;
             using type_mtr_t = type_t * ;
             using type_mtr_rref_t = type_t * && ;
 
@@ -35,6 +37,16 @@ namespace motor
             type_mtr_t operator -> ( void ) noexcept
             {
                 return _ptr ;
+            }
+
+            type_ref_t operator *( void ) noexcept
+            {
+                return *_ptr ;
+            }
+
+            type_cref_t operator *( void ) const noexcept
+            {
+                return *_ptr ;
             }
         };
     }

@@ -126,6 +126,13 @@ namespace motor
                         [=]( void_t ){ ( *ptr ).~T() ; } ) ) ;
             }
 
+            template< typename T >
+            static motor::core::mtr_moved<T> release( motor::core::mtr_moved<T> ptr )
+            {
+                if( ptr == nullptr ) return nullptr ;
+                return motor::core::mtr_moved<T>( this_t::release( (T*)ptr )  ) ;
+            }
+
         public: // raw interface 
 
             template< typename T >
