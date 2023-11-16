@@ -113,7 +113,7 @@ list( APPEND subdirs
     "log"
     "memory"
     #"application"    
-    #"concurrent"
+    "concurrent"
     #"io"
     #"system"
     #"graphics"
