@@ -86,5 +86,6 @@ namespace motor
                 while( !_condition ) std::this_thread::yield() ;
             }
         } ;
+        motor_typedef( sync_object ) ;
     }
 }

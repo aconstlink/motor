@@ -35,7 +35,7 @@ namespace motor
                 std::condition_variable pool_cv ;
 
                 motor::concurrent::mutex_t tasks_mtx ;
-                motor::vector< motor::concurrent::task_ptr_t > tasks ;
+                motor::vector< motor::concurrent::task_mtr_t > tasks ;
                 std::condition_variable tasks_cv ;
 
                 size_t threads_running = 0 ;
@@ -48,6 +48,11 @@ namespace motor
                     tasks = std::move( rhv.tasks ) ;
                     threads_running = rhv.threads_running ;
                     threads_max = rhv.threads_max ;
+                }
+
+                ~shared_data( void_t ) noexcept
+                {
+                    for( auto * t : tasks ) motor::memory::release_ptr( t ) ;
                 }
 
             public: // thread pool access
@@ -247,7 +252,7 @@ namespace motor
                 return true ;
             }
 
-            void_t schedule( motor::concurrent::task_mtr_rref_t t ) noexcept
+            void_t schedule( motor::concurrent::task_mtr_moved_t t ) noexcept
             {
                 _sd->add_task( std::move( t ) ) ;
             }
