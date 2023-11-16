@@ -85,7 +85,7 @@ void_t global::schedule( motor::concurrent::task_mtr_rref_t t, motor::concurrent
 }
 
 //*************************************************************************************************
-task_mtr_t global::make_task( motor::concurrent::task_t::task_funk_t f ) noexcept
+task_mtr_moved_t global::make_task( motor::concurrent::task_t::task_funk_t f ) noexcept
 {
     return motor::memory::global_t::create< task_t >( motor::concurrent::task_t(f), 
         "[motor::concurrent::global::make_task] : task" ) ;

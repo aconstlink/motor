@@ -41,7 +41,7 @@ namespace motor
 
 
             // creates a task and leaves ownership to caller.
-            static task_mtr_t make_task( motor::concurrent::task_t::task_funk_t f ) noexcept ;
+            static task_mtr_moved_t make_task( motor::concurrent::task_t::task_funk_t f ) noexcept ;
         };
         motor_typedef( global ) ;
     }
