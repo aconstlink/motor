@@ -5,7 +5,7 @@ set( sources
 
     "header_only.cpp"
     "types.hpp"
-
+    "mtr_moved.hpp"
     "macros/common.h"
     "macros/typedef.h"
     "macros/function.h"

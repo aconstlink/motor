@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "mtr_moved.hpp"
+
 #define motor_typedefs_extend( from_, to_ )                                \
     typedef to_ ## _t * to_ ## _ptr_t ;                                 \
     typedef to_ ## _t * to_ ## _mtr_t ;                                 \
@@ -18,7 +20,8 @@
     typedef to_ ## _t * & to_ ## _ptr_ref_t ;                           \
     typedef to_ ## _t * && to_ ## _ptr_rref_t ;                         \
     typedef to_ ## _t * & to_ ## _mtr_ref_t ;                           \
-    typedef to_ ## _t * && to_ ## _mtr_rref_t
+    typedef to_ ## _t * && to_ ## _mtr_rref_t ;                         \
+    typedef motor::core::mtr_moved< to_ ## _t > to_ ## _mtr_moved_t  
 
 
 #define motor_typedef_extend( what_ ) motor_typedefs_extend( what_, what_ )
@@ -39,7 +42,8 @@
     typedef this_t * && this_mtr_rref_t ;                                       \
     typedef this_t const * this_cptr_t ;                                \
     typedef this_t && this_rref_t ;                                     \
-    typedef this_t & this_inout_t
+    typedef this_t & this_inout_t ;                                     \
+    typedef motor::core::mtr_moved< this_t > this_mtr_moved_t  
 
 #define motor_class_proto_typedefs(x)                                      \
     class x ;                                                           \
