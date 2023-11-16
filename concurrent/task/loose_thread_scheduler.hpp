@@ -16,7 +16,7 @@ namespace motor
 
         public:
 
-            motor_typedefs( motor::vector< motor::concurrent::task_ptr_t >, tasks ) ;
+            motor_typedefs( motor::vector< motor::concurrent::task_mtr_t >, tasks ) ;
 
         private:
 
@@ -122,22 +122,30 @@ namespace motor
                         tasks_t tasks ;
                         motor::concurrent::task::scheduler_accessor::schedule( t, tasks ) ;
 
+                        // note. Here the tasks are passed by rvalue.
+                        // this scheduler needs to take care of the task pointers.
                         _sd->owner->schedule( std::move( tasks ) ) ;
 
                         motor::memory::release_ptr( t ) ;
                     } ) ;
                     this_t::place_future( std::move(f) ) ;
                 }
+                else
+                {
+                    motor::memory::release_ptr( t ) ;
+                }
             }
 
         public:
 
-            void_t schedule( task_mtr_rref_t t ) noexcept
+            // the schedule takes over the pointer
+            void_t schedule( task_mtr_moved_t t ) noexcept
             {
                 motor::concurrent::lock_t lk( _mtx ) ;
                  _tasks.emplace_back( std::move( t ) ) ;
             }
 
+            // the schedule takes over the pointers
             void_t schedule( tasks_rref_t tasks ) noexcept
             {
                 motor::concurrent::lock_t lk( _mtx ) ;
