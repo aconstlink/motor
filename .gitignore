@@ -30,4 +30,12 @@
 *.exe
 *.out
 *.app
-std/header_only.cpp
+
+*/api.h
+*/header_only.cpp
+*/imgui.ini
+GPATH
+GRTAGS
+GTAGS
+
+*.~undo-tree~
