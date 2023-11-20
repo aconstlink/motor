@@ -26,29 +26,24 @@ namespace motor
                 char_ptr_t data = nullptr ;
                 size_t sib = 0 ;
 
-                std::condition_variable cv ;
-                motor::concurrent::mutex_t mtx ;
-                bool_t ready = false ;
-                motor::io::result status = motor::io::result::invalid ;
+                std::future<motor::io::result> ftr ;
 
-                load_item( void_t ) {}
-                load_item( this_rref_t rhv )
+                load_item( void_t ) noexcept {}
+                load_item( this_rref_t rhv ) noexcept
                 {
                     motor_move_member_ptr( data, rhv ) ;
                     sib = rhv.sib ;
-                    ready = rhv.ready ;
-                    status = rhv.status ;
+                    ftr = std::move( rhv.ftr ) ;
                 }
                 load_item( this_cref_t ) = delete ;
-                ~load_item( void_t ) {}
+                ~load_item( void_t ) noexcept {}
 
                 this_ref_t operator = ( this_cref_t ) = delete ;
-                this_ref_t operator = ( this_rref_t rhv )
+                this_ref_t operator = ( this_rref_t rhv ) noexcept
                 {
                     motor_move_member_ptr( data, rhv ) ;
                     sib = rhv.sib ;
-                    ready = rhv.ready ;
-                    status = rhv.status ;
+                    ftr = std::move( rhv.ftr ) ;
                     return *this ;
                 }
             };
@@ -67,30 +62,25 @@ namespace motor
 
                 char_cptr_t data = nullptr ;
                 size_t sib = 0 ;
+                
+                std::future<motor::io::result> ftr ;
 
-                std::condition_variable cv ;
-                motor::concurrent::mutex_t mtx ;
-                bool_t ready = false ;
-                motor::io::result status = motor::io::result::invalid ;
-
-                store_item( void_t ) {}
-                store_item( this_rref_t rhv )
+                store_item( void_t ) noexcept {}
+                store_item( this_rref_t rhv ) noexcept
                 {
                     motor_move_member_ptr( data, rhv ) ;
                     sib = rhv.sib ;
-                    ready = rhv.ready ;
-                    status = rhv.status ;
+                    ftr = std::move( rhv.ftr ) ;
                 }
                 store_item( this_cref_t ) = delete ;
-                ~store_item( void_t ) {}
+                ~store_item( void_t ) noexcept {}
 
                 this_ref_t operator = ( this_cref_t ) = delete ;
-                this_ref_t operator = ( this_rref_t rhv )
+                this_ref_t operator = ( this_rref_t rhv ) noexcept
                 {
                     motor_move_member_ptr( data, rhv ) ;
                     sib = rhv.sib ;
-                    ready = rhv.ready ;
-                    status = rhv.status ;
+                    ftr = std::move( rhv.ftr ) ;
                     return *this ;
                 }
             };
@@ -133,14 +123,16 @@ namespace motor
 
         public:
 
-            this_t::load_handle_t load( motor::io::path_cref_t,
+            this_t::load_handle_t load( motor::io::path_cref_t, std::launch const lt = std::launch::deferred,
                 motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
 
             this_t::load_handle_t load( motor::io::path_cref_t,
                 size_t const offset = size_t( 0 ), size_t const sib = size_t( -1 ),
+                std::launch const lt = std::launch::deferred, 
                 motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
 
             this_t::store_handle_t store( motor::io::path_cref_t, char_cptr_t, size_t const,
+                std::launch const lt = std::launch::deferred, 
                 motor::io::obfuscator_rref_t = motor::io::obfuscator_t()) noexcept ;
 
         private:

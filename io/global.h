@@ -40,11 +40,17 @@ namespace motor
             static this_ptr_t get( void_t ) noexcept ;
             static system_ptr_t io_system( void_t ) noexcept;
 
-            static motor::io::system_t::load_handle_t load( motor::io::path_cref_t, motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
-            static motor::io::system_t::load_handle_t load( motor::io::path_cref_t, size_t const offset, size_t const sib, motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
+            static motor::io::system_t::load_handle_t load( motor::io::path_cref_t, 
+                std::launch const lt = std::launch::deferred, motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
 
-            static motor::io::system_t::store_handle_t store( motor::io::path_cref_t, char_cptr_t, size_t const ) noexcept ;
-            static motor::io::system_t::store_handle_t store( motor::io::path_cref_t, char_cptr_t, size_t const, motor::io::obfuscator_rref_t ) noexcept ;
+            static motor::io::system_t::load_handle_t load( motor::io::path_cref_t, size_t const offset, size_t const sib, 
+                std::launch const lt = std::launch::deferred, motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
+
+            static motor::io::system_t::store_handle_t store( motor::io::path_cref_t, char_cptr_t, size_t const, 
+                std::launch const lt = std::launch::deferred ) noexcept ;
+
+            static motor::io::system_t::store_handle_t store( motor::io::path_cref_t, char_cptr_t, size_t const, motor::io::obfuscator_rref_t, 
+                std::launch const lt = std::launch::deferred ) noexcept ;
         };
         motor_typedef( global ) ;
     }

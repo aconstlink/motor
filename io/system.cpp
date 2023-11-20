@@ -38,18 +38,19 @@ system::system( this_rref_t rhv ) noexcept
 }
 
 //************************************************************************************
-motor::io::system::load_handle_t system::load( motor::io::path_cref_t file_path, motor::io::obfuscator_rref_t obf) noexcept
+motor::io::system::load_handle_t system::load( motor::io::path_cref_t file_path, 
+    std::launch const lt, motor::io::obfuscator_rref_t obf) noexcept
 {
-    return this_t::load( file_path, size_t( 0 ), size_t( -1 ), std::move( obf ) );
+    return this_t::load( file_path, size_t( 0 ), size_t( -1 ), lt, std::move( obf ) );
 }
 
 //************************************************************************************
 motor::io::system::load_handle_t system::load( motor::io::path_cref_t file_path,
-    size_t const offset, size_t const sib, motor::io::obfuscator_rref_t obf  ) noexcept
+    size_t const offset, size_t const sib, std::launch const lt, motor::io::obfuscator_rref_t obf  ) noexcept
 {
     this_t::load_item_ptr_t li = this_t::get_load_item() ;
 
-    motor::concurrent::thread_t( [=]( void_t )
+    li->ftr = std::async( lt, [=]( void_t )
     {
         std::ifstream is( file_path, std::ifstream::binary ) ;
 
@@ -76,36 +77,22 @@ motor::io::system::load_handle_t system::load( motor::io::path_cref_t file_path,
                 li->data = res.move_ptr() ;
             }
 
-            // signal shared data
-            {
-                motor::concurrent::lock_guard_t lk( li->mtx ) ;
-                li->ready = true ;
-                li->status = motor::io::result::ok ;
-            }
-            li->cv.notify_all() ;
+            return motor::io::result::ok ;
         }
-        else
-        {
-            // signal shared data
-            {
-                motor::concurrent::lock_guard_t lk( li->mtx ) ;
-                li->ready = true ;
-                li->status = motor::io::result::file_does_not_exist ;
-            }
-            li->cv.notify_all() ;
-        }
-    } ).detach() ;
+
+        return motor::io::result::file_does_not_exist ;
+    } ) ;
 
     return this_t::load_handle_t( li, this ) ;
 }
 
 //************************************************************************************
 motor::io::system::store_handle_t system::store( motor::io::path_cref_t file_path, 
-    char_cptr_t data_ptr, size_t const sib, motor::io::obfuscator_rref_t obf ) noexcept
+    char_cptr_t data_ptr, size_t const sib, std::launch const lt, motor::io::obfuscator_rref_t obf ) noexcept
 {
     this_t::store_item_ptr_t si = this_t::get_store_item() ;
 
-    motor::concurrent::thread_t( [=]( void_t )
+    si->ftr = std::async( lt, [=]( void_t )
     {
         motor::filesystem::path p( file_path ) ;
 
@@ -117,15 +104,7 @@ motor::io::system::store_handle_t system::store( motor::io::path_cref_t file_pat
             if( !ec )
             {
                 motor::log::global::error( "[motor::io::system::store] : create directories : " ) ;
-
-                // signal shared data
-                {
-                    motor::concurrent::lock_guard_t lk( si->mtx ) ;
-                    si->ready = true ;
-                    si->status = motor::io::result::failed ;
-                }
-                si->cv.notify_all() ;
-                return ;
+                return motor::io::result::failed ;
             }
         }
 
@@ -136,25 +115,10 @@ motor::io::system::store_handle_t system::store( motor::io::path_cref_t file_pat
             auto res = motor::io::obfuscator_t( std::move(obf) ).encode( data_ptr, sib ) ;
             os.write( res.ptr(), res.sib() ) ;
 
-            // signal shared data
-            {
-                motor::concurrent::lock_guard_t lk( si->mtx ) ;
-                si->ready= true ;
-                si->status = motor::io::result::ok ;
-            }
-            si->cv.notify_all() ;
+            return motor::io::result::ok ;
         }
-        else
-        {
-            // signal shared data
-            {
-                motor::concurrent::lock_guard_t lk( si->mtx ) ;
-                si->ready = true ;
-                si->status = motor::io::result::file_does_not_exist ;
-            }
-            si->cv.notify_all() ;
-        }
-    } ).detach() ;
+        return motor::io::result::file_does_not_exist ;
+    } ) ;
 
     return this_t::store_handle_t( si, this ) ;
 }
@@ -170,16 +134,11 @@ motor::io::result system::wait_for_operation( this_t::load_handle_rref_t hnd,
     motor::memory::release_ptr( motor::move(hnd._dptr) ) ;
 
     // 1. wait for the operation
-    {
-        motor::concurrent::lock_t lk( li->mtx ) ;
-        while( !li->ready ) li->cv.wait( lk ) ;
-    }
-
-    auto const res = li->status ;
+    auto const res = li->ftr.get() ;
 
     // 2. call the user funk
     {
-        funk( li->data, li->sib, li->status ) ;
+        funk( li->data, li->sib, res ) ;
     }
 
     // 3. reclaim the item
@@ -208,16 +167,11 @@ motor::io::result system::wait_for_operation( this_t::store_handle_rref_t hnd,
     motor::memory::release_ptr( motor::move(hnd._dptr) ) ;
 
     // 1. wait for the operation
-    {
-        motor::concurrent::lock_t lk( si->mtx ) ;
-        while( !si->ready ) si->cv.wait( lk ) ;
-    }
-
-    auto const res = si->status ;
+    auto const res = si->ftr.get() ;
 
     // 2. call the user funk
     {
-        funk( si->status ) ;
+        funk( res ) ;
     }
 
     // 3. reclaim the item

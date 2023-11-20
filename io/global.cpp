@@ -72,26 +72,29 @@ motor::io::system_ptr_t global::io_system( void_t ) noexcept
 }
 
 //***********************************************************************
-motor::io::system_t::load_handle_t global::load( motor::io::path_cref_t file_path, motor::io::obfuscator_rref_t obf ) noexcept
+motor::io::system_t::load_handle_t global::load( motor::io::path_cref_t file_path, 
+    std::launch const lt, motor::io::obfuscator_rref_t obf ) noexcept
 {
-    return this_t::io_system()->load( file_path, std::move( obf ) ) ;
+    return this_t::io_system()->load( file_path, lt, std::move( obf ) ) ;
 }
 
 //***********************************************************************
 motor::io::system_t::load_handle_t global::load( motor::io::path_cref_t file_path,
-    size_t const offset, size_t const sib, motor::io::obfuscator_rref_t obf )  noexcept
+    size_t const offset, size_t const sib, std::launch const lt, motor::io::obfuscator_rref_t obf )  noexcept
 {
-    return this_t::io_system()->load( file_path, offset, sib, std::move( obf ) ) ;
+    return this_t::io_system()->load( file_path, offset, sib, lt, std::move( obf ) ) ;
 }
 
 //***********************************************************************
-motor::io::system_t::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, size_t const sib ) noexcept
+motor::io::system_t::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, 
+    size_t const sib, std::launch const lt ) noexcept
 {
-    return this_t::io_system()->store( file_path, data, sib ) ;
+    return this_t::io_system()->store( file_path, data, sib, lt ) ;
 }
 
 //***********************************************************************
-motor::io::system_t::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, size_t const sib, motor::io::obfuscator_rref_t obf ) noexcept
+motor::io::system_t::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, size_t const sib, 
+    motor::io::obfuscator_rref_t obf, std::launch const lt ) noexcept
 {
-    return this_t::io_system()->store( file_path, data, sib, std::move( obf ) ) ;
+    return this_t::io_system()->store( file_path, data, sib, lt, std::move( obf ) ) ;
 }
