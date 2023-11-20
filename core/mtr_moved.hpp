@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <cassert>
+
 namespace motor
 {
     namespace core

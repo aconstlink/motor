@@ -1,6 +1,6 @@
 #pragma once
 
-#include "handle.h"
+#include "handle.hpp"
 #include "obfuscator.hpp"
 
 #include <motor/concurrent/typedefs.h>
@@ -15,10 +15,7 @@ namespace motor
     {
         class MOTOR_IO_API system
         {
-            motor_this_typedefs( system ) ;
-
-            friend class load_handle ;
-            friend class store_handle ;
+            motor_this_typedefs( system ) ;            
 
         private:
 
@@ -106,6 +103,17 @@ namespace motor
 
             using store_items_t = motor::vector< load_item_ptr_t > ;
 
+        public: // handles definitions
+
+            using load_handle_t = motor::io::handle< load_item, this_t > ;
+            using load_handle_rref_t = load_handle_t && ;
+            using store_handle_t = motor::io::handle< store_item, this_t > ;
+            using store_handle_rref_t = store_handle_t && ;
+
+
+            friend class load_handle_t ;
+            friend class store_handle_t ;
+
         private:
 
             motor::concurrent::mutex_t _load_mtx ;
@@ -125,20 +133,20 @@ namespace motor
 
         public:
 
-            motor::io::load_handle_t load( motor::io::path_cref_t,
+            this_t::load_handle_t load( motor::io::path_cref_t,
                 motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
 
-            motor::io::load_handle_t load( motor::io::path_cref_t,
+            this_t::load_handle_t load( motor::io::path_cref_t,
                 size_t const offset = size_t( 0 ), size_t const sib = size_t( -1 ),
                 motor::io::obfuscator_rref_t = motor::io::obfuscator_t() ) noexcept ;
 
-            motor::io::store_handle_t store( motor::io::path_cref_t, char_cptr_t, size_t const,
+            this_t::store_handle_t store( motor::io::path_cref_t, char_cptr_t, size_t const,
                 motor::io::obfuscator_rref_t = motor::io::obfuscator_t()) noexcept ;
 
         private:
 
-            motor::io::result wait_for_operation( motor::io::load_handle_rref_t, motor::io::load_completion_funk_t ) noexcept ;
-            motor::io::result wait_for_operation( motor::io::store_handle_rref_t, motor::io::store_completion_funk_t ) noexcept ;
+            motor::io::result wait_for_operation( this_t::load_handle_rref_t, motor::io::load_completion_funk_t ) noexcept ;
+            motor::io::result wait_for_operation( this_t::store_handle_rref_t, motor::io::store_completion_funk_t ) noexcept ;
 
         private:
 

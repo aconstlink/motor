@@ -10,26 +10,26 @@ motor::concurrent::mutex_t global::_mtx ;
 global * global::_ptr = nullptr ;
 
 //***********************************************************************
-global::global( void_t )
+global::global( void_t ) noexcept
 {
     _ios = motor::memory::global_t::alloc( motor::io::system_t(),
         "[io::global] : job_scheduler" ) ;
 }
 
 //***********************************************************************
-global::global( this_rref_t rhv )
+global::global( this_rref_t rhv ) noexcept
 {
     motor_move_member_ptr( _ios, rhv ) ;
 }
 
 //***********************************************************************
-global::~global( void_t )
+global::~global( void_t ) noexcept
 {
     motor::memory::global_t::dealloc( _ios ) ;
 }
 
 //***********************************************************************
-global::this_ptr_t global::init( void_t )
+global::this_ptr_t global::init( void_t ) noexcept
 {
     if( _ptr != nullptr )
         return this_t::_ptr ;
@@ -50,7 +50,7 @@ global::this_ptr_t global::init( void_t )
 }
 
 //***********************************************************************
-void_t global::deinit( void_t )
+void_t global::deinit( void_t ) noexcept
 {
     if( _ptr == nullptr )
         return ;
@@ -60,38 +60,38 @@ void_t global::deinit( void_t )
 }
 
 //***********************************************************************
-global::this_ptr_t global::get( void_t )
+global::this_ptr_t global::get( void_t ) noexcept
 {
     return this_t::init() ;
 }
 
 //***********************************************************************
-motor::io::system_ptr_t global::io_system( void_t )
+motor::io::system_ptr_t global::io_system( void_t ) noexcept
 {
     return this_t::get()->_ios ;
 }
 
 //***********************************************************************
-motor::io::load_handle_t global::load( motor::io::path_cref_t file_path, motor::io::obfuscator_rref_t obf )
+motor::io::system_t::load_handle_t global::load( motor::io::path_cref_t file_path, motor::io::obfuscator_rref_t obf ) noexcept
 {
     return this_t::io_system()->load( file_path, std::move( obf ) ) ;
 }
 
 //***********************************************************************
-motor::io::load_handle_t global::load( motor::io::path_cref_t file_path,
-    size_t const offset, size_t const sib, motor::io::obfuscator_rref_t obf ) 
+motor::io::system_t::load_handle_t global::load( motor::io::path_cref_t file_path,
+    size_t const offset, size_t const sib, motor::io::obfuscator_rref_t obf )  noexcept
 {
     return this_t::io_system()->load( file_path, offset, sib, std::move( obf ) ) ;
 }
 
 //***********************************************************************
-motor::io::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, size_t const sib ) 
+motor::io::system_t::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, size_t const sib ) noexcept
 {
     return this_t::io_system()->store( file_path, data, sib ) ;
 }
 
 //***********************************************************************
-motor::io::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, size_t const sib, motor::io::obfuscator_rref_t obf )
+motor::io::system_t::store_handle_t global::store( motor::io::path_cref_t file_path, char_cptr_t data, size_t const sib, motor::io::obfuscator_rref_t obf ) noexcept
 {
     return this_t::io_system()->store( file_path, data, sib, std::move( obf ) ) ;
 }

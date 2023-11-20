@@ -136,6 +136,7 @@ namespace motor
 
             motor::io::obfuscated_t decode( char_ptr_t ptr, size_t const sib ) noexcept
             {
+                // take over ptr !
                 return motor::io::obfuscated_t( _dfunk( motor::memory::malloc_guard< char_t >( ptr, sib ) ) ) ;
             }
 

@@ -25,13 +25,13 @@ namespace motor
 
         namespace motor_internal
         {
-            static motor::string_t const __result_strings[] = {
+            static char const * const __result_strings[] = {
                 "ok", "failed", "processing", "state_change_failed",
                 "file_does_not_exist", "invalid", "invalid_argument", "unknown", "invalid_handle"
             } ;
         }
 
-        static motor::string_cref_t to_string( motor::io::result r ) noexcept
+        static motor::string_t to_string( motor::io::result const r ) noexcept
         {
             return size_t( r ) < size_t( motor::io::result::num_results ) ?
                 motor_internal::__result_strings[ size_t( r ) ] :

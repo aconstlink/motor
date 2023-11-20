@@ -122,7 +122,8 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
         auto iter = _ptr_to_info.find( ptr ) ;
 
         assert( iter != _ptr_to_info.end() && "[manager::dealloc] : ptr is not found in manager." ) ;
-        
+        assert( iter->second.rc == size_t(-1) && "[manager::release] : managed pointer must be released" ) ;
+
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }

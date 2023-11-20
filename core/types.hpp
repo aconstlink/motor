@@ -33,7 +33,8 @@ namespace motor
             typedef unsigned long long ulonglong_t;
 
             typedef void void_t;
-            typedef void_t* void_ptr_t;
+            typedef void_t * void_ptr_t;
+            typedef void_t * void_mtr_t;
             typedef void_t const* void_cptr_t;
 
             using ::int8_t;

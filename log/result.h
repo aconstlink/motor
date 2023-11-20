@@ -15,7 +15,7 @@ namespace motor
 
         namespace detail
         {
-            static char const * __result_strings[] = {
+            static char const * const __result_strings[] = {
                 "need to fill"
             } ;
         }

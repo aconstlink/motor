@@ -26,6 +26,6 @@ namespace motor
         typedef std::function< void_t( char_cptr_t, size_t const, motor::io::result const ) > load_completion_funk_t ;
         typedef std::function< void_t( motor::io::result const ) > store_completion_funk_t ;
 
-        typedef void_ptr_t internal_item_ptr_t ;
+        typedef void_mtr_t internal_item_mtr_t ;
     }
 }

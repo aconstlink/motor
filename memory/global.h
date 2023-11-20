@@ -247,37 +247,37 @@ namespace motor
         motor_typedef( global ) ;
 
         template< typename T >
-        static T * create( void_t ) noexcept
+        static T * create_ptr( void_t ) noexcept
         {
             return global_t::create<T>() ;
         }
         
         template< typename T >
-        static T* create( char_cptr_t purpose )
+        static T* create_ptr( char_cptr_t purpose )
         {
             return global_t::create<T>( purpose ) ;
         }
 
         template< typename T >
-        static T* create( T const & acopy )
+        static T* create_ptr( T const & acopy )
         {
             return global_t::create<T>( acopy ) ;
         }
 
         template< typename T >
-        static T* create( T const& acopy, char_cptr_t purpose )
+        static T* create_ptr( T const& acopy, char_cptr_t purpose )
         {
             return global_t::create<T>( acopy, purpose ) ;
         }
 
         template< typename T >
-        static T* create( T&& amove )
+        static T* create_ptr( T&& amove )
         {
             return global_t::create<T>( std::move( amove ) ) ;
         }
 
         template< typename T >
-        static T* create( T&& amove, char_cptr_t purpose )
+        static T* create_ptr( T&& amove, char_cptr_t purpose )
         {
             return global_t::create<T>( std::move( amove ), purpose ) ;
         }
@@ -295,6 +295,12 @@ namespace motor
         T * release_ptr( T * ptr ) noexcept
         {
             return motor::memory::global_t::release( ptr );
+        }
+
+        template< typename T >
+        T * release_ptr( motor::core::mtr_moved<T> && mvt ) noexcept
+        {
+            return motor::memory::global_t::release( std::move( mvt ) );
         }
     }
 }

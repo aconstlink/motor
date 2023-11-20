@@ -10,15 +10,10 @@ set( sources
     "monitor.hpp"
     "obfuscator.hpp"
     "location.hpp"
-
-    "handle.h"
-    "handle.cpp"
+    "handle.hpp"
    
     "system.h"
     "system.cpp"
-
-    "database.h"
-    "database.cpp"
     )
 
 motor_vs_src_dir( sources )
