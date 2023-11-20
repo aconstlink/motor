@@ -59,7 +59,7 @@ namespace motor
             
             bool_t can_wait( void_t ) const noexcept 
             {
-                return _data_ptr != nullptr ;
+                return _dptr != nullptr ;
             }
         };
     }

@@ -11,7 +11,8 @@ set( sources
     "obfuscator.hpp"
     "location.hpp"
     "handle.hpp"
-   
+    "database.h"
+    "database.cpp"
     "system.h"
     "system.cpp"
     )
