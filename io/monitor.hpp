@@ -28,8 +28,8 @@ namespace motor
             };
             static motor::string_cref_t to_string( this_t::notify const n ) noexcept
             {
-                static motor::string_t const __strings[] = { "none", "deletion", "change", "invalid" } ;
-                return __strings[ size_t(n) >= size_t(notify::num_values) ? size_t(notify::num_values) : size_t(n) ] ;
+                static char const * const __strings[] = { "none", "deletion", "change", "invalid" } ;
+                return motor::string_t( __strings[ size_t(n) >= size_t(notify::num_values) ? size_t(notify::num_values) : size_t(n) ] ) ;
             }
 
         private:

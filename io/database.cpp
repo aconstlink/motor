@@ -715,7 +715,13 @@ void_t database::dump_to_std( void_t ) const noexcept
 }
 
 //******************************************************************
-void_t database::attach( motor::string_cref_t loc, motor::io::monitor_mtr_t mon ) noexcept 
+void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_t mon ) noexcept 
+{
+    this_t::attach( loc, motor::move( motor::memory::copy_ptr( mon ) ) ) ;
+}
+
+//******************************************************************
+void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_moved_t mon ) noexcept 
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
     
@@ -723,13 +729,14 @@ void_t database::attach( motor::string_cref_t loc, motor::io::monitor_mtr_t mon 
     {
         if( fr.location == loc )
         {
-            fr.monitors.emplace_back( motor::memory::copy_ptr(mon) ) ;
+            fr.monitors.emplace_back( mon ) ;
         }
     }
+
 }
 
 //******************************************************************
-void_t database::detach( motor::string_cref_t loc, motor::io::monitor_mtr_t mon ) noexcept 
+void_t database::detach( motor::io::location_cref_t loc, motor::io::monitor_mtr_t mon ) noexcept 
 {
     bool_t found = false ;
     {
@@ -772,7 +779,7 @@ void_t database::attach( motor::io::monitor_mtr_t moni ) noexcept
 //******************************************************************
 void_t database::detach( motor::io::monitor_mtr_t moni ) noexcept 
 {
-    bool_t found = false ;
+    size_t found = 0 ;
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
 
@@ -787,7 +794,7 @@ void_t database::detach( motor::io::monitor_mtr_t moni ) noexcept
             if( iter != _db->monitors.end() ) 
             {
                 _db->monitors.erase( iter ) ;
-                found = true ;
+                found++ ;
             }
         }
     
@@ -804,13 +811,13 @@ void_t database::detach( motor::io::monitor_mtr_t moni ) noexcept
                 if( iter != fr.monitors.end() ) 
                 {
                     fr.monitors.erase( iter ) ;
-                    found = true ;
+                    found++ ;
                 }
             }
         }
     }
 
-    if( found ) motor::memory::release_ptr( moni ) ;
+    for( size_t i=0; i<found; ++i ) motor::memory::release_ptr( moni ) ;
 }
 
 //******************************************************************
@@ -846,7 +853,7 @@ database::file_record_t database::create_file_record( this_t::db_ref_t db, motor
         fr.offset = uint64_t( -2 ) ;
 
         {
-            ::std::error_code ec ;
+            std::error_code ec ;
             fr.sib = motor::filesystem::file_size( path, ec ) ;
             motor::log::global_t::error( ( bool_t ) ec,
                 motor_log_fn( "file_size with [" + ec.message() + "]" ) ) ;
@@ -864,7 +871,7 @@ database::file_record_t database::create_file_record( this_t::db_ref_t db, motor
             "[io::db] : file_record" ) ;
     }
 
-    return ::std::move( fr ) ;
+    return std::move( fr ) ;
 }
 
 //******************************************************************

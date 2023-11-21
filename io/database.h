@@ -149,8 +149,9 @@ namespace motor
 
         public: // monitor
 
-            void_t attach( motor::string_cref_t, motor::io::monitor_mtr_t ) noexcept ;
-            void_t detach( motor::string_cref_t, motor::io::monitor_mtr_t ) noexcept ;
+            void_t attach( motor::io::location_cref_t, motor::io::monitor_mtr_t ) noexcept ;
+            void_t attach( motor::io::location_cref_t, motor::io::monitor_mtr_moved_t ) noexcept ;
+            void_t detach( motor::io::location_cref_t, motor::io::monitor_mtr_t ) noexcept ;
             
             void_t attach( motor::io::monitor_mtr_t ) noexcept ;
             void_t detach( motor::io::monitor_mtr_t mon ) noexcept ;
