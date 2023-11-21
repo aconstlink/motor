@@ -59,5 +59,11 @@ namespace motor
         T * tmp = ptr ; ptr = nullptr ;
         return core::mtr_moved<T>( tmp ) ;
     }
+
+    template< typename T >
+    static core::mtr_moved< T > move( T * && ptr ) noexcept
+    {        
+        return core::mtr_moved<T>( ptr ) ;
+    }
 }
 
