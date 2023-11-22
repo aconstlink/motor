@@ -112,7 +112,7 @@ if( TARGET OpenGL::GL )
 endif()
 
 list( APPEND subdirs
-    #"log"
+    "log"
     "memory"
     #"concurrent"
     #"io"

@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "mtr_moved.hpp"
+#include "../mtr_moved.hpp"
 
 #define motor_typedefs_extend( from_, to_ )                                \
     typedef to_ ## _t * to_ ## _ptr_t ;                                 \
