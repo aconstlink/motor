@@ -8,6 +8,9 @@ include( subdirectories )
 
 set( MOTOR_OS_CONFIGURED FALSE )
 
+# ct_ : means config target
+set( THIS_TARGET ct_motor_operating_system )
+add_library( ${THIS_TARGET} INTERFACE )
 
 set( MOTOR_HOST_OS "Unknown" )
 set( MOTOR_HOST_OS_WIN OFF )
@@ -120,34 +123,40 @@ endif()
 #
 if( MOTOR_TARGET_OS_WIN )
 
-    add_definitions( -DMOTOR_TARGET_OS_WIN )
-    add_definitions( -DNOMINMAX )
+    target_compile_definitions( ${THIS_TARGET} INTERFACE 
+        -DMOTOR_TARGET_OS_WIN
+        -DNOMINMAX )
 
     if( MOTOR_TARGET_OS_WIN7 )
         # _WIN32_WINNT_WIN7 = 0x0601
-        add_definitions( -DWINVER=0x0601 )
-        add_definitions( -D_WIN32_WINNT=0x0601 )
-        add_definitions( -DMOTOR_TARGET_OS_WIN7 )
+        target_compile_definitions( ${THIS_TARGET} INTERFACE 
+            -DWINVER=0x0601
+            -D_WIN32_WINNT=0x0601
+            -DMOTOR_TARGET_OS_WIN7 )
     elseif( MOTOR_TARGET_OS_WIN8 )
         # _WIN32_WINNT_WIN8 = 0x0602
-        add_definitions( -DWINVER=0x0602 )
-        add_definitions( -D_WIN32_WINNT=0x0602 )
-        add_definitions( -DMOTOR_TARGET_OS_WIN8 )
+        target_compile_definitions( ${THIS_TARGET} INTERFACE 
+            -DWINVER=0x0602
+            -D_WIN32_WINNT=0x0602
+            -DMOTOR_TARGET_OS_WIN8 )
     elseif( MOTOR_TARGET_OS_WIN81 )
         # _WIN32_WINNT_WINBLUE (8.1) = 0x0602 
-        add_definitions( -DWINVER=0x0602 )
-        add_definitions( -D_WIN32_WINNT=0x0602 )
-        add_definitions( -DMOTOR_TARGET_OS_WIN81 )
+        target_compile_definitions( ${THIS_TARGET} INTERFACE 
+            -DWINVER=0x0602
+            -D_WIN32_WINNT=0x0602
+            -DMOTOR_TARGET_OS_WIN81 )
     elseif( MOTOR_TARGET_OS_WIN10 )
       # _WIN32_WINNT_WIN10 (10) = 0x0A00 
-        add_definitions( -DWINVER=0x0A00 )
-        add_definitions( -D_WIN32_WINNT=0x0A00 )
-        add_definitions( -DMOTOR_TARGET_OS_WIN10 )
+        target_compile_definitions( ${THIS_TARGET} INTERFACE 
+            -DWINVER=0x0A00
+            -D_WIN32_WINNT=0x0A00
+            -DMOTOR_TARGET_OS_WIN10 )
     endif()
 
 elseif( MOTOR_TARGET_OS_LIN )
 
-    add_definitions( -DMOTOR_TARGET_OS_LIN )
+    target_compile_definitions( ${THIS_TARGET} INTERFACE 
+        -DMOTOR_TARGET_OS_LIN )
 
 elseif( MOTOR_TARGET_OS_MAC )
     message( FATAL_ERROR "Changes Required" )
@@ -184,6 +193,9 @@ elseif( MOTOR_TARGET_OS_LIN )
 elseif( MOTOR_TARGET_OS_MAC )
 
 endif()
+
+install( TARGETS ${THIS_TARGET} 
+        EXPORT ${PROJECT_NAME}-targets )
 
 set( MOTOR_OS_CONFIGURED TRUE )
 
