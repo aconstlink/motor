@@ -213,10 +213,6 @@ export( TARGETS complete NAMESPACE motor:: APPEND FILE ${PROJECT_NAME}-targets.c
 # SECTION : Extensions
 ################################################################
 
-# project cars
-
-#add_subdirectory( extensions )
-
 ################################################################
 # SECTION : Export externals
 ################################################################
@@ -232,3 +228,5 @@ configure_file(
 install( 
     FILES ${MOTOR_BINARY_DIR}/motor-config.cmake 
     DESTINATION cmake )
+
+install( EXPORT ${PROJECT_NAME}-targets DESTINATION "cmake" )
