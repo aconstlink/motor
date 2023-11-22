@@ -23,7 +23,7 @@ add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
 target_link_libraries( ${cur_lib_name} 
     INTERFACE motor::std
-    PUBLIC motor::core 
+    INTERFACE motor::core 
     )
 
 ###########################################################

@@ -1,14 +1,15 @@
-cmake_minimum_required( VERSION 3.6 )
-project( motor C CXX )
-
-if( POLICY CMP0079 )
-  cmake_policy( SET CMP0079 NEW )
-endif()
+cmake_minimum_required( VERSION 3.20 )
 
 set( MOTOR_MAJOR_VERSION 0 )
 set( MOTOR_MINOR_VERSION 0 )
 set( MOTOR_PATCH_VERSION 0 )
 set( MOTOR_VERSION ${MOTOR_MAJOR_VERSION}.${MOTOR_MINOR_VERSION}.${MOTOR_PATCH_VERSION} )
+
+project( motor LANGUAGES C CXX VERSION ${MOTOR_VERSION})
+
+if( PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR )
+    message( FATAL_ERROR "In-source builds are not allowed." ) 
+endif()
 
 ################################################################
 # SECTION: Configuring
@@ -26,7 +27,7 @@ set( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
   "${CMAKE_CURRENT_LIST_DIR}/cmake/functions/"
   )
 
-set( CMAKE_INSTALL_PREFIX "${MOTOR_BINARY_DIR}/install/motor-${MOTOR_MAJOR_VERSION}.${MOTOR_MINOR_VERSION}.${MOTOR_PATCH_VERSION}" CACHE 
+set( CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install/motor-${MOTOR_VERSION}" CACHE 
     STRING "Install prefix" FORCE )
 
 include( install_headers )
@@ -65,11 +66,11 @@ motor_export_clear()
 ################################################################
 
 add_subdirectory( "externals/gulrak" )
-add_subdirectory( "externals/kcat" )
-add_subdirectory( "externals/ocornut" )
-add_subdirectory( "externals/lua" )
-add_subdirectory( "externals/nothings" )
-add_subdirectory( "externals/aconstlink" )
+#add_subdirectory( "externals/kcat" )
+#add_subdirectory( "externals/ocornut" )
+#add_subdirectory( "externals/lua" )
+#add_subdirectory( "externals/nothings" )
+#add_subdirectory( "externals/aconstlink" )
 
 ################################################################
 # SECTION: find externals
@@ -95,7 +96,9 @@ endif()
 ################################################################
 
 set( subdirs_header_only 
+    "core"
     "std"
+
     #"math"
     #"nsl"
     #"property"
@@ -109,12 +112,12 @@ if( TARGET OpenGL::GL )
 endif()
 
 list( APPEND subdirs
-    "core"
-    "log"
+    #"log"
     "memory"
+    #"concurrent"
+    #"io"
+
     #"application"    
-    "concurrent"
-    "io"
     #"system"
     #"graphics"
     #"gfx"
@@ -126,7 +129,7 @@ list( APPEND subdirs
     #"tool"
     #"physics"
     #"profile"
-    ${subdirs_header_only}
+    #${subdirs_header_only}
     )
 
 
@@ -135,26 +138,40 @@ if( MOTOR_TARGET_GRAPHICS_OPENGL )
     #list( APPEND SUBDIRS gli )
 endif()
 
+add_library( complete INTERFACE )
+add_library( ${PROJECT_NAME}::complete ALIAS complete )
+
 #
 # header-only
 #
 foreach( _subdir ${subdirs_header_only} )
     
-    set( lib_name "${_subdir}" )
-    string( TOUPPER ${lib_name} lib_name_upper)
+    set( cur_lib_name "${_subdir}" )
+    set( cur_alias_name "${PROJECT_NAME}::${_subdir}" )
+    set( cur_file_name "${PROJECT_NAME}_${_subdir}" )
+
+    add_subdirectory( ${_subdir} )
+    add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
+
+    set_target_properties( ${cur_lib_name} PROPERTIES LINKER_LANGUAGE CXX )
+    set_target_properties( ${cur_lib_name} PROPERTIES OUTPUT_NAME ${cur_file_name} )
+    set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
+    set_property( TARGET ${cur_lib_name} PROPERTY CXX_STANDARD 17 )
+
+    target_compile_options( ${cur_lib_name} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
+    target_include_directories( ${cur_lib_name} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..> )
     
-    configure_file( cmake/configure/api.in.h ${CMAKE_CURRENT_LIST_DIR}/${lib_name}/api.h @ONLY )
-    configure_file( cmake/configure/header_only.in.cpp 
-        ${CMAKE_CURRENT_LIST_DIR}/${lib_name}/header_only.cpp @ONLY )
+    if( MSVC_IDE )
+        set_target_properties( ${cur_lib_name} PROPERTIES FOLDER "motor" )
+    endif()
+
+    target_link_libraries( complete INTERFACE ${cur_lib_name} )
 
 endforeach()
 
 #
 # full libs
 #
-add_library( complete INTERFACE )
-add_library( ${PROJECT_NAME}::complete ALIAS complete )
-
 foreach( _subdir ${subdirs} )
 
     set( cur_lib_name_short "${_subdir}" )

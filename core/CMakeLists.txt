@@ -1,27 +1,22 @@
 
 
 set( sources 
-    "api.h"
-
-    "header_only.cpp"
     "types.hpp"
     "mtr_moved.hpp"
     "macros/common.h"
     "macros/typedef.h"
     "macros/function.h"
-    "macros/move.h"    
+    "macros/move.h"   
     )
 
 motor_vs_src_dir( sources )
 
-
-add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
-add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
+add_library( ${cur_lib_name} INTERFACE ${sources} )
 
 
-target_compile_definitions( ${cur_lib_name} PUBLIC -DMOTOR_LITTLE_ENDIAN=0 )
-target_compile_definitions( ${cur_lib_name} PUBLIC -DMOTOR_BIG_ENDIAN=1 )
-target_compile_definitions( ${cur_lib_name} PUBLIC -DMOTOR_BYTE_ORDER=${MOTOR_TARGET_ARCH_BIG_ENDIAN} )
+target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_LITTLE_ENDIAN=0 )
+target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_BIG_ENDIAN=1 )
+target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_BYTE_ORDER=${MOTOR_TARGET_ARCH_BIG_ENDIAN} )
 
 ###########################################################
 # SECTION: Build Tree

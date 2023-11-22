@@ -8,24 +8,20 @@ set( sources
     "filesystem"
     "stack"
     "sstream"
-
+    
     #"insertion_sort.hpp"
-
     #"string/utf8.hpp"
     "string_split.hpp"
-
-    "header_only.cpp"
     )
 
 motor_vs_src_dir( sources )
 
-add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
-add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
+add_library( ${cur_lib_name} INTERFACE ${sources} )
 
 target_link_libraries( ${cur_lib_name}
-        PUBLIC motor::memory
-        PUBLIC motor::core
-        PUBLIC ghc_filesystem
+    INTERFACE motor::memory
+    INTERFACE motor::core
+    INTERFACE ghc_filesystem
 )
 
 ###########################################################
