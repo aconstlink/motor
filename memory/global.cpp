@@ -8,7 +8,7 @@ using namespace motor::memory ;
 std::mutex global::_mtx ;
 global::this_ptr_t global::_ptr = nullptr ;
 
-global::get_manager_funk_t global::get_mgr = [=]( void_t )
+global::get_manager_funk_t global::get_mgr = []( void_t )
 {
     return motor::memory::global_t::init()->_manager ;
 } ;
