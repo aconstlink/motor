@@ -66,11 +66,11 @@ motor_export_clear()
 ################################################################
 
 add_subdirectory( "externals/gulrak" )
-#add_subdirectory( "externals/kcat" )
-#add_subdirectory( "externals/ocornut" )
-#add_subdirectory( "externals/lua" )
-#add_subdirectory( "externals/nothings" )
-#add_subdirectory( "externals/aconstlink" )
+add_subdirectory( "externals/kcat" )
+add_subdirectory( "externals/ocornut" )
+add_subdirectory( "externals/lua" )
+add_subdirectory( "externals/nothings" )
+add_subdirectory( "externals/aconstlink" )
 
 ################################################################
 # SECTION: find externals
