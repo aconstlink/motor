@@ -58,7 +58,7 @@ set_target_properties( onelua PROPERTIES FOLDER "motor/externals/lua" )
 # SECTION: Install
 ###########################################################
 
-install_headers( "${SOURCES}" "include/${PROJECT_NAME}/externals/lua" )
+install_headers( "${SOURCES}" "include/" )
 install_library( lua ${PROJECT_NAME}-targets )
 
 message( STATUS "<<< [external : Lua] <<<" )
