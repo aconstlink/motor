@@ -1,0 +1,39 @@
+
+image: 
+  - Ubuntu
+  - Visual Studio 2019
+  - Visual Studio 2022  
+
+install:
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - sh: cd $APPVEYOR_BUILD_FOLDER
+  - git submodule update --init --recursive
+
+platform: 
+  - x64
+#  - Any CPU
+
+configuration:
+  - Debug
+  - Release
+
+build_script:
+  - cmd: md build
+  - sh: mkdir build
+  - cd build
+  - cmd: cmake -G "Visual Studio 16 2019" -A x64 ..
+  #- sh: cmake -G "Unix Makefiles" -DNATUS_TARGET_GRAPHICS_API=null ..
+  - sh: cmake -G "Unix Makefiles" ..
+  - cmake --build . --config Release
+
+for:
+-
+  matrix:
+    only:
+      - image: Visual Studio 2022
+
+  build_script:
+  - cmd: md build
+  - cd build
+  - cmd: cmake -G "Visual Studio 17 2022" -A x64 ..
+  - cmake --build . --config Release
