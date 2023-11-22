@@ -18,6 +18,8 @@ target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_LITTLE_ENDIAN=0 )
 target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_BIG_ENDIAN=1 )
 target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_BYTE_ORDER=${MOTOR_TARGET_ARCH_BIG_ENDIAN} )
 
+target_link_libraries( ${cur_lib_name} INTERFACE ct_motor_operating_system )
+
 ###########################################################
 # SECTION: Build Tree
 ###########################################################

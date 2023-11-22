@@ -114,8 +114,8 @@ endif()
 list( APPEND subdirs
     "log"
     "memory"
-    #"concurrent"
-    #"io"
+    "concurrent"
+    "io"
 
     #"application"    
     #"system"

@@ -29,7 +29,6 @@ target_link_libraries( ${cur_lib_name}
         PUBLIC motor::memory
         INTERFACE motor::core
         INTERFACE ghc_filesystem
-        
     )
 
 
