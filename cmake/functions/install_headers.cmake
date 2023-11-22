@@ -11,9 +11,11 @@ function( install_headers FILE_LIST BASE_PATH )
         get_filename_component( FNAME ${P} NAME )
         get_filename_component( FPATH ${P} DIRECTORY )
 
-        # all .h, hxx and .hpp files
+        #message( "testing ${FNAME}" )
+
+        # all .h, .hxx, .hpp and "no ext" files
         # \\ escape sequence
-        if( ${FNAME} MATCHES "\\.hx*p*$" )
+        if( ${FNAME} MATCHES "(\\.h$)|(\\.hpp$)|(^[A-Za-z0-9_]*$)" )
             #message( "${FNAME} will install to : " "${BASE_PATH}/${FPATH}" )
             install( FILES ${FILE_NAME} DESTINATION "${BASE_PATH}/${FPATH}" )
         endif()
