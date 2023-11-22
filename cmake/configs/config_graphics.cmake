@@ -5,7 +5,8 @@
 
 set( MOTOR_GRAPHICS_CONFIGURED FALSE )
 
-set( THIS_TARGET motor_graphics_options )
+# ct_ : means config target
+set( THIS_TARGET ct_motor_graphics )
 add_library( ${THIS_TARGET} INTERFACE )
 
 set( MOTOR_GRAPHICS_NULL ON )
