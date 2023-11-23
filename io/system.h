@@ -101,8 +101,8 @@ namespace motor
             using store_handle_rref_t = store_handle_t && ;
 
 
-            friend class load_handle_t ;
-            friend class store_handle_t ;
+            friend load_handle_t ;
+            friend store_handle_t ;
 
         private:
 

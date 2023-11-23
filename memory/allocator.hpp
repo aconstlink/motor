@@ -57,10 +57,10 @@ namespace motor
             pointer allocate( size_type n )
             {
                 //std::cout << "alloc of n = " << std::to_string(n) << std::endl ;
-                return mem_t::alloc_raw<value_type>( n, _purpose ) ;
+                return mem_t:: template alloc_raw<value_type>( n, _purpose ) ;
             }
 
-            void_t deallocate( pointer ptr, size_type n )
+            void_t deallocate( pointer ptr, size_type /*n*/ )
             {
                 //std::cout << "dealloc of n = " << std::to_string(n) << std::endl ;
                 mem_t::dealloc_raw(ptr) ;
