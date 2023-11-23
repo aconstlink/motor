@@ -98,9 +98,7 @@ endif()
 set( subdirs_header_only 
     "core"
     "std"
-
-    #"math"
-    #"nsl"
+    "math"
     #"property"
     #"collide"
     )
