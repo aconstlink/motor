@@ -57,7 +57,8 @@ jobs:
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
     - name: Test Build Type
-      run: >
+      shell: bash
+      run: |
         echo ${{ matrix.build_type }}
         
     - name: Configure CMake
