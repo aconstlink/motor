@@ -9,8 +9,9 @@ set( MOTOR_BUILD_ENV_MINGW OFF )
 set( MOTOR_BUILD_ENV_CYGWIN OFF )
 set( MOTOR_BUILD_ENV_MAKE OFF )
 
-if( MSVC_IDE  )
+if( MSVC_IDE OR MSVC )
     set( MOTOR_BUILD_ENV_MSVS ON )
+    #message( "using msvc" )
 endif()
 
 
