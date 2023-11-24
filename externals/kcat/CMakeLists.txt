@@ -46,6 +46,9 @@ endif()
 
 if( TARGET common )
 set_target_properties( common PROPERTIES FOLDER "motor/externals/openal-soft" )
+if( MOTOR_COMPILER_GNU )
+    target_compile_options( OpenAL PRIVATE -Wno-sign-compare )
+  endif()
 endif()
 
 if( TARGET ex-common )
@@ -55,8 +58,9 @@ endif()
 if( TARGET OpenAL )
   set_target_properties( OpenAL PROPERTIES FOLDER "motor/externals/openal-soft" )
 
+  
   if( MOTOR_COMPILER_GNU )
-    target_compile_options( OpenAL PRIVATE -Wno-conversion -Wno-pedantic -Wno-switch)
+    target_compile_options( OpenAL PRIVATE -Wno-conversion -Wno-pedantic -Wno-switch -Wno-attributes )
   endif()
   if( MOTOR_TARGET_OS_WIN )
 
