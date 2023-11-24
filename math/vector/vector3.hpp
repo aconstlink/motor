@@ -619,9 +619,6 @@ namespace motor
 
         } ;
 
-        using vec3f_t = vector3<float_t> ;
-        using vec3i_t = vector3<int_t> ;
-
         motor_typedefs( vector3<char_t>, vec3c ) ;
         motor_typedefs( vector3<uchar_t>, vec3uc ) ;
         motor_typedefs( vector3<int_t>, vec3i ) ;
