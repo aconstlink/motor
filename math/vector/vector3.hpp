@@ -598,19 +598,19 @@ namespace motor
             //************************************************************************************
             static this_t make_x_axis( void_t ) noexcept
             {
-                return this_t(type_t(1),type_t(0), type_t(0))
+                return this_t(type_t(1),type_t(0), type_t(0)) ;
             }
 
             //************************************************************************************
             static this_t make_y_axis( void_t ) noexcept
             {
-                return this_t(type_t(0),type_t(1), type_t(0))
+                return this_t(type_t(0),type_t(1), type_t(0)) ;
             }
 
             //************************************************************************************
             static this_t make_z_axis( void_t ) noexcept
             {
-                return this_t(type_t(0),type_t(0), type_t(1))
+                return this_t(type_t(0),type_t(0), type_t(1)) ;
             }
 
         private:
@@ -618,6 +618,9 @@ namespace motor
             type_t _elem[3] ;
 
         } ;
+
+        using vec3f_t = vector3<float_t> ;
+        using vec3i_t = vector3<int_t> ;
 
         motor_typedefs( vector3<char_t>, vec3c ) ;
         motor_typedefs( vector3<uchar_t>, vec3uc ) ;
