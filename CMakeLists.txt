@@ -114,12 +114,12 @@ list( APPEND subdirs
     "memory"
     "concurrent"
     "io"
-
+    "device"
     #"application"    
     #"system"
     #"graphics"
     #"gfx"
-    #"device"
+    
     #"format"
     #"audio"
     #"geometry"
