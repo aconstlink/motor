@@ -10,6 +10,13 @@ project( motor LANGUAGES C CXX VERSION ${MOTOR_VERSION})
 if( PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR )
     message( FATAL_ERROR "In-source builds are not allowed." ) 
 endif()
+message( STATUS "Out-of-source build" ) 
+
+if( CMAKE_CXX_STANDARD LESS 17 )
+    message( FATAL_ERROR "C++17 compiler required.")
+endif()
+
+message( STATUS "C++ standard ok : " ${CMAKE_CXX_STANDARD} )
 
 ################################################################
 # SECTION: Configuring
@@ -153,8 +160,8 @@ foreach( _subdir ${subdirs_header_only} )
 
     set_target_properties( ${cur_lib_name} PROPERTIES LINKER_LANGUAGE CXX )
     set_target_properties( ${cur_lib_name} PROPERTIES OUTPUT_NAME ${cur_file_name} )
-    set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
-    set_property( TARGET ${cur_lib_name} PROPERTY CXX_STANDARD 17 )
+    #set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
+    #set_property( TARGET ${cur_lib_name} PROPERTY CXX_STANDARD 17 )
 
     target_compile_options( ${cur_lib_name} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
     target_include_directories( ${cur_lib_name} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..> )
@@ -188,8 +195,8 @@ foreach( _subdir ${subdirs} )
 
     set_target_properties( ${cur_lib_name} PROPERTIES LINKER_LANGUAGE CXX )
     set_target_properties( ${cur_lib_name} PROPERTIES OUTPUT_NAME ${cur_file_name} )
-    set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
-    set_property( TARGET ${cur_lib_name} PROPERTY CXX_STANDARD 17 )
+    #set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
+    #set_property( TARGET ${cur_lib_name} PROPERTY CXX_STANDARD 17 )
 
     if( MOTOR_LIBRARY_BUILD_SHARED )
       target_compile_options( ${cur_lib_name} 
