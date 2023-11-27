@@ -18,6 +18,7 @@ namespace motor
         public:
 
             static motor::device::system_ptr_t system( void_t ) ;
+            static motor::device::system_ptr_t init( void_t ) noexcept ;
             static void_t deinit( void_t ) noexcept ;
 
         };
