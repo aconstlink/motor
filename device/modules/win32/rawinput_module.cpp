@@ -131,7 +131,7 @@ namespace this_file
 
 
 //***
-rawinput_module::rawinput_module( void_t ) 
+rawinput_module::rawinput_module( void_t ) noexcept 
 {
     RAWINPUTDEVICE rid[ 3 ] ;
 
@@ -197,20 +197,20 @@ rawinput_module::this_ref_t rawinput_module::operator = ( this_rref_t rhv ) noex
 }
 
 //***
-rawinput_module::~rawinput_module( void_t )
+rawinput_module::~rawinput_module( void_t ) noexcept
 {
     this_t::release() ;
 }
 
 //***
-void_t rawinput_module::search( motor::device::imodule::search_funk_t funk )
+void_t rawinput_module::search( motor::device::imodule::search_funk_t funk ) noexcept
 {
     funk( _three_device ) ;
     funk( _ascii_device ) ;
 }
 
 //***
-void_t rawinput_module::update( void_t )
+void_t rawinput_module::update( void_t ) noexcept
 {
     // check for plug and play
     // update all devices

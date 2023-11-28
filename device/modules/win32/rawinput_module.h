@@ -64,17 +64,17 @@ namespace motor
 
             public:
 
-                rawinput_module( void_t ) ;
+                rawinput_module( void_t ) noexcept ;
                 rawinput_module( this_cref_t ) = delete ;
-                rawinput_module( this_rref_t ) ;
-                virtual ~rawinput_module( void_t ) ;
+                rawinput_module( this_rref_t ) noexcept ;
+                virtual ~rawinput_module( void_t ) noexcept ;
 
-                this_ref_t operator = ( this_rref_t ) ;
+                this_ref_t operator = ( this_rref_t ) noexcept ;
 
             public:
 
-                virtual void_t search( motor::device::imodule::search_funk_t ) ;
-                virtual void_t update( void_t ) ;
+                virtual void_t search( motor::device::imodule::search_funk_t ) noexcept ;
+                virtual void_t update( void_t ) noexcept ;
                 virtual void_t release( void_t ) noexcept ;
 
             public:
