@@ -193,12 +193,12 @@ system::load_item_ptr_t system::get_load_item( void_t ) noexcept
 {
     motor::concurrent::lock_guard_t lk( _load_mtx ) ;
     return _load_stack.has_item() ? _load_stack.pop() : 
-        motor::memory::create_ptr( load_item_t(), "[system::get_load_item] : item" ) ;
+        motor::memory::create_ptr( load_item_t(), "[system::get_load_item] : item" ).mtr() ;
 }
 
 //************************************************************************************
 system::store_item_ptr_t system::get_store_item( void_t ) noexcept
 {
     return _store_stack.has_item() ? _store_stack.pop() :
-        motor::memory::create_ptr( store_item_t(), "[system::get_store_item] : item" ) ;
+        motor::memory::create_ptr( store_item_t(), "[system::get_store_item] : item" ).mtr() ;
 }
