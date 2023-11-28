@@ -293,11 +293,20 @@ namespace motor
 
         // increment internal ref-count
         template< typename T >
-        static motor::core::mtr_shared< T > copy_ptr( motor::core::mtr_shared< T > ptr ) noexcept
+        static motor::core::mtr_shared< T > copy_ptr( motor::core::mtr_shared< T > & ptr ) noexcept
         {
-            return motor::core::mtr_shared< T >( reinterpret_cast< T* >( 
+            return motor::core::mtr_shared< T >::make( reinterpret_cast< T* >( 
                 motor::memory::global_t::create( 
-                    reinterpret_cast< void_ptr_t >( ptr ) ) ) ) ;
+                    reinterpret_cast< void_ptr_t >( ptr.mtr() ) ) ) ) ;
+        }
+
+        // increment internal ref-count
+        template< typename T >
+        static motor::core::mtr_shared< T > copy_ptr( motor::core::mtr_shared< T > && ptr ) noexcept
+        {
+            return motor::core::mtr_shared< T >::make( reinterpret_cast< T* >( 
+                motor::memory::global_t::create( 
+                    reinterpret_cast< void_ptr_t >( ptr.mtr() ) ) ) ) ;
         }
 
         template< typename T >
