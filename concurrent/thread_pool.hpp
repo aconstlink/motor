@@ -208,7 +208,7 @@ namespace motor
                                     tasks_t tasks ;
                                     motor::concurrent::task::scheduler_accessor::schedule( task, tasks ) ;
 
-                                    for( auto & t : tasks ) this->schedule( std::move(t)  ) ;
+                                    for( auto & t : tasks ) this->schedule( motor::move(t)  ) ;
                                 }
 
                                 motor::memory::release_ptr( task ) ;
@@ -254,7 +254,7 @@ namespace motor
 
             void_t schedule( motor::concurrent::task_mtr_moved_t t ) noexcept
             {
-                _sd->add_task( std::move( t ) ) ;
+                _sd->add_task( decltype(t)::type_mtr_t(t) ) ;
             }
 
             void_t shutdown( void_t ) noexcept 

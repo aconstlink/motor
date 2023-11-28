@@ -127,10 +127,10 @@ namespace motor
             }
 
             template< typename T >
-            static motor::core::mtr_moved<T> release( motor::core::mtr_moved<T> ptr )
+            static motor::core::mtr_moved<T> release( motor::core::mtr_moved<T> && ptr )
             {
-                if( ptr == nullptr ) return nullptr ;
-                return motor::core::mtr_moved<T>( this_t::release( (T*)ptr )  ) ;
+                if( ptr == nullptr ) return motor::core::mtr_moved<T>::make() ;
+                return motor::core::mtr_moved<T>::make( this_t::release( (T*)ptr )  ) ;
             }
 
         public: // raw interface 
@@ -298,7 +298,7 @@ namespace motor
         }
 
         template< typename T >
-        T * release_ptr( motor::core::mtr_moved<T> && mvt ) noexcept
+        motor::core::mtr_moved<T> release_ptr( motor::core::mtr_moved<T> && mvt ) noexcept
         {
             return motor::memory::global_t::release( std::move( mvt ) );
         }

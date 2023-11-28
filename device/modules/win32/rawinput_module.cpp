@@ -174,10 +174,10 @@ rawinput_module::rawinput_module( void_t )
 }
 
 //***
-rawinput_module::rawinput_module( this_rref_t rhv )
+rawinput_module::rawinput_module( this_rref_t rhv ) noexcept
 {
-    _three_device = motor::move( rhv._three_device ) ;
-    _ascii_device = motor::move( rhv._ascii_device ) ;
+    _three_device = motor::move( rhv._three_device ).mtr() ;
+    _ascii_device = motor::move( rhv._ascii_device ).mtr() ;
     _three_button_items = std::move( rhv._three_button_items ) ;
     _pointer_coords_global = std::move( rhv._pointer_coords_global ) ;
     _pointer_coords_local = std::move( rhv._pointer_coords_local ) ;
@@ -185,10 +185,10 @@ rawinput_module::rawinput_module( this_rref_t rhv )
 }
 
 //***
-rawinput_module::this_ref_t rawinput_module::operator = ( this_rref_t rhv ) 
+rawinput_module::this_ref_t rawinput_module::operator = ( this_rref_t rhv ) noexcept
 {
-    _three_device = motor::move( rhv._three_device ) ;
-    _ascii_device = motor::move( rhv._ascii_device ) ;
+    _three_device = motor::move( rhv._three_device ).mtr() ;
+    _ascii_device = motor::move( rhv._ascii_device ).mtr() ;
     _three_button_items = std::move( rhv._three_button_items ) ;
     _pointer_coords_global = std::move( rhv._pointer_coords_global ) ;
     _pointer_coords_local = std::move( rhv._pointer_coords_local ) ;

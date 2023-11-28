@@ -42,7 +42,7 @@ namespace motor
             this_ref_t operator = ( this_cref_t ) = delete ;
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
-                _dptr = motor::move( rhv._dptr ) ;
+                _dptr = motor::move( rhv._dptr ).mtr() ;
                 _ios = rhv._ios ;
                 return *this ;
             }

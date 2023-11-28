@@ -195,7 +195,7 @@ struct database::file_record
         rel = std::move( rhv.rel ) ;
         stamp = std::move( rhv.stamp ) ;
         monitors = std::move( rhv.monitors ) ;
-        cache = motor::move( rhv.cache ) ;
+        cache = motor::move( rhv.cache ).mtr() ;
     }
     ~file_record( void_t ) 
     {
@@ -222,7 +222,7 @@ struct database::file_record
         rel = std::move( rhv.rel ) ;
         stamp = std::move( rhv.stamp ) ;
         monitors = std::move( rhv.monitors ) ;
-        cache = motor::move( rhv.cache ) ;
+        cache = motor::move( rhv.cache ).mtr() ;
         return *this ;
     }
 };
@@ -292,7 +292,7 @@ database::cache_access_ref_t database::cache_access::operator = ( this_cref_t rh
     { _res = motor::memory::copy_ptr(rhv._res) ; return *this ; }
 
 database::cache_access_ref_t database::cache_access::operator = ( this_rref_t rhv ) noexcept 
-    { _res = motor::move( rhv._res ) ; return *this ; }
+    { _res = motor::move( rhv._res ).mtr() ; return *this ; }
 
 
 bool_t database::cache_access::wait_for_operation( motor::io::database::load_completion_funk_t funk ) 
@@ -343,7 +343,7 @@ database::~database( void_t )
 database::this_ref_t database::operator = ( this_rref_t rhv ) noexcept 
 {
     this_t::join_update() ;
-    _db = motor::move( rhv._db ) ;
+    _db = motor::move( rhv._db ).mtr() ;
 
     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
     for( auto& rec : _db->records )
