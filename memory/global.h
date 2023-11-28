@@ -320,5 +320,11 @@ namespace motor
         {
             return motor::memory::global_t::release( std::move( mvt ) );
         }
+
+        template< typename T >
+        motor::core::mtr_unique<T> release_ptr( motor::core::mtr_unique<T> & mvt ) noexcept
+        {
+            return motor::memory::global_t::release( std::move( mvt ) );
+        }
     }
 }
