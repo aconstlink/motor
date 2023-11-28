@@ -23,9 +23,9 @@ system::~system( void_t )
 }
 
 //***************************************************************
-void_t system::add_module( motor::device::imodule_mtr_t mod ) noexcept
+void_t system::add_module( motor::device::imodule_mtr_shared_t mod ) noexcept
 {
-    _modules.emplace_back( motor::memory::copy_ptr( mod ) ) ;
+    _modules.emplace_back( motor::memory::copy_ptr( mod.mtr() ) ) ;
 
     // every time a new module is added, 
     // all the vdev should check  all mappings
@@ -33,7 +33,7 @@ void_t system::add_module( motor::device::imodule_mtr_t mod ) noexcept
 }
 
 //***************************************************************
-void_t system::add_module( motor::device::imodule_mtr_moved_t mod ) noexcept
+void_t system::add_module( motor::device::imodule_mtr_unique_t mod ) noexcept
 {
     _modules.emplace_back( mod ) ;
 

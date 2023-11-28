@@ -721,7 +721,7 @@ void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_
 }
 
 //******************************************************************
-void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_moved_t mon ) noexcept 
+void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_unique_t mon ) noexcept 
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
     

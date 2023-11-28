@@ -252,7 +252,7 @@ namespace motor
                 return true ;
             }
 
-            void_t schedule( motor::concurrent::task_mtr_moved_t t ) noexcept
+            void_t schedule( motor::concurrent::task_mtr_unique_t t ) noexcept
             {
                 _sd->add_task( decltype(t)::type_mtr_t(t) ) ;
             }

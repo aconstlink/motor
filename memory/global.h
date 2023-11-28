@@ -127,10 +127,10 @@ namespace motor
             }
 
             template< typename T >
-            static motor::core::mtr_moved<T> release( motor::core::mtr_moved<T> && ptr )
+            static motor::core::mtr_unique<T> release( motor::core::mtr_unique<T> && ptr )
             {
-                if( ptr == nullptr ) return motor::core::mtr_moved<T>::make() ;
-                return motor::core::mtr_moved<T>::make( this_t::release( (T*)ptr )  ) ;
+                if( ptr == nullptr ) return motor::core::mtr_unique<T>::make() ;
+                return motor::core::mtr_unique<T>::make( this_t::release( (T*)ptr )  ) ;
             }
 
         public: // raw interface 
@@ -247,39 +247,39 @@ namespace motor
         motor_typedef( global ) ;
 
         template< typename T >
-        static T * create_ptr( void_t ) noexcept
+        static motor::core::mtr_unique<T> create_ptr( void_t ) noexcept
         {
-            return global_t::create<T>() ;
+            return motor::unique( global_t::create<T>() ) ;
         }
         
         template< typename T >
-        static T* create_ptr( char_cptr_t purpose )
+        static motor::core::mtr_unique<T> create_ptr( char_cptr_t purpose )
         {
-            return global_t::create<T>( purpose ) ;
+            return motor::unique(  global_t::create<T>( purpose ) ) ;
         }
 
         template< typename T >
-        static T* create_ptr( T const & acopy )
+        static motor::core::mtr_unique<T> create_ptr( T const & acopy )
         {
-            return global_t::create<T>( acopy ) ;
+            return motor::unique(  global_t::create<T>( acopy ) ) ;
         }
 
         template< typename T >
-        static T* create_ptr( T const& acopy, char_cptr_t purpose )
+        static motor::core::mtr_unique<T> create_ptr( T const& acopy, char_cptr_t purpose )
         {
-            return global_t::create<T>( acopy, purpose ) ;
+            return motor::unique(  global_t::create<T>( acopy, purpose ) ) ;
         }
 
         template< typename T >
-        static T* create_ptr( T&& amove )
+        static motor::core::mtr_unique<T> create_ptr( T&& amove )
         {
-            return global_t::create<T>( std::move( amove ) ) ;
+            return motor::unique( global_t::create<T>( std::move( amove ) ) ) ;
         }
 
         template< typename T >
-        static T* create_ptr( T&& amove, char_cptr_t purpose )
+        static motor::core::mtr_unique<T> create_ptr( T&& amove, char_cptr_t purpose )
         {
-            return global_t::create<T>( std::move( amove ), purpose ) ;
+            return motor::unique( global_t::create<T>( std::move( amove ), purpose ) ) ;
         }
 
         // increment internal ref-count
@@ -291,6 +291,15 @@ namespace motor
                     reinterpret_cast< void_ptr_t >( ptr ) ) ) ;
         }
 
+        // increment internal ref-count
+        template< typename T >
+        static motor::core::mtr_shared< T > copy_ptr( motor::core::mtr_shared< T > ptr ) noexcept
+        {
+            return motor::core::mtr_shared< T >( reinterpret_cast< T* >( 
+                motor::memory::global_t::create( 
+                    reinterpret_cast< void_ptr_t >( ptr ) ) ) ) ;
+        }
+
         template< typename T >
         T * release_ptr( T * ptr ) noexcept
         {
@@ -298,7 +307,7 @@ namespace motor
         }
 
         template< typename T >
-        motor::core::mtr_moved<T> release_ptr( motor::core::mtr_moved<T> && mvt ) noexcept
+        motor::core::mtr_unique<T> release_ptr( motor::core::mtr_unique<T> && mvt ) noexcept
         {
             return motor::memory::global_t::release( std::move( mvt ) );
         }

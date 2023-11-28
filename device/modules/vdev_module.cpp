@@ -137,7 +137,7 @@ void_t vdev_module::init_controller_1( motor::device::imodule_mtr_t mod ) noexce
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
 
-            g.dev->add_mapping( motor::move( motor::memory::create_ptr( mapping_t(m) ) ) ) ;
+            g.dev->add_mapping( motor::memory::create_ptr( mapping_t(m) ) ) ;
         }
     }
 
@@ -205,7 +205,7 @@ void_t vdev_module::init_controller_1( motor::device::imodule_mtr_t mod ) noexce
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
 
-            g.dev->add_mapping( motor::move( motor::memory::create_ptr( mapping_t(m) ) ) ) ;
+            g.dev->add_mapping( motor::memory::create_ptr( mapping_t(m) ) ) ;
         }
     }
 
@@ -245,7 +245,7 @@ void_t vdev_module::init_controller_1( motor::device::imodule_mtr_t mod ) noexce
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
 
-            g.dev->add_mapping( motor::move( motor::memory::create_ptr( mapping_t(m) ) ) ) ;
+            g.dev->add_mapping( motor::memory::create_ptr( mapping_t(m) ) ) ;
         }
     }
 }

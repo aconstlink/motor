@@ -37,11 +37,11 @@ namespace motor
             // resumes execution.
             static void_t yield( std::function< bool_t ( void_t ) > funk ) noexcept ;
 
-            static void_t schedule( motor::concurrent::task_mtr_moved_t, motor::concurrent::schedule_type const ) noexcept ;
+            static void_t schedule( motor::concurrent::task_mtr_unique_t, motor::concurrent::schedule_type const ) noexcept ;
 
 
             // creates a task and leaves ownership to caller.
-            static task_mtr_moved_t make_task( motor::concurrent::task_t::task_funk_t f ) noexcept ;
+            static task_mtr_unique_t make_task( motor::concurrent::task_t::task_funk_t f ) noexcept ;
         };
         motor_typedef( global ) ;
     }

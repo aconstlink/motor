@@ -100,7 +100,7 @@ namespace motor
                 return other ;
             }
 
-            this_mtr_moved_t in_between( this_mtr_moved_t other ) noexcept
+            this_mtr_unique_t in_between( this_mtr_unique_t other ) noexcept
             {
                 other->inc_incoming() ;
                 _inbetweens.emplace_back( other ) ;
@@ -114,7 +114,7 @@ namespace motor
                 return other ;
             }
 
-            this_mtr_moved_t then( this_mtr_moved_t other ) noexcept
+            this_mtr_unique_t then( this_mtr_unique_t other ) noexcept
             {
                 other->inc_incoming() ;
                 _thens.emplace_back( other ) ;

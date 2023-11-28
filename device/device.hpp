@@ -199,12 +199,12 @@ namespace motor
 
         public:
 
-            void_t add_mapping( motor::device::imapping_mtr_t m ) noexcept
+            void_t add_mapping( motor::device::imapping_mtr_shared_t m ) noexcept
             {
                 _mappings.emplace_back( motor::memory::copy_ptr( m ) ) ;
             }
 
-            void_t add_mapping( motor::device::imapping_mtr_moved_t m ) noexcept
+            void_t add_mapping( motor::device::imapping_mtr_unique_t m ) noexcept
             {
                 _mappings.emplace_back( m ) ;
             }

@@ -72,7 +72,7 @@ void_t global::yield( std::function< bool_t ( void_t ) > funk ) noexcept
 }
 
 //*************************************************************************************************
-void_t global::schedule( motor::concurrent::task_mtr_moved_t t, motor::concurrent::schedule_type const st ) noexcept 
+void_t global::schedule( motor::concurrent::task_mtr_unique_t t, motor::concurrent::schedule_type const st ) noexcept 
 {
     if( st == motor::concurrent::schedule_type::pool )
     {
@@ -85,8 +85,8 @@ void_t global::schedule( motor::concurrent::task_mtr_moved_t t, motor::concurren
 }
 
 //*************************************************************************************************
-task_mtr_moved_t global::make_task( motor::concurrent::task_t::task_funk_t f ) noexcept
+task_mtr_unique_t global::make_task( motor::concurrent::task_t::task_funk_t f ) noexcept
 {
-    return task_mtr_moved_t::make( motor::memory::global_t::create< task_t >( motor::concurrent::task_t(f), 
+    return task_mtr_unique_t::make( motor::memory::global_t::create< task_t >( motor::concurrent::task_t(f), 
         "[motor::concurrent::global::make_task] : task" ) ) ;
 }
