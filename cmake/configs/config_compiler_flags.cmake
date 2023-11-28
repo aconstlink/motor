@@ -6,6 +6,10 @@ if( NOT MOTOR_COMPILER_CONFIGURED )
     message( FATAL_ERROR "Compiler not configured." )
 endif()
 
+# ct_ : means config target
+set( THIS_TARGET ct_motor_compiler_options )
+add_library( ${THIS_TARGET} INTERFACE )
+
 if( MOTOR_COMPILER_MSC )
     
     # cherry-picking
@@ -24,7 +28,12 @@ if( MOTOR_COMPILER_MSC )
     # EH : exception handling
     set( MOTOR_COMPILER_OPTIONS_PRIVATE /W4 /WX /EHsc ${MOTOR_UNWANTED_COMPILER_OPTIONS} )
 
-    unset( MOTOR_UNWANTED_COMPILER_OPTIONS ) 
+    
+
+    target_compile_options( ${THIS_TARGET} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE} )
+
+    unset( MOTOR_UNWANTED_COMPILER_OPTIONS CACHE ) 
+    unset( MOTOR_COMPILER_OPTIONS_PRIVATE CACHE ) 
 
     #message( STATUS "Configured Microsoft Compiler Flags")
 
@@ -48,6 +57,7 @@ elseif( MOTOR_COMPILER_GNU )
 
     # todo
     set( MOTOR_COMPILER_OPTIONS_PRIVATE )
+    target_compile_options( ${THIS_TARGET} INTERFACE "" )
 
     unset( MOTOR_UNWANTED_COMPILER_OPTIONS )
 
@@ -57,5 +67,7 @@ else()
     message( "No compiler flags configured due to unknown compiler.")
 endif()
 
+install( TARGETS ${THIS_TARGET} 
+        EXPORT ${PROJECT_NAME}-targets )
 
 

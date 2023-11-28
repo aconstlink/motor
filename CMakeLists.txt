@@ -163,7 +163,7 @@ foreach( _subdir ${subdirs_header_only} )
     #set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
     #set_property( TARGET ${cur_lib_name} PROPERTY CXX_STANDARD 17 )
 
-    target_compile_options( ${cur_lib_name} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
+    #target_compile_options( ${cur_lib_name} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
     target_include_directories( ${cur_lib_name} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..> )
     
     if( MSVC_IDE )
