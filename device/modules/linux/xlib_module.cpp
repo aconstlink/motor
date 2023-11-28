@@ -1,16 +1,16 @@
 #include "xlib_module.h"
 
-#include <natus/math/vector/vector2.hpp>
+#include <motor/math/vector/vector2.hpp>
 #include <X11/keysym.h>
 
-using namespace natus::device ;
-using namespace natus::device::xlib ;
+using namespace motor::device ;
+using namespace motor::device::xlib ;
 
 namespace this_file
 {
-    typedef natus::device::layouts::ascii_keyboard::ascii_key ascii_key_t ;
-    typedef natus::device::components::key_state key_state_t ;
-    typedef natus::device::layouts::ascii_keyboard_t layout_t ;
+    typedef motor::device::layouts::ascii_keyboard::ascii_key ascii_key_t ;
+    typedef motor::device::components::key_state key_state_t ;
+    typedef motor::device::layouts::ascii_keyboard_t layout_t ;
 
     static ascii_key_t map_virtual_keycode_to_ascii_key( uint_t const wparam )
     {
@@ -68,30 +68,32 @@ namespace this_file
 xlib_module::xlib_module( void_t ) 
 {
     // init devices in xlib?
-    natus::log::global_t::status("xlib module online" ) ;
+    motor::log::global_t::status("xlib module online" ) ;
 
     {
-        _three_device = natus::device::three_device_t( "Xlib Three Button Mouse" ) ;
-        _ascii_device = natus::device::ascii_device_t( "Xlib Ascii Keyboard" ) ;
+        _three_device = motor::memory::create_ptr( motor::device::three_device_t( "Xlib Three Button Mouse" ),
+            "[xlib_module] : three button mouse" );
+        _ascii_device = motor::memory::create_ptr( motor::device::ascii_device_t( "Xlib Ascii Keyboard" ),
+            "[xlib_module] : ascii keyboard"  ) ;
     }
 }
 
-//***
+//************************************************************
 xlib_module::xlib_module( this_rref_t rhv )
 {
-    _three_device = ::std::move( rhv._three_device ) ;
-    _ascii_device = ::std::move( rhv._ascii_device ) ;
-    _three_button_items = ::std::move( rhv._three_button_items ) ;
-    _pointer_coords_global = ::std::move( rhv._pointer_coords_global ) ;
-    _pointer_coords_local = ::std::move( rhv._pointer_coords_local ) ;
-    _scroll_items = ::std::move( rhv._scroll_items ) ;
+    _three_device = motor::move( rhv._three_device ).mtr() ;
+    _ascii_device = motor::move( rhv._ascii_device ).mtr() ;
+    _three_button_items = std::move( rhv._three_button_items ) ;
+    _pointer_coords_global = std::move( rhv._pointer_coords_global ) ;
+    _pointer_coords_local = std::move( rhv._pointer_coords_local ) ;
+    _scroll_items = std::move( rhv._scroll_items ) ;
 }
 
-//***
+//************************************************************
 xlib_module::this_ref_t xlib_module::operator = ( this_rref_t rhv ) 
 {
-    _three_device = ::std::move( rhv._three_device ) ;
-    _ascii_device = ::std::move( rhv._ascii_device ) ;
+    _three_device = motor::move( rhv._three_device ).mtr() ;
+    _ascii_device = motor::move( rhv._ascii_device ).mtr() ;
     _three_button_items = ::std::move( rhv._three_button_items ) ;
     _pointer_coords_global = ::std::move( rhv._pointer_coords_global ) ;
     _pointer_coords_local = ::std::move( rhv._pointer_coords_local ) ;
@@ -99,20 +101,21 @@ xlib_module::this_ref_t xlib_module::operator = ( this_rref_t rhv )
     return *this ;
 }
 
-//***
+//************************************************************
 xlib_module::~xlib_module( void_t )
 {
+    this_t::release() ;
 }
 
-//***
-void_t xlib_module::search( natus::device::imodule::search_funk_t funk )
+//************************************************************
+void_t xlib_module::search( motor::device::imodule::search_funk_t funk ) noexcept
 {
     funk( _three_device ) ;
     funk( _ascii_device ) ;
 }
 
-//***
-void_t xlib_module::update( void_t )
+//************************************************************
+void_t xlib_module::update( void_t ) noexcept
 {
     // check for plug and play
     // update all devices
@@ -125,9 +128,9 @@ void_t xlib_module::update( void_t )
 
     // mouse
     {
-        natus::device::layouts::three_mouse_t mouse( _three_device ) ;
+        motor::device::layouts::three_mouse_t mouse( _three_device ) ;
 
-        natus::concurrent::lock_t lk( _buffer_mtx ) ;
+        std::lock_guard< std::mutex > lk( _buffer_mtx ) ;
 
         // insert new events
         {
@@ -147,7 +150,7 @@ void_t xlib_module::update( void_t )
             else
             {
                 auto* coord = mouse.get_global_component() ;
-                *coord = natus::device::components::move_state::unmoved ;
+                *coord = motor::device::components::move_state::unmoved ;
             }
 
             if( _pointer_coords_local.size() > 0 )
@@ -158,7 +161,7 @@ void_t xlib_module::update( void_t )
             else
             {
                 auto* coord = mouse.get_local_component() ;
-                *coord = natus::device::components::move_state::unmoved ;
+                *coord = motor::device::components::move_state::unmoved ;
             }
 
             if( _scroll_items.size() > 0 )
@@ -179,14 +182,14 @@ void_t xlib_module::update( void_t )
 
     // keybaord
     {
-        natus::device::layouts::ascii_keyboard_t keyboard( _ascii_device ) ;
+        motor::device::layouts::ascii_keyboard_t keyboard( _ascii_device ) ;
 
-        natus::concurrent::lock_t lk( _buffer_mtx ) ;
+        std::lock_guard< std::mutex > lk( _buffer_mtx ) ;
         
         {
             for( auto const& item : _ascii_keyboard_keys )
             {
-                float_t const value = item.second != natus::device::components::key_state::released ? 1.0f : 0.0f ;
+                float_t const value = item.second != motor::device::components::key_state::released ? 1.0f : 0.0f ;
                 keyboard.set_value( item.first, value ) ;
                 keyboard.set_state( item.first, item.second ) ;
             }
@@ -195,11 +198,18 @@ void_t xlib_module::update( void_t )
     }
 }
 
-//***
+//************************************************************
+void_t xlib_module::release( void_t ) noexcept
+{
+    motor::memory::release_ptr( motor::move(_three_device) ) ;
+    motor::memory::release_ptr( motor::move(_ascii_device) ) ;
+}
+
+//************************************************************
 bool_t xlib_module::handle_input_event( XEvent const & event )
 {
-    auto bs = natus::device::components::button_state::none ;
-    auto ks = natus::device::components::key_state::none ;
+    auto bs = motor::device::components::button_state::none ;
+    auto ks = motor::device::components::key_state::none ;
 
     switch( event.type )
     {
@@ -212,26 +222,26 @@ bool_t xlib_module::handle_input_event( XEvent const & event )
 
             // do global
             {
-                natus::concurrent::lock_t lk( _buffer_mtx ) ;
+                std::lock_guard< std::mutex > lk( _buffer_mtx ) ;
 
-                natus::math::vec2f_t const dim(
+                motor::math::vec2f_t const dim(
                      float_t( WidthOfScreen(wa.screen) ),
                      float_t( HeightOfScreen(wa.screen) ) ) ;
 
-                natus::math::vec2f_t const v = natus::math::vec2f_t( 
+                motor::math::vec2f_t const v = motor::math::vec2f_t( 
                      float_t( ev.x_root ), float_t( dim.y() - ev.y_root ) ) / dim ;
                 _pointer_coords_global.push_back( v ) ;
             }
 
             // do local
             {
-                natus::concurrent::lock_t lk( _buffer_mtx ) ;
+                std::lock_guard< std::mutex > lk( _buffer_mtx ) ;
 
-                natus::math::vec2f_t const dim(
+                motor::math::vec2f_t const dim(
                      float_t( wa.width ),
                      float_t( wa.height )) ;
 
-                natus::math::vec2f_t const v = natus::math::vec2f_t( 
+                motor::math::vec2f_t const v = motor::math::vec2f_t( 
                     float_t( ev.x ), float_t( dim.y() - ev.y ) ) / dim ;
                 _pointer_coords_local.push_back( v ) ;
             }
@@ -239,23 +249,23 @@ bool_t xlib_module::handle_input_event( XEvent const & event )
         break;
 
     case ButtonPress:
-        bs = natus::device::components::button_state::pressed ;
+        bs = motor::device::components::button_state::pressed ;
         break ;
 
     case ButtonRelease:
-        bs = natus::device::components::button_state::released ;
+        bs = motor::device::components::button_state::released ;
         break ;
 
     case KeyPress:
-        ks = natus::device::components::key_state::pressed ;
+        ks = motor::device::components::key_state::pressed ;
         break ;
 
     case KeyRelease:
-        ks = natus::device::components::key_state::released ;
+        ks = motor::device::components::key_state::released ;
         break ;
     }
 
-    if( bs != natus::device::components::button_state::none )
+    if( bs != motor::device::components::button_state::none )
     {
         XButtonEvent const & ev = event.xbutton ;
 
@@ -267,20 +277,20 @@ bool_t xlib_module::handle_input_event( XEvent const & event )
 
         if( tb != this_t::three_button_t::none )
         {
-            natus::concurrent::lock_t lk( _buffer_mtx ) ;
+            std::lock_guard< std::mutex > lk( _buffer_mtx ) ;
             _three_button_items.push_back( mouse_button_item_t( tb, bs ) ) ;
         }
 
         if( (ev.button == 4 || ev.button == 5) && 
-            bs == natus::device::components::button_state::released )
+            bs == motor::device::components::button_state::released )
         {
-            natus::concurrent::lock_t lk( _buffer_mtx ) ;
+            std::lock_guard< std::mutex > lk( _buffer_mtx ) ;
             int_t const v = ev.button == 4 ? 1 : -1 ;
             _scroll_items.push_back( v ) ;
         }
     }
 
-    if( ks != natus::device::components::key_state::none )
+    if( ks != motor::device::components::key_state::none )
     {
         XKeyEvent const & ev = event.xkey ;
 
@@ -289,7 +299,7 @@ bool_t xlib_module::handle_input_event( XEvent const & event )
         {
             this_file::map_virtual_keycode_to_ascii_key( keysym ) ;
 
-            natus::concurrent::lock_t lk( _buffer_mtx ) ;
+            std::lock_guard< std::mutex > lk( _buffer_mtx ) ;
 
         _ascii_keyboard_keys.push_back( ascii_keyboard_key_item_t(
             this_file::map_virtual_keycode_to_ascii_key( keysym ), ks ) ) ;

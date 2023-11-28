@@ -32,12 +32,15 @@ namespace motor
             //************************************************************************************
             matrix4( this_cref_t rhv ) 
             {
-                ::std::memcpy( (void_ptr_t)_elem, (void_cptr_t)rhv._elem, sizeof(type_t)*16 ) ;
+                for( size_t i = 0; i<16; ++i )
+                    _elem[i] = rhv._elem[i] ;
             }
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept 
             {
-                ::std::memcpy( (void_ptr_t)_elem, (void_cptr_t)rhv._elem, sizeof(type_t)*16 ) ;
+                for( size_t i = 0; i<16; ++i )
+                    _elem[i] = rhv._elem[i] ;
+                    
                 return *this ;
             }
 

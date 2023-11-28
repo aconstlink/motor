@@ -211,8 +211,6 @@ namespace motor
             // zero based indices
             type_t get_element( size_t r, size_t c ) const
             {
-                motor::core::break_if( r > 2 || c > 2 ) ;
-
                 return _elem[r * 3 + c] ;
             }
 

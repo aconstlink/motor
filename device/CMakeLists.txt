@@ -56,14 +56,17 @@ set( os_libs )
 
 if( MOTOR_TARGET_OS_WIN )
   list( APPEND sources ${win32_sources} )
-  set( os_libs winmm.lib xinput
- )
+  set( os_libs winmm.lib xinput )
 
   if( MOTOR_COMPILER_MSC )
         # warning C4005 : '__useHeader' : macro redefinition 
         # Note: C4005 seem to be a redefinition bug in the window header files.
         set( unwanted_compiler_options "/wd4005" )
     endif()
+endif()
+
+if( MOTOR_WINDOW_SYSTEM_XLIB )
+set( os_libs ${X11_LIBRARIES} )
 endif()
 
 if( MOTOR_TARGET_OS_LIN )

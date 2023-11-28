@@ -20,7 +20,7 @@ namespace motor
                 num_states
             };
 
-            static motor::string_cref_t to_string( motor::device::components::vibrator_state const s ) noexcept
+            static motor::string_t to_string( motor::device::components::vibrator_state const s ) noexcept
             {
                 using bs_t = motor::device::components::vibrator_state ;
                 static char_t const * const __states[] = { "none", "on", "running", "off", "invalid" } ;
