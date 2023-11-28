@@ -14,7 +14,7 @@ namespace motor
 
         public:
 
-            using this_t = mtr_moved ;
+            using this_t = mtr_moved<T> ;
             using this_cref_t = this_t const & ;
             using this_rref_t = this_t && ;
 
@@ -34,7 +34,7 @@ namespace motor
             {
                 rhv._ptr = nullptr ;
             }
-            
+                        
             ~mtr_moved( void ) noexcept{}
 
             template< typename O >
