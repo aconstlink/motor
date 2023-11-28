@@ -16,4 +16,10 @@ namespace motor
     {
         return string_t( b.c_str() ) ;
     }
+
+    template< typename T >
+    motor::string_t to_string( T s ) noexcept
+    {
+        return motor::from_std( std::to_string( s ) ) ;
+    }
 }
