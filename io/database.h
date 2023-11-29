@@ -28,7 +28,7 @@ namespace motor
 
         public:
 
-            typedef std::function< void_t ( char_cptr_t, size_t const ) > load_completion_funk_t ;
+            typedef std::function< void_t ( char_cptr_t, size_t const, motor::io::result const ) > load_completion_funk_t ;
 
         private:
             

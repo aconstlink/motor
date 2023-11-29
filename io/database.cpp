@@ -120,7 +120,7 @@ struct database::record_cache
             // @todo cache data...
             motor::memory::malloc_guard< char_t > const mg( data, sib ) ;
 
-            funk( mg.get(), mg.size() ) ;
+            funk( mg.get(), mg.size(), err ) ;
         } ) ;
 
         // there was no load operation, so take data from cache
@@ -133,7 +133,7 @@ struct database::record_cache
                 return false ;
             }
 
-            funk( _data, _sib ) ;
+            funk( _data, _sib, motor::io::result::cached_data ) ;
             return true ;
         }
         return res == motor::io::result::ok ;
@@ -532,7 +532,7 @@ bool_t database::pack( this_t::encryption const )
         {
             for( auto & fr : records )
             {
-                this_t::load( fr.location ).wait_for_operation( [&] ( char_cptr_t data, size_t const sib )
+                this_t::load( fr.location ).wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const )
                 {
                     motor::string_t const wdata = this_t::obfuscator().encode( data, sib ) ;
 
