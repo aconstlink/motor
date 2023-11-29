@@ -16,7 +16,8 @@ namespace motor
             invalid,
             invalid_argument,
             unknown,
-            invalid_handle ,
+            invalid_handle,
+            cached_data,
             num_results
         };
 
