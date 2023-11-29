@@ -112,9 +112,7 @@ set( subdirs_header_only
 
 set( subdirs  )
 
-if( TARGET OpenGL::GL )
-    #list( APPEND subdirs "ogl" )
-endif()
+
 
 list( APPEND subdirs
     "log"
@@ -122,6 +120,7 @@ list( APPEND subdirs
     "concurrent"
     "io"
     "device"
+    "msl"
     #"application"    
     #"system"
     #"graphics"
@@ -138,6 +137,9 @@ list( APPEND subdirs
     )
 
 
+if( TARGET OpenGL::GL )
+    #list( APPEND subdirs "ogl" )
+endif()
 
 if( MOTOR_TARGET_GRAPHICS_OPENGL )
     #list( APPEND SUBDIRS gli )
@@ -164,7 +166,10 @@ foreach( _subdir ${subdirs_header_only} )
     #set_property( TARGET ${cur_lib_name} PROPERTY CXX_STANDARD 17 )
 
     #target_compile_options( ${cur_lib_name} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
-    target_include_directories( ${cur_lib_name} INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..> )
+    target_include_directories( ${cur_lib_name} INTERFACE 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..> 
+        $<INSTALL_INTERFACE:include>  # <prefix>/include)
+)
     
     if( MSVC_IDE )
         set_target_properties( ${cur_lib_name} PROPERTIES FOLDER "motor" )
@@ -204,7 +209,7 @@ foreach( _subdir ${subdirs} )
         INTERFACE -DMOTOR_${cur_lib_name_upper}_IMPORT )    
     endif()
 
-    target_compile_options( ${cur_lib_name} PRIVATE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
+    #target_compile_options( ${cur_lib_name} PRIVATE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
     target_include_directories( ${cur_lib_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..> )
     
     set_target_properties( ${cur_lib_name} PROPERTIES FOLDER "motor" )

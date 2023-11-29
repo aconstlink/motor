@@ -1,0 +1,97 @@
+
+version 0.1
+
+// comment line
+
+library noise
+{
+    float_t noise1d( in float_t x )
+    {
+        // with seed
+        return nsl.math.perlin1d( 12345, width, height, x ) ;
+    }
+}
+
+library mylib
+{
+    float_t pi = 3.1432423 ;
+    float_t c = 5648.3 ;
+    float_t x = 324 ;
+    vec3_t some_vec = vec3_t(1.0) ;
+
+    /*
+        this
+        is 
+        a 
+        longer 
+        comment
+    */
+    library inner
+    {
+        vec3_t xyz( vec3_t )
+        {
+        }
+    }
+
+    vec3_t xyz( vec3_t )
+    {
+    }
+}
+
+config name
+{
+    render_states
+    {
+    }
+
+    vertex_shader
+    {
+        mat4_t proj : projection ;
+        mat4_t view : view ;
+
+        float_t some_var ;
+
+        // 2d textures can be used in vertex shaders too
+        tex2d_t some_texture ;
+        
+        // holding user defined data multiple of vec4_t
+        data_array_t data ;
+
+        in vec3_t pos : position ;
+        in vec2_t tx : texcoord ;
+
+        out vec4_t pos : position ;
+
+        void main()
+        {
+            // build in function
+            vec3_t pos = some_build_in( in.pos ) ;
+
+            // user library function
+            pos = nsl.mylib.xyz( in.pos ) ;
+
+            // access a huge data buffer
+            {
+                int_t idx = vid / 24 ;
+                vec4_t some_pos = data[ idx * 2 + 0 ] ;
+                vec4_t some_col = data[ idx * 2 + 1 ] ;
+            }
+
+            out.pos = proj * view * vec4_t( pos, 1.0 ) ;
+       } 
+    }
+
+    pixel_shader
+    {
+        in vec3_t frag_coord : frag_coord ;
+        out vec4_t color : color ;
+
+        // access an array of textures
+        tex2d_array_t tarray ;
+
+        void main()
+        {
+            out.color = texture( tarray[x], vec2_t() ) ;
+        }
+    }
+}
