@@ -48,6 +48,8 @@ void_ptr_t manager::create( size_t const sib ) noexcept
 //*************************************************************************************
 void_ptr_t manager::create( void_ptr_t ptr ) noexcept 
 {
+    if( ptr == nullptr ) return nullptr ;
+
     lock_t lk( _mtx ) ;
 
     auto iter = _ptr_to_info.find( ptr ) ;
