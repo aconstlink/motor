@@ -158,7 +158,7 @@ namespace motor
                 };
                 static motor::string_t to_string( this_t::directional const b ) noexcept
                 {
-                    static const motor::string_t __names[] = { "movement", "aim", "invalid" } ;
+                    static char_t const * const __names[] = { "movement", "aim", "invalid" } ;
                     return size_t( b ) >= size_t( directional::num_dirs ) ? __names[ size_t( directional::num_dirs ) ] : __names[ size_t( b ) ] ;
                 }
 
@@ -168,7 +168,7 @@ namespace motor
                 };
                 static motor::string_t to_string( this_t::vibration const b ) noexcept
                 {
-                    static const motor::string_t __names[] = { "a", "b", "invalid" } ;
+                    static char const * const __names[] = { "a", "b", "invalid" } ;
                     return size_t( b ) >= size_t( vibration::num_vibs ) ? __names[ size_t( vibration::num_vibs ) ] : __names[ size_t( b ) ] ;
                 }
 
