@@ -34,8 +34,8 @@ system::~system( void_t ) noexcept
 //*************************************************************************************
 system::this_ptr_t system::create( void_t ) noexcept
 {
-    /// do not use natus memory
-    /// at the moment, natus memory is above log
+    /// do not use motor memory
+    /// at the moment, motor memory is above log
     return new this_t() ;
 }
 

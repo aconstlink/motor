@@ -45,7 +45,7 @@ global::singleton_data * global::init( void_t ) noexcept
     _dptr->tp.init() ;
     _dptr->lts.init() ;
 
-    motor::log::global_t::status( "[online] : natus concurrent" ) ;
+    motor::log::global_t::status( "[online] : motor concurrent" ) ;
 
     return this_t::_dptr ;
 }

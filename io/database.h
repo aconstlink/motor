@@ -119,18 +119,18 @@ namespace motor
         public:
 
             // gives access to some file system structure
-            // or to a natus database file.
+            // or to a motor database file.
             //
             // @param base the base path to the database file
             // @param working_rel where the data should be look for/stored at relative to base
             // @param name the db file/folder name
             //
             // Filesystem: /base/name
-            // Natus File: /base/name.natus
+            // motor File: /base/name.motor
             bool_t init( motor::io::path_cref_t base, motor::io::path_cref_t working_rel = "./", 
                 motor::io::path_cref_t name = "db" ) ;
 
-            // pack the initialized resource into a natus file
+            // pack the initialized resource into a motor file
             bool_t pack( this_t::encryption const = this_t::encryption::none ) ;
 
             // unpack the initialized resource to a file system

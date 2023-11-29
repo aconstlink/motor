@@ -16,7 +16,7 @@
 
 using namespace motor::io ;
 
-static char_t const * const header_desc = "natus db file format 0.1" ;
+static char_t const * const header_desc = "motor db file format 0.1" ;
 
 namespace this_file_db
 {

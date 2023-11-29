@@ -1,7 +1,4 @@
-//------------------------------------------------------------
-// natus (c) Alexis Constantin Link
-// Distributed under the MIT license
-//------------------------------------------------------------
+
 #include "global.h"
 
 #include "system/system.h"
@@ -41,7 +38,7 @@ global::this_ptr_t global::init( void_t ) noexcept
         
         this_t::_ptr = new this_t() ;
     }
-    this_t::status( "[online] : natus log" ) ;
+    this_t::status( "[online] : motor log" ) ;
 
 
     return this_t::_ptr ;
