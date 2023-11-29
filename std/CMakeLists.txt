@@ -8,8 +8,7 @@ set( sources
     "filesystem"
     "stack"
     "sstream"
-    
-    #"insertion_sort.hpp"
+    "insertion_sort.hpp"
     #"string/utf8.hpp"
     "string_split.hpp"
     )
