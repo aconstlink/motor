@@ -573,7 +573,7 @@ void_t database::load_db_file( this_t::db_ref_t db_, motor::io::path_cref_t p )
             decode( motor::string_t( data.get(), this_file_db::length_validator::fixed_length() ) ) ;
         
         motor::vector< motor::string_t > token ;
-        size_t const num_elems = motor::string_ops::split( buffer, ':', token ) ;
+        size_t const num_elems = motor::mstd::string_ops::split( buffer, ':', token ) ;
 
         if( num_elems >= 3 )
         {
@@ -606,7 +606,7 @@ void_t database::load_db_file( this_t::db_ref_t db_, motor::io::path_cref_t p )
                 decode( motor::string_t( data.get(), this_file_db::length_validator::fixed_length() ) ) ;
 
             motor::vector< motor::string_t > token ;
-            size_t const num_elems = motor::string_ops::split( buffer, ':', token ) ;
+            size_t const num_elems = motor::mstd::string_ops::split( buffer, ':', token ) ;
 
             if( num_elems < 5 ) 
             {
