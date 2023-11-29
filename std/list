@@ -1,0 +1,11 @@
+
+#pragma once
+
+#include <motor/memory/allocator.hpp>
+#include <list>
+
+namespace motor
+{
+    template< typename T > 
+    using list = std::list<T, motor::memory::allocator< T > >;
+}
