@@ -138,11 +138,7 @@ list( APPEND subdirs
 
 
 if( TARGET OpenGL::GL )
-    #list( APPEND subdirs "ogl" )
-endif()
-
-if( MOTOR_TARGET_GRAPHICS_OPENGL )
-    #list( APPEND SUBDIRS gli )
+    list( APPEND subdirs "ogl" )
 endif()
 
 add_library( complete INTERFACE )
