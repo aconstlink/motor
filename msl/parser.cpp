@@ -333,7 +333,7 @@ motor::msl::parse::libraries_t parser::filter_library_statements( this_t::statem
 
     size_t level = size_t( 0 ) ;
 
-    bool_t in_shader = false ;
+    //bool_t in_shader = false ;
 
     // 1. coarsely find and differentiate shaders and variables 
     for( size_t i = 0; i < ss.size(); ++i )
@@ -555,7 +555,7 @@ parser::statements_t parser::replace_operators( statements_rref_t ss ) const
             { "return", ":ret:" }
         } ;
 
-        auto is_stop = [&] ( char const t, size_t const l )
+        auto is_stop = [&] ( char const t, size_t const /*l*/ )
         {
             //if( l == size_t( -1 ) )  return true ;
             //if( l != 0 ) return false ;
@@ -812,7 +812,7 @@ parser::statements_t parser::replace_open_close( statements_rref_t ss ) const no
 
                 // transform <open> to open command
                 *iter = "open" ;
-                for( auto const t : inner_token ) *iter += " " + t ;
+                for( auto const & t : inner_token ) *iter += " " + t ;
 
                 // remove the open tag
                 iter = --ss.erase( ++iter ) ;
@@ -1215,10 +1215,10 @@ motor::msl::post_parse::used_buildins_t parser::determine_used_buildins( motor::
         size_t j = 0 ;
         for( auto const & token : tokens )
         {
-            auto const bi = motor::msl::get_build_in_by_opcode( token ) ;
+            auto bi = motor::msl::get_build_in_by_opcode( token ) ;
             if( bi.t != motor::msl::buildin_type::unknown ) 
             {
-                ret.emplace_back( motor::msl::post_parse::used_buildin_t { i, j, bi } ) ;
+                ret.emplace_back( motor::msl::post_parse::used_buildin_t { i, j, std::move(bi) } ) ;
             }
             ++j ;
         }

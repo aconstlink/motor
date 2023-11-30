@@ -45,7 +45,6 @@ namespace motor
                     auto end = ++iter_close ;
                     --iter_close ;
 
-                    size_t i = 0 ;
                     while( ++iter != end )
                     {
                         if( *iter == "," || iter == iter_close )

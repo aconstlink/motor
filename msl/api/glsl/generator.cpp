@@ -9,7 +9,7 @@ using namespace motor::msl::glsl ;
 
 
 //*******************************************************************************************************
-motor::string_t generator::replace_buildin_symbols( motor::msl::api_type const t, 
+motor::string_t generator::replace_buildin_symbols( motor::msl::api_type const /*t*/, 
                             motor::string_t code ) noexcept
 {
     motor::msl::repl_syms_t repls =
@@ -821,7 +821,7 @@ motor::msl::generated_code_t::code_t generator::generate( motor::msl::generatabl
                     motor::msl::type_t::as_tex2d_array() 
                 } ;
 
-                for( auto const e : table )
+                for( auto const & e : table )
                 {
                     for( auto const& v : shd_.variables )
                     {
@@ -1187,7 +1187,7 @@ motor::msl::generated_code_t::code_t generator::generate( motor::msl::generatabl
         
         // replace in code in/out/globals
         {
-            size_t const off = shd.find( "// The shader" ) ;
+            //size_t const off = shd.find( "// The shader" ) ;
 
             for( auto const& v : var_mappings )
             {

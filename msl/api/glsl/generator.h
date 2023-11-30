@@ -29,8 +29,8 @@ namespace motor
             public:
 
                 generator( void_t ) noexcept {}
-                generator( this_cref_t rhv ) noexcept {}
-                generator( this_rref_t rhv ) noexcept {}
+                generator( this_cref_t ) noexcept {}
+                generator( this_rref_t ) noexcept {}
                 ~generator( void_t ) {}
 
             public:

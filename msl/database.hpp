@@ -47,9 +47,9 @@ namespace motor
             database( this_cref_t ) = delete ;
 
             database( this_rref_t rhv ) noexcept :
+                _configs (std::move( rhv._configs )),
                 _vars (std::move( rhv._vars ) ) , 
-                _fragments (std::move( rhv._fragments )),
-                _configs (std::move( rhv._configs )) {}
+                _fragments (std::move( rhv._fragments )){}
 
             ~database( void_t ) noexcept{}
 
@@ -157,11 +157,13 @@ namespace motor
                 }
 
                 // check variable dependencies
+                #if 0
                 {
                     for( auto const& s : vars )
                     {
                     }
                 }
+                #endif
             }
 
         public:

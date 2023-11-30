@@ -111,7 +111,7 @@ namespace motor
             return flow_qualifier::unknown ;
         }
 
-        static motor::string_cref_t to_string( motor::msl::flow_qualifier const fq ) noexcept
+        static motor::string_t to_string( motor::msl::flow_qualifier const fq ) noexcept
         {
             static char_t const * const __strings[] = { "unknown", "in", "out", "inout", "global", "local" } ;
             return __strings[ size_t( fq ) ] ;
@@ -131,7 +131,7 @@ namespace motor
             return streamout_type::none ;
         }
 
-        static motor::string_cref_t to_string( motor::msl::streamout_type const st ) noexcept
+        static motor::string_t to_string( motor::msl::streamout_type const st ) noexcept
         {
             static char_t const * const __strings[] = { "none", "interleaved", "separate" } ;
             return __strings[ size_t( st ) ] ;
@@ -162,7 +162,7 @@ namespace motor
             return primitive_decl_type::unknown ;
         }
 
-        static motor::string_cref_t to_string( motor::msl::primitive_decl_type const arg_in ) noexcept
+        static motor::string_t to_string( motor::msl::primitive_decl_type const arg_in ) noexcept
         {
             static char_t const * const __[] = { "unknown", "points", "lines", "triangles" } ;
             return __[ motor::msl::to_index( arg_in ) ] ;
@@ -188,7 +188,7 @@ namespace motor
 
         static binding to_binding( motor::string_cref_t b ) noexcept
         {
-            typedef std::pair< char_t const * const, motor::msl::binding > __mapping_t ;
+            typedef std::pair< char const * const, motor::msl::binding > __mapping_t ;
             static __mapping_t const __mappings[] =
             {
                 __mapping_t( "unknown", motor::msl::binding::unknown ),
@@ -230,7 +230,7 @@ namespace motor
             return motor::msl::binding::unknown ;
         }
 
-        static motor::string_cref_t to_string( motor::msl::binding const b ) noexcept
+        static motor::string_t to_string( motor::msl::binding const b ) noexcept
         {
             static char_t const * const __values[] = { 
                 "unknown", "position", "normal", "tangent",
@@ -557,8 +557,24 @@ namespace motor
             motor_this_typedefs( build_in ) ;
 
             buildin_type t ;
-            char_t const * _fname ;
-            char_t const * _opcode ;
+            char const * _fname ;
+            char const * _opcode ;
+
+            build_in( buildin_type const ty, char const * fn, char const * op ) noexcept :
+                t(ty), _fname(fn), _opcode(op)
+            {}
+
+            build_in( this_cref_t rhv ) noexcept : 
+                t(rhv.t), _fname(rhv._fname), _opcode(rhv._opcode)
+            {
+                
+            }
+
+            build_in( this_rref_t rhv ) noexcept : 
+                t(rhv.t), _fname(rhv._fname), _opcode(rhv._opcode)
+            {
+                
+            }
 
             motor::string_t fname( void_t ) const noexcept
             {
