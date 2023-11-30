@@ -2,7 +2,7 @@
 
 #include <functional>
 
-namespace natus
+namespace motor
 {
     namespace ogl
     {
@@ -152,25 +152,25 @@ namespace natus
             return false ;
         }
 
-        static GLenum convert( natus::graphics::type const t ) noexcept
+        static GLenum convert( motor::graphics::type const t ) noexcept
         {
             switch( t )
             {
-            case natus::graphics::type::tbool:
+            case motor::graphics::type::tbool:
                 return GL_BOOL ;
-            case natus::graphics::type::tfloat:
+            case motor::graphics::type::tfloat:
                 return GL_FLOAT ;
-            case natus::graphics::type::tdouble:
+            case motor::graphics::type::tdouble:
                 return GL_FLOAT ;
-            case natus::graphics::type::tint:
+            case motor::graphics::type::tint:
                 return GL_INT ;
-            case natus::graphics::type::tuint:
+            case motor::graphics::type::tuint:
                 return GL_UNSIGNED_INT ;
-            case natus::graphics::type::tshort:
+            case motor::graphics::type::tshort:
                 return GL_SHORT ;
-            case natus::graphics::type::tushort:
+            case motor::graphics::type::tushort:
                 return GL_UNSIGNED_SHORT ;
-            case natus::graphics::type::tchar:
+            case motor::graphics::type::tchar:
                 return GL_BYTE ;
             default: return GL_NONE ;
             }
@@ -221,9 +221,9 @@ namespace natus
 
         typedef ::std::function< void_t ( GLuint, GLuint, void_ptr_t ) > uniform_funk_t ;
 
-        static natus::ogl::uniform_funk_t uniform_funk( GLenum const e ) noexcept
+        static motor::ogl::uniform_funk_t uniform_funk( GLenum const e ) noexcept
         {
-            natus::ogl::uniform_funk_t empty_funk =
+            motor::ogl::uniform_funk_t empty_funk =
                 [=] ( GLuint, GLuint, void_ptr_t ) { } ;
 
             switch( e )
@@ -308,9 +308,9 @@ namespace natus
 
         typedef ::std::function< void_t ( void_ptr_t ) > uniform_default_value_funk_t ;
 
-        static natus::ogl::uniform_default_value_funk_t uniform_default_value( GLenum const e ) noexcept
+        static motor::ogl::uniform_default_value_funk_t uniform_default_value( GLenum const e ) noexcept
         {
-            natus::ogl::uniform_default_value_funk_t empty_funk =
+            motor::ogl::uniform_default_value_funk_t empty_funk =
                 [=] ( void_ptr_t ) { } ;
 
             switch( e )
@@ -404,14 +404,14 @@ namespace natus
             return empty_funk ;
         }
 
-        static natus::ntd::string_t to_string( GLenum const e ) noexcept
+        static motor::string_t to_string( GLenum const e ) noexcept
         {
             switch( e )
             {
-            case GL_NO_ERROR: return natus::ntd::string_t( "GL_NO_ERROR" ) ;
-            case GL_INVALID_ENUM: return natus::ntd::string_t( "GL_INVALID_ENUM" ) ;
-            case GL_INVALID_VALUE: return natus::ntd::string_t( "GL_INVALID_VALUE" ) ;
-            case GL_INVALID_OPERATION: return natus::ntd::string_t( "GL_INVALID_OPERATION" ) ;
+            case GL_NO_ERROR: return motor::string_t( "GL_NO_ERROR" ) ;
+            case GL_INVALID_ENUM: return motor::string_t( "GL_INVALID_ENUM" ) ;
+            case GL_INVALID_VALUE: return motor::string_t( "GL_INVALID_VALUE" ) ;
+            case GL_INVALID_OPERATION: return motor::string_t( "GL_INVALID_OPERATION" ) ;
             default: break ;
             }
             return ::std::to_string( e ) ;

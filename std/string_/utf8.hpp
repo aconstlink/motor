@@ -2,11 +2,11 @@
 
 #include "../string.hpp"
 
-namespace natus
+namespace motor
 {
     namespace ntd
     {
-        using utf8 = natus::ntd::string_t ;
-        natus_typedefs( utf8, utf8 ) ;
+        using utf8 = motor::string_t ;
+        motor_typedefs( utf8, utf8 ) ;
     }
 }

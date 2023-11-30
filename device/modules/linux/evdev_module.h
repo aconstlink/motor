@@ -1,6 +1,6 @@
 #pragma once
 
-namespace natus
+namespace motor
 {
     namespace device
     {

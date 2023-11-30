@@ -10,23 +10,23 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-namespace natus 
+namespace motor 
 {
     namespace ogl
     {
-        struct NATUS_OGL_API egl
+        struct MOTOR_OGL_API egl
         {
-            natus_this_typedefs( egl ) ;
+            motor_this_typedefs( egl ) ;
 
         private:
 
-            typedef natus::ntd::vector< natus::ntd::string > strings_t ;
+            typedef motor::vector< motor::string > strings_t ;
             static strings_t _egl_extensions ;
 
         public: 
 
             /// will init extensions
-            static natus::ogl::result init( EGLNativeDisplayType ) ;
+            static motor::ogl::result init( EGLNativeDisplayType ) ;
 
 
             static bool_t is_supported( char_cptr_t name ) ;

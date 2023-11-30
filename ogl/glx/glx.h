@@ -4,23 +4,23 @@
 #include "../typedefs.h"
 #include "../api.h"
 
-#include <natus/ntd/vector.hpp>
+#include <motor/std/vector>
 
 #include <GL/glcorearb.h>
 #include <GL/glx.h>
 #include <GL/glxext.h>
 
-namespace natus 
+namespace motor 
 {
     namespace ogl
     {
-        struct NATUS_OGL_API glx
+        struct MOTOR_OGL_API glx
         {
-            natus_this_typedefs( glx ) ;
+            motor_this_typedefs( glx ) ;
 
         private:
 
-            typedef natus::ntd::vector< natus::ntd::string > strings_t ;
+            typedef motor::vector< char_t const * > strings_t ;
             static strings_t _glx_extensions ;
 
         public: 
@@ -29,7 +29,7 @@ namespace natus
             /// be bound in order to get the correct driver .dll where 
             /// all functions are loaded from.
             /// @precondition a opengl context must be current.
-            static natus::ogl::result init( Display *, int ) ;
+            static motor::ogl::result init( Display *, int ) ;
 
 
             static bool_t is_supported( char_cptr_t name ) ;

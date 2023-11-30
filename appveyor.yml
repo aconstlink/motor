@@ -22,7 +22,7 @@ build_script:
   - sh: mkdir build
   - cd build
   - cmd: cmake -G "Visual Studio 16 2019" -A x64 ..
-  #- sh: cmake -G "Unix Makefiles" -DNATUS_TARGET_GRAPHICS_API=null ..
+  #- sh: cmake -G "Unix Makefiles" -DMOTOR_TARGET_GRAPHICS_API=null ..
   - sh: cmake -G "Unix Makefiles" ..
   - cmake --build . --config Release
 

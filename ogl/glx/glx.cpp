@@ -1,17 +1,17 @@
 #include "glx.h"
 
-#include <natus/log/global.h>
-#include <natus/ntd/string/split.hpp>
+#include <motor/log/global.h>
+#include <motor/std/string_split.hpp>
 
-using namespace natus ;
-using namespace natus::ogl ;
+using namespace motor ;
+using namespace motor::ogl ;
 
 /////////////////////////////////////////////////////////////////////////
 // some defines
 /////////////////////////////////////////////////////////////////////////
 
 #define CHECK_AND_LOAD_COND( fn, name ) \
-    !natus::log::global_t::error( \
+    !motor::log::global_t::error( \
     (fn = (fn == NULL ? (decltype(fn))(this_t::load_glx_function( name )) : fn)) == NULL, \
     "[CHECK_AND_LOAD_COND] : Failed to load: "  name  )
 
@@ -80,7 +80,7 @@ void_ptr_t glx::load_glx_function( char_cptr_t name )
 //**************************************************************
 bool_t glx::is_supported( char_cptr_t name ) 
 {
-    if( natus::log::global_t::warning( _glx_extensions.size() == 0, 
+    if( motor::log::global_t::warning( _glx_extensions.size() == 0, 
         "[glx::is_supported] : extension string is empty" ) )
     {
         return false ;
@@ -96,27 +96,31 @@ bool_t glx::is_supported( char_cptr_t name )
 }
 
 //**************************************************************
-natus::ogl::result glx::init( Display * display, int screen ) 
+motor::ogl::result glx::init( Display * display, int screen ) 
 {
     {
         char_cptr_t extensions = glXQueryExtensionsString( display, screen ) ;
-        natus::ntd::string_ops::split( natus::ntd::string_t(char_cptr_t(extensions)), ' ', _glx_extensions ) ;
+
+        motor::vector< motor::string_t > extension_strings ;
+        motor::mstd::string_ops::split( motor::string_t(char_cptr_t(extensions)), ' ', extension_strings ) ;
+
+        for( auto const & e : extension_strings ) _glx_extensions.push_back( e.c_str() ) ;
     }
 
     if( !CHECK_AND_LOAD_COND( glXCreateContextAttribs, "glXCreateContextAttribsARB" ) )
     {
-        return natus::ogl::result::failed ;
+        return motor::ogl::result::failed ;
     }
 
     
     if( !CHECK_AND_LOAD_COND( glXSwapInterval, "glXSwapIntervalEXT" ) )
     {
-        return natus::ogl::result::failed ;
+        return motor::ogl::result::failed ;
     }
 
     if( !CHECK_AND_LOAD_COND( glXChooseFBConfig, "glXChooseFBConfig" ) )
     {
-        return natus::ogl::result::failed ;
+        return motor::ogl::result::failed ;
     }
 
 #if 0
@@ -269,6 +273,6 @@ natus::ogl::result glx::init( Display * display, int screen )
     //char_cptr_t ext = wglGetExtensionsString() ;
 
     
-    return natus::ogl::result::ok ;
+    return motor::ogl::result::ok ;
 }
 

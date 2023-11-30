@@ -12,7 +12,7 @@ namespace motor
 #if __has_include( <filesystem> )
 #define GHC_USE_STD_FS
 #include <filesystem>
-namespace natus
+namespace motor
 {
     namespace ntd
     {
@@ -25,7 +25,7 @@ namespace natus
 #endif
 #ifndef GHC_USE_STD_FS
 #include <ghc/filesystem.hpp>
-namespace natus
+namespace motor
 {
     namespace ntd
     {
