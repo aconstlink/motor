@@ -1,9 +1,12 @@
 
 #pragma once
 
-#include "../../imodule.h"
-#include "../../layouts/three_mouse.hpp"
-#include "../../layouts/ascii_keyboard.hpp"
+#include "../../api.h"
+#include "../../typedefs.h"
+
+#include <motor/device/imodule.h>
+#include <motor/device/layouts/three_mouse.hpp>
+#include <motor/device/layouts/ascii_keyboard.hpp>
 
 #include <motor/std/vector>
 #include <motor/math/vector/vector2.hpp>
@@ -12,11 +15,11 @@
 
 namespace motor
 {
-    namespace device
+    namespace platform
     {
         namespace win32
         {
-            class MOTOR_DEVICE_API rawinput_module : public imodule
+            class MOTOR_PLATFORM_API rawinput_module : public motor::device::imodule
             {
                 motor_this_typedefs( rawinput_module ) ;
 

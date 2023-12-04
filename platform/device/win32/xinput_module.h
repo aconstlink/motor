@@ -1,8 +1,11 @@
 
 #pragma once
 
-#include "../../imodule.h"
-#include "../../layouts/xbox_controller.hpp"
+#include "../../api.h"
+#include "../../typedefs.h"
+
+#include <motor/device/imodule.h>
+#include <motor/device/layouts/xbox_controller.hpp>
 
 #include <motor/std/vector>
 #include <motor/math/vector/vector2.hpp>
@@ -11,11 +14,11 @@
 
 namespace motor
 {
-    namespace device
+    namespace platform
     {
         namespace win32
         {
-            class MOTOR_DEVICE_API xinput_module : public imodule
+            class MOTOR_PLATFORM_API xinput_module : public motor::device::imodule
             {
                 motor_this_typedefs( xinput_module ) ;
 

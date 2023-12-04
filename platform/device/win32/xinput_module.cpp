@@ -10,7 +10,7 @@
 #include <array>
 
 using namespace motor::device ;
-using namespace motor::device::win32 ;
+using namespace motor::platform::win32 ;
 
 // 
 // For class definition see far below

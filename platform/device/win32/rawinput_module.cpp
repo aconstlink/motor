@@ -6,7 +6,7 @@
 #include <windows.h>
 
 using namespace motor::device ;
-using namespace motor::device::win32 ;
+using namespace motor::platform::win32 ;
 
 namespace this_file
 {
