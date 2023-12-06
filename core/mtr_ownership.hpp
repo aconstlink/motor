@@ -7,6 +7,8 @@ namespace motor
 {
     namespace core
     {
+        // This class is just tagging the purpose
+        // of a pointer passed. There is no ref counting.
         template< typename T >
         class mtr_shared
         {
@@ -16,6 +18,7 @@ namespace motor
             using this_t = mtr_shared<T> ;
             using this_cref_t = this_t const & ;
             using this_rref_t = this_t && ;
+            using this_ref_t = this_t & ;
 
             using type_t = T ;
             using type_ref_t = type_t & ;
@@ -26,13 +29,19 @@ namespace motor
             type_mtr_t _ptr = nullptr ;
 
         public:
-
             
-            mtr_shared( this_cref_t ) = delete ;
+            mtr_shared( this_cref_t rhv ) noexcept
+            {
+                _ptr = rhv._ptr ;
+            }
+
             mtr_shared( this_rref_t rhv ) noexcept : _ptr(rhv._ptr) 
             {
                 rhv._ptr = nullptr ;
             }
+
+            mtr_shared( std::nullptr_t ) noexcept {}
+            explicit mtr_shared( type_mtr_t ptr ) noexcept : _ptr( ptr ) {}
                         
             ~mtr_shared( void ) noexcept{}
 
@@ -67,6 +76,11 @@ namespace motor
                 return _ptr == ptr ;
             }
 
+            bool operator != ( type_mtr_t ptr ) const noexcept
+            {
+                return _ptr != ptr ;
+            }
+
             static this_t make( type_mtr_t ptr ) noexcept
             {
                 return this_t( ptr ) ;
@@ -92,11 +106,24 @@ namespace motor
                 return _ptr ;
             }
 
+            this_ref_t operator = ( type_mtr_t ptr ) noexcept 
+            {
+                _ptr = ptr ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( std::nullptr_t ptr ) noexcept 
+            {
+                return *this ;
+            }
+
         private:
             mtr_shared( void ) noexcept {} ;
-            mtr_shared( type_mtr_t ptr ) noexcept : _ptr ( ptr ){}
+            //mtr_shared( type_mtr_t ptr ) noexcept : _ptr ( ptr ){}
         };
 
+        // This class is just tagging the purpose
+        // of a pointer passed. There is no ref counting.
         template< typename T >
         class mtr_unique
         {
@@ -106,6 +133,7 @@ namespace motor
             using this_t = mtr_unique<T> ;
             using this_cref_t = this_t const & ;
             using this_rref_t = this_t && ;
+            using this_ref_t = this_t & ;
 
             using type_t = T ;
             using type_ref_t = type_t & ;
@@ -176,10 +204,16 @@ namespace motor
                 return _ptr ;
             }
 
-            // get the managed pointer
+            // get the managed pointerasync
             type_mtr_t mtr( void ) const noexcept
             {
                 return _ptr ;
+            }
+
+            this_ref_t operator = ( type_mtr_t ptr ) noexcept 
+            {
+                _ptr = ptr ;
+                return *this ;
             }
 
         private:
