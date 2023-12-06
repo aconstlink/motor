@@ -121,10 +121,13 @@ list( APPEND subdirs
     "io"
     "device"
     "msl"
+    
+    "graphics"
+
     "platform"
+
     #"application"    
     #"system"
-    #"graphics"
     #"gfx"
     
     #"format"
