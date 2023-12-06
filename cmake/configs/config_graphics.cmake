@@ -10,6 +10,11 @@ set( THIS_TARGET ct_motor_graphics )
 add_library( ${THIS_TARGET}_gl INTERFACE )
 add_library( ${THIS_TARGET}_es INTERFACE )
 add_library( ${THIS_TARGET}_d3d INTERFACE )
+add_library( ${THIS_TARGET}_all INTERFACE )
+target_link_libraries( ${THIS_TARGET}_all 
+    INTERFACE ${THIS_TARGET}_d3d 
+    INTERFACE ${THIS_TARGET}_es 
+    INTERFACE ${THIS_TARGET}_gl ) 
 
 set( MOTOR_GRAPHICS_NULL ON )
 set( MOTOR_GRAPHICS_VULKAN OFF )
@@ -83,7 +88,7 @@ if( MOTOR_TARGET_OS_WIN )
     set( MOTOR_GRAPHICS_DIRECT3D ON )
     target_compile_definitions( ${THIS_TARGET}_d3d INTERFACE -DMOTOR_GRAPHICS_DIRECT3D )
     target_link_libraries( ${THIS_TARGET}_d3d INTERFACE d3d11 )
-    #install( TARGETS d3d11 EXPORT ${PROJECT_NAME}-targets )
+    install( TARGETS d3d11 EXPORT ${PROJECT_NAME}-targets )
     message( STATUS "[graphics] : Direc3d 11 found" )
   endif()
 endif()
@@ -96,4 +101,7 @@ endif()
 ##
 set( MOTOR_TARGET_GRAPHICS_CONFIGURED TRUE )
 
+install( TARGETS ${THIS_TARGET}_d3d EXPORT ${PROJECT_NAME}-targets )
 install( TARGETS ${THIS_TARGET}_gl EXPORT ${PROJECT_NAME}-targets )
+install( TARGETS ${THIS_TARGET}_es EXPORT ${PROJECT_NAME}-targets )
+install( TARGETS ${THIS_TARGET}_all EXPORT ${PROJECT_NAME}-targets )
