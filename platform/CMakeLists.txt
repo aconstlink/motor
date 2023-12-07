@@ -4,7 +4,9 @@ set( sources
     "typedefs.h"
     )
 
-
+##
+## Device Section
+##
 set( device_win32_sources 
     "device/win32/rawinput_module.h"
     "device/win32/rawinput_module.cpp"
@@ -40,6 +42,34 @@ if( MOTOR_TARGET_OS_WIN )
 
 endif()
 
+##
+## Graphics Section
+##
+
+if( MOTOR_GRAPHICS_OPENGL )
+list( APPEND sources 
+    "graphics/gl/gl4.h"
+    "graphics/gl/gl4.cpp"
+    "graphics/gl/gl4_convert.h"
+    "graphics/gl/gl_context.h"
+)
+endif()
+if( MOTOR_GRAPHICS_OPENGLES )
+list( APPEND sources 
+    "graphics/gl/es3.h"
+    "graphics/gl/es3.cpp"
+    "graphics/gl/es_context.h"
+)
+endif()
+if( MOTOR_GRAPHICS_DIRECT3D )
+list( APPEND sources 
+    "graphics/d3d/d3d11.h"
+    "graphics/d3d/d3d11.cpp"
+    "graphics/d3d/d3d11_context.h"
+    "graphics/d3d/d3d11_convert.h"
+)
+endif()
+
 if( MOTOR_WINDOW_SYSTEM_XLIB )
 set( os_libs ${X11_LIBRARIES} )
 endif()
@@ -61,7 +91,17 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::memory
   PUBLIC motor::log 
   PUBLIC motor::device
+  PUBLIC motor::graphics
+
+  # have changed
+  PUBLIC ct_motor_graphics_all
     )
+
+if( TARGET motor::ogl )
+    target_link_libraries( ${cur_lib_name} 
+      PUBLIC gl_headers
+      PUBLIC motor::ogl )
+endif()
 
 # @todo need to check this out once more
 # + need some api for midi controls like 
