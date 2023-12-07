@@ -51,36 +51,36 @@ namespace motor
 
             motor::graphics::result set_window_info( motor::graphics::backend_t::window_info_cref_t ) noexcept ;
 
-            this_ref_t configure( motor::graphics::geometry_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t configure( motor::graphics::render_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t configure( motor::graphics::shader_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t configure( motor::graphics::image_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t configure( motor::graphics::framebuffer_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t configure( motor::graphics::state_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t configure( motor::graphics::array_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t configure( motor::graphics::streamout_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::geometry_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::render_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::shader_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::image_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::framebuffer_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::state_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::array_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t configure( motor::graphics::streamout_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
 
-            this_ref_t release( motor::graphics::geometry_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t release( motor::graphics::render_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t release( motor::graphics::shader_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t release( motor::graphics::image_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t release( motor::graphics::framebuffer_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t release( motor::graphics::state_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t release( motor::graphics::array_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t release( motor::graphics::streamout_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::geometry_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::render_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::shader_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::image_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::framebuffer_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::state_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::array_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t release( motor::graphics::streamout_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
 
-            this_ref_t update( motor::graphics::geometry_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t update( motor::graphics::array_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t update( motor::graphics::image_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
+            this_ref_t update( motor::graphics::geometry_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t update( motor::graphics::array_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t update( motor::graphics::image_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
 
-            this_ref_t use( motor::graphics::framebuffer_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t use( motor::graphics::streamout_object_mtr_shared_t, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t unuse( motor::graphics::backend::unuse_type const, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
+            this_ref_t use( motor::graphics::framebuffer_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t use( motor::graphics::streamout_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t unuse( motor::graphics::backend::unuse_type const, motor::graphics::result_mtr_t = nullptr ) noexcept ;
 
-            this_ref_t push( motor::graphics::state_object_mtr_shared_t, size_t const = 0, bool_t const = true, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t pop( motor::graphics::backend::pop_type const, motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
-            this_ref_t render( motor::graphics::render_object_mtr_shared_t, motor::graphics::backend::render_detail_cref_t, 
-                motor::graphics::result_mtr_shared_t = nullptr ) noexcept ;
+            this_ref_t push( motor::graphics::state_object_mtr_delay_t, size_t const = 0, bool_t const = true, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t pop( motor::graphics::backend::pop_type const, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t render( motor::graphics::render_object_mtr_delay_t, motor::graphics::backend::render_detail_cref_t, 
+                motor::graphics::result_mtr_t = nullptr ) noexcept ;
 
         public:
 
@@ -136,184 +136,184 @@ namespace motor
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::geometry_object_mtr_shared_t config,
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t configure( motor::graphics::geometry_object_mtr_delay_t config,
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->configure( std::move(config), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::render_object_mtr_shared_t config, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t configure( motor::graphics::render_object_mtr_delay_t config, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->configure( std::move(config), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::shader_object_mtr_shared_t config,
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t configure( motor::graphics::shader_object_mtr_delay_t config,
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->configure( std::move(config), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::image_object_mtr_shared_t config,
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t configure( motor::graphics::image_object_mtr_delay_t config,
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->configure( std::move(config), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::framebuffer_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t configure( motor::graphics::framebuffer_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->configure( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::state_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t configure( motor::graphics::state_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->configure( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::array_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t configure( motor::graphics::array_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->configure( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t configure( motor::graphics::streamout_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t configure( motor::graphics::streamout_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->configure( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::geometry_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::geometry_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::render_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::render_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::shader_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::shader_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::image_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::image_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::framebuffer_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::framebuffer_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::state_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::state_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::array_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::array_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t release( motor::graphics::streamout_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t release( motor::graphics::streamout_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->release( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t update( motor::graphics::geometry_object_mtr_shared_t obj,
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t update( motor::graphics::geometry_object_mtr_delay_t obj,
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->update( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t update( motor::graphics::array_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t update( motor::graphics::array_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->update( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t update( motor::graphics::image_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept 
+            this_ref_t update( motor::graphics::image_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept 
             {
                 _async->update( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t use( motor::graphics::framebuffer_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t use( motor::graphics::framebuffer_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->use( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t use( motor::graphics::streamout_object_mtr_shared_t obj, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t use( motor::graphics::streamout_object_mtr_delay_t obj, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->use( std::move(obj), std::move(res) ) ;
                 return *this ;
             }
 
             this_ref_t unuse( motor::graphics::backend::unuse_type const t, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->unuse( t, std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t push( motor::graphics::state_object_mtr_shared_t obj, 
-                size_t const sid = 0 , bool_t const push = true, motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t push( motor::graphics::state_object_mtr_delay_t obj, 
+                size_t const sid = 0 , bool_t const push = true, motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->push( std::move(obj), sid, push, std::move(res) ) ;
                 return *this ;
             }
 
             this_ref_t pop( motor::graphics::backend::pop_type const t, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->pop( t, std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t render( motor::graphics::render_object_mtr_shared_t config, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t render( motor::graphics::render_object_mtr_delay_t config, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 motor::graphics::backend_t::render_detail_t detail ;
                 _async->render( std::move(config), detail, std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t render( motor::graphics::render_object_mtr_shared_t config, motor::graphics::backend::render_detail_cref_t detail, 
-                motor::graphics::result_mtr_shared_t res = nullptr ) noexcept
+            this_ref_t render( motor::graphics::render_object_mtr_delay_t config, motor::graphics::backend::render_detail_cref_t detail, 
+                motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->render( std::move(config), detail, std::move(res) ) ;
                 return *this ;
