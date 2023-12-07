@@ -21,6 +21,7 @@
     typedef to_ ## _t * && to_ ## _ptr_rref_t ;                         \
     typedef to_ ## _t * & to_ ## _mtr_ref_t ;                           \
     typedef to_ ## _t * && to_ ## _mtr_rref_t ;                         \
+    typedef motor::core::mtr_delay< to_ ## _t > to_ ## _mtr_delay_t;  \
     typedef motor::core::mtr_unique< to_ ## _t > to_ ## _mtr_unique_t;  \
     typedef motor::core::mtr_shared< to_ ## _t > to_ ## _mtr_shared_t
 
@@ -44,6 +45,7 @@
     typedef this_t const * this_cptr_t ;                                \
     typedef this_t && this_rref_t ;                                     \
     typedef this_t & this_inout_t ;                                     \
+    typedef motor::core::mtr_delay< this_t > this_mtr_delay_t ;       \
     typedef motor::core::mtr_unique< this_t > this_mtr_unique_t ;       \
     typedef motor::core::mtr_shared< this_t > this_mtr_shared_t 
 
