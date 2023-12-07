@@ -165,33 +165,6 @@ namespace motor
             return false ;
         }
 
-        #if 0 // supposed to be in the graphics lib
-        static GLenum convert( motor::graphics::type const t ) noexcept
-        {
-            switch( t )
-            {
-            case motor::graphics::type::tbool:
-                return GL_BOOL ;
-            case motor::graphics::type::tfloat:
-                return GL_FLOAT ;
-            case motor::graphics::type::tdouble:
-                return GL_DOUBLE ;
-            case motor::graphics::type::tint:
-                return GL_INT ;
-            case motor::graphics::type::tuint:
-                return GL_UNSIGNED_INT ;
-            case motor::graphics::type::tshort:
-                return GL_SHORT ;
-            case motor::graphics::type::tushort:
-                return GL_UNSIGNED_SHORT ;
-            case motor::graphics::type::tchar:
-                return GL_BYTE ;
-            default: return GL_NONE ;
-            }
-            return GL_NONE ;
-        }
-        #endif
-
         static GLenum complex_to_simple_type( GLenum const e ) noexcept
         {
             switch( e )
