@@ -112,6 +112,9 @@ set( subdirs_header_only
 
 set( subdirs  )
 
+if( TARGET OpenGL::GL )
+    list( APPEND subdirs "ogl" )
+endif()
 
 
 list( APPEND subdirs
@@ -139,11 +142,6 @@ list( APPEND subdirs
     #"profile"
     #${subdirs_header_only}
     )
-
-
-if( TARGET OpenGL::GL )
-    list( APPEND subdirs "ogl" )
-endif()
 
 add_library( complete INTERFACE )
 add_library( ${PROJECT_NAME}::complete ALIAS complete )
