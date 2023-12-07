@@ -20,6 +20,7 @@ set( sources
     "backend/backend.h"
     "backend/backend.cpp"
     "backend/icontext.h"
+    "backend/icontext.cpp"
     "backend/null/null.h"
     "backend/null/null.cpp"
 

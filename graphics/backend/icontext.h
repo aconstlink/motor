@@ -13,7 +13,7 @@ namespace motor
         {
         public:
 
-            virtual ~icontext( void_t ) noexcept {}
+            virtual ~icontext( void_t ) noexcept ;
         };
         motor_typedef( icontext ) ;
     }
