@@ -128,8 +128,8 @@ list( APPEND subdirs
     "graphics"
 
     "platform"
-
-    #"application"    
+    "application"    
+    
     #"system"
     #"gfx"
     
