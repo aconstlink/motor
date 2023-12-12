@@ -133,6 +133,13 @@ namespace motor
                 return motor::core::mtr_unique<T>::make( this_t::release( (T*)ptr )  ) ;
             }
 
+            template< typename T >
+            static motor::core::mtr_shared<T> release( motor::core::mtr_shared<T> && ptr )
+            {
+                if( ptr == nullptr ) return motor::core::mtr_shared<T>::make() ;
+                return motor::core::mtr_shared<T>::make( this_t::release( (T*)ptr )  ) ;
+            }
+
         public: // raw interface 
 
             template< typename T >
@@ -313,6 +320,18 @@ namespace motor
         T * release_ptr( T * ptr ) noexcept
         {
             return motor::memory::global_t::release( ptr );
+        }
+
+        template< typename T >
+        motor::core::mtr_shared<T> release_ptr( motor::core::mtr_shared<T> & mvt ) noexcept
+        {
+            return motor::memory::global_t::release( std::move( mvt ) );
+        }
+
+        template< typename T >
+        motor::core::mtr_shared<T> release_ptr( motor::core::mtr_shared<T> && mvt ) noexcept
+        {
+            return motor::memory::global_t::release( std::move( mvt ) );
         }
 
         template< typename T >
