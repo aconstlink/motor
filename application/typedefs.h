@@ -11,6 +11,5 @@ namespace motor
     namespace application
     {
         using namespace motor::core::types ;
-        using memory = motor::memory::global ;
     }
 }

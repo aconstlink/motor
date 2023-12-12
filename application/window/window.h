@@ -38,25 +38,25 @@ namespace motor
 
         public: // ins
 
-            void_t register_in( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept ;
-            void_t register_in( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept ;
-            void_t unregister_in( motor::application::iwindow_message_listener_mtr_t l ) noexcept ;
+            virtual void_t register_in( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept override;
+            virtual void_t register_in( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept override ;
+            virtual void_t unregister_in( motor::application::iwindow_message_listener_mtr_t l ) noexcept override ;
 
             typedef std::function< void ( motor::application::iwindow_message_listener_mtr_t ) > foreach_listener_funk_t ;
-            void_t foreach_in( foreach_listener_funk_t funk ) noexcept ;
+            virtual void_t foreach_in( foreach_listener_funk_t funk ) noexcept override ;
 
         public: // outs
 
-            void_t register_out( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept ;
-            void_t register_out( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept ;
-            void_t unregister_out( motor::application::iwindow_message_listener_mtr_t l ) noexcept ;
+            virtual void_t register_out( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept override ;
+            virtual void_t register_out( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept override ;
+            virtual void_t unregister_out( motor::application::iwindow_message_listener_mtr_t l ) noexcept override ;
 
             typedef std::function< void ( motor::application::iwindow_message_listener_mtr_t ) > foreach_out_funk_t ;
-            void_t foreach_out( foreach_out_funk_t funk ) noexcept ;
+            virtual void_t foreach_out( foreach_out_funk_t funk ) noexcept override ;
 
         public: // iwindow interface 
 
-            virtual void_t check_for_messages( void_t ) noexcept = 0 ;
+            virtual void_t check_for_messages( void_t ) noexcept {} ;
         };
         motor_typedef( window ) ;
     }

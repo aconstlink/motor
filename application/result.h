@@ -27,7 +27,7 @@ namespace motor
         namespace detail
         {
             /// not implemented yet.
-            static char const * const const _app_result_strings[] =
+            static char const * const _app_result_strings[] =
             {
                 "motor::application::result"
             } ;

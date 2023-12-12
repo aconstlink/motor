@@ -12,14 +12,17 @@ set( sources
     window/window.h
     window/window.cpp
     window/window_info.h
+    window/toggle_window.h
     window/window_message.h
     window/iwindow_message_listener.h
     window/window_message_listener.h
     window/window_message_listener.cpp
     
-    #platform/gfx_context.h
-    #platform/platform_application.h
-    #platform/platform_application.cpp
+    
+    iapp.h
+    gfx_context.h
+    carrier.h
+    carrier.cpp
     )
 
 motor_vs_src_dir( sources )

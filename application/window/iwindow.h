@@ -5,12 +5,33 @@
 #include "../api.h"
 #include "../typedefs.h"
 
+#include "iwindow_message_listener.h"
+
 namespace motor
 {
     namespace application
     {
         class MOTOR_APPLICATION_API iwindow
         {
+        
+        public: // ins
+
+            virtual void_t register_in( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept = 0 ;
+            virtual void_t register_in( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept = 0 ;
+            virtual void_t unregister_in( motor::application::iwindow_message_listener_mtr_t l ) noexcept = 0 ;
+
+            typedef std::function< void ( motor::application::iwindow_message_listener_mtr_t ) > foreach_listener_funk_t ;
+            virtual void_t foreach_in( foreach_listener_funk_t funk ) noexcept = 0 ;
+
+        public: // outs
+
+            virtual void_t register_out( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept = 0 ;
+            virtual void_t register_out( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept = 0 ;
+            virtual void_t unregister_out( motor::application::iwindow_message_listener_mtr_t l ) noexcept = 0 ;
+
+            typedef std::function< void ( motor::application::iwindow_message_listener_mtr_t ) > foreach_out_funk_t ;
+            virtual void_t foreach_out( foreach_out_funk_t funk ) noexcept = 0 ;
+
         public:
 
             // check for user messages and pass further to window implementation.
