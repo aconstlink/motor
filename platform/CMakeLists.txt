@@ -2,29 +2,25 @@
 set( sources 
     "api.h"
     "typedefs.h"
+
+    "global.h"
+    "global.cpp"
     )
-
-##
-## Device Section
-##
-set( device_win32_sources 
-    "device/win32/rawinput_module.h"
-    "device/win32/rawinput_module.cpp"
-    "device/win32/xinput_module.h"
-    "device/win32/xinput_module.cpp"
-)
-
-set( device_linux_sources
-  "device/linux/evdev_module.h"
-  "device/linux/evdev_module.cpp"
-  "device/linux/xlib_module.h"
-  "device/linux/xlib_module.cpp"
-)
 
 set( unwanted_compiler_options )
 set( os_libs )
 
+##
+## Device Section
+##
+
 if( MOTOR_TARGET_OS_WIN )
+
+    set( device_win32_sources 
+      "device/win32/rawinput_module.h"
+      "device/win32/rawinput_module.cpp"
+      "device/win32/xinput_module.h"
+      "device/win32/xinput_module.cpp" )
 
     ###################################################
     # device
@@ -40,6 +36,13 @@ if( MOTOR_TARGET_OS_WIN )
     ###################################################
     # other lib
 
+elseif( MOTOR_TARGET_OS_LIN )
+    set( device_linux_sources
+      "device/linux/evdev_module.h"
+      "device/linux/evdev_module.cpp"
+      "device/linux/xlib_module.h"
+      "device/linux/xlib_module.cpp")
+  list( APPEND sources ${device_linux_sources} )
 endif()
 
 ##
@@ -70,13 +73,69 @@ list( APPEND sources
 )
 endif()
 
-if( MOTOR_WINDOW_SYSTEM_XLIB )
-set( os_libs ${X11_LIBRARIES} )
+##
+## Application Section
+##
+
+if( MOTOR_GRAPHICS_WGL )
+
+    list( APPEND sources_
+      "platform/wgl/wgl_window.h"
+      "platform/wgl/wgl_window.cpp"
+      "platform/wgl/wgl_context.h"
+      "platform/wgl/wgl_context.cpp" )
 endif()
 
-if( MOTOR_TARGET_OS_LIN )
-  list( APPEND sources ${linux_sources} )
+if( MOTOR_GRAPHICS_GLX )
+
+    list( APPEND sources_
+      "platform/glx/glx_window.h"
+      "platform/glx/glx_window.cpp"
+      "platform/glx/glx_context.h"
+      "platform/glx/glx_context.cpp" )
 endif()
+
+if( MOTOR_GRAPHICS_EGL )
+
+    list( APPEND sources_
+      "platform/egl/egl_window.h"
+      "platform/egl/egl_window.cpp"
+      "platform/egl/egl_context.h"
+      "platform/egl/egl_context.cpp" )
+endif()
+
+if( MOTOR_GRAPHICS_DIRECT3D )
+
+    list( APPEND sources_
+      "platform/d3d_info.h"
+      "platform/d3d/d3d_window.h"
+      "platform/d3d/d3d_window.cpp"
+      "platform/d3d/d3d_context.h"
+      "platform/d3d/d3d_context.cpp" )
+endif()
+
+if( MOTOR_WINDOW_SYSTEM_WIN32 )
+
+    list( APPEND sources
+      "application/win32/win32_carrier.h"
+      "application/win32/win32_carrier.cpp"
+      "application/win32/win32_window.h"
+      "application/win32/win32_window.cpp" )
+    add_definitions( -DWIN32_LEAN_AND_MEAN )
+
+elseif( MOTOR_WINDOW_SYSTEM_XLIB )
+
+    list( APPEND sources_
+    "platform/xlib/xlib_application.h"
+    "platform/xlib/xlib_application.cpp"
+    "platform/xlib/xlib_window.h"
+    "platform/xlib/xlib_window.cpp" )
+    set( os_libs ${X11_LIBRARIES} )
+
+else()
+    message( FATAL_ERROR "Window System: No Os specified." )
+endif()
+
 
 motor_vs_src_dir( sources )
 
@@ -92,6 +151,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::log 
   PUBLIC motor::device
   PUBLIC motor::graphics
+  PUBLIC motor::application
 
   # have changed
   PUBLIC ct_motor_graphics_all
