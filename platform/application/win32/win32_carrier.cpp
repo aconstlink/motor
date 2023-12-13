@@ -53,12 +53,25 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 {
     while( !_done )
     {
+        std::this_thread::sleep_for( std::chrono::milliseconds(2) )  ;
+
         {
             MSG msg ;
             for( auto & d : _win32_windows )
             {
                 while( PeekMessage( &msg, d.hwnd, 0, 0, PM_REMOVE ) )
                 {
+                    // the WM_USER message could be used for 
+                    // further state reset.
+                    if( msg.message == WM_USER )
+                    {
+                        // used for cursor handling, at the moment.
+                        if( msg.wParam == WPARAM(-1) && msg.lParam == LPARAM(-1) )
+                        {
+                            this_t::handle_messages( d, d.sv ) ;
+                        }
+                    }
+
                     TranslateMessage( &msg ) ;
                     DispatchMessage( &msg ) ;
                 }
@@ -84,7 +97,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     this_t::send_destroy( *iter ) ;
 
                     motor::memory::release_ptr( iter->wnd ) ;
-
+                    motor::memory::release_ptr( iter->lsn ) ;
                     _win32_windows.erase( iter ) ;
                 }
                 _destroy_queue.clear() ;
@@ -106,7 +119,6 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 _queue.clear() ;
             }
         }
-
 
         #if 0
         _rawinput->handle_input_event( msg.hwnd, msg.message,
@@ -286,6 +298,16 @@ LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPA
         (void)bp ;
     }
         break ;
+      
+    case WM_SETCURSOR:
+    {
+        // must return true so recognizes 
+        // set cursor properties in handle_messages.
+        // + post message so message loop handles reset of  
+        // cursor message.
+        PostMessage( hwnd, WM_USER, WPARAM(-1), LPARAM(-1) ) ;
+        return TRUE ;
+    }
 
     case WM_KILLFOCUS:
     {
@@ -361,7 +383,7 @@ void_t win32_carrier::send_create( win32_window_data_in_t d ) noexcept
 }
 
 //*******************************************************************************************
-void_t win32_carrier::handle_messages( win32_window_data_in_t d, motor::application::window_message_listener_t::state_vector_in_t states ) noexcept 
+void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::application::window_message_listener_t::state_vector_in_t states ) noexcept 
 {
     if( states.show_changed )
     {
@@ -443,5 +465,23 @@ void_t win32_carrier::handle_messages( win32_window_data_in_t d, motor::applicat
         }
 
         SetWindowPos( d.hwnd, NULL, x, y, width+difx, height+dify, 0 ) ;
+    }
+
+    if( states.cursor_msg_changed )
+    {
+        auto const & msg = states.cursor_msg ;
+        if( !msg.on_off ) 
+        {
+            ShowCursor( FALSE ) ;
+            SetCursor( NULL ) ;
+        }
+        else 
+        {
+            ShowCursor( TRUE  ) ;
+            SetCursor( LoadCursor( 0, IDC_ARROW ) ) ;
+        }
+
+        d.sv.cursor_msg_changed = true ;
+        d.sv.cursor_msg = msg ;
     }
 }

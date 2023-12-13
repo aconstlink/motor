@@ -24,10 +24,7 @@ namespace motor
             private:
 
                 bool_t _done = false ;
-
-                /// can be used for special escape key pattern
-                size_t _escape_sequence = 0 ;
-                
+                                
                 motor::platform::win32::rawinput_module_mtr_t _rawinput = nullptr ;
                 motor::platform::win32::xinput_module_mtr_t _xinput  = nullptr ;
 
@@ -36,7 +33,7 @@ namespace motor
                     HWND hwnd ;
                     motor::application::iwindow_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
-                    //motor::platform::win32::window_mtr_t _win32 ;
+                    motor::application::window_message_listener_t::state_vector_t sv ;
                 };
                 motor_typedef( win32_window_data ) ;
 
@@ -96,7 +93,7 @@ namespace motor
 
             private: // handle messages -> incoming messages
 
-                void_t handle_messages( win32_window_data_in_t, motor::application::window_message_listener_t::state_vector_in_t ) noexcept ;
+                void_t handle_messages( win32_window_data_inout_t, motor::application::window_message_listener_t::state_vector_in_t ) noexcept ;
             };
             motor_typedef( win32_carrier ) ;
         }
