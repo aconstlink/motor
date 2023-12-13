@@ -118,9 +118,7 @@ if( MOTOR_WINDOW_SYSTEM_WIN32 )
 
     list( APPEND sources
       "application/win32/win32_carrier.h"
-      "application/win32/win32_carrier.cpp"
-      "application/win32/win32_window.h"
-      "application/win32/win32_window.cpp" )
+      "application/win32/win32_carrier.cpp" )
     add_definitions( -DWIN32_LEAN_AND_MEAN )
 
 elseif( MOTOR_WINDOW_SYSTEM_XLIB )
