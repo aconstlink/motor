@@ -41,6 +41,10 @@ namespace motor
         };
         motor_typedef( resize_message ) ;
 
+        struct create_message
+        {};
+        motor_typedef( create_message ) ;
+
         struct close_message
         {
             bool_t close ;

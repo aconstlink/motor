@@ -54,7 +54,7 @@ void_t window_message_listener::reset_change_flags( void_t ) noexcept
 }
 
 //***************************************************************************
-void_t window_message_listener::on_screen( screen_dpi_message_cref_t msg ) noexcept
+void_t window_message_listener::on_message( screen_dpi_message_cref_t msg ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx ) ;
     _states.dpi_msg_changed = true ;
@@ -63,7 +63,7 @@ void_t window_message_listener::on_screen( screen_dpi_message_cref_t msg ) noexc
 }
 
 //***************************************************************************
-void_t window_message_listener::on_screen( screen_size_message_cref_t msg ) noexcept
+void_t window_message_listener::on_message( screen_size_message_cref_t msg ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx ) ;
     _states.msize_msg_changed = true ;
@@ -72,7 +72,7 @@ void_t window_message_listener::on_screen( screen_size_message_cref_t msg ) noex
 }
 
 //***************************************************************************
-void_t window_message_listener::on_resize( resize_message_cref_t msg ) noexcept
+void_t window_message_listener::on_message( resize_message_cref_t msg ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx ) ;
     _states.resize_changed = true ;
@@ -81,7 +81,7 @@ void_t window_message_listener::on_resize( resize_message_cref_t msg ) noexcept
 }
 
 //***************************************************************************
-void_t window_message_listener::on_visible( show_message_cref_t msg ) noexcept
+void_t window_message_listener::on_message( show_message_cref_t msg ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx ) ;
     _states.show_changed = true ;
@@ -90,7 +90,16 @@ void_t window_message_listener::on_visible( show_message_cref_t msg ) noexcept
 }
 
 //***************************************************************************
-void_t window_message_listener::on_close( close_message_cref_t msg ) noexcept
+void_t window_message_listener::on_message( motor::application::create_message_cref_t msg ) noexcept 
+{
+    std::lock_guard< std::mutex > lk( _mtx ) ;
+    _states.create_changed = true ;
+    _states.create_msg = msg ;
+    _has_any_change = true ;
+}
+
+//***************************************************************************
+void_t window_message_listener::on_message( close_message_cref_t msg ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx ) ;
     _states.close_changed = true ;
@@ -99,7 +108,7 @@ void_t window_message_listener::on_close( close_message_cref_t msg ) noexcept
 }
 
 //***************************************************************************
-void_t window_message_listener::on_vsync( vsync_message_cref_t msg ) noexcept
+void_t window_message_listener::on_message( vsync_message_cref_t msg ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx ) ;
     _states.vsync_msg_changed = true ;
@@ -108,7 +117,7 @@ void_t window_message_listener::on_vsync( vsync_message_cref_t msg ) noexcept
 }
 
 //***************************************************************************
-void_t window_message_listener::on_fullscreen( fullscreen_message_cref_t msg ) noexcept
+void_t window_message_listener::on_message( fullscreen_message_cref_t msg ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx ) ;
     _states.fulls_msg_changed = true ;

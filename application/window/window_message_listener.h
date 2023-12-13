@@ -24,6 +24,9 @@ namespace motor
                 motor::application::show_message show_msg ;
                 bool_t show_changed = false ;
 
+                motor::application::create_message create_msg ;
+                bool_t create_changed = false ;
+
                 motor::application::close_message close_msg ;
                 bool_t close_changed = false ;
 
@@ -66,13 +69,14 @@ namespace motor
 
         public: // listener interface
 
-            virtual void_t on_screen( screen_dpi_message_cref_t msg ) noexcept ;
-            virtual void_t on_screen( screen_size_message_cref_t msg ) noexcept ;
-            virtual void_t on_resize( resize_message_cref_t msg ) noexcept ;
-            virtual void_t on_visible( show_message_cref_t msg ) noexcept ;
-            virtual void_t on_close( close_message_cref_t msg ) noexcept ;
-            virtual void_t on_vsync( vsync_message_cref_t msg ) noexcept ;
-            virtual void_t on_fullscreen( fullscreen_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( screen_dpi_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( screen_size_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( resize_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( show_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( motor::application::create_message_cref_t ) noexcept ;
+            virtual void_t on_message( close_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( vsync_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( fullscreen_message_cref_t msg ) noexcept ;
         };
         motor_typedef( window_message_listener ) ;
     }

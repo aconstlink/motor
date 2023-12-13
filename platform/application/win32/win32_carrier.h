@@ -35,6 +35,7 @@ namespace motor
                 {
                     HWND hwnd ;
                     motor::application::iwindow_mtr_t wnd ;
+                    motor::application::window_message_listener_mtr_t lsn ;
                     //motor::platform::win32::window_mtr_t _win32 ;
                 };
                 motor_typedef( win32_window_data ) ;
@@ -45,6 +46,7 @@ namespace motor
                 {
                     motor::application::window_info_t wi ;
                     motor::application::iwindow_mtr_t wnd ;
+                    motor::application::window_message_listener_mtr_t lsn ;
                 };
                 motor_typedef( window_queue_msg ) ;
 
@@ -89,6 +91,7 @@ namespace motor
                
                 // send listeners of the window that is about to die
                 void_t send_destroy( win32_window_data_in_t ) noexcept ;
+                void_t send_create( win32_window_data_in_t ) noexcept ;
             };
             motor_typedef( win32_carrier ) ;
         }

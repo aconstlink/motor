@@ -91,3 +91,77 @@ void_t window::foreach_out( foreach_out_funk_t funk ) noexcept
         funk( l ) ;
     }
 }
+
+//***************************************************************************
+void_t window::send_message( motor::application::show_message_cref_t msg ) noexcept 
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
+void_t window::send_message( motor::application::resize_message_cref_t msg ) noexcept 
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
+void_t window::send_message( motor::application::create_message_cref_t msg ) noexcept
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
+void_t window::send_message( motor::application::close_message_cref_t msg ) noexcept
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
+void_t window::send_message( motor::application::screen_dpi_message_cref_t msg ) noexcept
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
+void_t window::send_message( motor::application::screen_size_message_cref_t msg ) noexcept
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
+void_t window::send_message( motor::application::vsync_message_cref_t msg ) noexcept
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
+void_t window::send_message( motor::application::fullscreen_message_cref_t msg ) noexcept
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************

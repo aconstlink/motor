@@ -1,6 +1,8 @@
 #include "win32_carrier.h"
 #include "win32_window.h"
 
+#include <motor/application/window/window_message_listener.h>
+
 #include <motor/device/global.h>
 #include <motor/log/global.h>
 
@@ -60,6 +62,15 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     TranslateMessage( &msg ) ;
                     DispatchMessage( &msg ) ;
                 }
+
+                motor::application::window_message_listener_t::state_vector states ;
+                if( d.lsn->swap_and_reset( states ) )
+                {
+                    if( states.show_changed )
+                    {
+                        ShowWindow( d.hwnd, states.show_msg.show ? SW_SHOW : SW_HIDE ) ;
+                    }
+                }
             }
 
             // test window destruction
@@ -67,9 +78,9 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 for( HWND hwnd : _destroy_queue )
                 {
                     auto iter = std::find_if( _win32_windows.begin(), _win32_windows.end(), [&]( win32_window_data_cref_t d )
-                        {
-                            return d.hwnd == hwnd ;
-                        } ) ;
+                    {
+                        return d.hwnd == hwnd ;
+                    } ) ;
                 
                     if( iter == _win32_windows.end() ) continue ;
 
@@ -78,7 +89,6 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     motor::memory::release_ptr( iter->wnd ) ;
 
                     _win32_windows.erase( iter ) ;
-                    
                 }
                 _destroy_queue.clear() ;
             }
@@ -92,8 +102,9 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         //  "[win32_carrier] : win32 window" ) ;
 
                     HWND hwnd = this_t::create_win32_window( d.wi ) ;
+                    _win32_windows.emplace_back( win32_window_data{ hwnd, d.wnd, d.lsn } ) ;
 
-                    _win32_windows.emplace_back( win32_window_data{ hwnd, d.wnd } ) ;
+                    this_t::send_create( _win32_windows.back() ) ;
                 }
                 _queue.clear() ;
             }
@@ -138,9 +149,14 @@ motor::application::iwindow_mtr_shared_t win32_carrier::create_window( motor::ap
     motor::application::window_mtr_t wnd = motor::memory::create_ptr<motor::application::window_t>(
         "[win32_carrier] : window handle" ) ;
 
+    motor::application::window_message_listener_mtr_t lsn = motor::memory::create_ptr<
+        motor::application::window_message_listener_t>("[win32_carrier] : window message listener") ;
+
+    wnd->register_in( motor::share( lsn ) ) ;
+
     {
         std::lock_guard< std::mutex > lk( _mtx_queue ) ;
-        _queue.emplace_back( this_t::window_queue_msg_t{info, wnd} ) ;
+        _queue.emplace_back( this_t::window_queue_msg_t{info, wnd, lsn} ) ;
     }
 
     return motor::share( wnd )  ;
@@ -232,8 +248,6 @@ HWND win32_carrier::create_win32_window( motor::application::window_info_cref_t 
     // Important action here. The user data is used pass the object
     // that will perform the callback in the static wndproc
     SetWindowLongPtr( hwnd, GWLP_USERDATA, (LONG_PTR)this ) ;
-
-    ShowWindow( hwnd, SW_SHOW ) ;
 
     return hwnd ;
 }
@@ -336,6 +350,15 @@ void_t win32_carrier::send_destroy( win32_window_data_in_t d ) noexcept
 {
     d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
     {
-            l->on_close( motor::application::close_message_t{true} ) ;
+        l->on_message( motor::application::close_message_t{true} ) ;
+    } ) ;
+}
+
+//*******************************************************************************************
+void_t win32_carrier::send_create( win32_window_data_in_t d ) noexcept 
+{
+    d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
+    {
+        l->on_message( motor::application::create_message_t() ) ;
     } ) ;
 }

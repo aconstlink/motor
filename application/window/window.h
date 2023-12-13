@@ -54,6 +54,17 @@ namespace motor
             typedef std::function< void ( motor::application::iwindow_message_listener_mtr_t ) > foreach_out_funk_t ;
             virtual void_t foreach_out( foreach_out_funk_t funk ) noexcept override ;
 
+        public:
+
+            virtual void_t send_message( motor::application::show_message_cref_t ) noexcept ;
+            virtual void_t send_message( motor::application::resize_message_cref_t ) noexcept ;
+            virtual void_t send_message( motor::application::create_message_cref_t ) noexcept ;
+            virtual void_t send_message( motor::application::close_message_cref_t ) noexcept ;
+            virtual void_t send_message( motor::application::screen_dpi_message_cref_t ) noexcept ;
+            virtual void_t send_message( motor::application::screen_size_message_cref_t ) noexcept ;
+            virtual void_t send_message( motor::application::vsync_message_cref_t ) noexcept ;
+            virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept ;
+
         public: // iwindow interface 
 
             virtual void_t check_for_messages( void_t ) noexcept {} ;
