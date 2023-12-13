@@ -23,6 +23,8 @@ namespace motor
 
             private:
 
+                bool_t _done = false ;
+
                 /// can be used for special escape key pattern
                 size_t _escape_sequence = 0 ;
                 
@@ -37,7 +39,6 @@ namespace motor
                 };
                 motor_typedef( win32_window_data ) ;
 
-                
                 motor::vector< win32_window_data_t > _win32_windows ;
 
                 struct window_queue_msg
@@ -66,6 +67,8 @@ namespace motor
             private: // interface
 
                 virtual motor::application::result on_exec( void_t ) noexcept ;
+                virtual motor::application::result close( void_t ) noexcept ;
+
                 motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept ;
 
             private:
@@ -84,6 +87,7 @@ namespace motor
 
             private: 
                
+                // send listeners of the window that is about to die
                 void_t send_destroy( win32_window_data_in_t ) noexcept ;
             };
             motor_typedef( win32_carrier ) ;

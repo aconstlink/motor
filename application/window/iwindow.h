@@ -13,7 +13,10 @@ namespace motor
     {
         class MOTOR_APPLICATION_API iwindow
         {
-        
+        public:
+
+            virtual ~iwindow( void_t ) {}
+
         public: // ins
 
             virtual void_t register_in( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept = 0 ;

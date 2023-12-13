@@ -59,7 +59,12 @@ namespace motor
 
         public: // interface 
 
+
+            // run the carrier. returns on close.
             virtual motor::application::result on_exec( void_t ) noexcept = 0 ;
+
+            // close the carrier
+            virtual motor::application::result close( void_t ) noexcept = 0 ;
         };
         motor_typedef( carrier ) ;
     }

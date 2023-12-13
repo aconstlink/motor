@@ -13,6 +13,10 @@ namespace motor
         // nothing the user ever sees.
         class MOTOR_APPLICATION_API iwindow_message_listener
         {
+        public:
+
+            virtual ~iwindow_message_listener( void_t ) noexcept {}
+
         public: // callbacks
 
             virtual void_t on_screen( motor::application::screen_dpi_message_cref_t ) noexcept = 0 ;

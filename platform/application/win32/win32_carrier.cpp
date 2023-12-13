@@ -49,8 +49,7 @@ win32_carrier::~win32_carrier( void_t ) noexcept
 //***********************************************************************
 motor::application::result win32_carrier::on_exec( void_t ) noexcept
 {
-    bool_t done = false ;
-    while( !done )
+    while( !_done )
     {
         {
             MSG msg ;
@@ -79,9 +78,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     motor::memory::release_ptr( iter->wnd ) ;
 
                     _win32_windows.erase( iter ) ;
-
-                    if( _win32_windows.size() == 0 ) 
-                        done = true ;
+                    
                 }
                 _destroy_queue.clear() ;
             }
@@ -114,8 +111,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 }
 
 //***********************************************************************
+motor::application::result win32_carrier::close( void_t ) noexcept
+{
+    _done = true ;
+    return motor::application::result::ok ;
+}
+
+//***********************************************************************
 void_t win32_carrier::create_and_register_device_modules( void_t ) noexcept 
 {
+    #if 0
     _rawinput = motor::memory::create_ptr< motor::platform::win32::rawinput_module_t >( 
         "[win32] : raw input module" ) ;
 
@@ -124,6 +129,7 @@ void_t win32_carrier::create_and_register_device_modules( void_t ) noexcept
 
     motor::device::global_t::system()->add_module( motor::share( _rawinput ) ) ;
     motor::device::global_t::system()->add_module( motor::share( _xinput ) ) ;
+    #endif
 }
 
 //***********************************************************************
