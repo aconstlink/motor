@@ -22,7 +22,7 @@ namespace motor
 
             motor::string_t _code ;
 
-            size_t _hash = 0 ;
+            //size_t _hash = 0 ;
 
         public:
 
@@ -30,7 +30,7 @@ namespace motor
 
             shader( motor::string_in_t code ) noexcept : _code( code ) 
             {
-                _hash = std::hash<motor::string_t>{}( code ) ;
+                //_hash = std::hash<motor::string_t>{}( code ) ;
             }
 
             shader( this_cref_t rhv ) noexcept 
@@ -48,15 +48,15 @@ namespace motor
             this_ref_t operator = ( this_cref_t rhv ) noexcept 
             {
                 _code = rhv._code ;
-                _hash = rhv._hash ;
+                //_hash = rhv._hash ;
                 return *this ;
             }
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept 
             {
                 _code = std::move( rhv._code ) ;
-                _hash = rhv._hash ;
-                rhv._hash = 0 ;                
+                //_hash = rhv._hash ;
+                //rhv._hash = 0 ;                
                 return *this ;
             }
 
