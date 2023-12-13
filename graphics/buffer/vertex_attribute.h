@@ -31,7 +31,7 @@ namespace motor
 
         namespace detail
         {
-            static motor::string_t const vertex_attribute_string_array[] =
+            static char const * const vertex_attribute_string_array[] =
             {
                 "undefined", "position", "normal", "tangent", "color0", "color1", "color2",
                 "color3", "color4", "color5", "texcood0",
@@ -39,7 +39,7 @@ namespace motor
             } ;
         }
 
-        static motor::string_cref_t to_string( vertex_attribute va ) noexcept
+        static motor::string_t to_string( vertex_attribute va ) noexcept
         {
             return detail::vertex_attribute_string_array[ size_t( va ) ] ;
         }

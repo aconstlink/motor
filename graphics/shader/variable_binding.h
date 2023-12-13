@@ -21,13 +21,13 @@ namespace motor
 
         namespace detail
         {
-            static motor::string_t const __binding_point_names[] = { 
+            static char const * const __binding_point_names[] = { 
                 "undefined", "projection_matrix","view_matrix","camera_matrix","camera_position",
                 "viewport_dimension"
             } ;
         }
 
-        static motor::string_cref_t to_string( binding_point const bp ) noexcept
+        static motor::string_t to_string( binding_point const bp ) noexcept
         {
             return detail::__binding_point_names[size_t(bp)] ;
         }

@@ -12,7 +12,7 @@ using namespace motor::application ;
 //******************************************************
 carrier::carrier( void_t ) noexcept
 {
-    _sd = motor::memory::global::alloc< this_t::shared_data >() ;
+    _sd = motor::memory::global::alloc< this_t::shared_data >("shared data") ;
 }
 
 //******************************************************

@@ -43,7 +43,7 @@ namespace motor
 
         namespace detail
         {
-            static motor::string_t const type_string_array[] =
+            static char const * const type_string_array[] =
             {
                 "t_not_implemented"
             } ;
@@ -55,7 +55,7 @@ namespace motor
                 sizeof ( int ), sizeof ( unsigned int ), sizeof ( float ), sizeof ( double ), sizeof ( bool )
             } ;
 
-            static motor::string_t const type_structure_string_array[] =
+            static char const * const type_structure_string_array[] =
             {
                 "ts_not_implemented"
             } ;
@@ -79,12 +79,12 @@ namespace motor
             } ;
         }
 
-        static motor::string_cref_t to_string( type const /*t*/ ) noexcept
+        static motor::string_t to_string( type const /*t*/ ) noexcept
         {
             return detail::type_string_array[ 0 ] ;
         }
 
-        static motor::string_cref_t to_string( type_struct const /*t*/ ) noexcept
+        static motor::string_t to_string( type_struct const /*t*/ ) noexcept
         {
             return detail::type_structure_string_array[ 0 ] ;
         }
@@ -131,7 +131,7 @@ namespace motor
 
         namespace detail
         {
-            static motor::string_t const primitive_type_string_array[] =
+            static char const * const primitive_type_string_array[] =
             {
                 "undefined", "points", "lines", "triangles"
             } ;
@@ -151,12 +151,12 @@ namespace motor
             } ;
         }
 
-        static motor::string_cref_t to_string( primitive_type const pt )
+        static motor::string_t to_string( primitive_type const pt ) noexcept
         {
             return detail::primitive_type_string_array[ size_t( pt ) ] ;
         }
 
-        static size_t num_vertices( primitive_type const pt )
+        static size_t num_vertices( primitive_type const pt ) noexcept
         {
             return detail::vertex_count_for_primitive_type[ size_t( pt ) ] ;
         }
@@ -199,7 +199,7 @@ namespace motor
         };
 
         // returns the number of channels.
-        static size_t size_of( motor::graphics::image_format const imf )
+        static size_t size_of( motor::graphics::image_format const imf ) noexcept
         {
             switch( imf )
             {
@@ -211,7 +211,7 @@ namespace motor
         }
 
         // returns the sib of a type
-        static size_t size_of( motor::graphics::image_element_type const iet )
+        static size_t size_of( motor::graphics::image_element_type const iet ) noexcept
         {
             switch( iet )
             {
