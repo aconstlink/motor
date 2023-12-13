@@ -87,11 +87,16 @@ namespace motor
 
 
 
-            private: 
+            private: // send messages -> outgoing messages
                
                 // send listeners of the window that is about to die
                 void_t send_destroy( win32_window_data_in_t ) noexcept ;
                 void_t send_create( win32_window_data_in_t ) noexcept ;
+
+
+            private: // handle messages -> incoming messages
+
+                void_t handle_messages( win32_window_data_in_t, motor::application::window_message_listener_t::state_vector_in_t ) noexcept ;
             };
             motor_typedef( win32_carrier ) ;
         }

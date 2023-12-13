@@ -74,6 +74,7 @@ namespace motor
         struct fullscreen_message
         {
             bool_t on_off ;
+            bool_t borderless ;
         };
         motor_typedef( fullscreen_message ) ;
     }

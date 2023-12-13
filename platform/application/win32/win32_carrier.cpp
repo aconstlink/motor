@@ -66,10 +66,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 motor::application::window_message_listener_t::state_vector states ;
                 if( d.lsn->swap_and_reset( states ) )
                 {
-                    if( states.show_changed )
-                    {
-                        ShowWindow( d.hwnd, states.show_msg.show ? SW_SHOW : SW_HIDE ) ;
-                    }
+                    this_t::handle_messages( d, states ) ;
                 }
             }
 
@@ -361,4 +358,90 @@ void_t win32_carrier::send_create( win32_window_data_in_t d ) noexcept
     {
         l->on_message( motor::application::create_message_t() ) ;
     } ) ;
+}
+
+//*******************************************************************************************
+void_t win32_carrier::handle_messages( win32_window_data_in_t d, motor::application::window_message_listener_t::state_vector_in_t states ) noexcept 
+{
+    if( states.show_changed )
+    {
+        ShowWindow( d.hwnd, states.show_msg.show ? SW_SHOW : SW_HIDE ) ;
+    }
+    if( states.fulls_msg_changed )
+    {
+        motor::application::fullscreen_message_cref_t msg = states.fulls_msg ;
+
+        {
+            DWORD ws_ex_style = WS_EX_APPWINDOW /*& ~(WS_EX_DLGMODALFRAME |
+                            WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE )*/ ;
+            SetWindowLongPtrA( d.hwnd, GWL_EXSTYLE, ws_ex_style ) ;
+        }
+
+        {
+            DWORD ws_style = 0 ;
+
+            if( msg.on_off )
+            {
+                ws_style = WS_POPUP | SW_SHOWNORMAL ;
+            }
+            else
+            {
+                ws_style = WS_OVERLAPPEDWINDOW ;
+            }
+
+            SetWindowLongPtrA( d.hwnd, GWL_STYLE, ws_style ) ;
+        }
+
+        {
+            int_t start_x = 0, start_y = 0 ;
+            int_t width = GetSystemMetrics( SM_CXSCREEN ) ;
+            int_t height = GetSystemMetrics( SM_CYSCREEN ) ;
+
+            if( !msg.on_off )
+            {
+                height += GetSystemMetrics( SM_CYCAPTION ) ;
+
+                width /= 2 ;
+                height /= 2 ;
+            }
+
+            SetWindowPos( d.hwnd, HWND_TOP, start_x, start_y, width, height, SWP_SHOWWINDOW ) ;
+        }
+    }
+
+    if( states.resize_changed )
+    {
+        motor::application::resize_message_cref_t msg = states.resize_msg ;
+
+        RECT rc, wr ;
+        GetClientRect( d.hwnd, &rc ) ;
+        GetWindowRect( d.hwnd, &wr ) ;
+
+        int_t x = rc.left ;
+        int_t y = rc.top ;
+        int_t width = int_t( rc.right - rc.left ) ;
+        int_t height = int_t( rc.bottom - rc.top ) ;
+
+        int_t const difx = ( wr.right - wr.left ) - rc.right;
+        int_t const dify = ( wr.bottom - wr.top ) - rc.bottom;
+
+        if( msg.position )
+        {
+            x = msg.x ;
+            y = msg.y ;
+            rc.left = x ;
+            rc.top = y ;
+        }
+
+        if( msg.resize )
+        {
+            width = ( int_t ) msg.w ;
+            height = ( int_t ) msg.h ;
+
+            rc.right = x + width ;
+            rc.bottom = y + height ;
+        }
+
+        SetWindowPos( d.hwnd, NULL, x, y, width+difx, height+dify, 0 ) ;
+    }
 }
