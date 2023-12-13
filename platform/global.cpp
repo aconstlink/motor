@@ -43,7 +43,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( void_t ) noexce
 }
 
 //********************************************************************************
-motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_shared_t /*app*/ ) noexcept 
+motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_shared_t app ) noexcept 
 {
     #if defined( MOTOR_GRAPHICS_WGL )
 
@@ -52,6 +52,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
 
     #elif defined( MOTOR_GRAPHICS_GLX )
 
+    (void) app ;
     //return todo ;
 
     #elif defined( MOTOR_GRAPHICS_EGL )
@@ -63,7 +64,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
 }
 
 //********************************************************************************
-motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_unique_t /*app*/ ) noexcept 
+motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_unique_t app ) noexcept 
 {
     #if defined( MOTOR_GRAPHICS_WGL )
 
@@ -72,6 +73,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
 
     #elif defined( MOTOR_GRAPHICS_GLX )
 
+    (void) app ;
     //return todo ;
 
     #elif defined( MOTOR_GRAPHICS_EGL )
