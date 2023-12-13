@@ -124,3 +124,12 @@ void_t window_message_listener::on_message( fullscreen_message_cref_t msg ) noex
     _states.fulls_msg = msg ;
     _has_any_change = true ;
 }
+
+//***************************************************************************
+void_t window_message_listener::on_message( motor::application::cursor_message_cref_t msg ) noexcept 
+{
+    std::lock_guard< std::mutex > lk( _mtx ) ;
+    _states.cursor_msg_changed = true ;
+    _states.cursor_msg = msg ;
+    _has_any_change = true ;
+}

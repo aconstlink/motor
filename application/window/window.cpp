@@ -165,3 +165,10 @@ void_t window::send_message( motor::application::fullscreen_message_cref_t msg )
 }
 
 //***************************************************************************
+void_t window::send_message( motor::application::cursor_message_cref_t msg ) noexcept 
+{
+    this_t::foreach_in( [&]( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}

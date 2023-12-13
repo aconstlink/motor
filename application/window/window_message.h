@@ -77,6 +77,12 @@ namespace motor
             bool_t borderless ;
         };
         motor_typedef( fullscreen_message ) ;
+
+        struct cursor_message
+        {
+            bool_t on_off ;
+        };
+        motor_typedef( cursor_message ) ;
     }
 }
 

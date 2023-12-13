@@ -45,7 +45,8 @@ namespace motor
             virtual void_t send_message( motor::application::screen_size_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::vsync_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept = 0 ;
-
+            virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept = 0 ;
+            
         public:
 
             // check for user messages and pass further to window implementation.

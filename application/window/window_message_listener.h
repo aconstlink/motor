@@ -41,6 +41,9 @@ namespace motor
 
                 motor::application::fullscreen_message fulls_msg ;
                 bool_t fulls_msg_changed = false ;
+
+                motor::application::cursor_message cursor_msg ;
+                bool_t cursor_msg_changed = false ;
             };
             motor_typedef( state_vector ) ;
             typedef bool_t change_state_t ;
@@ -77,6 +80,7 @@ namespace motor
             virtual void_t on_message( close_message_cref_t msg ) noexcept ;
             virtual void_t on_message( vsync_message_cref_t msg ) noexcept ;
             virtual void_t on_message( fullscreen_message_cref_t msg ) noexcept ;
+            virtual void_t on_message( motor::application::cursor_message_cref_t ) noexcept ;
         };
         motor_typedef( window_message_listener ) ;
     }
