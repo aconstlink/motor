@@ -1,11 +1,10 @@
 #pragma once
 
-#include "win32_window.h"
-
 #include "../../api.h"
 #include "../../device/win32/rawinput_module.h"
 #include "../../device/win32/xinput_module.h"
 
+#include <motor/application/window/window_message_listener.h>
 #include <motor/application/carrier.h>
 
 #include <mutex>
@@ -28,6 +27,8 @@ namespace motor
                 motor::platform::win32::rawinput_module_mtr_t _rawinput = nullptr ;
                 motor::platform::win32::xinput_module_mtr_t _xinput  = nullptr ;
 
+            private: // win32 window data
+
                 struct win32_window_data
                 {
                     HWND hwnd ;
@@ -39,6 +40,22 @@ namespace motor
 
                 motor::vector< win32_window_data_t > _win32_windows ;
 
+
+            private: // wgl window data
+
+                struct wgl_pimpl ;
+
+                struct wgl_window_data
+                {
+                    size_t idx_win32_window ;
+                    wgl_pimpl * ptr ;
+                };
+                motor_typedef( wgl_window_data ) ;
+
+                motor::vector< wgl_window_data_t > _wgl_windows ;
+
+            private: // win32 windows queue
+
                 struct window_queue_msg
                 {
                     motor::application::window_info_t wi ;
@@ -49,6 +66,22 @@ namespace motor
 
                 std::mutex _mtx_queue ;
                 motor::vector< window_queue_msg_t > _queue ;
+
+
+            private: // graphics windows queue
+
+                struct graphics_queue_msg
+                {
+                    motor::application::graphics_window_info_t gi ;
+                    motor::application::iwindow_mtr_t wnd ;
+                    motor::application::window_message_listener_mtr_t lsn ;
+                };
+                motor_typedef( graphics_queue_msg ) ;
+
+                std::mutex _mtx_gqueue ;
+                motor::vector< graphics_queue_msg_t > _gqueue ;
+
+            private: // destruction queue 
 
                 motor::vector< HWND > _destroy_queue ;
 
@@ -68,7 +101,8 @@ namespace motor
                 virtual motor::application::result on_exec( void_t ) noexcept ;
                 virtual motor::application::result close( void_t ) noexcept ;
 
-                motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept ;
+                virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
+                virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::graphics_window_info_in_t info ) noexcept override ; 
 
             private:
 
@@ -94,6 +128,11 @@ namespace motor
             private: // handle messages -> incoming messages
 
                 void_t handle_messages( win32_window_data_inout_t, motor::application::window_message_listener_t::state_vector_in_t ) noexcept ;
+
+
+            private:
+
+                void_t handle_destroyed_hwnd( HWND ) noexcept ;
             };
             motor_typedef( win32_carrier ) ;
         }

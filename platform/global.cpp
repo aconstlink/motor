@@ -4,8 +4,7 @@
 
 #if defined( MOTOR_GRAPHICS_WGL )
 
-//#include "application/wgl/wgl_window.h"
-#include "application/win32/win32_window.h"
+#include "application/wgl/wgl_context.h"
 #include "application/win32/win32_carrier.h"
 
 #elif defined( MOTOR_GRAPHICS_GLX )

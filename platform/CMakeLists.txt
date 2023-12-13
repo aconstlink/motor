@@ -2,7 +2,8 @@
 set( sources 
     "api.h"
     "typedefs.h"
-
+    "result.h"
+    
     "global.h"
     "global.cpp"
     )
@@ -79,11 +80,9 @@ endif()
 
 if( MOTOR_GRAPHICS_WGL )
 
-    list( APPEND sources_
-      "platform/wgl/wgl_window.h"
-      "platform/wgl/wgl_window.cpp"
-      "platform/wgl/wgl_context.h"
-      "platform/wgl/wgl_context.cpp" )
+    list( APPEND sources
+      "application/wgl/wgl_context.h"
+      "application/wgl/wgl_context.cpp" )
 endif()
 
 if( MOTOR_GRAPHICS_GLX )

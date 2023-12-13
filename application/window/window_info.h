@@ -23,5 +23,18 @@ namespace motor
             bool_t dpi_aware = false ;
         };
         motor_typedef( window_info ) ;
+
+        struct graphics_window_info
+        {
+            enum class graphics_api_type
+            {
+                none,
+                gl4,
+                d3d11
+            };
+            graphics_api_type api_type ;
+            window_info_t wi ;
+        };
+        motor_typedef( graphics_window_info ) ;
     }
 }

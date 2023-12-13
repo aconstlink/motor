@@ -1,66 +1,71 @@
 #include "wgl_context.h"
 
-#include <natus/graphics/backend/null/null.h>
+//#include <natus/graphics/backend/null/null.h>
 
-#include <natus/core/assert.h>
 
-#include <natus/ogl/gl/gl.h>
-#include <natus/ogl/wgl/wgl.h>
 
-#include <natus/ntd/string/split.hpp>
+#include <motor/ogl/gl/gl.h>
+#include <motor/ogl/wgl/wgl.h>
 
-#include <natus/log/global.h>
+#include <motor/std/string_split.hpp>
 
-using namespace natus::application ;
-using namespace natus::application::wgl ;
+#include <motor/log/global.h>
+
+using namespace motor::platform ;
+using namespace motor::platform::wgl ;
 
 //***********************************************************************
-context::context( void_t )
+wgl_context::wgl_context( void_t ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::wgl::gl_context( this ),
+    #if 0
+    _bend_ctx = motor::memory::global_t::alloc( motor::application::wgl::gl_context( this ),
         "[context] : backend gl_context" ) ;
+    #endif
 }
 
 //***********************************************************************
-context::context( HWND hwnd ) 
+wgl_context::wgl_context( HWND hwnd ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::wgl::gl_context( this ),
+    #if 0
+    _bend_ctx = motor::memory::global_t::alloc( motor::application::wgl::gl_context( this ),
         "[context] : backend gl_context" ) ;
-
+    #endif
     this_t::create_context( hwnd ) ;
 }
 
 //***********************************************************************
-context::context( HWND hwnd, HGLRC ctx ) 
+wgl_context::wgl_context( HWND hwnd, HGLRC ctx ) noexcept
 {
     _hwnd = hwnd ;
     _hrc = ctx ;
 
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::wgl::gl_context( this ),
+    #if 0
+    _bend_ctx = motor::memory::global_t::alloc( motor::application::wgl::gl_context( this ),
         "[context] : backend gl_context" ) ;
+    #endif
 }
 
 //***********************************************************************
-context::context( this_rref_t rhv )
+wgl_context::wgl_context( this_rref_t rhv ) noexcept
 {
-    *this = ::std::move( rhv ) ;
-    natus_move_member_ptr( _bend_ctx, rhv ) ;
-    _bend_ctx->change_owner( this ) ;
+    *this = std::move( rhv ) ;
+    //motor_move_member_ptr( _bend_ctx, rhv ) ;
+    //_bend_ctx->change_owner( this ) ;
 }
 
 //***********************************************************************
-context::~context( void_t )
+wgl_context::~wgl_context( void_t ) noexcept
 {
     this_t::deactivate() ;
 
     if( _hrc != NULL )
         wglDeleteContext( _hrc ) ;
 
-    natus::memory::global_t::dealloc( _bend_ctx ) ;
+    //motor::memory::global_t::dealloc( _bend_ctx ) ;
 }
 
 //***********************************************************************
-context::this_ref_t context::operator = ( this_rref_t rhv )
+wgl_context::this_ref_t wgl_context::operator = ( this_rref_t rhv ) noexcept
 {
     _hwnd = rhv._hwnd ;
     rhv._hwnd = NULL ;
@@ -73,133 +78,136 @@ context::this_ref_t context::operator = ( this_rref_t rhv )
 }
 
 //***********************************************************************
-natus::application::result context::activate( void_t ) 
+motor::platform::result wgl_context::activate( void_t ) noexcept
 {
-    natus_assert( _hdc == NULL ) ;
+    assert( _hdc == NULL ) ;
 
     _hdc = GetDC( _hwnd ) ;
 
-    if( natus::log::global::error( wglMakeCurrent( _hdc, _hrc ) == FALSE, 
-        natus_log_fn( "wglMakeCurrent" ) ) ) 
-        return natus::application::result::failed_wgl ;
+    if( motor::log::global::error( wglMakeCurrent( _hdc, _hrc ) == FALSE, 
+        motor_log_fn( "wglMakeCurrent" ) ) ) 
+        return motor::platform::result::failed_wgl ;
         
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::deactivate( void_t ) 
+motor::platform::result wgl_context::deactivate( void_t ) noexcept
 {
-    if( _hdc == NULL ) return natus::application::result::ok ;
+    if( _hdc == NULL ) return motor::platform::result::ok ;
 
-    if( natus::log::global::error( wglMakeCurrent( 0,0 ) == FALSE, 
-        natus_log_fn( "wglMakeCurrent" ) ) ) 
-        return natus::application::result::failed_wgl ;
+    if( motor::log::global::error( wglMakeCurrent( 0,0 ) == FALSE, 
+        motor_log_fn( "wglMakeCurrent" ) ) ) 
+        return motor::platform::result::failed_wgl ;
 
-    if( natus::log::global::error( ReleaseDC( _hwnd, _hdc ) == FALSE, 
-        natus_log_fn( "ReleaseDC" ) ) ) 
-        return natus::application::result::failed_wgl ;
+    if( motor::log::global::error( ReleaseDC( _hwnd, _hdc ) == FALSE, 
+        motor_log_fn( "ReleaseDC" ) ) ) 
+        return motor::platform::result::failed_wgl ;
     
     _hdc = NULL ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::vsync( bool_t const on_off ) 
+motor::platform::result wgl_context::vsync( bool_t const on_off ) noexcept
 {
-    natus::application::result const res = this_t::is_extension_supported("WGL_EXT_swap_control") ;
+    motor::platform::result const res = this_t::is_extension_supported("WGL_EXT_swap_control") ;
 
-    if( natus::log::global::error( natus::application::no_success(res), 
-        "[context::vsync] : vsync not supported." ) ) 
+    if( motor::log::global::error( res != motor::platform::result::ok, 
+        "[wgl_context::vsync] : vsync not supported." ) ) 
         return res ;
     
-    if( natus::log::global::error( natus::ogl::wgl::wglSwapInterval(on_off ? 1 : 0) != TRUE, 
-        "[context::vsync] : wglSwapIntervalEXT" ) )
-        return natus::application::result::failed_wgl ;
+    if( motor::log::global::error( motor::ogl::wgl::wglSwapInterval(on_off ? 1 : 0) != TRUE, 
+        "[wgl_context::vsync] : wglSwapIntervalEXT" ) )
+        return motor::platform::result::failed_wgl ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::swap( void_t ) 
+motor::platform::result wgl_context::swap( void_t ) noexcept
 {
     if( _hdc == NULL ) 
-        return natus::application::result::invalid_win32_handle ;
+        return motor::platform::result::invalid_win32_handle ;
 
-    if( natus::log::global::error( SwapBuffers( _hdc ) == FALSE, 
-        "[context::swap] : SwapBuffers") ) 
-        return natus::application::result::failed_wgl ;
+    if( motor::log::global::error( SwapBuffers( _hdc ) == FALSE, 
+        "[wgl_context::swap] : SwapBuffers") ) 
+        return motor::platform::result::failed_wgl ;
     
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
+#if 0
 //***********************************************************************
-natus::graphics::backend_res_t context::create_backend( void_t ) noexcept 
+motor::graphics::backend_res_t wgl_context::create_backend( void_t ) noexcept 
 {
-    natus::application::gl_version glv ;
+    motor::application::gl_version glv ;
     this->get_gl_version( glv ) ;
     if( glv.major >= 4 || (glv.major >= 4 && glv.minor >= 0) )
     {
-        return natus::graphics::gl4_backend_res_t(
-            natus::graphics::gl4_backend_t( _bend_ctx ) ) ;
+        return motor::graphics::gl4_backend_res_t(
+            motor::graphics::gl4_backend_t( _bend_ctx ) ) ;
     }
     
-    return natus::graphics::null_backend_res_t(
-        natus::graphics::null_backend_t() ) ;
+    return motor::graphics::null_backend_res_t(
+        motor::graphics::null_backend_t() ) ;
 }
+#endif
 
 //***********************************************************************
-natus::application::result context::create_context( HWND hwnd ) 
+motor::platform::result wgl_context::create_context( HWND hwnd ) noexcept
 {   
     _hwnd = hwnd ;
     
-    if( natus::log::global::error( _hwnd == NULL, 
-        "[context::create_context] : Window handle is no win32 handle." ) )
-        return natus::application::result::invalid_argument ;
+    if( motor::log::global::error( _hwnd == NULL, 
+        "[wgl_context::create_context] : Window handle is no win32 handle." ) )
+        return motor::platform::result::invalid_argument ;
 
-    return this_t::create_the_context( natus::application::gl_info_t() ) ;
+    return this_t::create_the_context( motor::application::gl_info_t() ) ;
 }
 
 //***********************************************************************
-natus::application::result context::is_extension_supported( natus::ntd::string_cref_t extension_name ) 
+motor::platform::result wgl_context::is_extension_supported( motor::string_cref_t extension_name ) noexcept
 {
-    natus::ntd::vector< natus::ntd::string_t > ext_list ;
-    if( natus::application::no_success( get_wgl_extension(ext_list) ) ) return natus::application::result::failed_wgl ;
+    motor::vector< motor::string_t > ext_list ;
+    if( this_t::get_wgl_extension(ext_list) != motor::platform::result::ok ) 
+        return motor::platform::result::failed_wgl ;
 
-    auto const iter = ::std::find( ext_list.begin(), ext_list.end(), extension_name ) ;
+    auto const iter = std::find( ext_list.begin(), ext_list.end(), extension_name ) ;
 
     return iter != ext_list.end() ? 
-        natus::application::result::ok : natus::application::result::invalid_extension ;
+        motor::platform::result::ok : motor::platform::result::invalid_extension ;
 }
 
 //***********************************************************************
-natus::application::result context::get_wgl_extension( natus::ntd::vector< natus::ntd::string_t > & ext_list )
+motor::platform::result wgl_context::get_wgl_extension( motor::vector< motor::string_t > & ext_list ) noexcept
 {
-    if( !natus::ogl::wgl::wglGetExtensionsString ) 
-        return natus::application::result::invalid_extension ;
+    if( !motor::ogl::wgl::wglGetExtensionsString ) 
+        return motor::platform::result::invalid_extension ;
 
-    char_cptr_t ch = natus::ogl::wgl::wglGetExtensionsString( _hdc ) ;
-    natus::ntd::string_ops::split( natus::ntd::string_t(ch), ' ', ext_list ) ;
+    char_cptr_t ch = motor::ogl::wgl::wglGetExtensionsString( _hdc ) ;
+    motor::mstd::string_ops::split( motor::string_t(ch), ' ', ext_list ) ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::get_gl_extension( natus::ntd::vector< natus::ntd::string_t > & ext_list )
+motor::platform::result wgl_context::get_gl_extension( motor::vector< motor::string_t > & ext_list ) noexcept
 {
-    const GLubyte * ch = natus::ogl::glGetString( GL_EXTENSIONS ) ;
-    if( !ch ) return natus::application::result::failed ;
+    const GLubyte * ch = motor::ogl::glGetString( GL_EXTENSIONS ) ;
+    if( !ch ) return motor::platform::result::failed ;
 
-    natus::ntd::string_ops::split( natus::ntd::string_t(char_cptr_t(ch)), ' ', ext_list ) ;
+    motor::mstd::string_ops::split( motor::string_t(char_cptr_t(ch)), ' ', ext_list ) ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::get_gl_version( natus::application::gl_version & version ) const 
+motor::platform::result wgl_context::get_gl_version( motor::application::gl_version & version ) const noexcept
 {
-    const GLubyte* ch = natus::ogl::glGetString(GL_VERSION) ;
-    if( !ch ) return natus::application::result::failed ;
+    const GLubyte* ch = motor::ogl::glGetString(GL_VERSION) ;
+    if( !ch ) return motor::platform::result::failed ;
 
     std::string version_string = std::string((const char*)ch) ;
 
@@ -207,43 +215,43 @@ natus::application::result context::get_gl_version( natus::application::gl_versi
     GLint minor = 0 ;
 
     {
-        natus::ogl::glGetIntegerv( GL_MAJOR_VERSION, &major ) ;
-        GLenum err = natus::ogl::glGetError() ;
+        motor::ogl::glGetIntegerv( GL_MAJOR_VERSION, &major ) ;
+        GLenum err = motor::ogl::glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t const es = ::std::to_string(err) ;
-            natus::log::global::error( "[context::get_gl_version] : get gl major <"+es+">" ) ;
+            motor::string_t const es = motor::to_string(err) ;
+            motor::log::global::error( "[wgl_context::get_gl_version] : get gl major <"+es+">" ) ;
         }
     }
     {
-        natus::ogl::glGetIntegerv( GL_MINOR_VERSION, &minor) ;
-        GLenum err = natus::ogl::glGetError() ;
+        motor::ogl::glGetIntegerv( GL_MINOR_VERSION, &minor) ;
+        GLenum err = motor::ogl::glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t es = ::std::to_string(err) ;
-            natus::log::global::error( "[context::get_gl_version] : get gl minor <"+es+">" ) ;
+            motor::string_t es = motor::to_string(err) ;
+            motor::log::global::error( "[wgl_context::get_gl_version] : get gl minor <"+es+">" ) ;
         }
     }
     version.major = major ;
     version.minor = minor ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-void_t context::clear_now( natus::math::vec4f_t const & vec ) 
+void_t wgl_context::clear_now( motor::math::vec4f_t const & vec ) noexcept
 {
-    natus::ogl::glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
-    natus::ogl::glClear( GL_COLOR_BUFFER_BIT ) ;
+    motor::ogl::glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
+    motor::ogl::glClear( GL_COLOR_BUFFER_BIT ) ;
     
-    GLenum const gler = natus::ogl::glGetError() ;
-    natus::log::global::error( gler != GL_NO_ERROR, "[context::clear_now] : glClear" ) ;
+    GLenum const gler = motor::ogl::glGetError() ;
+    motor::log::global::error( gler != GL_NO_ERROR, "[wgl_context::clear_now] : glClear" ) ;
 }
 
 //***********************************************************************
-natus::application::result context::create_the_context( gl_info_cref_t gli ) 
+motor::platform::result wgl_context::create_the_context( motor::application::gl_info_cref_t gli ) noexcept
 {
-    typedef ::std::chrono::high_resolution_clock local_clock_t ;
+    typedef std::chrono::high_resolution_clock local_clock_t ;
     auto t1 = local_clock_t::now() ;
 
     HDC hdc = GetDC( _hwnd ) ;
@@ -268,22 +276,22 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
     // we still need to determine if OpenGL 3.x is supported.
     _hrc = wglCreateContext( hdc ) ;
 
-    if( natus::log::global::error(_hrc == NULL, 
-        "[context::create_the_context] : Failed to create the temporary context.") ) 
+    if( motor::log::global::error(_hrc == NULL, 
+        "[wgl_context::create_the_context] : Failed to create the temporary context.") ) 
         return result::failed_gfx_context_creation ;
 
-    if( natus::log::global::error( wglMakeCurrent( hdc, _hrc ) == FALSE, 
-        "[context::create_the_context] : wglMakeCurrent" ) )
+    if( motor::log::global::error( wglMakeCurrent( hdc, _hrc ) == FALSE, 
+        "[wgl_context::create_the_context] : wglMakeCurrent" ) )
     {
-        return natus::application::result::failed ;
+        return motor::platform::result::failed ;
     }
 
     // init the current "old" gl context. We need it in
     // order to determine the "new" 3.x+ context availability.
-    natus::ogl::wgl::init( hdc ) ;
+    motor::ogl::wgl::init( hdc ) ;
 
     HGLRC new_context ;
-    if( natus::ogl::wgl::is_supported("WGL_ARB_create_context") )
+    if( motor::ogl::wgl::is_supported("WGL_ARB_create_context") )
     {
         const int attribList[] =
         {
@@ -300,7 +308,7 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
 
         // We create the new OpenGL 3.x+ context.
         //new_context = wglCreateContextAttribsARB(hdc, NULL, attribList) ;
-        new_context = natus::ogl::wgl::wglCreateContextAttribs(hdc, NULL, attribList) ;
+        new_context = motor::ogl::wgl::wglCreateContextAttribs(hdc, NULL, attribList) ;
         if( new_context != NULL )
         {
             wglMakeCurrent( 0, 0 ) ;
@@ -310,16 +318,16 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
         }
 
         // now using the new 3.x+ context.
-        natus::ogl::gl::init() ;
+        motor::ogl::gl::init() ;
     }
 
     //
     // Check ogl version against passed gl context info
     {
-        gl_version version ;
+        motor::application::gl_version version ;
         if( !success( this_t::get_gl_version( version ) ) )
         {
-            natus::log::global_t::error( natus_log_fn( "" ) ) ;
+            motor::log::global_t::error( motor_log_fn( "" ) ) ;
             wglMakeCurrent( 0, 0 ) ;
             return result::failed_gfx_context_creation ;
         }
@@ -331,19 +339,19 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
     {
         this_t::activate() ;
         
-        natus::log::global::warning( natus::application::no_success( this_t::vsync( gli.vsync_enabled ) ), 
-            "[context::create_the_context] : vsync setting failed." ) ;
+        motor::log::global::warning( motor::platform::no_success( this_t::vsync( gli.vsync_enabled ) ), 
+            "[wgl_context::create_the_context] : vsync setting failed." ) ;
         
         this_t::deactivate() ;
     }
 
     // timing end
     {
-        size_t const milli = size_t( ::std::chrono::duration_cast<::std::chrono::milliseconds>(
+        size_t const milli = size_t( std::chrono::duration_cast<std::chrono::milliseconds>(
             local_clock_t::now() - t1).count()) ;
 
-        natus::log::global::status( natus_log_fn( "created [" + ::std::to_string(milli) +" ms]" ) ) ;
+        motor::log::global::status( motor_log_fn( "created [" + std::to_string(milli) +" ms]" ) ) ;
     }
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }

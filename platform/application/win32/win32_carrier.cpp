@@ -1,16 +1,26 @@
 #include "win32_carrier.h"
-#include "win32_window.h"
 
-#include <motor/application/window/window_message_listener.h>
+#include <motor/application/window/window.h>
 
 #include <motor/device/global.h>
 #include <motor/log/global.h>
+
+#if MOTOR_GRAPHICS_WGL
+#include "../wgl/wgl_context.h"
+#endif
 
 #include <windows.h>
 
 using namespace motor::platform ;
 using namespace motor::platform::win32 ;
 
+#if MOTOR_GRAPHICS_WGL
+struct win32_carrier::wgl_pimpl
+{
+    motor::platform::wgl::wgl_context_t ctx ;
+} ;
+
+#endif
 //***********************************************************************
 win32_carrier::win32_carrier( void_t ) noexcept
 {
@@ -22,8 +32,12 @@ win32_carrier::win32_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rh
 {
     _rawinput = motor::move( rhv._rawinput ) ;
     _xinput = motor::move( rhv._xinput ) ;
+
     _win32_windows = std::move( rhv._win32_windows ) ;
     _queue = std::move( rhv._queue ) ;
+
+    _wgl_windows = std::move( rhv._wgl_windows ) ;
+    _gqueue = std::move( rhv._gqueue ) ;
 }
 
 //***********************************************************************
@@ -56,51 +70,61 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
         std::this_thread::sleep_for( std::chrono::milliseconds(2) )  ;
 
         {
-            MSG msg ;
-            for( auto & d : _win32_windows )
+            // The main message loop
             {
-                while( PeekMessage( &msg, d.hwnd, 0, 0, PM_REMOVE ) )
+                MSG msg ;
+                for( auto & d : _win32_windows )
                 {
-                    // the WM_USER message could be used for 
-                    // further state reset.
-                    if( msg.message == WM_USER )
+                    while( PeekMessage( &msg, d.hwnd, 0, 0, PM_REMOVE ) )
                     {
-                        // used for cursor handling, at the moment.
-                        if( msg.wParam == WPARAM(-1) && msg.lParam == LPARAM(-1) )
+                        // the WM_USER message could be used for 
+                        // further state reset.
+                        if( msg.message == WM_USER )
                         {
-                            this_t::handle_messages( d, d.sv ) ;
+                            // used for cursor handling, at the moment.
+                            if( msg.wParam == WPARAM(-1) && msg.lParam == LPARAM(-1) )
+                            {
+                                this_t::handle_messages( d, d.sv ) ;
+                            }
                         }
+
+                        TranslateMessage( &msg ) ;
+                        DispatchMessage( &msg ) ;
                     }
 
-                    TranslateMessage( &msg ) ;
-                    DispatchMessage( &msg ) ;
-                }
-
-                motor::application::window_message_listener_t::state_vector states ;
-                if( d.lsn->swap_and_reset( states ) )
-                {
-                    this_t::handle_messages( d, states ) ;
+                    // handle all incoming messages directed to the window
+                    {
+                        motor::application::window_message_listener_t::state_vector states ;
+                        if( d.lsn->swap_and_reset( states ) )
+                        {
+                            this_t::handle_messages( d, states ) ;
+                        }
+                    }
                 }
             }
 
             // test window destruction
+            // also do 
+            // -> wgl context destruction
             {
                 for( HWND hwnd : _destroy_queue )
                 {
-                    auto iter = std::find_if( _win32_windows.begin(), _win32_windows.end(), [&]( win32_window_data_cref_t d )
-                    {
-                        return d.hwnd == hwnd ;
-                    } ) ;
-                
-                    if( iter == _win32_windows.end() ) continue ;
-
-                    this_t::send_destroy( *iter ) ;
-
-                    motor::memory::release_ptr( iter->wnd ) ;
-                    motor::memory::release_ptr( iter->lsn ) ;
-                    _win32_windows.erase( iter ) ;
+                    this_t::handle_destroyed_hwnd( hwnd ) ;
                 }
                 _destroy_queue.clear() ;
+            }
+
+            // update wgl window context
+            // must be done here. If the window is closed,
+            // the window handle is not valid anymore and must be
+            // destructed in this class first.
+            {
+                for( auto & d : _wgl_windows )
+                {
+                    d.ptr->ctx.activate() ;
+                    d.ptr->ctx.swap() ;
+                    d.ptr->ctx.deactivate() ;
+                }
             }
 
             // test window queue for creation
@@ -108,8 +132,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 std::lock_guard< std::mutex > lk ( _mtx_queue ) ;
                 for( auto & d : _queue )
                 {
-                    //auto mtr = motor::memory::create_ptr( motor::platform::win32::window_t( d.wi ),
-                        //  "[win32_carrier] : win32 window" ) ;
+                    d.wi.window_name += " [win32]" ;
 
                     HWND hwnd = this_t::create_win32_window( d.wi ) ;
                     _win32_windows.emplace_back( win32_window_data{ hwnd, d.wnd, d.lsn } ) ;
@@ -118,6 +141,57 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 }
                 _queue.clear() ;
             }
+
+            // test graphics window queue for creation
+            {
+                std::lock_guard< std::mutex > lk ( _mtx_gqueue ) ;
+                for( auto & d : _gqueue )
+                {
+                    size_t const wnd_idx = _win32_windows.size() ;
+
+                    d.gi.wi.window_name += " [wgl#" + motor::to_string(wnd_idx) +"]";
+
+                    HWND hwnd = this_t::create_win32_window( d.gi.wi ) ;
+                    _win32_windows.emplace_back( win32_window_data{ hwnd, d.wnd, d.lsn } ) ;
+
+                    this_t::send_create( _win32_windows.back() ) ;
+
+                    if( d.gi.api_type == motor::application::graphics_window_info_t::
+                        graphics_api_type::gl4 )
+                    {
+                        #if MOTOR_GRAPHICS_WGL
+                        motor::platform::wgl::wgl_context_t ctx ;
+
+                        auto const res = ctx.create_context( hwnd ) ;
+                        if( motor::platform::success( res ) )
+                        {
+                            ctx.activate() ;
+                            ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                            ctx.swap() ;
+                            ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                            ctx.deactivate() ;
+
+                            this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
+                                this_t::wgl_pimpl( {std::move(ctx) } ), "[win32_carrier] : wgl context") ;
+
+                            _wgl_windows.emplace_back( wgl_window_data({ wnd_idx, pimpl }) )  ;
+                        }
+                        #else
+                        // create null context ?
+                        #endif
+                    }
+
+                    if( d.gi.api_type == motor::application::graphics_window_info_t::
+                        graphics_api_type::d3d11 )
+                    {
+                        #if MOTOR_GRAPHICS_DIRECT3D
+                        #else
+                        // create null context ?
+                        #endif
+                    }
+                }
+                _gqueue.clear() ;
+            }
         }
 
         #if 0
@@ -125,6 +199,13 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             msg.wParam, msg.lParam ) ;
         #endif
         //std::this_thread::sleep_for( std::chrono::milliseconds(200) ) ;
+    }
+
+
+    for( auto const & d : _win32_windows )
+    {
+        CloseWindow( d.hwnd ) ;
+        this_t::handle_destroyed_hwnd( d.hwnd ) ;
     }
 
     return motor::application::result::ok ;
@@ -169,6 +250,25 @@ motor::application::iwindow_mtr_shared_t win32_carrier::create_window( motor::ap
     }
 
     return motor::share( wnd )  ;
+}
+
+//***********************************************************************
+motor::application::iwindow_mtr_shared_t win32_carrier::create_window( motor::application::graphics_window_info_in_t info ) noexcept
+{
+    motor::application::window_mtr_t wnd = motor::memory::create_ptr<motor::application::window_t>(
+        "[win32_carrier] : window handle" ) ;
+
+    motor::application::window_message_listener_mtr_t lsn = motor::memory::create_ptr<
+        motor::application::window_message_listener_t>("[win32_carrier] : window message listener") ;
+
+    wnd->register_in( motor::share( lsn ) ) ;
+
+    {
+        std::lock_guard< std::mutex > lk( _mtx_queue ) ;
+        _gqueue.emplace_back( this_t::graphics_queue_msg_t{info, wnd, lsn} ) ;
+    }
+
+    return motor::share( wnd ) ;
 }
 
 //***********************************************************************
@@ -484,4 +584,38 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::appli
         d.sv.cursor_msg_changed = true ;
         d.sv.cursor_msg = msg ;
     }
+}
+
+//*******************************************************************************************
+void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept 
+{
+    auto iter = std::find_if( _win32_windows.begin(), _win32_windows.end(), [&]( win32_window_data_cref_t d )
+    {
+        return d.hwnd == hwnd ;
+    } ) ;
+
+    if( iter == _win32_windows.end() ) return ;
+
+    size_t const dist = std::distance( _win32_windows.begin(), iter ) ;
+
+    // look for wgl windows/context connection
+    // and remove those along with the window
+    {
+        auto iter2 = std::find_if( _wgl_windows.begin(), _wgl_windows.end(), [&]( wgl_window_data_cref_t d )
+        {
+            return d.idx_win32_window == dist ;
+        } ) ;
+
+        if( iter2 != _wgl_windows.end() )
+        {
+            motor::memory::global_t::dealloc( iter2->ptr ) ;
+            _wgl_windows.erase( iter2 ) ;
+        }
+    }
+
+    this_t::send_destroy( *iter ) ;
+
+    motor::memory::release_ptr( iter->wnd ) ;
+    motor::memory::release_ptr( iter->lsn ) ;
+    _win32_windows.erase( iter ) ;
 }
