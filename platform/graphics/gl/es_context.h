@@ -1,15 +1,17 @@
 
 #pragma once
 
-#include "../icontext.h"
+#include "../../api.h"
+#include "../../typedefs.h"
 
-#include <natus/ntd/string.hpp>
+#include <motor/graphics/backend/icontext.h>
+#include <motor/std/string>
 
-namespace natus
+namespace motor
 {
-    namespace graphics
+    namespace platform
     {
-        class NATUS_GRAPHICS_API es_context : public natus::graphics::icontext
+        class MOTOR_PLATFORM_API es_context : public motor::graphics::icontext
         {
         public:
 
@@ -17,8 +19,8 @@ namespace natus
 
         public:
 
-            virtual bool_t is_extension_supported( natus::ntd::string_cref_t ) const noexcept = 0 ;
+            virtual bool_t is_extension_supported( motor::string_cref_t ) const noexcept = 0 ;
         };
-        natus_res_typedef( es_context ) ;
+        motor_typedef( es_context ) ;
     }
 }

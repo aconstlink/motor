@@ -3,8 +3,8 @@
 
 #include <natus/log/global.h>
 
-using namespace natus::application ;
-using namespace natus::application::d3d ;
+using namespace motor::application ;
+using namespace motor::application::d3d ;
 
 //***********************************************************************
 window::window( void_t ) 

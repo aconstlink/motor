@@ -7,8 +7,8 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
-using namespace natus::application ;
-using namespace natus::application::xlib ;
+using namespace motor::application ;
+using namespace motor::application::xlib ;
 
 Display * xlib_application::_display = NULL ;
 size_t xlib_application::_display_use_count = 0 ;

@@ -1,23 +1,23 @@
 #pragma once
 
-#include "../platform_window.h"
-#include "../window_info.h"
-#include "../toggle_window.h"
 
-#include <natus/ntd/vector.hpp>
-#include <natus/math/vector/vector4.hpp>
+//#include "../toggle_window.h"
+
+#include <motor/application/window/window_info.h>
+#include <motor/std/vector>
+#include <motor/math/vector/vector4.hpp>
 
 #include <X11/Xlib.h>
 
-namespace natus
+namespace motor
 {
-    namespace application
+    namespace platform
     {
         namespace xlib
         {
-            class window : public platform_window
+            class window //: public platform_window
             {
-                natus_this_typedefs( window ) ;
+                motor_this_typedefs( window ) ;
                 friend class xlib_application ;
 
             private:
@@ -28,12 +28,12 @@ namespace natus
                 bool_t _is_fullscreen = false ;
                 bool_t _is_cursor = false ;
 
-                natus::math::vec4i_t _dims = natus::math::vec4i_t( 0, 0, 100, 100 ) ;
+                motor::math::vec4i_t _dims = motor::math::vec4i_t( 0, 0, 100, 100 ) ;
 
             public:
 
                 window( void_t ) ;
-                window( window_info const & ) ;
+                window( motor::application::window_info const & ) ;
                 window( Display * display, Window wnd ) ;
 
                 window( this_rref_t rhv ) ;
@@ -43,13 +43,13 @@ namespace natus
 
                 Window get_handle( void_t ) ;
                 Display * get_display( void_t ) ;
-                void_t send_toggle( natus::application::toggle_window_in_t ) ;
-                void_t show_window(  window_info const & wi ) ;
+                //void_t send_toggle( motor::application::toggle_window_in_t ) ;
+                void_t show_window(  motor::application::window_info const & wi ) ;
                 virtual void_t check_for_messages( void_t ) noexcept ;
 
             private:
 
-                void_t create_window( window_info const & ) ;
+                void_t create_window( motor::application::window_info const & ) ;
                 void_t create_window( Display * display, Window wnd ) ;
 
                 void_t destroy_window( void_t ) ;
@@ -67,7 +67,7 @@ namespace natus
                 /// main loop
                 void_t store_this_ptr_in_atom( Display * display, Window wnd ) ;
             };
-            natus_res_typedef( window ) ;
+            motor_typedef( window ) ;
         }
     }
 }

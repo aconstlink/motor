@@ -5,7 +5,7 @@
 
 #include "../platform_window.h"
 
-namespace natus
+namespace motor
 {
     namespace application
     {
@@ -13,7 +13,7 @@ namespace natus
         {
             class window : public platform_window
             {
-                natus_this_typedefs( window ) ;
+                motor_this_typedefs( window ) ;
 
             private:
 
@@ -41,7 +41,7 @@ namespace natus
                 xlib::window_res_t create_window( gl_info_in_t, window_info_in_t ) ;
                 Window create_egl_window( window_info_in_t ) ;
             };
-            natus_res_typedef( window ) ;
+            motor_res_typedef( window ) ;
         }
     }
 }

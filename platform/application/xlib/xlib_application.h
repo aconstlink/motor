@@ -1,21 +1,21 @@
 #pragma once
 
 #include "../../api.h"
-#include "../platform_application.h"
+//#include "../platform_application.h"
 
-#include <natus/device/modules/linux/xlib_module.h>
+#include "../../device/linux/xlib_module.h"
 #include <X11/Xlib.h>
 
-namespace natus
+namespace motor
 {
     namespace application
     {
         namespace xlib
         {
-            class xlib_application : public platform_application
+            class xlib_application //: public platform_application
             {
                 typedef platform_application base_t ;
-                natus_this_typedefs( xlib_application ) ;
+                motor_this_typedefs( xlib_application ) ;
 
             private:
 
@@ -56,7 +56,7 @@ namespace natus
 
                 virtual natus::application::result on_exec( void_t ) ;
             };
-            natus_res_typedef( xlib_application ) ;
+            motor_typedef( xlib_application ) ;
             typedef natus::memory::res_t< xlib_application > application_res_t ;
         }
     }

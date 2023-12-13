@@ -18,13 +18,13 @@
 #include <natus/tool/imgui/imgui.h>
 #include <natus/concurrent/typedefs.h>
 
-namespace natus
+namespace motor
 {
     namespace application
     {
         class NATUS_APPLICATION_API app
         {
-            natus_this_typedefs( app ) ;
+            motor_this_typedefs( app ) ;
 
             friend class platform_application ;
 
@@ -43,28 +43,28 @@ namespace natus
                 bool_t borders = true ;
                 bool_t fullscreen = false ;
             };
-            natus_typedef( window_info ) ;
+            motor_typedef( window_info ) ;
 
             struct window_event_info
             {
                 uint_t w = 400 ;
                 uint_t h = 400 ;
             };
-            natus_typedef( window_event_info ) ;
+            motor_typedef( window_event_info ) ;
 
         public: // window accessor
 
             class NATUS_APPLICATION_API window_view
             {
-                natus_this_typedefs( window_view ) ;
+                motor_this_typedefs( window_view ) ;
 
                 friend class app ;
 
             private:
 
                 window_id_t _id ;
-                natus::application::window_message_receiver_res_t _msg_wnd ;
-                natus::application::window_message_receiver_res_t _msg_gfx ;
+                motor::application::window_message_receiver_res_t _msg_wnd ;
+                motor::application::window_message_receiver_res_t _msg_gfx ;
 
             public:
 
@@ -78,8 +78,8 @@ namespace natus
 
             private:
 
-                window_view( window_id_t id, natus::application::window_message_receiver_res_t wnd,
-                    natus::application::window_message_receiver_res_t gfx ) ;
+                window_view( window_id_t id, motor::application::window_message_receiver_res_t wnd,
+                    motor::application::window_message_receiver_res_t gfx ) ;
 
             public:
 
@@ -89,22 +89,22 @@ namespace natus
                 void_t vsync( bool_t const ) noexcept ;
                 void_t fullscreen( bool_t const ) noexcept ;
             };
-            natus_res_typedef( window_view ) ;
+            motor_res_typedef( window_view ) ;
 
         private: // per window info
 
             struct per_window_info
             {
-                natus_this_typedefs( per_window_info ) ;
+                motor_this_typedefs( per_window_info ) ;
 
-                natus::concurrent::mutex_t mtx ;
-                natus::concurrent::thread_t rnd_thread ;
-                natus::application::platform_window_res_t wnd ;
-                natus::application::window_message_receiver_res_t msg_recv ;
-                natus::application::window_message_receiver_res_t msg_send ;
-                natus::application::window_message_receiver_res_t gfx_send ;
-                natus::graphics::async_res_t async ;
-                natus::tool::imgui_res_t imgui ;
+                motor::concurrent::mutex_t mtx ;
+                motor::concurrent::thread_t rnd_thread ;
+                motor::application::platform_window_res_t wnd ;
+                motor::application::window_message_receiver_res_t msg_recv ;
+                motor::application::window_message_receiver_res_t msg_send ;
+                motor::application::window_message_receiver_res_t gfx_send ;
+                motor::graphics::async_res_t async ;
+                motor::tool::imgui_res_t imgui ;
                 window_info_t wi ;
                 bool_ptr_t run ;
                 per_window_info( void_t ) noexcept {}
@@ -118,24 +118,24 @@ namespace natus
                     wi = std::move( rhv.wi ) ;
                     msg_recv = std::move( rhv.msg_recv ) ;
                     msg_send = std::move( rhv.msg_send ) ;
-                    natus_move_member_ptr( run, rhv ) ;
+                    motor_move_member_ptr( run, rhv ) ;
                 }
                 ~per_window_info( void_t ) {}
             };
-            natus_typedef( per_window_info ) ;
-            typedef natus::ntd::vector< per_window_info_t > windows_t ;
-            natus::concurrent::mutex_t _wmtx ;
+            motor_typedef( per_window_info ) ;
+            typedef motor::vector< per_window_info_t > windows_t ;
+            motor::concurrent::mutex_t _wmtx ;
             windows_t _windows ;
 
         private: // audio engine
 
             struct per_audio_info
             {
-                natus_this_typedefs( per_audio_info ) ;
+                motor_this_typedefs( per_audio_info ) ;
 
-                natus::concurrent::mutex_t mtx ;
-                natus::concurrent::thread_t rnd_thread ;
-                natus::audio::async_res_t async ;
+                motor::concurrent::mutex_t mtx ;
+                motor::concurrent::thread_t rnd_thread ;
+                motor::audio::async_res_t async ;
                 bool_ptr_t run ;
                 per_audio_info( void_t ) {}
                 per_audio_info( this_cref_t ) = delete ;
@@ -143,13 +143,13 @@ namespace natus
                 {
                     rnd_thread = ::std::move( rhv.rnd_thread ) ;
                     async = ::std::move( rhv.async ) ;
-                    natus_move_member_ptr( run, rhv ) ;
+                    motor_move_member_ptr( run, rhv ) ;
                 }
                 ~per_audio_info( void_t ) {}
             };
-            natus_typedef( per_audio_info ) ;
-            typedef natus::ntd::vector< per_audio_info_t > audios_t ;
-            natus::concurrent::mutex_t _amtx ;
+            motor_typedef( per_audio_info ) ;
+            typedef motor::vector< per_audio_info_t > audios_t ;
+            motor::concurrent::mutex_t _amtx ;
             audios_t _audios ;
 
         private:
@@ -177,8 +177,8 @@ namespace natus
 
         private: // device
 
-            natus::device::three_device_res_t _dev_mouse ;
-            natus::device::ascii_device_res_t _dev_ascii ;
+            motor::device::three_device_res_t _dev_mouse ;
+            motor::device::ascii_device_res_t _dev_ascii ;
 
         public:
 
@@ -221,35 +221,35 @@ namespace natus
 
             struct tool_data
             {
-                natus::tool::imgui_view_t imgui ;
+                motor::tool::imgui_view_t imgui ;
             };
 
-            natus_typedef( update_data ) ;
-            natus_typedef( physics_data ) ;
-            natus_typedef( render_data ) ;
-            natus_typedef( audio_data ) ;
-            natus_typedef( device_data ) ;
-            natus_typedef( logic_data ) ;
-            natus_typedef( tool_data ) ;
+            motor_typedef( update_data ) ;
+            motor_typedef( physics_data ) ;
+            motor_typedef( render_data ) ;
+            motor_typedef( audio_data ) ;
+            motor_typedef( device_data ) ;
+            motor_typedef( logic_data ) ;
+            motor_typedef( tool_data ) ;
 
         public:
 
-            virtual natus::application::result on_init( void_t ) noexcept = 0 ;
-            virtual natus::application::result on_update( update_data_in_t ) noexcept { return natus::application::result::ok ; }
-            virtual natus::application::result on_graphics( render_data_in_t ) noexcept = 0 ;
-            virtual natus::application::result on_audio( audio_data_in_t ) noexcept { return natus::application::result::ok ; }
-            virtual natus::application::result on_device( device_data_in_t ) noexcept { return natus::application::result::ok ; }
-            virtual natus::application::result on_shutdown( void_t ) noexcept = 0 ;
-            virtual natus::application::result on_logic( logic_data_in_t ) noexcept { return natus::application::result::ok ; }
+            virtual motor::application::result on_init( void_t ) noexcept = 0 ;
+            virtual motor::application::result on_update( update_data_in_t ) noexcept { return motor::application::result::ok ; }
+            virtual motor::application::result on_graphics( render_data_in_t ) noexcept = 0 ;
+            virtual motor::application::result on_audio( audio_data_in_t ) noexcept { return motor::application::result::ok ; }
+            virtual motor::application::result on_device( device_data_in_t ) noexcept { return motor::application::result::ok ; }
+            virtual motor::application::result on_shutdown( void_t ) noexcept = 0 ;
+            virtual motor::application::result on_logic( logic_data_in_t ) noexcept { return motor::application::result::ok ; }
 
-            virtual natus::application::result on_event( window_id_t const, this_t::window_event_info_in_t ) noexcept
-            { return natus::application::result::ok ; }
+            virtual motor::application::result on_event( window_id_t const, this_t::window_event_info_in_t ) noexcept
+            { return motor::application::result::ok ; }
 
-            virtual natus::application::result on_tool( tool_data_ref_t ) noexcept
-            { return natus::application::result::no_tool ;  }
+            virtual motor::application::result on_tool( tool_data_ref_t ) noexcept
+            { return motor::application::result::no_tool ;  }
 
-            virtual natus::application::result on_physics( physics_data_in_t ) noexcept 
-            { return natus::application::result::ok ; }
+            virtual motor::application::result on_physics( physics_data_in_t ) noexcept 
+            { return motor::application::result::ok ; }
 
         protected:
 
@@ -260,9 +260,9 @@ namespace natus
             private:
 
                 this_t::window_view_t _wv ;
-                natus::graphics::async_view_t _av ;
+                motor::graphics::async_view_t _av ;
 
-                window_async( this_t::window_view_t wv, natus::graphics::async_view_t p ) :
+                window_async( this_t::window_view_t wv, motor::graphics::async_view_t p ) :
                     _wv( std::move(wv) ), _av( std::move(p) ) {}
 
             public:
@@ -286,18 +286,18 @@ namespace natus
             public:
 
                 this_t::window_view_t window( void_t ) const noexcept { return _wv ; }
-                natus::graphics::async_view_t async( void_t ) const noexcept { return _av ; }
+                motor::graphics::async_view_t async( void_t ) const noexcept { return _av ; }
 
             };
-            natus_typedef( window_async ) ;
+            motor_typedef( window_async ) ;
 
             this_t::window_async_t create_window( 
-                natus::ntd::string_cref_t name, this_t::window_info_in_t, natus::ntd::vector< natus::graphics::backend_type > types = { } ) ;
+                motor::string_cref_t name, this_t::window_info_in_t, motor::vector< motor::graphics::backend_type > types = { } ) ;
 
-            natus::application::result request_change( this_t::window_info_in_t ) ;
+            motor::application::result request_change( this_t::window_info_in_t ) ;
 
 
-            natus::audio::async_access_t create_audio_engine( natus::audio::backend_type bt = natus::audio::backend_type::unknown ) noexcept ;
+            motor::audio::async_access_t create_audio_engine( motor::audio::backend_type bt = motor::audio::backend_type::unknown ) noexcept ;
 
         protected:
 
@@ -346,17 +346,17 @@ namespace natus
 
         private:
 
-            natus::application::gfx_context_res_t create_wgl_window( natus::application::window_info_in_t, natus::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
+            motor::application::gfx_context_res_t create_wgl_window( motor::application::window_info_in_t, motor::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
 
-            natus::application::gfx_context_res_t create_egl_window( natus::application::window_info_in_t, natus::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
+            motor::application::gfx_context_res_t create_egl_window( motor::application::window_info_in_t, motor::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
 
-            natus::application::gfx_context_res_t create_d3d_window( natus::application::window_info_in_t, natus::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
+            motor::application::gfx_context_res_t create_d3d_window( motor::application::window_info_in_t, motor::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
 
-            natus::application::gfx_context_res_t create_glx_window( natus::application::window_info_in_t, natus::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
+            motor::application::gfx_context_res_t create_glx_window( motor::application::window_info_in_t, motor::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
 
-            natus::application::gfx_context_res_t create_null_window( natus::application::window_info_in_t, natus::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
+            motor::application::gfx_context_res_t create_null_window( motor::application::window_info_in_t, motor::application::window_message_receiver_res_t, this_t::per_window_info_inout_t ) noexcept ;
 
         };
-        natus_res_typedef( app ) ;
+        motor_res_typedef( app ) ;
     }
 }

@@ -6,8 +6,8 @@
 #include <natus/ogl/glx/glx.h>
 #include <natus/log/global.h>
 
-using namespace natus::application ;
-using namespace natus::application::glx ;
+using namespace motor::application ;
+using namespace motor::application::glx ;
 
 //***********************************************************************
 window::window( void_t ) 
@@ -130,7 +130,7 @@ Window window::create_glx_window( window_info_in_t wi )
 {
     auto const status = XInitThreads() ;
     natus::log::global_t::warning( status == 0, 
-           natus_log_fn("XInitThreads") ) ;
+           motor_log_fn("XInitThreads") ) ;
 
     Display * display = natus::application::xlib::xlib_application_t::get_display() ;
     GLXFBConfig fbconfig = this_t::get_config() ;

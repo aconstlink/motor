@@ -9,6 +9,8 @@
 #include "window/iwindow.h"
 #include "window/window_info.h"
 
+#include <thread>
+
 namespace motor
 {
     namespace application

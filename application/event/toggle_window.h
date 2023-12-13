@@ -4,7 +4,7 @@
 #include "../protos.h"
 #include "../typedefs.h"
 
-namespace natus
+namespace motor
 {
     namespace application
     {
@@ -14,6 +14,6 @@ namespace natus
             bool_t toggle_fullscreen = false ;
             bool_t toggle_show_cursor = false ;
         };
-        natus_typedef( toggle_window ) ;
+        motor_typedef( toggle_window ) ;
     }
 }

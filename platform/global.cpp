@@ -10,7 +10,7 @@
 #elif defined( MOTOR_GRAPHICS_GLX )
 
 #include "application/glx/glx_window.h"
-#include "application/xlib/xlib_carrier.h"
+//#include "application/xlib/xlib_carrier.h"
 
 #elif defined( MOTOR_GRAPHICS_EGL )
 
@@ -28,10 +28,10 @@ motor::application::carrier_mtr_unique_t global::create_carrier( void_t ) noexce
         "[platform::win32] : win32 carrier" ) ;
     
     #elif defined( MOTOR_GRAPHICS_GLX )
-    
+    #if 0
     return motor::memory::create_ptr<motor::platform::xlib::carrier_t>( 
         "[platform::xlib] : xlib carrier" ) ;
-
+    #endif
     #elif defined( MOTOR_GRAPHICS_EGL )
 
     return motor::application::xlib::application_res_t(
@@ -43,7 +43,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( void_t ) noexce
 }
 
 //********************************************************************************
-motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_shared_t app ) noexcept 
+motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_shared_t /*app*/ ) noexcept 
 {
     #if defined( MOTOR_GRAPHICS_WGL )
 
@@ -52,7 +52,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
 
     #elif defined( MOTOR_GRAPHICS_GLX )
 
-    return todo ;
+    //return todo ;
 
     #elif defined( MOTOR_GRAPHICS_EGL )
 
@@ -63,7 +63,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
 }
 
 //********************************************************************************
-motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_unique_t app ) noexcept 
+motor::application::carrier_mtr_unique_t global::create_carrier( motor::application::iapp_mtr_unique_t /*app*/ ) noexcept 
 {
     #if defined( MOTOR_GRAPHICS_WGL )
 
@@ -72,7 +72,7 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
 
     #elif defined( MOTOR_GRAPHICS_GLX )
 
-    return todo ;
+    //return todo ;
 
     #elif defined( MOTOR_GRAPHICS_EGL )
 

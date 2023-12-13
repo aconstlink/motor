@@ -14,20 +14,20 @@
 #include <d3d11_1.h>
 #include <directxcolors.h>
 
-namespace natus
+namespace motor
 {
     namespace application
     {
         namespace d3d
         {
             class d3d11_context ;
-            natus_class_proto_typedefs( d3d11_context ) ;
+            motor_class_proto_typedefs( d3d11_context ) ;
 
             class NATUS_APPLICATION_API context : public gfx_context
             {
                 friend class d3d11_context ;
 
-                natus_this_typedefs( context ) ;
+                motor_this_typedefs( context ) ;
 
             private:
 
@@ -91,12 +91,12 @@ namespace natus
 
                 natus::application::result create_the_context( natus::application::d3d_info_cref_t gli ) ;
             };
-            natus_typedef( context ) ;
+            motor_typedef( context ) ;
             typedef natus::memory::res_t< context_t > context_res_t ;
 
             class NATUS_APPLICATION_API d3d11_context : public natus::graphics::d3d11_context
             {
-                natus_this_typedefs( d3d11_context ) ;
+                motor_this_typedefs( d3d11_context ) ;
 
                 friend class natus::application::d3d::context ;
 
@@ -112,7 +112,7 @@ namespace natus
 
                 d3d11_context( this_rref_t rhv ) noexcept
                 {
-                    natus_move_member_ptr( _app_context, rhv ) ;
+                    motor_move_member_ptr( _app_context, rhv ) ;
                 }
 
                 void_t change_owner( context_ptr_t ctx ) noexcept { _app_context = ctx ; }

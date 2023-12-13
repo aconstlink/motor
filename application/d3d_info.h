@@ -2,7 +2,7 @@
 
 #include "../typedefs.h"
 
-namespace natus
+namespace motor
 {
     namespace application
     {
@@ -29,6 +29,6 @@ namespace natus
             /// Allows to dis-/enable the vsync.
             bool_t vsync_enabled = true ;
         };
-        natus_typedef( d3d_info ) ;
+        motor_typedef( d3d_info ) ;
     }
 }

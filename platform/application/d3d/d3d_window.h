@@ -5,7 +5,7 @@
 
 #include "../platform_window.h"
 
-namespace natus
+namespace motor
 {
     namespace application
     {
@@ -13,7 +13,7 @@ namespace natus
         {
             class NATUS_APPLICATION_API window : public platform_window
             {
-                natus_this_typedefs( window ) ;
+                motor_this_typedefs( window ) ;
 
             private:
 
@@ -36,7 +36,7 @@ namespace natus
 
                 virtual void_t check_for_messages( void_t ) noexcept ;
             };
-            natus_res_typedef( window ) ;
+            motor_res_typedef( window ) ;
         }
     }
 }

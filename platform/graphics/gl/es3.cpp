@@ -3,30 +3,30 @@
 #include "es3.h"
 #include "es3_convert.h"
 
-#include "../../buffer/vertex_buffer.hpp"
-#include "../../buffer/index_buffer.hpp"
+#include <motor/graphics/buffer/vertex_buffer.hpp>
+#include <motor/graphics/buffer/index_buffer.hpp>
 
-#include <natus/ogl/es/error.hpp>
-#include <natus/memory/global.h>
-#include <natus/memory/guards/malloc_guard.hpp>
-#include <natus/ntd/vector.hpp>
-#include <natus/ntd/stack.hpp>
-#include <natus/ntd/string/split.hpp>
+#include <motor/ogl/es/error.hpp>
+#include <motor/memory/global.h>
+#include <motor/memory/malloc_guard.hpp>
+#include <motor/std/vector>
+#include <motor/std/stack>
+#include <motor/std/string_split.hpp>
 
-using namespace natus::graphics ;
+using namespace motor::graphics ;
 
 struct es3_backend::pimpl
 {
-    natus_this_typedefs( pimpl ) ;
+    motor_this_typedefs( pimpl ) ;
 
     //********************************************************************************
     // transform feedback buffers
     struct tf_data
     {
-        natus_this_typedefs( tf_data ) ;
+        motor_this_typedefs( tf_data ) ;
 
         bool_t valid = false ;
-        natus::ntd::string_t name ;
+        motor::ntd::string_t name ;
 
         struct buffer
         {
@@ -61,7 +61,7 @@ struct es3_backend::pimpl
         //GLenum pt = 0 ;
 
         // for tf reconfig - render data ids
-        natus::ntd::vector< size_t > rd_ids ;
+        motor::ntd::vector< size_t > rd_ids ;
         void_t remove_render_data_id( size_t const rid ) noexcept
         {
             if( rid == size_t( -1 ) ) return ;
@@ -95,13 +95,13 @@ struct es3_backend::pimpl
         buffer & write_buffer( void_t ) noexcept { return _buffers[ this_t::write_index() ] ; }
         buffer const & write_buffer( void_t ) const noexcept { return _buffers[ this_t::write_index() ] ; }
     };
-    natus_typedef( tf_data ) ;
+    motor_typedef( tf_data ) ;
 
     //********************************************************************************
     struct geo_data
     {
         bool_t valid = false ;
-        natus::ntd::string_t name ;
+        motor::ntd::string_t name ;
 
         GLuint vb_id = GLuint( -1 ) ;
         GLuint ib_id = GLuint( -1 ) ;
@@ -118,17 +118,17 @@ struct es3_backend::pimpl
 
         struct layout_element
         {
-            natus::graphics::vertex_attribute va ;
-            natus::graphics::type type ;
-            natus::graphics::type_struct type_struct ;
+            motor::graphics::vertex_attribute va ;
+            motor::graphics::type type ;
+            motor::graphics::type_struct type_struct ;
 
             GLuint sib( void_t ) const noexcept
             {
-                return GLuint( natus::graphics::size_of( type ) *
-                    natus::graphics::size_of( type_struct ) ) ;
+                return GLuint( motor::graphics::size_of( type ) *
+                    motor::graphics::size_of( type_struct ) ) ;
             }
         };
-        natus::ntd::vector< layout_element > elements ;
+        motor::ntd::vector< layout_element > elements ;
 
         // per vertex sib
         GLuint stride = 0 ;
@@ -138,7 +138,7 @@ struct es3_backend::pimpl
         GLenum pt ;
 
         // for geo reconfig - render data ids
-        natus::ntd::vector< size_t > rd_ids ;
+        motor::ntd::vector< size_t > rd_ids ;
         void_t remove_render_data_id( size_t const rid ) noexcept
         {
             if( rid == size_t( -1 ) ) return ;
@@ -152,13 +152,13 @@ struct es3_backend::pimpl
             rd_ids.push_back( rid ) ;
         }
     };
-    natus_typedef( geo_data ) ;
+    motor_typedef( geo_data ) ;
 
     //********************************************************************************
     struct shader_data
     {
         bool_t valid = false ;
-        natus::ntd::string_t name ;
+        motor::ntd::string_t name ;
 
         GLuint vs_id = GLuint( -1 ) ;
         GLuint gs_id = GLuint( -1 ) ;
@@ -169,21 +169,21 @@ struct es3_backend::pimpl
 
         struct vertex_input_binding
         {
-            natus::graphics::vertex_attribute va ;
-            natus::ntd::string_t name ;
+            motor::graphics::vertex_attribute va ;
+            motor::ntd::string_t name ;
         };
-        natus::ntd::vector< vertex_input_binding > vertex_inputs ;
+        motor::ntd::vector< vertex_input_binding > vertex_inputs ;
 
         struct vertex_output_binding
         {
-            natus::graphics::vertex_attribute va ;
-            natus::ntd::string_t name ;
+            motor::graphics::vertex_attribute va ;
+            motor::ntd::string_t name ;
         };
-        natus::ntd::vector< vertex_output_binding > vertex_outputs ;
+        motor::ntd::vector< vertex_output_binding > vertex_outputs ;
         char const ** output_names = nullptr ;
 
-        bool_t find_vertex_input_binding_by_name( natus::ntd::string_cref_t name_,
-            natus::graphics::vertex_attribute& va ) const noexcept
+        bool_t find_vertex_input_binding_by_name( motor::ntd::string_cref_t name_,
+            motor::graphics::vertex_attribute& va ) const noexcept
         {
             auto iter = ::std::find_if( vertex_inputs.begin(), vertex_inputs.end(),
                 [&] ( vertex_input_binding const& b )
@@ -197,8 +197,8 @@ struct es3_backend::pimpl
             return true ;
         }
 
-        bool_t find_vertex_output_binding_by_name( natus::ntd::string_cref_t name_,
-            natus::graphics::vertex_attribute& va ) const noexcept
+        bool_t find_vertex_output_binding_by_name( motor::ntd::string_cref_t name_,
+            motor::graphics::vertex_attribute& va ) const noexcept
         {
             auto iter = std::find_if( vertex_outputs.begin(), vertex_outputs.end(),
                 [&] ( vertex_output_binding const& b )
@@ -214,60 +214,60 @@ struct es3_backend::pimpl
 
         struct attribute_variable
         {
-            natus::graphics::vertex_attribute va ;
-            natus::ntd::string_t name ;
+            motor::graphics::vertex_attribute va ;
+            motor::ntd::string_t name ;
             GLuint loc ;
             GLenum type ;
         };
-        natus_typedef( attribute_variable ) ;
+        motor_typedef( attribute_variable ) ;
 
-        natus::ntd::vector< attribute_variable_t > attributes ;
+        motor::ntd::vector< attribute_variable_t > attributes ;
 
         struct uniform_variable
         {
-            natus::ntd::string_t name ;
+            motor::ntd::string_t name ;
             GLuint loc ;
             GLenum type ;
 
             // the GL uniform function
-            natus::ogl::uniform_funk_t uniform_funk ;
+            motor::ogl::uniform_funk_t uniform_funk ;
 
             bool_t do_uniform_funk( void_ptr_t mem_ )
             {
                 uniform_funk( loc, 1, mem_ ) ;
-                return !natus::es::error::check_and_log( natus_log_fn( "glUniform" ) ) ;
+                return !motor::es::error::check_and_log( motor_log_fn( "glUniform" ) ) ;
             }
 
-            void_t do_copy_funk( void_ptr_t mem_, natus::graphics::ivariable_ptr_t var )
+            void_t do_copy_funk( void_ptr_t mem_, motor::graphics::ivariable_ptr_t var )
             {
-                std::memcpy( mem_, var->data_ptr(), natus::ogl::uniform_size_of( type ) ) ;
+                std::memcpy( mem_, var->data_ptr(), motor::ogl::uniform_size_of( type ) ) ;
             }
         };
-        natus_typedef( uniform_variable ) ;
+        motor_typedef( uniform_variable ) ;
 
-        natus::ntd::vector< uniform_variable > uniforms ;
+        motor::ntd::vector< uniform_variable > uniforms ;
 
         void_ptr_t uniform_mem = nullptr ;
     } ;
-    natus_typedef( shader_data ) ;
+    motor_typedef( shader_data ) ;
 
     //********************************************************************************
     struct state_data
     {
         bool_t valid = false ;
-        natus::ntd::string_t name ;
-        natus::ntd::vector< natus::graphics::render_state_sets_t > states ;
+        motor::ntd::string_t name ;
+        motor::ntd::vector< motor::graphics::render_state_sets_t > states ;
     } ;
-    natus_typedef( state_data ) ;
+    motor_typedef( state_data ) ;
 
     //********************************************************************************
     struct render_data
     {
         bool_t valid = false ;
-        natus::ntd::string_t name ;
+        motor::ntd::string_t name ;
 
-        natus::ntd::vector< size_t > geo_ids ;
-        natus::ntd::vector< size_t > tf_ids ; // feed from for geometry
+        motor::ntd::vector< size_t > geo_ids ;
+        motor::ntd::vector< size_t > tf_ids ; // feed from for geometry
         size_t shd_id = size_t( -1 ) ;
 
         struct uniform_variable_link
@@ -275,18 +275,18 @@ struct es3_backend::pimpl
             // the index into the shader_data::uniforms array
             size_t uniform_id ;
             // the user variable holding the data.
-            natus::graphics::ivariable_ptr_t var ;
+            motor::graphics::ivariable_ptr_t var ;
 
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
 
-        natus::ntd::vector< natus::graphics::variable_set_res_t > var_sets ;
+        motor::ntd::vector< motor::graphics::variable_set_res_t > var_sets ;
 
         // user provided variable set
-        natus::ntd::vector< ::std::pair<
-            natus::graphics::variable_set_res_t,
-            natus::ntd::vector< uniform_variable_link > > > var_sets_data ;
+        motor::ntd::vector< ::std::pair<
+            motor::graphics::variable_set_res_t,
+            motor::ntd::vector< uniform_variable_link > > > var_sets_data ;
 
         struct uniform_texture_link
         {
@@ -298,9 +298,9 @@ struct es3_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        natus::ntd::vector< ::std::pair<
-            natus::graphics::variable_set_res_t,
-            natus::ntd::vector< uniform_texture_link > > > var_sets_texture ;
+        motor::ntd::vector< ::std::pair<
+            motor::graphics::variable_set_res_t,
+            motor::ntd::vector< uniform_texture_link > > > var_sets_texture ;
 
         struct uniform_array_data_link
         {
@@ -312,9 +312,9 @@ struct es3_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        natus::ntd::vector< std::pair<
-            natus::graphics::variable_set_res_t,
-            natus::ntd::vector< uniform_array_data_link > > > var_sets_array ;
+        motor::ntd::vector< std::pair<
+            motor::graphics::variable_set_res_t,
+            motor::ntd::vector< uniform_array_data_link > > > var_sets_array ;
 
         struct uniform_streamout_link
         {
@@ -326,9 +326,9 @@ struct es3_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        natus::ntd::vector< std::pair<
-            natus::graphics::variable_set_res_t,
-            natus::ntd::vector< uniform_streamout_link > > > var_sets_streamout ;
+        motor::ntd::vector< std::pair<
+            motor::graphics::variable_set_res_t,
+            motor::ntd::vector< uniform_streamout_link > > > var_sets_streamout ;
 
         // memory block for all variables in all variable sets.
         void_ptr_t mem_block = nullptr ;
@@ -343,13 +343,13 @@ struct es3_backend::pimpl
             geo_ids.erase( iter ) ;
         }
     };
-    natus_typedef( render_data ) ;
+    motor_typedef( render_data ) ;
 
     //********************************************************************************
     struct image_data
     {
         bool_t valid = false ;
-        natus::ntd::string_t name ;
+        motor::ntd::string_t name ;
 
         GLenum type = GL_NONE ;
 
@@ -361,27 +361,27 @@ struct es3_backend::pimpl
 
         // sampler ids for gl>=3.3
     };
-    natus_typedef( image_data ) ;
+    motor_typedef( image_data ) ;
 
     //********************************************************************************
     struct array_data
     {
         bool_t valid = false ;
-        natus::ntd::string_t name ;
+        motor::ntd::string_t name ;
 
         GLuint tex_id = GLuint( -1 ) ;
         GLuint buf_id = GLuint( -1 ) ;
 
         GLuint sib = 0 ;
     } ;
-    natus_typedef( array_data ) ;
+    motor_typedef( array_data ) ;
 
     //********************************************************************************
     struct framebuffer_data
     {
         bool_t valid = false ;
 
-        natus::ntd::string_t name ;
+        motor::ntd::string_t name ;
 
         GLuint gl_id = GLuint( -1 ) ;
 
@@ -393,55 +393,55 @@ struct es3_backend::pimpl
         GLuint depth = GLuint(-1) ;
         void_ptr_t mem_ptr = nullptr ;
 
-        natus::math::vec2ui_t dims ;
+        motor::math::vec2ui_t dims ;
     };
-    natus_typedef( framebuffer_data ) ;
+    motor_typedef( framebuffer_data ) ;
 
-    typedef natus::ntd::vector< this_t::shader_data > shaders_t ;
+    typedef motor::ntd::vector< this_t::shader_data > shaders_t ;
     shaders_t _shaders ;
 
-    typedef natus::ntd::vector< this_t::render_data > render_datas_t ;
+    typedef motor::ntd::vector< this_t::render_data > render_datas_t ;
     render_datas_t _renders ;
 
-    typedef natus::ntd::vector< this_t::geo_data > geo_datas_t ;
+    typedef motor::ntd::vector< this_t::geo_data > geo_datas_t ;
     geo_datas_t _geometries ;
 
-    typedef natus::ntd::vector< this_t::image_data > image_datas_t ;
+    typedef motor::ntd::vector< this_t::image_data > image_datas_t ;
     image_datas_t _images ;
 
-    typedef natus::ntd::vector< this_t::framebuffer_data_t > framebuffers_t ;
+    typedef motor::ntd::vector< this_t::framebuffer_data_t > framebuffers_t ;
     framebuffers_t _framebuffers ;
 
-    typedef natus::ntd::vector< this_t::state_data_t > states_t ;
+    typedef motor::ntd::vector< this_t::state_data_t > states_t ;
     states_t _states ;
-    natus::ntd::stack< natus::graphics::render_state_sets_t, 10 > _state_stack ;
+    motor::ntd::stack< motor::graphics::render_state_sets_t, 10 > _state_stack ;
 
-    typedef natus::ntd::vector< this_t::array_data_t > arrays_t ;
+    typedef motor::ntd::vector< this_t::array_data_t > arrays_t ;
     arrays_t _arrays ;
 
-    typedef natus::ntd::vector< this_t::tf_data_t > tf_datas_t ;
+    typedef motor::ntd::vector< this_t::tf_data_t > tf_datas_t ;
     tf_datas_t _feedbacks ;
 
     GLsizei vp_width = 0 ;
     GLsizei vp_height = 0 ;
 
-    natus::graphics::backend_type const bt = natus::graphics::backend_type::es3 ;
-    natus::graphics::shader_api_type const sapi = natus::graphics::shader_api_type::glsles_3_0 ;
+    motor::graphics::backend_type const bt = motor::graphics::backend_type::es3 ;
+    motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::glsles_3_0 ;
 
     // the current render state set
-    natus::graphics::render_state_sets_t render_states ;
+    motor::graphics::render_state_sets_t render_states ;
 
-    natus::graphics::es_context_ptr_t _ctx = nullptr ;
+    motor::graphics::es_context_ptr_t _ctx = nullptr ;
 
     size_t _tf_active_id = size_t( -1 ) ;
 
     //****************************************************************************************
-    pimpl( natus::graphics::es_context_ptr_t ctx ) : _ctx( ctx )
+    pimpl( motor::graphics::es_context_ptr_t ctx ) : _ctx( ctx )
     {
         {
-            natus::graphics::state_object_t obj( "es3_default_states" ) ;
+            motor::graphics::state_object_t obj( "es3_default_states" ) ;
 
-            auto new_states = natus::graphics::backend_t::default_render_states() ;
+            auto new_states = motor::graphics::backend_t::default_render_states() ;
 
             new_states.view_s.do_change = true ;
             new_states.view_s.ss.do_activate = true ;
@@ -507,7 +507,7 @@ struct es3_backend::pimpl
     }
 
     template< typename T >
-    static size_t determine_oid( natus::ntd::string_cref_t name, natus::ntd::vector< T >& v ) noexcept
+    static size_t determine_oid( motor::ntd::string_cref_t name, motor::ntd::vector< T >& v ) noexcept
     {
         size_t oid = size_t( -1 ) ;
 
@@ -549,7 +549,7 @@ struct es3_backend::pimpl
 
     //****************************************************************************************
     template< typename T >
-    static size_t find_index_by_resource_name( natus::ntd::string_in_t name, natus::ntd::vector< T > const & resources ) noexcept
+    static size_t find_index_by_resource_name( motor::ntd::string_in_t name, motor::ntd::vector< T > const & resources ) noexcept
     {
         size_t i = 0 ; 
         for( auto const & r : resources ) 
@@ -561,7 +561,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    size_t construct_state( size_t oid, natus::graphics::state_object_ref_t obj ) noexcept
+    size_t construct_state( size_t oid, motor::graphics::state_object_ref_t obj ) noexcept
     {
         oid = determine_oid( obj.name(), _states ) ;
 
@@ -572,7 +572,7 @@ struct es3_backend::pimpl
         // @note
         // set all enables. Enable/Disable only possible during construction
         // values are assigned in the update function for the render states
-        obj.for_each( [&] ( size_t const i, natus::graphics::render_state_sets_cref_t rs )
+        obj.for_each( [&] ( size_t const i, motor::graphics::render_state_sets_cref_t rs )
         {
             states.states[ i ] = rs ;
         } ) ;
@@ -590,21 +590,21 @@ struct es3_backend::pimpl
                 if( new_states.depth_s.ss.do_activate )
                 {
                     glEnable( GL_DEPTH_TEST );
-                    natus::es::error::check_and_log( natus_log_fn( "glEnable" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
 
                     glDepthMask( new_states.depth_s.ss.do_depth_write ? GL_TRUE : GL_FALSE ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glDepthMask" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glDepthMask" ) ) ;
 
                     glDepthFunc( GL_LESS ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glDepthFunc" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glDepthFunc" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_DEPTH_TEST ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glDisable( GL_DEPTH_TEST )" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glDisable( GL_DEPTH_TEST )" ) ) ;
 
                     glDepthMask( GL_FALSE ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glDepthMask" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glDepthMask" ) ) ;
                 }
             }
         }
@@ -616,18 +616,18 @@ struct es3_backend::pimpl
                 if( new_states.blend_s.ss.do_activate )
                 {
                     glEnable( GL_BLEND ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glEnable" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
 
-                    GLenum const glsrc = natus::graphics::es3::convert( new_states.blend_s.ss.src_blend_factor ) ;
-                    GLenum const gldst = natus::graphics::es3::convert( new_states.blend_s.ss.dst_blend_factor );
+                    GLenum const glsrc = motor::graphics::es3::convert( new_states.blend_s.ss.src_blend_factor ) ;
+                    GLenum const gldst = motor::graphics::es3::convert( new_states.blend_s.ss.dst_blend_factor );
 
                     glBlendFunc( glsrc, gldst ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glBlendFunc" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glBlendFunc" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_BLEND ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glDisable" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glDisable" ) ) ;
                 }
             }
         }
@@ -639,18 +639,18 @@ struct es3_backend::pimpl
                 if( new_states.polygon_s.ss.do_activate )
                 {
                     glEnable( GL_CULL_FACE ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glEnable" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
 
-                    glCullFace( natus::graphics::es3::convert( new_states.polygon_s.ss.cm ) ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glCullFace" ) ) ;
+                    glCullFace( motor::graphics::es3::convert( new_states.polygon_s.ss.cm ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glCullFace" ) ) ;
 
-                    glFrontFace( natus::graphics::es3::convert( new_states.polygon_s.ss.ff ) ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glFrontFace" ) ) ;
+                    glFrontFace( motor::graphics::es3::convert( new_states.polygon_s.ss.ff ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glFrontFace" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_CULL_FACE ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glDisable" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glDisable" ) ) ;
                 }
             }
         }
@@ -662,17 +662,17 @@ struct es3_backend::pimpl
                 if( new_states.scissor_s.ss.do_activate )
                 {
                     glEnable( GL_SCISSOR_TEST ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glEnable" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
 
                     glScissor(
                         GLint( new_states.scissor_s.ss.rect.x() ), GLint( new_states.scissor_s.ss.rect.y() ),
                         GLsizei( new_states.scissor_s.ss.rect.z() ), GLsizei( new_states.scissor_s.ss.rect.w() ) ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glScissor" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glScissor" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_SCISSOR_TEST ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glDisable" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glDisable" ) ) ;
                 }
             }
         }
@@ -685,7 +685,7 @@ struct es3_backend::pimpl
                 {
                     auto const& vp = new_states.view_s.ss.vp  ;
                     glViewport( GLint( vp.x() ), GLint( vp.y() ), GLsizei( vp.z() ), GLsizei( vp.w() ) ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glViewport" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glViewport" ) ) ;
                 }
             }
         }
@@ -698,15 +698,15 @@ struct es3_backend::pimpl
                 bool_t const clear_color = new_states.clear_s.ss.do_color_clear ;
                 bool_t const clear_depth = new_states.clear_s.ss.do_depth_clear ;
 
-                natus::math::vec4f_t const color = new_states.clear_s.ss.clear_color ;
+                motor::math::vec4f_t const color = new_states.clear_s.ss.clear_color ;
                 glClearColor( color.x(), color.y(), color.z(), color.w() ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glClearColor" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glClearColor" ) ) ;
 
                 GLbitfield const color_bit = clear_color ? GL_COLOR_BUFFER_BIT : 0 ;
                 GLbitfield const depth_bit = clear_depth ? GL_DEPTH_BUFFER_BIT : 0 ;
 
                 glClear( color_bit | depth_bit ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glEnable" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
             }
         }
     }
@@ -720,7 +720,7 @@ struct es3_backend::pimpl
         {
             if( _state_stack.size() == 1 )
             {
-                natus::log::global_t::error( natus_log_fn( "no more render states to pop" ) ) ;
+                motor::log::global_t::error( motor_log_fn( "no more render states to pop" ) ) ;
                 return ;
             }
             auto const popped = _state_stack.pop() ;
@@ -735,7 +735,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    size_t construct_framebuffer( size_t oid, natus::graphics::framebuffer_object_ref_t obj ) noexcept
+    size_t construct_framebuffer( size_t oid, motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
         oid = determine_oid( obj.name(), _framebuffers ) ;
 
@@ -744,7 +744,7 @@ struct es3_backend::pimpl
         if( fb.gl_id == GLuint( -1 ) )
         {
             glGenFramebuffers( 1, &fb.gl_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGenFramebuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGenFramebuffers" ) ) ;
         }
 
         if( fb.gl_id == GLuint( -1 ) )return oid ;
@@ -752,13 +752,13 @@ struct es3_backend::pimpl
         // bind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGenFramebuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGenFramebuffers" ) ) ;
         }
 
         size_t const nt = obj.get_num_color_targets() ;
         auto const ctt = obj.get_color_target() ;
         auto const dst = obj.get_depth_target() ;
-        natus::math::vec2ui_t dims = obj.get_dims() ;
+        motor::math::vec2ui_t dims = obj.get_dims() ;
 
         // fix dims
         {
@@ -772,13 +772,13 @@ struct es3_backend::pimpl
             if( fb.colors[0] == GLuint(-1) )
             {
                 glGenTextures( GLsizei( 8 ), fb.colors ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glGenTextures" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glGenTextures" ) ) ;
             }
 
             if( fb.depth == GLuint(-1) )
             {
                 glGenTextures( GLsizei( 1 ), &fb.depth ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glGenTextures" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glGenTextures" ) ) ;
             }
         }
 
@@ -789,7 +789,7 @@ struct es3_backend::pimpl
                 GLuint const tid = fb.colors[ i ] ;
 
                 glBindTexture( GL_TEXTURE_2D, tid ) ;
-                if( natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) )
+                if( motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) )
                     continue ;
 
                 GLenum const target = GL_TEXTURE_2D ;
@@ -797,19 +797,19 @@ struct es3_backend::pimpl
                 GLsizei const width = dims.x() ;
                 GLsizei const height = dims.y() ;
                 GLenum const format = GL_RGBA ;
-                GLenum const type = natus::graphics::es3::to_pixel_type( ctt ) ;
+                GLenum const type = motor::graphics::es3::to_pixel_type( ctt ) ;
                 GLint const border = 0 ;
-                GLint const internal_format = natus::graphics::es3::to_gl_format( ctt ) ;
+                GLint const internal_format = motor::graphics::es3::to_gl_format( ctt ) ;
 
                 // maybe required for memory allocation
                 // at the moment, render targets do not have system memory.
                 #if 0
-                size_t const sib = natus::graphics::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
+                size_t const sib = motor::graphics::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
                 #endif
                 void_cptr_t data = 0;//nullptr ;
 
                 glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glTexImage2D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glTexImage2D" ) ) ;
             }
 
             // Attach
@@ -818,7 +818,7 @@ struct es3_backend::pimpl
                 GLuint const tid = fb.colors[ i ] ;
                 GLenum const att = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i ) ;
                 glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glFramebufferTexture2D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glFramebufferTexture2D" ) ) ;
             }
 
             // setup color
@@ -832,45 +832,45 @@ struct es3_backend::pimpl
                 }
 
                 glDrawBuffers( GLsizei( num_color ), attachments ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glGenFramebuffers" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glGenFramebuffers" ) ) ;
             }
         }
 
         // depth/stencil
-        if( dst != natus::graphics::depth_stencil_target_type::unknown )
+        if( dst != motor::graphics::depth_stencil_target_type::unknown )
         {
             {
                 GLuint const tid = fb.depth ;
 
                 glBindTexture( GL_TEXTURE_2D, tid ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) ;
 
                 GLenum const target = GL_TEXTURE_2D ;
                 GLint const level = 0 ;
                 GLsizei const width = dims.x() ;
                 GLsizei const height = dims.y() ;
-                GLenum const format = natus::graphics::es3::to_gl_format( dst ) ;
-                GLenum const type = natus::graphics::es3::to_gl_type( dst ) ;
+                GLenum const format = motor::graphics::es3::to_gl_format( dst ) ;
+                GLenum const type = motor::graphics::es3::to_gl_type( dst ) ;
                 GLint const border = 0 ;
-                GLint const internal_format = natus::graphics::es3::to_gl_format( dst ) ;
+                GLint const internal_format = motor::graphics::es3::to_gl_format( dst ) ;
 
                 // maybe required for memory allocation
                 // at the moment, render targets do not have system memory.
                 #if 0
-                size_t const sib = natus::graphics::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
+                size_t const sib = motor::graphics::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
                 #endif
                 void_cptr_t data = nullptr ;
 
                 glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glTexImage2D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glTexImage2D" ) ) ;
             }
 
             // attach
             {
                 GLuint const tid = fb.depth ;
-                GLenum const att = natus::graphics::es3::to_gl_attachment( dst ) ;
+                GLenum const att = motor::graphics::es3::to_gl_attachment( dst ) ;
                 glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glFramebufferTexture2D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glFramebufferTexture2D" ) ) ;
             }
         }
 
@@ -878,16 +878,16 @@ struct es3_backend::pimpl
         // validate
         {
             status = glCheckFramebufferStatus( GL_FRAMEBUFFER ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glCheckFramebufferStatus" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glCheckFramebufferStatus" ) ) ;
 
-            natus::log::global_t::warning( status != GL_FRAMEBUFFER_COMPLETE,
+            motor::log::global_t::warning( status != GL_FRAMEBUFFER_COMPLETE,
                 "Incomplete framebuffer : [" + obj.name() + "]" ) ;
         }
 
         // unbind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, 0 ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGenFramebuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGenFramebuffers" ) ) ;
         }
 
         // remember data
@@ -912,12 +912,12 @@ struct es3_backend::pimpl
                 _images[ idx ].tex_id = fb.colors[ i ] ;
                 _images[ idx ].type = GL_TEXTURE_2D ; 
 
-                for( size_t j = 0; j < ( size_t ) natus::graphics::texture_wrap_mode::size; ++j )
+                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
                 {
                     _images[ idx ].wrap_types[ j ] = GL_CLAMP_TO_EDGE ;
                 }
 
-                for( size_t j = 0; j < ( size_t ) natus::graphics::texture_filter_mode::size; ++j )
+                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
                 {
                     _images[ idx ].filter_types[ j ] = GL_LINEAR ;
                 }
@@ -937,12 +937,12 @@ struct es3_backend::pimpl
                 _images[ idx ].tex_id = fb.depth ;
                 _images[ idx ].type = GL_TEXTURE_2D ; 
 
-                for( size_t j = 0; j < ( size_t ) natus::graphics::texture_wrap_mode::size; ++j )
+                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
                 {
                     _images[ idx ].wrap_types[ j ] = GL_REPEAT ;
                 }
 
-                for( size_t j = 0; j < ( size_t ) natus::graphics::texture_filter_mode::size; ++j )
+                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
                 {
                     _images[ idx ].filter_types[ j ] = GL_NEAREST ;
                 }
@@ -980,12 +980,12 @@ struct es3_backend::pimpl
 
         {
             glDeleteFramebuffers( 1, &fbd.gl_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteFramebuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteFramebuffers" ) ) ;
         }
 
         {
             glDeleteTextures( 8, fbd.colors ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteTextures" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteTextures" ) ) ;
         }
 
         if( fbd.depth != GLuint(-1) )
@@ -1006,7 +1006,7 @@ struct es3_backend::pimpl
 
             {
                 glDeleteTextures( 1, &fbd.depth ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glDeleteTextures" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDeleteTextures" ) ) ;
             }
         }
 
@@ -1016,7 +1016,7 @@ struct es3_backend::pimpl
         fbd.depth = GLuint( -1 ) ;
         for( size_t i=0; i<8; ++i ) fbd.colors[i] = GLuint( -1 ) ;
 
-        fbd.dims = natus::math::vec2ui_t() ;
+        fbd.dims = motor::math::vec2ui_t() ;
 
         return true ;
     }
@@ -1029,7 +1029,7 @@ struct es3_backend::pimpl
         // bind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGenFramebuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGenFramebuffers" ) ) ;
         }
 
         // setup color
@@ -1043,7 +1043,7 @@ struct es3_backend::pimpl
             }
 
             glDrawBuffers( GLsizei( num_color ), attachments ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGenFramebuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGenFramebuffers" ) ) ;
         }
 
         return true ;
@@ -1055,12 +1055,12 @@ struct es3_backend::pimpl
         // unbind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, 0 ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGenFramebuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGenFramebuffers" ) ) ;
         }
     }
 
     //****************************************************************************************
-    size_t construct_shader_data( size_t oid, natus::graphics::shader_object_ref_t obj )
+    size_t construct_shader_data( size_t oid, motor::graphics::shader_object_ref_t obj )
     {
         oid = determine_oid( obj.name(), _shaders ) ;
         _shaders[ oid ].name = obj.name() ;
@@ -1069,8 +1069,8 @@ struct es3_backend::pimpl
         if( _shaders[ oid ].pg_id == GLuint( -1 ) )
         {
             GLuint const id = glCreateProgram() ;
-            natus::es::error::check_and_log(
-                natus_log_fn( "Shader Program creation" ) ) ;
+            motor::es::error::check_and_log(
+                motor_log_fn( "Shader Program creation" ) ) ;
 
             _shaders[ oid ].pg_id = id ;
         }
@@ -1083,25 +1083,25 @@ struct es3_backend::pimpl
         if( _shaders[oid].vs_id == GLuint(-1) )
         {
             GLuint const id = glCreateShader( GL_VERTEX_SHADER ) ;
-            natus::es::error::check_and_log(
-                natus_log_fn( "Vertex Shader creation" ) ) ;
+            motor::es::error::check_and_log(
+                motor_log_fn( "Vertex Shader creation" ) ) ;
 
             _shaders[ oid ].vs_id = id ;
         }
         {
             glAttachShader( _shaders[ oid ].pg_id, _shaders[oid].vs_id ) ;
-            natus::es::error::check_and_log(
-                natus_log_fn( "Attaching vertex shader" ) ) ;
+            motor::es::error::check_and_log(
+                motor_log_fn( "Attaching vertex shader" ) ) ;
         }
 
-        natus::graphics::shader_set_t ss ;
+        motor::graphics::shader_set_t ss ;
         {
             auto const res = obj.shader_set( this_t::sapi, ss ) ;
-            if( natus::core::is_not(res) )
+            if( motor::core::is_not(res) )
             {
-                natus::log::global_t::warning( natus_log_fn(
+                motor::log::global_t::warning( motor_log_fn(
                     "config [" + obj.name() + "] has no shaders for " + 
-                    natus::graphics::to_string( this_t::bt ) ) ) ;
+                    motor::graphics::to_string( this_t::bt ) ) ) ;
                 return oid ;
             }
         }
@@ -1114,8 +1114,8 @@ struct es3_backend::pimpl
             if( id == GLuint(-1) )
             {
                 id = glCreateShader( GL_GEOMETRY_SHADER ) ;
-                natus::es::error::check_and_log(
-                    natus_log_fn( "Geometry Shader creation" ) ) ;
+                motor::es::error::check_and_log(
+                    motor_log_fn( "Geometry Shader creation" ) ) ;
 
                 _shaders[ oid ].gs_id = id ;
             }
@@ -1123,22 +1123,22 @@ struct es3_backend::pimpl
             GLuint const pid = _shaders[ oid ].pg_id ;
 
             glAttachShader( pid, id ) ;
-            natus::es::error::check_and_log(
-                natus_log_fn( "Attaching geometry shader" ) ) ;
+            motor::es::error::check_and_log(
+                motor_log_fn( "Attaching geometry shader" ) ) ;
 
             // check max output vertices
             {
                 GLint max_out = 0 ;
                 glGetIntegerv( GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_out ) ;
-                natus::es::error::check_and_log(
-                    natus_log_fn( "Geometry Shader Max Output Vertices" ) ) ;
+                motor::es::error::check_and_log(
+                    motor_log_fn( "Geometry Shader Max Output Vertices" ) ) ;
                 ( void_t ) max_out ;
             }
         }
         else if( _shaders[ oid ].gs_id != GLuint(-1) )
         {
             glDeleteShader( _shaders[ oid ].gs_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
             _shaders[ oid ].gs_id = GLuint( -1 ) ;
         }
 
@@ -1149,19 +1149,19 @@ struct es3_backend::pimpl
             if( id == GLuint(-1) )
             {
                 id = glCreateShader( GL_FRAGMENT_SHADER ) ;
-                natus::es::error::check_and_log(
-                    natus_log_fn( "Fragment Shader creation" ) ) ;
+                motor::es::error::check_and_log(
+                    motor_log_fn( "Fragment Shader creation" ) ) ;
             }
 
             glAttachShader( _shaders[ oid ].pg_id, id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "Attaching pixel shader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "Attaching pixel shader" ) ) ;
 
             _shaders[ oid ].ps_id = id ;
         }
         else if( _shaders[ oid ].ps_id != GLuint( -1 ) )
         {
             glDeleteShader( _shaders[ oid ].ps_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
             _shaders[ oid ].ps_id = GLuint( -1 ) ;
         }
 
@@ -1178,34 +1178,34 @@ struct es3_backend::pimpl
         // delete shaders
         {
             glDetachShader( shd.pg_id, shd.vs_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDetachShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDetachShader" ) ) ;
 
             glDeleteShader( shd.vs_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
         }
 
         if( shd.gs_id != GLuint(-1) )
         {
             glDetachShader( shd.pg_id, shd.gs_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDetachShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDetachShader" ) ) ;
 
             glDeleteShader( shd.gs_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
         }
 
         if( shd.ps_id != GLuint(-1) )
         {
             glDetachShader( shd.pg_id, shd.ps_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDetachShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDetachShader" ) ) ;
 
             glDeleteShader( shd.ps_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
         }
 
         // delete program
         {
             glDeleteProgram( shd.pg_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteProgram" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteProgram" ) ) ;
         }
 
         shd.valid = false ;
@@ -1229,12 +1229,12 @@ struct es3_backend::pimpl
         GLuint shaders_[ 10 ] ;
 
         glGetAttachedShaders( program_id, 10, &count, shaders_ ) ;
-        natus::es::error::check_and_log( natus_log_fn( "glGetAttachedShaders" ) ) ;
+        motor::es::error::check_and_log( motor_log_fn( "glGetAttachedShaders" ) ) ;
 
         for( GLsizei i = 0; i < count; ++i )
         {
             glDetachShader( program_id, shaders_[ i ] ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDetachShader" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDetachShader" ) ) ;
         }
     }
 
@@ -1252,18 +1252,18 @@ struct es3_backend::pimpl
     }
 
     //*********************************************************************************
-    bool_t compile_shader( GLuint const id, natus::ntd::string_cref_t code )
+    bool_t compile_shader( GLuint const id, motor::ntd::string_cref_t code )
     {
         if( code.empty() ) return true ;
 
         GLchar const* source_string = ( GLchar const* ) ( code.c_str() ) ;
 
         glShaderSource( id, 1, &source_string, 0 ) ;
-        if( natus::es::error::check_and_log( natus_log_fn( "glShaderSource" ) ) )
+        if( motor::es::error::check_and_log( motor_log_fn( "glShaderSource" ) ) )
             return false ;
 
         glCompileShader( id ) ;
-        if( natus::es::error::check_and_log( natus_log_fn( "glCompileShader" ) ) )
+        if( motor::es::error::check_and_log( motor_log_fn( "glCompileShader" ) ) )
             return false ;
 
         GLint ret ;
@@ -1274,29 +1274,29 @@ struct es3_backend::pimpl
 
         if( ret == GL_TRUE && length <= 1 ) return true ;
 
-        if( natus::log::global::error( length == 0, 
-            natus_log_fn( "shader compilation failed, but info log length is 0." ) ) )
+        if( motor::log::global::error( length == 0, 
+            motor_log_fn( "shader compilation failed, but info log length is 0." ) ) )
             return false ;
 
         // print first line for info
         // user can place the shader name or any info there.
         {
             size_t pos = code.find_first_of( '\n' ) ;
-            natus::log::global::error( natus_log_fn( "First Line: " + code.substr( 0, pos ) ) ) ;
+            motor::log::global::error( motor_log_fn( "First Line: " + code.substr( 0, pos ) ) ) ;
         }
 
         // get the error message it is and print it
         {
-            natus::memory::malloc_guard<char> info_log( length ) ;
+            motor::memory::malloc_guard<char> info_log( length ) ;
 
             glGetShaderInfoLog( id, length, 0, info_log ) ;
 
-            natus::ntd::vector< natus::ntd::string_t > tokens ;
-            natus::ntd::string_ops::split( natus::ntd::string_t( info_log ), '\n', tokens ) ;
+            motor::ntd::vector< motor::ntd::string_t > tokens ;
+            motor::ntd::string_ops::split( motor::ntd::string_t( info_log ), '\n', tokens ) ;
 
             for( auto const & msg : tokens )
             {
-                natus::log::global::error( msg ) ;
+                motor::log::global::error( msg ) ;
             }
         }
         return true ;
@@ -1306,7 +1306,7 @@ struct es3_backend::pimpl
     bool_t link( GLuint const program_id )
     {
         glLinkProgram( program_id ) ;
-        if( natus::es::error::check_and_log( natus_log_fn( "glLinkProgram" ) ) )
+        if( motor::es::error::check_and_log( motor_log_fn( "glLinkProgram" ) ) )
             return false ;
 
         {
@@ -1319,24 +1319,24 @@ struct es3_backend::pimpl
             if( ret == GL_TRUE && length <= 1 ) 
                 return true ;
 
-            if( natus::log::global_t::error( length == 0, natus_log_fn("unknown") ) )
+            if( motor::log::global_t::error( length == 0, motor_log_fn("unknown") ) )
                 return false ;
 
-            natus::memory::malloc_guard<char> info_log( length ) ;
+            motor::memory::malloc_guard<char> info_log( length ) ;
 
             glGetProgramInfoLog( program_id, length, 0, info_log ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glGetProgramInfoLog" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glGetProgramInfoLog" ) ) )
                 return false ;
 
             std::string info_log_string = std::string( ( const char* ) info_log ) ;
 
             {
-                natus::ntd::vector< natus::ntd::string_t > tokens ;
-                natus::ntd::string_ops::split( natus::ntd::string_t( info_log ), '\n', tokens ) ;
+                motor::ntd::vector< motor::ntd::string_t > tokens ;
+                motor::ntd::string_ops::split( motor::ntd::string_t( info_log ), '\n', tokens ) ;
 
                 for( auto token : tokens )
                 {
-                    natus::log::global_t::error( "[es]" + token ) ;
+                    motor::log::global_t::error( "[es]" + token ) ;
                 }
             }
         }
@@ -1352,35 +1352,35 @@ struct es3_backend::pimpl
         GLint name_length = 0 ;
 
         glGetProgramiv( program_id, GL_ACTIVE_ATTRIBUTES, &num_active_attributes ) ;
-        natus::es::error::check_and_log( natus_log_fn( "glGetProgramiv(GL_ACTIVE_ATTRIBUTES)" ) ) ;
+        motor::es::error::check_and_log( motor_log_fn( "glGetProgramiv(GL_ACTIVE_ATTRIBUTES)" ) ) ;
 
         if( num_active_attributes == 0 ) return ;
 
         config.attributes.resize( num_active_attributes ) ;
 
         glGetProgramiv( program_id, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &name_length ) ;
-        natus::es::error::check_and_log( natus_log_fn( 
+        motor::es::error::check_and_log( motor_log_fn( 
             "glGetProgramiv(GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)" ) ) ;
 
         GLint size ;
         GLenum gl_attrib_type ;
 
-        natus::memory::malloc_guard<char> buffer( name_length ) ;
+        motor::memory::malloc_guard<char> buffer( name_length ) ;
         
         for( GLint i = 0; i < num_active_attributes; ++i )
         {
             glGetActiveAttrib( program_id, i, name_length, 0, 
                 &size, &gl_attrib_type, buffer ) ;
 
-            if( natus::es::error::check_and_log( "glGetActiveAttrib failed. continue loop." ) ) continue ;
+            if( motor::es::error::check_and_log( "glGetActiveAttrib failed. continue loop." ) ) continue ;
 
             // build-ins are not needed in the shader variables container.
             if( name_length >= 3 && buffer.equals( 0, 'g' ) && buffer.equals( 1, 'l' ) && buffer.equals( 2, '_' ) ) continue ;
 
             GLuint const location_id = glGetAttribLocation( program_id, buffer ) ;
-            if( natus::es::error::check_and_log( "glGetAttribLocation failed. continue loop." ) ) continue ;
+            if( motor::es::error::check_and_log( "glGetAttribLocation failed. continue loop." ) ) continue ;
 
-            natus::ntd::string_t const variable_name = natus::ntd::string_t( ( const char* ) buffer ) ;
+            motor::ntd::string_t const variable_name = motor::ntd::string_t( ( const char* ) buffer ) ;
 
             this_t::shader_data::attribute_variable_t vd ;
             vd.name = ::std::move( variable_name ) ;
@@ -1388,10 +1388,10 @@ struct es3_backend::pimpl
             vd.type = gl_attrib_type ;
             
             {
-                natus::graphics::vertex_attribute va = natus::graphics::vertex_attribute::undefined ;
+                motor::graphics::vertex_attribute va = motor::graphics::vertex_attribute::undefined ;
                 auto const res = config.find_vertex_input_binding_by_name( vd.name, va ) ;
-                natus::log::global_t::error( natus::core::is_not( res ), 
-                    natus_log_fn("can not find vertex attribute - " + vd.name ) ) ;
+                motor::log::global_t::error( motor::core::is_not( res ), 
+                    motor_log_fn("can not find vertex attribute - " + vd.name ) ) ;
                 vd.va = va ;
             }
             config.attributes[i] = vd ;
@@ -1404,24 +1404,24 @@ struct es3_backend::pimpl
         // bind vertex array object
         {
             glBindVertexArray( gconfig.va_id ) ;
-            if( natus::es::error::check_and_log(
-                natus_log_fn( "glBindVertexArray" ) ) )
+            if( motor::es::error::check_and_log(
+                motor_log_fn( "glBindVertexArray" ) ) )
                 return false ;
         }
 
         // bind vertex buffer
         {
             glBindBuffer( GL_ARRAY_BUFFER, gconfig.vb_id ) ;
-            if( natus::es::error::check_and_log( 
-                natus_log_fn("glBindBuffer(GL_ARRAY_BUFFER)") ) ) 
+            if( motor::es::error::check_and_log( 
+                motor_log_fn("glBindBuffer(GL_ARRAY_BUFFER)") ) ) 
                 return false ;
         }
 
         // bind index buffer
         {
             glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, gconfig.ib_id ) ;
-            if( natus::es::error::check_and_log( 
-                natus_log_fn( "glBindBuffer(GL_ELEMENT_ARRAY_BUFFER)" ) ) )
+            if( motor::es::error::check_and_log( 
+                motor_log_fn( "glBindBuffer(GL_ELEMENT_ARRAY_BUFFER)" ) ) )
                 return false ;
         }
 
@@ -1429,7 +1429,7 @@ struct es3_backend::pimpl
         for( size_t i = 0; i < sconfig.attributes.size(); ++i )
         {
             glDisableVertexAttribArray( sconfig.attributes[ i ].loc ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDisableVertexAttribArray" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDisableVertexAttribArray" ) ) ;
         }
 
         GLuint uiStride = gconfig.stride ;
@@ -1466,10 +1466,10 @@ struct es3_backend::pimpl
             if( iter == sconfig.attributes.end() ) 
             {
                 loc = ++max_loc ;
-                type = natus::ogl::convert( e.type ) ;
+                type = motor::ogl::convert( e.type ) ;
 
-                natus::log::global_t::warning( natus_log_fn( "Vertex attribute (" +
-                    natus::graphics::to_string(e.va) + ") in shader (" + sconfig.name + ") not used."
+                motor::log::global_t::warning( motor_log_fn( "Vertex attribute (" +
+                    motor::graphics::to_string(e.va) + ") in shader (" + sconfig.name + ") not used."
                     "Will bind geometry (" +sconfig.name+ ") layout attribute to custom location (" 
                     + std::to_string( uint_t(loc) ) + ").") ) ;
             }
@@ -1480,19 +1480,19 @@ struct es3_backend::pimpl
             }
 
             glEnableVertexAttribArray( loc ) ;
-            natus::es::error::check_and_log(
-                natus_log_fn( "glEnableVertexAttribArray" ) ) ;
+            motor::es::error::check_and_log(
+                motor_log_fn( "glEnableVertexAttribArray" ) ) ;
 
             glVertexAttribPointer(
                 loc,
-                GLint( natus::graphics::size_of(e.type_struct) ),
-                natus::ogl::complex_to_simple_type( type ),
+                GLint( motor::graphics::size_of(e.type_struct) ),
+                motor::ogl::complex_to_simple_type( type ),
                 GL_FALSE,
                 ( GLsizei ) uiStride,
                 (const GLvoid*)(size_t)uiBegin 
                 ) ;
 
-            natus::es::error::check_and_log( natus_log_fn( "glVertexAttribPointer" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glVertexAttribPointer" ) ) ;
         }
         
         return true ;
@@ -1507,77 +1507,77 @@ struct es3_backend::pimpl
         GLint name_length = 0 ;
 
         glGetProgramiv( program_id, GL_ACTIVE_UNIFORMS, &num_active_uniforms ) ;
-        natus::es::error::check_and_log( "[glGetProgramiv] : GL_ACTIVE_UNIFORMS" ) ;
+        motor::es::error::check_and_log( "[glGetProgramiv] : GL_ACTIVE_UNIFORMS" ) ;
 
         if( num_active_uniforms == 0 ) return ;
 
         config.uniforms.resize( num_active_uniforms ) ;
 
         glGetProgramiv( program_id, GL_ACTIVE_UNIFORM_MAX_LENGTH, &name_length ) ;
-        natus::es::error::check_and_log( "[glGetProgramiv] : GL_ACTIVE_UNIFORM_MAX_LENGTH" ) ;
+        motor::es::error::check_and_log( "[glGetProgramiv] : GL_ACTIVE_UNIFORM_MAX_LENGTH" ) ;
 
         GLint size ;
         GLenum gl_uniform_type ;
 
-        natus::memory::malloc_guard<char> buffer( name_length ) ;
+        motor::memory::malloc_guard<char> buffer( name_length ) ;
 
         for( GLint i = 0; i < num_active_uniforms; ++i )
         {
             glGetActiveUniform( program_id, i, name_length, 0, 
                 &size, &gl_uniform_type, buffer ) ;
-            if( natus::es::error::check_and_log( "[gl_33_api] : glGetActiveUniform" ) ) continue ;
+            if( motor::es::error::check_and_log( "[gl_33_api] : glGetActiveUniform" ) ) continue ;
 
             // build-ins are not needed in the shader variables container.
             if( name_length >= 3 && buffer.equals( 0, 'g' ) && buffer.equals( 1, 'l' ) && buffer.equals( 2, '_' ) ) continue ;
 
             GLuint const location_id = glGetUniformLocation( program_id, buffer ) ;
-            if( natus::es::error::check_and_log( "[glGetUniformLocation]" ) ) continue ;
+            if( motor::es::error::check_and_log( "[glGetUniformLocation]" ) ) continue ;
 
-            if( natus::log::global_t::error( location_id == GLuint( -1 ), 
-                natus_log_fn( "invalid uniform location id." ) ) ) continue ;
+            if( motor::log::global_t::error( location_id == GLuint( -1 ), 
+                motor_log_fn( "invalid uniform location id." ) ) ) continue ;
 
-            natus::ntd::string const variable_name = natus::ntd::string( char_cptr_t( buffer ) ) ;
+            motor::ntd::string const variable_name = motor::ntd::string( char_cptr_t( buffer ) ) ;
 
             this_t::shader_data::uniform_variable_t vd ;
             vd.name = ::std::move( variable_name ) ;
             vd.loc = location_id ;
             vd.type = gl_uniform_type ;
-            vd.uniform_funk = natus::ogl::uniform_funk( gl_uniform_type ) ;
+            vd.uniform_funk = motor::ogl::uniform_funk( gl_uniform_type ) ;
 
             config.uniforms[ i ] = vd ;
         }
     }
 
     //***************************************************************************************
-    size_t construct_image_config( size_t oid, natus::graphics::image_object_ref_t obj )
+    size_t construct_image_config( size_t oid, motor::graphics::image_object_ref_t obj )
     {
         oid = determine_oid( obj.name(), _images ) ;
 
         auto & config = _images[ oid ] ;
         config.name = obj.name() ;
-        config.type = natus::graphics::es3::convert( obj.get_type() ) ;
+        config.type = motor::graphics::es3::convert( obj.get_type() ) ;
 
         // sampler
         if( config.tex_id == GLuint( -1 ) )
         {
             GLuint id = GLuint( -1 ) ;
             glGenTextures( 1, &id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGenTextures" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGenTextures" ) ) ;
 
             config.tex_id = id ;
         }
 
         {
-            for( size_t j=0; j<(size_t)natus::graphics::texture_wrap_mode::size; ++j )
+            for( size_t j=0; j<(size_t)motor::graphics::texture_wrap_mode::size; ++j )
             {
-                config.wrap_types[ j ] = natus::graphics::es3::convert(
-                    obj.get_wrap( ( natus::graphics::texture_wrap_mode )j ) );
+                config.wrap_types[ j ] = motor::graphics::es3::convert(
+                    obj.get_wrap( ( motor::graphics::texture_wrap_mode )j ) );
             }
 
-            for( size_t j = 0; j < ( size_t ) natus::graphics::texture_filter_mode::size; ++j )
+            for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
             {
-                config.filter_types[ j ] = natus::graphics::es3::convert(
-                    obj.get_filter( ( natus::graphics::texture_filter_mode )j ) );
+                config.filter_types[ j ] = motor::graphics::es3::convert(
+                    obj.get_filter( ( motor::graphics::texture_filter_mode )j ) );
             }
         }
         return oid ;
@@ -1594,7 +1594,7 @@ struct es3_backend::pimpl
         if( id.tex_id != GLuint( -1 ) )
         {
             glDeleteTextures( 1, &id.tex_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteTextures" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteTextures" ) ) ;
 
             id.tex_id = GLuint( -1 ) ;
         }
@@ -1605,7 +1605,7 @@ struct es3_backend::pimpl
     }
 
     //***********************************************************************************
-    size_t construct_render_config( size_t oid, natus::graphics::render_object_ref_t obj )
+    size_t construct_render_config( size_t oid, motor::graphics::render_object_ref_t obj )
     {
         oid = determine_oid( obj.name(), _renders ) ;
         
@@ -1621,7 +1621,7 @@ struct es3_backend::pimpl
             _renders[ oid ].tf_ids.clear() ;
             _renders[ oid ].shd_id = size_t( -1 ) ;
 
-            natus::memory::global_t::dealloc( _renders[ oid ].mem_block ) ;
+            motor::memory::global_t::dealloc( _renders[ oid ].mem_block ) ;
             _renders[ oid ].mem_block = nullptr ;
         }
 
@@ -1646,20 +1646,20 @@ struct es3_backend::pimpl
         rd.var_sets_data.clear() ;
         rd.var_sets_texture.clear() ;
 
-        natus::memory::global_t::dealloc( rd.mem_block ) ;
+        motor::memory::global_t::dealloc( rd.mem_block ) ;
         rd.mem_block = nullptr ;
 
         return true ;
     }
 
     //**********************************************************************************
-    bool_t update( size_t const id, natus::graphics::shader_object_cref_t sc )
+    bool_t update( size_t const id, motor::graphics::shader_object_cref_t sc )
     {
         auto& sconfig = _shaders[ id ] ;
 
         {
             sc.for_each_vertex_input_binding( [&]( size_t const,
-                natus::graphics::vertex_attribute const va, natus::ntd::string_cref_t name )
+                motor::graphics::vertex_attribute const va, motor::ntd::string_cref_t name )
             {
                 sconfig.vertex_inputs.emplace_back( this_t::shader_data::vertex_input_binding 
                     { va, name } ) ;
@@ -1669,14 +1669,14 @@ struct es3_backend::pimpl
         // !!! must be done pre-link !!!
         // set transform feedback varyings
         if( (sc.get_num_output_bindings() != 0) && 
-            (sc.get_streamout_mode() != natus::graphics::streamout_mode::unknown) )
+            (sc.get_streamout_mode() != motor::graphics::streamout_mode::unknown) )
         {
-            sconfig.output_names = (char const **)natus::memory::global_t::
+            sconfig.output_names = (char const **)motor::memory::global_t::
                 alloc_raw<char *>( sc.get_num_output_bindings() ) ;
 
             sc.for_each_vertex_output_binding( [&]( size_t const i,
-                natus::graphics::vertex_attribute const va, 
-                natus::graphics::ctype const, natus::ntd::string_cref_t name )
+                motor::graphics::vertex_attribute const va, 
+                motor::graphics::ctype const, motor::ntd::string_cref_t name )
             {
                 sconfig.vertex_outputs.emplace_back( 
                     this_t::shader_data::vertex_output_binding { va, name } ) ;
@@ -1688,21 +1688,21 @@ struct es3_backend::pimpl
             // object is used, the engine needs to relink this shader 
             // based on the number of buffers attached to the streamout
             // object.
-            GLenum const mode = natus::graphics::es3::convert( sc.get_streamout_mode() ) ;
+            GLenum const mode = motor::graphics::es3::convert( sc.get_streamout_mode() ) ;
             glTransformFeedbackVaryings( sconfig.pg_id, GLsizei( sc.get_num_output_bindings() ), 
                                          sconfig.output_names, mode ) ;
 
-            natus::es::error::check_and_log( natus_log_fn( "glTransformFeedbackVaryings" ) ) ;
-            natus::log::global_t::status( mode == GL_NONE, 
+            motor::es::error::check_and_log( motor_log_fn( "glTransformFeedbackVaryings" ) ) ;
+            motor::log::global_t::status( mode == GL_NONE, 
                             "Did you miss to set the streamout mode in the shader object?" ) ;
 
-            natus::memory::global_t::dealloc( sconfig.output_names ) ;
+            motor::memory::global_t::dealloc( sconfig.output_names ) ;
             sconfig.output_names = nullptr ;
         }
 
         // compile
         {
-            natus::graphics::shader_set_t ss ;
+            motor::graphics::shader_set_t ss ;
             {
                 auto const res = sc.shader_set( this_t::sapi, ss ) ;
                 if( res )
@@ -1717,7 +1717,7 @@ struct es3_backend::pimpl
                         return false ;
                     }
                     sconfig.is_compilation_ok = true ;
-                    natus::log::global_t::status( "[ES3] : Compilation Successful : [" + sconfig.name + "]" ) ;
+                    motor::log::global_t::status( "[ES3] : Compilation Successful : [" + sconfig.name + "]" ) ;
                 }
             }
         }
@@ -1757,7 +1757,7 @@ struct es3_backend::pimpl
     }
 
     //**************************************************************************************
-    bool_t update( size_t const id, natus::graphics::render_object_ref_t rc )
+    bool_t update( size_t const id, motor::graphics::render_object_ref_t rc )
     {
         auto& config = _renders[ id ] ;
 
@@ -1778,7 +1778,7 @@ struct es3_backend::pimpl
 
                 if( iter == _geometries.end() )
                 {
-                    natus::log::global_t::warning( natus_log_fn(
+                    motor::log::global_t::warning( motor_log_fn(
                         "no geometry with name [" + rc.get_geometry() + "] for render_data [" + rc.name() + "]" ) ) ;
                     continue ;
                 }
@@ -1807,7 +1807,7 @@ struct es3_backend::pimpl
 
                 if( iter == _feedbacks.end() )
                 {
-                    natus::log::global_t::warning( natus_log_fn(
+                    motor::log::global_t::warning( motor_log_fn(
                         "no streamout object with name [" + rc.get_streamout() + "] for render_data [" + rc.name() + "]" ) ) ;
                     return false ;
                 }
@@ -1825,7 +1825,7 @@ struct es3_backend::pimpl
             } ) ;
             if( iter == _shaders.end() )
             {
-                natus::log::global_t::warning( natus_log_fn(
+                motor::log::global_t::warning( motor_log_fn(
                     "no shader with name [" + rc.get_shader() + "] for render_config [" + rc.name() + "]" ) ) ;
                 return false ;
             }
@@ -1858,11 +1858,11 @@ struct es3_backend::pimpl
         }
 
         {
-            rc.for_each( [&] ( size_t const /*i*/, natus::graphics::variable_set_res_t vs )
+            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_res_t vs )
             {
                 auto const res = this_t::connect( id, vs ) ;
-                natus::log::global_t::warning( natus::core::is_not( res ),
-                    natus_log_fn( "connect" ) ) ;
+                motor::log::global_t::warning( motor::core::is_not( res ),
+                    motor_log_fn( "connect" ) ) ;
             } ) ;
         }
         
@@ -1884,7 +1884,7 @@ struct es3_backend::pimpl
                 for( auto & link : vs.second )
                 {
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += natus::ogl::uniform_size_of( uv.type ) ;
+                    sib += motor::ogl::uniform_size_of( uv.type ) ;
                 }
             }
 
@@ -1893,7 +1893,7 @@ struct es3_backend::pimpl
                 for( auto & link : vs.second )
                 {
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += natus::ogl::uniform_size_of( uv.type ) ;
+                    sib += motor::ogl::uniform_size_of( uv.type ) ;
                 }
             }
 
@@ -1902,7 +1902,7 @@ struct es3_backend::pimpl
                 for( auto & link : vs.second )
                 {
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += natus::ogl::uniform_size_of( uv.type ) ;
+                    sib += motor::ogl::uniform_size_of( uv.type ) ;
                 }
             }
 
@@ -1911,12 +1911,12 @@ struct es3_backend::pimpl
                 for( auto & link : vs.second )
                 {
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += natus::ogl::uniform_size_of( uv.type ) ;
+                    sib += motor::ogl::uniform_size_of( uv.type ) ;
                 }
             }
 
-            natus::memory::global_t::dealloc( config.mem_block ) ;
-            config.mem_block = natus::memory::global_t::alloc( sib, "[gles3] : render config memory block" ) ;
+            motor::memory::global_t::dealloc( config.mem_block ) ;
+            config.mem_block = motor::memory::global_t::alloc( sib, "[gles3] : render config memory block" ) ;
         }
 
         // assign memory locations
@@ -1930,7 +1930,7 @@ struct es3_backend::pimpl
 
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
                     mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                         size_t( natus::ogl::uniform_size_of( uv.type ) )) ;
+                         size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
                 }
             }
 
@@ -1942,7 +1942,7 @@ struct es3_backend::pimpl
 
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
                     mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                          size_t( natus::ogl::uniform_size_of( uv.type ) )) ;
+                          size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
                 }
             }
 
@@ -1954,7 +1954,7 @@ struct es3_backend::pimpl
 
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
                     mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                         size_t( natus::ogl::uniform_size_of( uv.type ) )) ;
+                         size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
                 }
             }
 
@@ -1966,14 +1966,14 @@ struct es3_backend::pimpl
 
                     auto & uv = shader.uniforms[ link.uniform_id ] ;
                     mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                         size_t( natus::ogl::uniform_size_of( uv.type ) )) ;
+                         size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
                 }
             }
         }
     }
 
     //****************************************************************************************
-    size_t construct_geo( size_t oid, natus::ntd::string_in_t name, natus::graphics::vertex_buffer_in_t vb ) noexcept
+    size_t construct_geo( size_t oid, motor::ntd::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
         oid = determine_oid( name, _geometries ) ;
 
@@ -1985,8 +1985,8 @@ struct es3_backend::pimpl
         {
             GLuint id = GLuint( -1 ) ;
             glGenVertexArrays( 1, &id ) ;
-            natus::es::error::check_and_log(
-                natus_log_fn( "Vertex Array creation" ) ) ;
+            motor::es::error::check_and_log(
+                motor_log_fn( "Vertex Array creation" ) ) ;
 
             config.va_id = id ;
         }
@@ -1996,8 +1996,8 @@ struct es3_backend::pimpl
         {
             GLuint id = GLuint( -1 ) ;
             glGenBuffers( 1, &id ) ;
-            error = natus::es::error::check_and_log( 
-                natus_log_fn( "Vertex Buffer creation" ) ) ;
+            error = motor::es::error::check_and_log( 
+                motor_log_fn( "Vertex Buffer creation" ) ) ;
 
             config.vb_id = id ;
         }
@@ -2007,8 +2007,8 @@ struct es3_backend::pimpl
         {
             GLuint id = GLuint( -1 ) ;
             glGenBuffers( 1, &id ) ;
-            error = natus::es::error::check_and_log(
-                natus_log_fn( "Index Buffer creation" ) ) ;
+            error = motor::es::error::check_and_log(
+                motor_log_fn( "Index Buffer creation" ) ) ;
 
             config.ib_id = id ;
         }
@@ -2019,7 +2019,7 @@ struct es3_backend::pimpl
 
             config.elements.clear() ;
             vb.for_each_layout_element( 
-                [&]( natus::graphics::vertex_buffer_t::data_cref_t d )
+                [&]( motor::graphics::vertex_buffer_t::data_cref_t d )
             {
                 this_t::geo_data::layout_element le ;
                 le.va = d.va ;
@@ -2029,13 +2029,13 @@ struct es3_backend::pimpl
             }) ;
         }
 
-        natus::log::global_t::error( error, natus_log_fn("Error ocurred for ["+ name +"]") ) ;
+        motor::log::global_t::error( error, motor_log_fn("Error ocurred for ["+ name +"]") ) ;
 
         return oid ;
     }
 
     //****************************************************************************************
-    size_t construct_geo( size_t oid, natus::graphics::geometry_object_ref_t obj ) noexcept
+    size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj ) noexcept
     {
         return this_t::construct_geo( oid, obj.name(), obj.vertex_buffer() ) ;
     }
@@ -2055,21 +2055,21 @@ struct es3_backend::pimpl
         if( geo.vb_id != GLuint( -1 ) )
         {
             glDeleteBuffers( 1, &geo.vb_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteBuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteBuffers" ) ) ;
             geo.vb_id = GLuint( -1 ) ;
         }
 
         if( geo.ib_id != GLuint( -1 ) )
         {
             glDeleteBuffers( 1, &geo.ib_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteBuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteBuffers" ) ) ;
             geo.ib_id = GLuint( -1 ) ;
         }
 
         if( geo.va_id != GLuint( -1 ) )
         {
             glDeleteVertexArrays( 1, &geo.va_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteVertexArrays" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteVertexArrays" ) ) ;
             geo.va_id = GLuint( -1 ) ;
         }
 
@@ -2087,7 +2087,7 @@ struct es3_backend::pimpl
     }
 
     //************************************************************************************
-    bool_t update( size_t const id, natus::graphics::geometry_object_res_t geo, 
+    bool_t update( size_t const id, motor::graphics::geometry_object_res_t geo, 
                    bool_t const is_config = false )
     {
         auto& config = _geometries[ id ] ;
@@ -2095,7 +2095,7 @@ struct es3_backend::pimpl
         // disable vertex array so the buffer ids do not get overwritten
         {
             glBindVertexArray( 0 ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glBindVertexArray" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) ;
         }
 
         {
@@ -2103,13 +2103,13 @@ struct es3_backend::pimpl
             config.num_elements_vb = geo->vertex_buffer().get_num_elements() ;
             config.ib_elem_sib = 0 ;
             config.ib_type = GL_UNSIGNED_INT ;
-            config.pt = natus::graphics::es3::convert( geo->primitive_type() ) ;
+            config.pt = motor::graphics::es3::convert( geo->primitive_type() ) ;
         }
 
         // bind vertex buffer
         {
             glBindBuffer( GL_ARRAY_BUFFER, config.vb_id ) ;
-            if( natus::es::error::check_and_log( natus_log_fn("glBindBuffer - vertex buffer") ) )
+            if( motor::es::error::check_and_log( motor_log_fn("glBindBuffer - vertex buffer") ) )
                 return false ;
         }
 
@@ -2121,21 +2121,21 @@ struct es3_backend::pimpl
             {
                 glBufferData( GL_ARRAY_BUFFER, sib,
                     geo->vertex_buffer().data(), GL_STATIC_DRAW ) ;
-                if( natus::es::error::check_and_log( natus_log_fn( "glBufferData - vertex buffer" ) ) )
+                if( motor::es::error::check_and_log( motor_log_fn( "glBufferData - vertex buffer" ) ) )
                     return false ;
                 config.sib_vb = sib ;
             }
             else
             {
                 glBufferSubData( GL_ARRAY_BUFFER, 0, sib, geo->vertex_buffer().data() ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glBufferSubData - vertex buffer" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glBufferSubData - vertex buffer" ) ) ;
             }
         }
 
         // bind index buffer
         {
             glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, config.ib_id ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glBindBuffer - index buffer" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glBindBuffer - index buffer" ) ) )
                 return false ;
         }
 
@@ -2150,14 +2150,14 @@ struct es3_backend::pimpl
             {
                 glBufferData( GL_ELEMENT_ARRAY_BUFFER, sib,
                     geo->index_buffer().data(), GL_STATIC_DRAW ) ;
-                if( natus::es::error::check_and_log( natus_log_fn( "glBufferData - index buffer" ) ) )
+                if( motor::es::error::check_and_log( motor_log_fn( "glBufferData - index buffer" ) ) )
                     return false ;
                 config.sib_ib = sib ;
             }
             else
             {
                 glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, sib, geo->index_buffer().data() ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glBufferSubData - index buffer" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glBufferSubData - index buffer" ) ) ;
             }
         }
 
@@ -2177,12 +2177,12 @@ struct es3_backend::pimpl
     }
 
     //********************************************************************************************
-    bool_t update( size_t const id, natus::graphics::image_object_ref_t confin, bool_t const do_config )
+    bool_t update( size_t const id, motor::graphics::image_object_ref_t confin, bool_t const do_config )
     {
         this_t::image_data_ref_t config = _images[ id ] ;
 
         glBindTexture( config.type, config.tex_id ) ;
-        if( natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) )
+        if( motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) )
             return false ;
 
         size_t const sib = confin.image().sib() ;
@@ -2191,8 +2191,8 @@ struct es3_backend::pimpl
         GLsizei const width = GLsizei( confin.image().get_dims().x() ) ;
         GLsizei const height = GLsizei( confin.image().get_dims().y() ) ;
         GLsizei const depth = GLsizei( confin.image().get_dims().z() ) ;
-        GLenum const format = natus::graphics::es3::convert_to_gl_pixel_format( confin.image().get_image_format() ) ;
-        GLenum const type = natus::graphics::es3::convert_to_gl_pixel_type( confin.image().get_image_element_type() ) ;
+        GLenum const format = motor::graphics::es3::convert_to_gl_pixel_format( confin.image().get_image_format() ) ;
+        GLenum const type = motor::graphics::es3::convert_to_gl_pixel_type( confin.image().get_image_element_type() ) ;
         void_cptr_t data = confin.image().get_image_ptr() ;
 
         // determine how to unpack the data
@@ -2206,25 +2206,25 @@ struct es3_backend::pimpl
             else unpack = 1 ;
 
             glPixelStorei( GL_UNPACK_ALIGNMENT, unpack ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glPixelStorei" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glPixelStorei" ) ) ;
         }
 
         if( do_config || (sib == 0 || config.sib < sib) )
         {
             GLint const border = 0 ;
-            GLint const internal_format = natus::graphics::es3::convert_to_gl_format( confin.image().get_image_format(), confin.image().get_image_element_type() ) ;
+            GLint const internal_format = motor::graphics::es3::convert_to_gl_format( confin.image().get_image_format(), confin.image().get_image_element_type() ) ;
 
             if( target == GL_TEXTURE_2D )
             {
                 glTexImage2D( target, level, internal_format, width, height,
                               border, format, type, data ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glTexImage2D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glTexImage2D" ) ) ;
             }
             else if( target == GL_TEXTURE_2D_ARRAY )
             {
                 glTexImage3D( target, level, internal_format, width, height, depth,
                     border, format, type, data ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glTexImage3D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glTexImage3D" ) ) ;
             }
         }
         else
@@ -2237,13 +2237,13 @@ struct es3_backend::pimpl
             {
                 glTexSubImage2D( target, level, xoffset, yoffset, width, height,
                     format, type, data ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glTexSubImage2D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glTexSubImage2D" ) ) ;
             }
             else if( target == GL_TEXTURE_2D_ARRAY )
             {
                 glTexSubImage3D( target, level, xoffset, yoffset, zoffset, width, height, depth,
                     format, type, data ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glTexSubImage3D" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glTexSubImage3D" ) ) ;
             }
         }
 
@@ -2253,7 +2253,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( size_t const id, natus::graphics::variable_set_res_t vs )
+    bool_t connect( size_t const id, motor::graphics::variable_set_res_t vs )
     {
         auto& config = _renders[ id ] ;
 
@@ -2263,19 +2263,19 @@ struct es3_backend::pimpl
     }
 
     //*********************************************************************************************
-    bool_t connect( this_t::render_data & config, natus::graphics::variable_set_res_t vs )
+    bool_t connect( this_t::render_data & config, motor::graphics::variable_set_res_t vs )
     {
         auto item_data = ::std::make_pair( vs,
-            natus::ntd::vector< this_t::render_data::uniform_variable_link >() ) ;
+            motor::ntd::vector< this_t::render_data::uniform_variable_link >() ) ;
 
         auto item_tex = ::std::make_pair( vs,
-            natus::ntd::vector< this_t::render_data::uniform_texture_link >() ) ;
+            motor::ntd::vector< this_t::render_data::uniform_texture_link >() ) ;
 
         auto item_buf = ::std::make_pair( vs,
-            natus::ntd::vector< this_t::render_data::uniform_array_data_link >() ) ;
+            motor::ntd::vector< this_t::render_data::uniform_array_data_link >() ) ;
 
         auto item_tfb = std::make_pair( vs,
-            natus::ntd::vector< this_t::render_data::uniform_streamout_link >() ) ;
+            motor::ntd::vector< this_t::render_data::uniform_streamout_link >() ) ;
 
         this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
 
@@ -2283,13 +2283,13 @@ struct es3_backend::pimpl
         for( auto& uv : shd.uniforms )
         {
             // is it a data uniform variable?
-            if( natus::ogl::uniform_is_data( uv.type ) )
+            if( motor::ogl::uniform_is_data( uv.type ) )
             {
-                auto const types = natus::graphics::es3::to_type_type_struct( uv.type ) ;
+                auto const types = motor::graphics::es3::to_type_type_struct( uv.type ) ;
                 auto* var = vs->data_variable( uv.name, types.first, types.second ) ;
-                if( natus::core::is_nullptr( var ) )
+                if( motor::core::is_nullptr( var ) )
                 {
-                    natus::log::global_t::error( natus_log_fn( "can not claim variable " + uv.name ) ) ;
+                    motor::log::global_t::error( motor_log_fn( "can not claim variable " + uv.name ) ) ;
                     continue ;
                 }
 
@@ -2299,15 +2299,15 @@ struct es3_backend::pimpl
 
                 item_data.second.emplace_back( link ) ;
             }
-            else if( natus::ogl::uniform_is_texture( uv.type ) )
+            else if( motor::ogl::uniform_is_texture( uv.type ) )
             {
-                //auto const types = natus::graphics::es3::to_type_type_struct( uv.type ) ;
+                //auto const types = motor::graphics::es3::to_type_type_struct( uv.type ) ;
                 auto* var = vs->texture_variable( uv.name ) ;
                 var = var->get().empty() ? vs->array_variable( uv.name ) : var ;
 
-                if( natus::core::is_nullptr( var ) )
+                if( motor::core::is_nullptr( var ) )
                 {
-                    natus::log::global_t::error( natus_log_fn( "can not claim variable " + uv.name ) ) ;
+                    motor::log::global_t::error( motor_log_fn( "can not claim variable " + uv.name ) ) ;
                     continue ;
                 }
 
@@ -2321,7 +2321,7 @@ struct es3_backend::pimpl
 
                 if( i >= _images.size() ) 
                 {
-                    natus::log::global_t::warning( natus_log_fn("image not found : " + tx_name ) ) ;
+                    motor::log::global_t::warning( motor_log_fn("image not found : " + tx_name ) ) ;
                     continue ;
                 }
 
@@ -2331,13 +2331,13 @@ struct es3_backend::pimpl
                 link.img_id = i ;
                 item_tex.second.emplace_back( link ) ;
             }
-            else if( natus::ogl::uniform_is_buffer( uv.type ) )
+            else if( motor::ogl::uniform_is_buffer( uv.type ) )
             {
                 auto* var = vs->array_variable( uv.name ) ;
 
-                if( natus::core::is_nullptr( var ) )
+                if( motor::core::is_nullptr( var ) )
                 {
-                    natus::log::global_t::error( natus_log_fn( "can not claim variable " + uv.name ) ) ;
+                    motor::log::global_t::error( motor_log_fn( "can not claim variable " + uv.name ) ) ;
                     continue ;
                 }
 
@@ -2379,7 +2379,7 @@ struct es3_backend::pimpl
                 {
                     if( !handle_feedback_link() )
                     {
-                        natus::log::global_t::error( natus_log_fn( 
+                        motor::log::global_t::error( motor_log_fn( 
                             "Could not find array nor streamout object [" + tx_name + "]" ) ) ;
                         continue ;
                     }
@@ -2397,7 +2397,7 @@ struct es3_backend::pimpl
     }
 
     //************************************************************************************
-    size_t construct_array_data( size_t oid, natus::graphics::array_object_ref_t obj ) 
+    size_t construct_array_data( size_t oid, motor::graphics::array_object_ref_t obj ) 
     {
         oid = determine_oid( obj.name(), _arrays ) ;
 
@@ -2408,8 +2408,8 @@ struct es3_backend::pimpl
         {
             GLuint id = GLuint( -1 ) ;
             glGenBuffers( 1, &id ) ;
-            natus::es::error::check_and_log( 
-                natus_log_fn( "[construct_array_data] : glGenBuffers" ) ) ;
+            motor::es::error::check_and_log( 
+                motor_log_fn( "[construct_array_data] : glGenBuffers" ) ) ;
 
             data.buf_id = id ;
         }
@@ -2419,8 +2419,8 @@ struct es3_backend::pimpl
         {
             GLuint id = GLuint( -1 ) ;
             glGenTextures( 1, &id ) ;
-            natus::es::error::check_and_log( 
-                natus_log_fn( "[construct_array_data] : glGenTextures" ) ) ;
+            motor::es::error::check_and_log( 
+                motor_log_fn( "[construct_array_data] : glGenTextures" ) ) ;
 
             data.tex_id = id ;
         }
@@ -2436,14 +2436,14 @@ struct es3_backend::pimpl
         if( data.buf_id == GLuint(-1) )
         {
             glDeleteBuffers( 1, &data.buf_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteBuffers" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteBuffers" ) ) ;
             data.buf_id = GLuint( -1 ) ;
         }
 
         if( data.tex_id == GLuint(-1) )
         {
             glDeleteTextures( 1, &data.tex_id ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDeleteTextures" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDeleteTextures" ) ) ;
             data.tex_id = GLuint( -1 ) ;
         }
 
@@ -2455,7 +2455,7 @@ struct es3_backend::pimpl
     }
 
     //***********************************************************************************
-    size_t update( size_t oid, natus::graphics::array_object_ref_t obj, bool_t const is_config = false ) 
+    size_t update( size_t oid, motor::graphics::array_object_ref_t obj, bool_t const is_config = false ) 
     {
         auto & data = _arrays[ oid ] ;
 
@@ -2464,7 +2464,7 @@ struct es3_backend::pimpl
             // bind buffer
             {
                 glBindBuffer( GL_TEXTURE_BUFFER, data.buf_id ) ;
-                if( natus::es::error::check_and_log( natus_log_fn("glBindBuffer") ) )
+                if( motor::es::error::check_and_log( motor_log_fn("glBindBuffer") ) )
                     return false ;
             }
 
@@ -2474,20 +2474,20 @@ struct es3_backend::pimpl
             {
                 glBufferData( GL_TEXTURE_BUFFER, sib,
                         obj.data_buffer().data(), GL_DYNAMIC_DRAW ) ;
-                if( natus::es::error::check_and_log( natus_log_fn( "glBufferData" ) ) )
+                if( motor::es::error::check_and_log( motor_log_fn( "glBufferData" ) ) )
                     return false ;
                 data.sib = sib ;
             }
             else
             {
                 glBufferSubData( GL_TEXTURE_BUFFER, 0, sib, obj.data_buffer().data() ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glBufferSubData" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glBufferSubData" ) ) ;
             }
 
             // bind buffer
             {
                 glBindBuffer( GL_TEXTURE_BUFFER, 0 ) ;
-                if( natus::es::error::check_and_log( natus_log_fn("glBindBuffer") ) )
+                if( motor::es::error::check_and_log( motor_log_fn("glBindBuffer") ) )
                     return false ;
             }
         }
@@ -2496,13 +2496,13 @@ struct es3_backend::pimpl
         // glTexBuffer is required to be called after driver memory is aquired.
         {
             glBindTexture( GL_TEXTURE_BUFFER, data.tex_id ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) )
                 return false ;
 
             auto const le = obj.data_buffer().get_layout_element(0) ;
-            glTexBuffer( GL_TEXTURE_BUFFER, natus::graphics::es3::convert_for_texture_buffer(
+            glTexBuffer( GL_TEXTURE_BUFFER, motor::graphics::es3::convert_for_texture_buffer(
                 le.type, le.type_struct ), data.buf_id ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glTexBuffer" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glTexBuffer" ) ) )
                 return false ;
         }
 
@@ -2510,7 +2510,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    size_t construct_feedback( size_t /*oid_*/, natus::graphics::streamout_object_ref_t obj ) noexcept
+    size_t construct_feedback( size_t /*oid_*/, motor::graphics::streamout_object_ref_t obj ) noexcept
     {
         size_t const oid = determine_oid( obj.name(), _feedbacks ) ;
 
@@ -2528,8 +2528,8 @@ struct es3_backend::pimpl
             {
                 if( buffer.bids[i] != GLuint(-1) ) continue ;
 
-                natus::ntd::string_t const is = std::to_string( i ) ;
-                natus::ntd::string_t const bs = std::to_string( rw ) ;
+                motor::ntd::string_t const is = std::to_string( i ) ;
+                motor::ntd::string_t const bs = std::to_string( rw ) ;
 
                 size_t const gid = this_t::construct_geo( size_t(-1), 
                     obj.name() + ".feedback."+is+"."+bs, obj.get_buffer(i) ) ;
@@ -2542,7 +2542,7 @@ struct es3_backend::pimpl
             // we just allways gen max buffers tex ids
             {
                 glGenTextures( this_t::tf_data::buffer::max_buffers, buffer.tids ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glGenTextures" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glGenTextures" ) ) ;
             }
 
             for( size_t i=req_buffers; i<this_t::tf_data::buffer::max_buffers; ++i )
@@ -2558,13 +2558,13 @@ struct es3_backend::pimpl
             if( buffer.qid == GLuint(-1) )
             {
                 glGenQueries( 1, &buffer.qid ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glGenQueries" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glGenQueries" ) ) ;
             }
 
             if( buffer.tfid == GLuint(-1) )
             {
                 glGenTransformFeedbacks( 1, &buffer.tfid ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glGenTransformFeedbacks" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glGenTransformFeedbacks" ) ) ;
             }
         }
 
@@ -2593,21 +2593,21 @@ struct es3_backend::pimpl
             if( buffer.qid != GLuint(-1) )
             {
                 glDeleteQueries( 1, &buffer.qid ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glDeleteBuffers" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDeleteBuffers" ) ) ;
                 buffer.qid = GLuint( -1 ) ; 
             }
 
             if( buffer.tfid != GLuint(-1) )
             {
                 glDeleteTransformFeedbacks( 1, &buffer.tfid ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glDeleteTransformFeedbacks" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDeleteTransformFeedbacks" ) ) ;
                 buffer.tfid = GLuint( -1 ) ; 
             }
 
             // release textures
             {
                 glDeleteTextures( tf_data_t::buffer::max_buffers, buffer.tids ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glDeleteTextures" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDeleteTextures" ) ) ;
             }
         }
 
@@ -2618,7 +2618,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t update( size_t oid, natus::graphics::streamout_object_ref_t obj, bool_t const is_config = false ) 
+    bool_t update( size_t oid, motor::graphics::streamout_object_ref_t obj, bool_t const is_config = false ) 
     {
         auto & data = _feedbacks[ oid ] ;
 
@@ -2632,7 +2632,7 @@ struct es3_backend::pimpl
                 // bind buffer
                 {
                     glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, buffer.bids[i] ) ;
-                    if( natus::es::error::check_and_log( natus_log_fn("glBindBuffer") ) )
+                    if( motor::es::error::check_and_log( motor_log_fn("glBindBuffer") ) )
                         continue ;
                 }
 
@@ -2641,7 +2641,7 @@ struct es3_backend::pimpl
                 if( is_config || sib > buffer.sibs[i] )
                 {
                     glBufferData( GL_TRANSFORM_FEEDBACK_BUFFER, sib, nullptr, GL_DYNAMIC_DRAW ) ;
-                    if( natus::es::error::check_and_log( natus_log_fn( "glBufferData" ) ) )
+                    if( motor::es::error::check_and_log( motor_log_fn( "glBufferData" ) ) )
                         continue ;
 
                     buffer.sibs[i] = sib ;
@@ -2651,17 +2651,17 @@ struct es3_backend::pimpl
                 // glTexBuffer is required to be called after driver memory is aquired.
                 {
                     glBindTexture( GL_TEXTURE_BUFFER, buffer.tids[i] ) ;
-                    if( natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) )
+                    if( motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) )
                         continue ;
 
                     auto const le = obj.get_buffer( i ).get_layout_element_zero() ;
-                    glTexBuffer( GL_TEXTURE_BUFFER, natus::graphics::es3::convert_for_texture_buffer(
+                    glTexBuffer( GL_TEXTURE_BUFFER, motor::graphics::es3::convert_for_texture_buffer(
                         le.type, le.type_struct ), buffer.bids[i] ) ;
-                    if( natus::es::error::check_and_log( natus_log_fn( "glTexBuffer" ) ) )
+                    if( motor::es::error::check_and_log( motor_log_fn( "glTexBuffer" ) ) )
                         continue ;
 
                     glBindTexture( GL_TEXTURE_BUFFER, 0 ) ;
-                    if( natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) )
+                    if( motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) )
                         continue ;
                 }
 
@@ -2672,7 +2672,7 @@ struct es3_backend::pimpl
         // unbind
         {
             glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, 0 ) ;
-            if( natus::es::error::check_and_log( natus_log_fn("glBindBuffer") ) )
+            if( motor::es::error::check_and_log( motor_log_fn("glBindBuffer") ) )
                 return false ;
         }
 
@@ -2682,7 +2682,7 @@ struct es3_backend::pimpl
 
             {
                 glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
-                if( natus::es::error::check_and_log( natus_log_fn("glBindTransformFeedback") ) )
+                if( motor::es::error::check_and_log( motor_log_fn("glBindTransformFeedback") ) )
                     return false ;
             }
 
@@ -2696,7 +2696,7 @@ struct es3_backend::pimpl
                     if( bid == GLuint(-1) ) break ;
 
                     glBindBufferRange( GL_TRANSFORM_FEEDBACK_BUFFER, GLuint(i), bid, 0, sib ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glBindBufferRange" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glBindBufferRange" ) ) ;
                 }
             }
         }
@@ -2743,13 +2743,13 @@ struct es3_backend::pimpl
             }
 
             glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glBindTransformFeedback" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glBindTransformFeedback" ) ) ;
         }
 
         // query written primitives
         {
             glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, buffer.qid ) ;
-            natus::es::error::check_and_log( natus_log_fn( 
+            motor::es::error::check_and_log( motor_log_fn( 
                         "glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN )" ) ) ;
         }
 
@@ -2758,7 +2758,7 @@ struct es3_backend::pimpl
             // lets just use the primitive type of the used geometry
             GLenum const mode = gdata.pt ;
             glBeginTransformFeedback( mode ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glBeginTransformFeedback" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glBeginTransformFeedback" ) ) ;
         }
     }
 
@@ -2769,13 +2769,13 @@ struct es3_backend::pimpl
 
         {
             glEndTransformFeedback() ;
-            natus::es::error::check_and_log( natus_log_fn( "glEndTransformFeedback" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glEndTransformFeedback" ) ) ;
         }
 
         // query written primitives
         {
             glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glEndQuery" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glEndQuery" ) ) ;
         }
         
         // swap the indices of the ping-pong buffers
@@ -2789,7 +2789,7 @@ struct es3_backend::pimpl
             auto & tfd = _feedbacks[ _tf_active_id] ;
             auto const ridx = tfd.read_index();
             glGetQueryObjectuiv( tfd.read_buffer().qid, GL_QUERY_RESULT, &num_prims ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glGetQueryObjectuiv" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glGetQueryObjectuiv" ) ) ;
         }
         #endif
 
@@ -2804,7 +2804,7 @@ struct es3_backend::pimpl
 
         {
             glUseProgram( sconfig.pg_id ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glUseProgram" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glUseProgram" ) ) )
             {
                 return false ;
             }
@@ -2832,7 +2832,7 @@ struct es3_backend::pimpl
                     auto& varset = config.var_sets_texture[ varset_id ] ;
                     for( auto& item : varset.second )
                     {
-                        auto var = natus::graphics::data_variable< int_t >( tex_unit ) ;
+                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ item.uniform_id ] ;
 
                         uv.do_copy_funk( item.mem, &var ) ;
@@ -2846,7 +2846,7 @@ struct es3_backend::pimpl
                     auto & varset = config.var_sets_array[ varset_id ] ;
                     for( auto & item : varset.second )
                     {
-                        auto var = natus::graphics::data_variable< int_t >( tex_unit ) ;
+                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ item.uniform_id ] ;
 
                         uv.do_copy_funk( item.mem, &var ) ;
@@ -2860,7 +2860,7 @@ struct es3_backend::pimpl
                     auto & varset = config.var_sets_streamout[ varset_id ] ;
                     for( auto & item : varset.second )
                     {
-                        auto var = natus::graphics::data_variable< int_t >( tex_unit ) ;
+                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ item.uniform_id ] ;
 
                         uv.do_copy_funk( item.mem, &var ) ;
@@ -2902,7 +2902,7 @@ struct es3_backend::pimpl
         // #3 : otherwise we can not render
         else
         {
-            natus::log::global_t::error( "[gl3::render] : used geometry idx invalid because" 
+            motor::log::global_t::error( "[gl3::render] : used geometry idx invalid because" 
                 "exceeds array size for render object : " + config.name ) ;
                 return false ;
         }
@@ -2913,13 +2913,13 @@ struct es3_backend::pimpl
 
         {
             glBindVertexArray( gconfig.va_id ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glBindVertexArray" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) )
                 return false ;
         }
 
         {
             glUseProgram( sconfig.pg_id ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glUseProgram" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glUseProgram" ) ) )
                 return false ;
         }
 
@@ -2933,7 +2933,7 @@ struct es3_backend::pimpl
                     auto& uv = sconfig.uniforms[ item.uniform_id ] ;
                     if( !uv.do_uniform_funk( item.mem ) )
                     {
-                        natus::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
+                        motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
                     }
                 }
             }
@@ -2948,27 +2948,27 @@ struct es3_backend::pimpl
                     for( auto& item : varset.second )
                     {
                         glActiveTexture( GLenum(GL_TEXTURE0 + tex_unit) ) ;
-                        natus::es::error::check_and_log( natus_log_fn( "glActiveTexture" ) ) ;
+                        motor::es::error::check_and_log( motor_log_fn( "glActiveTexture" ) ) ;
 
                         {
                             auto const& ic = _images[ item.img_id ] ;
 
                             glBindTexture( ic.type, item.tex_id ) ;
-                            natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) ;
+                            motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) ;
 
                             glTexParameteri( ic.type, GL_TEXTURE_WRAP_S, ic.wrap_types[0] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_WRAP_T, ic.wrap_types[1] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_WRAP_R, ic.wrap_types[2] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_MIN_FILTER, ic.filter_types[0] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_MAG_FILTER, ic.filter_types[1] ) ;
-                            natus::es::error::check_and_log( natus_log_fn( "glTexParameteri" ) ) ;
+                            motor::es::error::check_and_log( motor_log_fn( "glTexParameteri" ) ) ;
                         }
 
                         {
                             auto & uv = sconfig.uniforms[ item.uniform_id ] ;
                             if( !uv.do_uniform_funk( item.mem ) )
                             {
-                                natus::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
+                                motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
                             }
                         }
                         ++tex_unit ;
@@ -2981,15 +2981,15 @@ struct es3_backend::pimpl
                     for( auto & item : varset.second )
                     {
                         glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                        natus::es::error::check_and_log( natus_log_fn( "glActiveTexture" ) ) ;
+                        motor::es::error::check_and_log( motor_log_fn( "glActiveTexture" ) ) ;
                         glBindTexture( GL_TEXTURE_BUFFER, item.tex_id ) ;
-                        natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) ;
+                        motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) ;
 
                         {
                             auto & uv = sconfig.uniforms[ item.uniform_id ] ;
                             if( !uv.do_uniform_funk( item.mem ) )
                             {
-                                natus::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
+                                motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
                             }
                         }
 
@@ -3006,15 +3006,15 @@ struct es3_backend::pimpl
                         GLuint const tid = item.tex_id[tfd.read_index()] ;
 
                         glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                        natus::es::error::check_and_log( natus_log_fn( "glActiveTexture" ) ) ;
+                        motor::es::error::check_and_log( motor_log_fn( "glActiveTexture" ) ) ;
                         glBindTexture( GL_TEXTURE_BUFFER, tid ) ;
-                        natus::es::error::check_and_log( natus_log_fn( "glBindTexture" ) ) ;
+                        motor::es::error::check_and_log( motor_log_fn( "glBindTexture" ) ) ;
 
                         {
                             auto & uv = sconfig.uniforms[ item.uniform_id ] ;
                             if( !uv.do_uniform_funk( item.mem ) )
                             {
-                                natus::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
+                                motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
                             }
                         }
 
@@ -3028,7 +3028,7 @@ struct es3_backend::pimpl
         if( sconfig.ps_id == GLuint(-1) )
         {
             glEnable( GL_RASTERIZER_DISCARD ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glEnable( GL_RASTERIZER_DISCARD ) " ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glEnable( GL_RASTERIZER_DISCARD ) " ) ) ;
         }
 
         {
@@ -3049,15 +3049,15 @@ struct es3_backend::pimpl
                 GLuint num_prims = 0 ;
                 {
                     glGetQueryObjectuiv( tfd.read_buffer().qid, GL_QUERY_RESULT, &num_prims ) ;
-                    natus::es::error::check_and_log( natus_log_fn( "glGetQueryObjectuiv" ) ) ;
+                    motor::es::error::check_and_log( motor_log_fn( "glGetQueryObjectuiv" ) ) ;
                 }
                 glDrawArrays( pt, start_element, num_prims * 
-                              natus::graphics::es3::primitive_type_to_num_vertices( pt ) ) ;
+                              motor::graphics::es3::primitive_type_to_num_vertices( pt ) ) ;
 
-                natus::es::error::check_and_log( natus_log_fn( "glDrawArrays" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDrawArrays" ) ) ;
                 #else
                 glDrawTransformFeedback( pt, tfd.read_buffer().tfid ) ;
-                natus::es::error::check_and_log( natus_log_fn( "glDrawTransformFeedback" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDrawTransformFeedback" ) ) ;
                 #endif
 
             }
@@ -3073,7 +3073,7 @@ struct es3_backend::pimpl
 
                 glDrawElements( pt, ne, glt, offset ) ;
 
-                natus::es::error::check_and_log( natus_log_fn( "glDrawElements" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDrawElements" ) ) ;
             }
             else
             {
@@ -3082,7 +3082,7 @@ struct es3_backend::pimpl
 
                 glDrawArrays( pt, start_element, ne ) ;
 
-                natus::es::error::check_and_log( natus_log_fn( "glDrawArrays" ) ) ;
+                motor::es::error::check_and_log( motor_log_fn( "glDrawArrays" ) ) ;
             }
         }
 
@@ -3094,12 +3094,12 @@ struct es3_backend::pimpl
         if( sconfig.ps_id == GLuint(-1) )
         {
             glDisable( GL_RASTERIZER_DISCARD ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glDisable( GL_RASTERIZER_DISCARD ) " ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glDisable( GL_RASTERIZER_DISCARD ) " ) ) ;
         }
 
         {
             glBindVertexArray( 0 ) ;
-            if( natus::es::error::check_and_log( natus_log_fn( "glBindVertexArray" ) ) )
+            if( motor::es::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) )
                 return false ;
         }
 
@@ -3116,7 +3116,7 @@ struct es3_backend::pimpl
             // set the viewport to the default new state, 
             // so the correct viewport is set automatically.
             {
-                natus::math::vec4ui_t vp = _states[ ids_new.first ].states[ ids_new.second ].view_s.ss.vp ;
+                motor::math::vec4ui_t vp = _states[ ids_new.first ].states[ ids_new.second ].view_s.ss.vp ;
                 vp.z( uint_t( vp_width ) ) ;
                 vp.w( uint_t( vp_height ) ) ;
                 _states[ ids_new.first ].states[ ids_new.second ].view_s.ss.vp = vp ;
@@ -3127,15 +3127,15 @@ struct es3_backend::pimpl
 
         // do clear the frame
         {
-            natus::math::vec4f_t const clear_color = _state_stack.top().clear_s.ss.clear_color ;
+            motor::math::vec4f_t const clear_color = _state_stack.top().clear_s.ss.clear_color ;
             glClearColor( clear_color.x(), clear_color.y(), clear_color.z(), clear_color.w() ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glClearColor" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glClearColor" ) ) ;
 
             GLbitfield const color = GL_COLOR_BUFFER_BIT ;
             GLbitfield const depth = GL_DEPTH_BUFFER_BIT ;
 
             glClear( color | depth ) ;
-            natus::es::error::check_and_log( natus_log_fn( "glEnable" ) ) ;
+            motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
         }
     }
 
@@ -3154,11 +3154,11 @@ struct es3_backend::pimpl
 //****************************************************************************************************************************************************************************************************************
 
 //********************************************************************************************************************
-es3_backend::es3_backend( natus::graphics::es_context_ptr_t ctx ) noexcept : 
-    backend( natus::graphics::backend_type::es3 )
+es3_backend::es3_backend( motor::graphics::es_context_ptr_t ctx ) noexcept : 
+    backend( motor::graphics::backend_type::es3 )
 {
-    _pimpl = natus::memory::global_t::alloc( pimpl( ctx ), 
-        natus_log_fn("es3_backend::pimpl") ) ;
+    _pimpl = motor::memory::global_t::alloc( pimpl( ctx ), 
+        motor_log_fn("es3_backend::pimpl") ) ;
 
     _context = ctx ;
 }
@@ -3166,14 +3166,14 @@ es3_backend::es3_backend( natus::graphics::es_context_ptr_t ctx ) noexcept :
 //********************************************************************************************************************
 es3_backend::es3_backend( this_rref_t rhv ) noexcept : backend( ::std::move( rhv ) )
 {
-    natus_move_member_ptr( _pimpl, rhv ) ;
-    natus_move_member_ptr( _context, rhv ) ;
+    motor_move_member_ptr( _pimpl, rhv ) ;
+    motor_move_member_ptr( _context, rhv ) ;
 }
 
 //********************************************************************************************************************
 es3_backend::~es3_backend( void_t ) 
 {
-    natus::memory::global_t::dealloc( _pimpl ) ;
+    motor::memory::global_t::dealloc( _pimpl ) ;
 }
 
 //********************************************************************************************************************
@@ -3192,9 +3192,9 @@ void_t es3_backend::set_window_info( window_info_cref_t wi ) noexcept
 }
 
 //*****************************************************************************************
-natus::graphics::result es3_backend::configure( natus::graphics::geometry_object_res_t gconf ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::geometry_object_res_t gconf ) noexcept 
 {
-    natus::graphics::id_res_t id = gconf->get_id() ;
+    motor::graphics::id_res_t id = gconf->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_geo( 
@@ -3203,19 +3203,19 @@ natus::graphics::result es3_backend::configure( natus::graphics::geometry_object
 
     {
         auto const res = _pimpl->update( id->get_oid( this_t::get_bid() ), gconf, true ) ;
-        if( natus::core::is_not( res ) )
+        if( motor::core::is_not( res ) )
         {
-            return natus::graphics::result::failed ;
+            return motor::graphics::result::failed ;
         }
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //***************************************************************************************
-natus::graphics::result es3_backend::configure( natus::graphics::render_object_res_t config ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::render_object_res_t config ) noexcept 
 {
-    natus::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_res_t id = config->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_render_config( 
@@ -3226,19 +3226,19 @@ natus::graphics::result es3_backend::configure( natus::graphics::render_object_r
 
     {
         auto const res = _pimpl->update( oid, *config ) ;
-        if( natus::core::is_not( res ) )
+        if( motor::core::is_not( res ) )
         {
-            return natus::graphics::result::failed ;
+            return motor::graphics::result::failed ;
         }
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //***
-natus::graphics::result es3_backend::configure( natus::graphics::shader_object_res_t config ) noexcept
+motor::graphics::result es3_backend::configure( motor::graphics::shader_object_res_t config ) noexcept
 {
-    natus::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_res_t id = config->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_shader_data( 
@@ -3249,19 +3249,19 @@ natus::graphics::result es3_backend::configure( natus::graphics::shader_object_r
 
     {
         auto const res = _pimpl->update( oid, *config ) ;
-        if( natus::core::is_not( res ) )
+        if( motor::core::is_not( res ) )
         {
-            return natus::graphics::result::failed ;
+            return motor::graphics::result::failed ;
         }
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //***
-natus::graphics::result es3_backend::configure( natus::graphics::image_object_res_t config ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::image_object_res_t config ) noexcept 
 {
-    natus::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_res_t id = config->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
@@ -3272,57 +3272,57 @@ natus::graphics::result es3_backend::configure( natus::graphics::image_object_re
 
     {
         auto const res = _pimpl->update( oid, *config, true ) ;
-        if( natus::core::is_not( res ) )
+        if( motor::core::is_not( res ) )
         {
-            return natus::graphics::result::failed ;
+            return motor::graphics::result::failed ;
         }
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //***
-natus::graphics::result es3_backend::configure( natus::graphics::framebuffer_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::framebuffer_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
             id->get_oid( this_t::get_bid() ), *obj ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::configure( natus::graphics::state_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::configure( motor::graphics::state_object_res_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_state(
             id->get_oid( this_t::get_bid() ), *obj ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::configure( natus::graphics::array_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::array_object_res_t obj ) noexcept 
 {
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_array_data( 
@@ -3333,16 +3333,16 @@ natus::graphics::result es3_backend::configure( natus::graphics::array_object_re
 
     {
         auto const res = _pimpl->update( oid, *obj, true ) ;
-        if( natus::core::is_not( res ) ) return natus::graphics::result::failed ;
+        if( motor::core::is_not( res ) ) return motor::graphics::result::failed ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::configure( natus::graphics::streamout_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::streamout_object_res_t obj ) noexcept 
 {
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_feedback( 
@@ -3353,348 +3353,348 @@ natus::graphics::result es3_backend::configure( natus::graphics::streamout_objec
 
     {
         auto const res = _pimpl->update( oid, *obj, true ) ;
-        if( natus::core::is_not( res ) ) return natus::graphics::result::failed ;
+        if( motor::core::is_not( res ) ) return motor::graphics::result::failed ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::geometry_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::geometry_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         _pimpl->release_geometry( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::render_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::render_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         _pimpl->release_render_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::shader_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::release( motor::graphics::shader_object_res_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         _pimpl->release_shader_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::image_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::image_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         _pimpl->release_image_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::framebuffer_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::framebuffer_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         _pimpl->release_framebuffer( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::state_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::release( motor::graphics::state_object_res_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         //_pimpl->relese( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::array_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::release( motor::graphics::array_object_res_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         _pimpl->release_array_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::release( natus::graphics::streamout_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::streamout_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
-        natus::log::global_t::error( natus_log_fn( "Object must be valid and requires a name" ) ) ;
-        return natus::graphics::result::invalid_argument ;
+        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        return motor::graphics::result::invalid_argument ;
     }
 
     {
-        natus::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_res_t id = obj->get_id() ;
         _pimpl->release_tf_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::connect( natus::graphics::render_object_res_t config, 
-                natus::graphics::variable_set_res_t vs ) noexcept
+motor::graphics::result es3_backend::connect( motor::graphics::render_object_res_t config, 
+                motor::graphics::variable_set_res_t vs ) noexcept
 {
-    natus::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_res_t id = config->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
-        natus::log::global_t::error( natus_log_fn( "invalid render configuration id" ) ) ;
-        return natus::graphics::result::failed ;
+        motor::log::global_t::error( motor_log_fn( "invalid render configuration id" ) ) ;
+        return motor::graphics::result::failed ;
     }
 
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     auto const res = _pimpl->connect( oid, vs ) ;
-    natus::log::global_t::error( natus::graphics::is_not( res ), 
-        natus_log_fn( "connect variable set" ) ) ;
+    motor::log::global_t::error( motor::graphics::is_not( res ), 
+        motor_log_fn( "connect variable set" ) ) ;
    
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::update( natus::graphics::geometry_object_res_t config ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::geometry_object_res_t config ) noexcept 
 {
-    natus::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_res_t id = config->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
-        natus::log::global_t::error( natus_log_fn( "invalid geometry configuration id" ) ) ;
-        return natus::graphics::result::failed ;
+        motor::log::global_t::error( motor_log_fn( "invalid geometry configuration id" ) ) ;
+        return motor::graphics::result::failed ;
     }
 
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     auto const res = _pimpl->update( oid, config ) ;
-    natus::log::global_t::error( natus::graphics::is_not( res ),
-        natus_log_fn( "update geometry" ) ) ;
+    motor::log::global_t::error( motor::graphics::is_not( res ),
+        motor_log_fn( "update geometry" ) ) ;
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::update( natus::graphics::streamout_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::update( motor::graphics::streamout_object_res_t obj ) noexcept
 {
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, false ) ;
-        if( natus::core::is_not( res ) ) return natus::graphics::result::failed ;
+        if( motor::core::is_not( res ) ) return motor::graphics::result::failed ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::update( natus::graphics::array_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::array_object_res_t obj ) noexcept 
 {
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, false ) ;
-        if( natus::core::is_not( res ) ) return natus::graphics::result::failed ;
+        if( motor::core::is_not( res ) ) return motor::graphics::result::failed ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::update( natus::graphics::image_object_res_t ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::image_object_res_t ) noexcept 
 {
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::update( natus::graphics::render_object_res_t obj, size_t const varset ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::render_object_res_t obj, size_t const varset ) noexcept 
 {
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update_variables( oid, varset ) ;
-        if( natus::core::is_not( res ) ) return natus::graphics::result::failed ;
+        if( motor::core::is_not( res ) ) return motor::graphics::result::failed ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::use( natus::graphics::framebuffer_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::use( motor::graphics::framebuffer_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() )
     {
-        return this_t::unuse( natus::graphics::backend::unuse_type::framebuffer ) ;
+        return this_t::unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
     }
 
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
-        return this_t::unuse( natus::graphics::backend::unuse_type::framebuffer ) ;
+        return this_t::unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
     }
 
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
     auto const res = _pimpl->activate_framebuffer( oid ) ;
-    if( !res ) return natus::graphics::result::failed ;
+    if( !res ) return motor::graphics::result::failed ;
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::use( natus::graphics::streamout_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::use( motor::graphics::streamout_object_res_t obj ) noexcept 
 {
     if( !obj.is_valid() )
     {
-        return this_t::unuse( natus::graphics::backend::unuse_type::streamout ) ;
+        return this_t::unuse( motor::graphics::backend::unuse_type::streamout ) ;
     }
 
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
-        return this_t::unuse( natus::graphics::backend::unuse_type::streamout ) ;
+        return this_t::unuse( motor::graphics::backend::unuse_type::streamout ) ;
     }
 
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
     auto const res = _pimpl->use_transform_feedback( oid ) ;
-    if( !res ) return natus::graphics::result::failed ;
+    if( !res ) return motor::graphics::result::failed ;
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::unuse( natus::graphics::backend::unuse_type const t ) noexcept 
+motor::graphics::result es3_backend::unuse( motor::graphics::backend::unuse_type const t ) noexcept 
 {
     switch( t ) 
     {
-    case natus::graphics::backend::unuse_type::framebuffer: _pimpl->deactivate_framebuffer() ; break ;
-    case natus::graphics::backend::unuse_type::streamout: _pimpl->unuse_transform_feedback() ; break ;
+    case motor::graphics::backend::unuse_type::framebuffer: _pimpl->deactivate_framebuffer() ; break ;
+    case motor::graphics::backend::unuse_type::streamout: _pimpl->unuse_transform_feedback() ; break ;
     }
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::push( natus::graphics::state_object_res_t obj, size_t const sid, bool_t const ) noexcept 
+motor::graphics::result es3_backend::push( motor::graphics::state_object_res_t obj, size_t const sid, bool_t const ) noexcept 
 {
     if( !obj.is_valid() )
     {
-        return this_t::pop( natus::graphics::backend::pop_type::render_state ) ;
+        return this_t::pop( motor::graphics::backend::pop_type::render_state ) ;
     }
 
-    natus::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_res_t id = obj->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
-        return this_t::pop( natus::graphics::backend::pop_type::render_state ) ;
+        return this_t::pop( motor::graphics::backend::pop_type::render_state ) ;
     }
 
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
     _pimpl->handle_render_state( oid, sid ) ;
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-natus::graphics::result es3_backend::pop( natus::graphics::backend::pop_type const ) noexcept 
+motor::graphics::result es3_backend::pop( motor::graphics::backend::pop_type const ) noexcept 
 {
     _pimpl->handle_render_state( size_t( -1 ), size_t( -1 ) ) ;
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //***********************************************************************************************
-natus::graphics::result es3_backend::render( natus::graphics::render_object_res_t config, 
-         natus::graphics::backend::render_detail_cref_t detail ) noexcept 
+motor::graphics::result es3_backend::render( motor::graphics::render_object_res_t config, 
+         motor::graphics::backend::render_detail_cref_t detail ) noexcept 
 { 
-    natus::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_res_t id = config->get_id() ;
 
-    //natus::log::global_t::status( natus_log_fn("render") ) ;
+    //motor::log::global_t::status( motor_log_fn("render") ) ;
 
     if( id->is_not_valid( this_t::get_bid()) )
     {
-        natus::log::global_t::error( natus_log_fn( "invalid id" ) ) ;
-        return natus::graphics::result::failed ;
+        motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
+        return motor::graphics::result::failed ;
     }
 
     _pimpl->render( id->get_oid( this_t::get_bid()), detail.geo,
                     detail.feed_from_streamout, detail.use_streamout_count,
                     detail.varset, (GLsizei)detail.start, (GLsizei)detail.num_elems ) ;
 
-    return natus::graphics::result::ok ;
+    return motor::graphics::result::ok ;
 }
 
 //********************************************************************************************************************

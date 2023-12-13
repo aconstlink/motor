@@ -3,22 +3,22 @@
 #include "glx_context.h"
 #include "../xlib/xlib_window.h"
 
-#include "../platform_window.h"
+//#include "../platform_window.h"
 
-namespace natus
+namespace motor
 {
     namespace application
     {
         namespace glx
         {
-            class window : public platform_window
+            class window //: public platform_window
             {
-                natus_this_typedefs( window ) ;
+                motor_this_typedefs( window ) ;
 
             private:
 
-                context_res_t _context ;
-                xlib::window_res_t _window ;
+                //context_res_t _context ;
+                //xlib::window_res_t _window ;
 
                 bool_t _vsync = true ;
 
@@ -33,8 +33,8 @@ namespace natus
 
             public:
 
-                context_res_t get_context( void_t ) const { return _context ; }
-                xlib::window_res_t get_window( void_t ) { return _window ; }
+                //context_res_t get_context( void_t ) const { return _context ; }
+                //xlib::window_res_t get_window( void_t ) { return _window ; }
 
                 virtual void_t check_for_messages( void_t ) noexcept ;
 
@@ -42,7 +42,7 @@ namespace natus
 
                 Window create_glx_window( window_info_in_t ) ;
             };
-            natus_res_typedef( window ) ;
+            motor_typedef( window ) ;
         }
     }
 }

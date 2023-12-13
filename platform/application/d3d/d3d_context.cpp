@@ -8,8 +8,8 @@
 
 #include <natus/log/global.h>
 
-using namespace natus::application ;
-using namespace natus::application::d3d ;
+using namespace motor::application ;
+using namespace motor::application::d3d ;
 
 //***********************************************************************
 context::context( void_t ) noexcept
@@ -39,7 +39,7 @@ context::context( HWND hwnd, HGLRC ctx ) noexcept
 context::context( this_rref_t rhv ) noexcept
 {
     *this = std::move( rhv ) ;
-    natus_move_member_ptr( _bend_ctx, rhv ) ;
+    motor_move_member_ptr( _bend_ctx, rhv ) ;
     _bend_ctx->change_owner( this ) ;
 }
 
@@ -72,16 +72,16 @@ context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
     _driverType = rhv._driverType ;
     _featureLevel = rhv._featureLevel ;
 
-    natus_move_member_ptr( _pd3dDevice, rhv ) ;
-    natus_move_member_ptr( _pd3dDevice1, rhv ) ;
-    natus_move_member_ptr( _pImmediateContext, rhv ) ;
-    natus_move_member_ptr( _pImmediateContext1, rhv ) ;
-    natus_move_member_ptr( _pSwapChain, rhv ) ;
-    natus_move_member_ptr( _pSwapChain1, rhv ) ;
-    natus_move_member_ptr( _pRenderTargetView, rhv ) ;
-    natus_move_member_ptr( _pDepthStencil, rhv ) ;
-    natus_move_member_ptr( _pDepthStencilView, rhv ) ;
-    natus_move_member_ptr( _pDebug, rhv ) ;
+    motor_move_member_ptr( _pd3dDevice, rhv ) ;
+    motor_move_member_ptr( _pd3dDevice1, rhv ) ;
+    motor_move_member_ptr( _pImmediateContext, rhv ) ;
+    motor_move_member_ptr( _pImmediateContext1, rhv ) ;
+    motor_move_member_ptr( _pSwapChain, rhv ) ;
+    motor_move_member_ptr( _pSwapChain1, rhv ) ;
+    motor_move_member_ptr( _pRenderTargetView, rhv ) ;
+    motor_move_member_ptr( _pDepthStencil, rhv ) ;
+    motor_move_member_ptr( _pDepthStencilView, rhv ) ;
+    motor_move_member_ptr( _pDebug, rhv ) ;
 
     return *this ;
 }
@@ -451,7 +451,7 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
         size_t const milli = size_t( ::std::chrono::duration_cast< ::std::chrono::milliseconds >(
             local_clock_t::now() - t1 ).count() ) ;
 
-        natus::log::global::status( natus_log_fn( "created [" + ::std::to_string( milli ) + " ms]" ) ) ;
+        natus::log::global::status( motor_log_fn( "created [" + ::std::to_string( milli ) + " ms]" ) ) ;
     }
 
     return natus::application::result::ok ;

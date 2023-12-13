@@ -7,8 +7,8 @@
 #include <natus/log/global.h>
 #include <GLES3/gl3.h>
 
-using namespace natus::application ;
-using namespace natus::application::egl ;
+using namespace motor::application ;
+using namespace motor::application::egl ;
 
 //***********************************************************************
 window::window( void_t ) 
@@ -84,7 +84,7 @@ Window window::create_egl_window( window_info_in_t wi )
 {
     auto const status = XInitThreads() ;
     natus::log::global_t::warning( status == 0, 
-           natus_log_fn("XInitThreads") ) ;
+           motor_log_fn("XInitThreads") ) ;
 
     Display * display = natus::application::xlib::xlib_application_t::get_display() ;
     Window root = DefaultRootWindow( display ) ;

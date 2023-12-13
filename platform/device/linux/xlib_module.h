@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../../imodule.h"
-#include "../../layouts/three_mouse.hpp"
-#include "../../layouts/ascii_keyboard.hpp"
+#include <motor/device/imodule.h>
+#include <motor/device/layouts/three_mouse.hpp>
+#include <motor/device/layouts/ascii_keyboard.hpp>
 
 #include <motor/std/vector>
 #include <motor/math/vector/vector2.hpp>

@@ -2,14 +2,14 @@
 #include "xlib_application.h"
 #include "xlib_window.h"
 
-#include <natus/log/global.h>
+#include <motor/log/global.h>
 
 #include <algorithm>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-using namespace natus::application ;
-using namespace natus::application::xlib ;
+using namespace motor::application ;
+using namespace motor::application::xlib ;
 
 //*****************************************************************
 window::window( void_t ) 
@@ -65,7 +65,7 @@ void_t window::create_window( window_info const & wi )
 {
     auto const status = XInitThreads() ;
     natus::log::global_t::warning( status == 0, 
-           natus_log_fn("XInitThreads") ) ;
+           motor_log_fn("XInitThreads") ) ;
 
     window_info wil = wi ;
 
@@ -169,9 +169,9 @@ void_t window::store_this_ptr_in_atom( Display * display, Window wnd )
 
         this_ptr_t test_ptr = this_ptr_t(*(this_ptr_t*)stored_data) ;
 
-        natus_assert( len_out == len_in ) ;
-        natus_assert( format_out == format_in ) ;
-        natus_assert( test_ptr == this ) ;
+        motor_assert( len_out == len_in ) ;
+        motor_assert( format_out == format_in ) ;
+        motor_assert( test_ptr == this ) ;
     }
 }
 

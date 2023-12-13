@@ -6,8 +6,8 @@
 #include <natus/ntd/string/split.hpp>
 #include <GLES3/gl3.h>
 
-using namespace natus::application ;
-using namespace natus::application::egl ;
+using namespace motor::application ;
+using namespace motor::application::egl ;
 
 //***********************n*****************************************
 context::context( void_t )
@@ -45,7 +45,7 @@ context::context( this_rref_t rhv )
     _ndt = rhv._ndt ;
     rhv._ndt = 0 ;
 
-    natus_move_member_ptr( _bend_ctx, rhv ) ;
+    motor_move_member_ptr( _bend_ctx, rhv ) ;
     _bend_ctx->change_owner( this ) ;
 }
 
@@ -66,7 +66,7 @@ context::this_ref_t context::operator = ( this_rref_t rhv )
     _ndt = rhv._ndt ;
     rhv._ndt = 0 ;
 
-    natus_move_member_ptr( _bend_ctx, rhv ) ;
+    motor_move_member_ptr( _bend_ctx, rhv ) ;
     _bend_ctx->change_owner( this ) ;
     return *this ;
 }
@@ -231,7 +231,7 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
         auto const res = eglInitialize( display , &major, &minor ) ;
         if( res != EGL_TRUE )
         {
-            natus::log::global_t::error( natus_log_fn("eglInitialize") ) ;
+            natus::log::global_t::error( motor_log_fn("eglInitialize") ) ;
             return natus::application::result::failed ;
         }
 
@@ -260,13 +260,13 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
 
         if( !eglChooseConfig( display, attribList, &config, 1, &numConfigs ) )
         {
-            natus::log::global_t::warning( natus_log_fn("eglChooseConfig") ) ;
+            natus::log::global_t::warning( motor_log_fn("eglChooseConfig") ) ;
             return natus::application::result::failed ;
         }
 
         if( numConfigs < 1 ) 
         {
-            natus::log::global_t::warning( natus_log_fn("numConfigs < 1") ) ;
+            natus::log::global_t::warning( motor_log_fn("numConfigs < 1") ) ;
             return natus::application::result::failed ;
         }
     }
@@ -277,7 +277,7 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
         if( surface == EGL_NO_SURFACE )
         {
             natus::log::global_t::warning( 
-                natus_log_fn("eglCreateWindowSurface") ) ;
+                motor_log_fn("eglCreateWindowSurface") ) ;
             return natus::application::result::failed ;
         }
         _surface = surface ;
@@ -296,7 +296,7 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
 
         if( context == EGL_NO_CONTEXT )
         {
-            natus::log::global_t::warning( natus_log_fn("eglCreateContext") ) ;
+            natus::log::global_t::warning( motor_log_fn("eglCreateContext") ) ;
             return natus::application::result::failed ;
         }
         _context = context ;

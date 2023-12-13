@@ -12,19 +12,19 @@
 
 #include <algorithm>
 
-namespace natus
+namespace motor
 {
     namespace graphics
     {
         class NATUS_GRAPHICS_API shader_object : public object
         {
-            natus_this_typedefs( shader_object ) ;
+            motor_this_typedefs( shader_object ) ;
 
         private: // vertex input
 
             struct vertex_input_binding
             {
-                natus_this_typedefs( vertex_input_binding ) ;
+                motor_this_typedefs( vertex_input_binding ) ;
 
                 vertex_input_binding( void_t ) {}
                 vertex_input_binding( natus::ntd::string_cref_t name_,
@@ -63,7 +63,7 @@ namespace natus
                 natus::ntd::string_t name ;
                 natus::graphics::binding_point bp ;
             };
-            natus_typedef( variable_binding ) ;
+            motor_typedef( variable_binding ) ;
             natus::ntd::vector< variable_binding_t > _bindings ;
 
         public: 
@@ -264,6 +264,6 @@ namespace natus
                 return _name ;
             }
         };
-        natus_res_typedef( shader_object ) ;
+        motor_res_typedef( shader_object ) ;
     }
 }

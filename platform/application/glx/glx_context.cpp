@@ -7,18 +7,18 @@
 #include <natus/ogl/glx/glx.h>
 #include <natus/ntd/string/split.hpp>
 
-using namespace natus::application ;
-using namespace natus::application::glx ;
+using namespace motor::application ;
+using namespace motor::application::glx ;
 
-//***********************n*****************************************
-context::context( void_t )
+//****************************************************************
+context::context( void_t ) noexcept
 {
     _bend_ctx = natus::memory::global_t::alloc( natus::application::glx::gl_context( this ),
         "[context] : backend gl_context" ) ;
 }
 
 //****************************************************************
-context::context( gl_info_in_t gli, Window wnd, Display * disp ) 
+context::context( gl_info_in_t gli, Window wnd, Display * disp ) noexcept
 {
     _bend_ctx = natus::memory::global_t::alloc( natus::application::glx::gl_context( this ),
         "[context] : backend gl_context" ) ;
@@ -29,7 +29,7 @@ context::context( gl_info_in_t gli, Window wnd, Display * disp )
 }
 
 //****************************************************************
-context::context( this_rref_t rhv )
+context::context( this_rref_t rhv ) noexcept
 {
     _display = rhv._display ;
     rhv._display = NULL ;
@@ -40,12 +40,12 @@ context::context( this_rref_t rhv )
     _context = rhv._context ;
     rhv._context = 0 ;
 
-    natus_move_member_ptr( _bend_ctx, rhv ) ;
+    motor_move_member_ptr( _bend_ctx, rhv ) ;
     _bend_ctx->change_owner( this ) ;
 }
 
 //****************************************************************
-context::this_ref_t context::operator = ( this_rref_t rhv ) 
+context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
 {
     _display = rhv._display ;
     rhv._display = NULL ;
@@ -56,14 +56,14 @@ context::this_ref_t context::operator = ( this_rref_t rhv )
     _context = rhv._context ;
     rhv._context = 0 ;
     
-    natus_move_member_ptr( _bend_ctx, rhv ) ;
+    motor_move_member_ptr( _bend_ctx, rhv ) ;
     _bend_ctx->change_owner( this ) ;
 
     return *this ;
 }
 
 //****************************************************************
-context::~context( void_t )
+context::~context( void_t ) noexcept
 {
     this_t::deactivate() ;
 
@@ -71,41 +71,41 @@ context::~context( void_t )
 }
 
 //***************************************************************
-natus::application::result context::activate( void_t ) 
+natus::application::result context::activate( void_t ) noexcept
 {
     //glXMakeCurrent( _display, _wnd, NULL ) ;
     //XLockDisplay( _display ) ;
     auto const res = glXMakeCurrent( _display, _wnd, _context ) ;
     //XUnlockDisplay( _display ) ;
     natus::log::global_t::warning( natus::core::is_not(res), 
-            natus_log_fn( "glXMakeCurrent" ) ) ;
+            motor_log_fn( "glXMakeCurrent" ) ) ;
 
     return natus::application::result::ok ;
 }
 
 //***************************************************************
-natus::application::result context::deactivate( void_t ) 
+natus::application::result context::deactivate( void_t ) noexcept
 {
     auto const res = glXMakeCurrent( _display, 0, 0 ) ;
     natus::log::global_t::warning( natus::core::is_not(res), 
-            natus_log_fn( "glXMakeCurrent" ) ) ;
+            motor_log_fn( "glXMakeCurrent" ) ) ;
     return natus::application::result::ok ;
 }
 
 //***************************************************************
-natus::application::result context::vsync( bool_t const on_off ) 
+natus::application::result context::vsync( bool_t const on_off ) noexcept
 {
     natus::ogl::glx::glXSwapInterval( _display, _wnd, on_off ? 1 : 0 ) ;
     return natus::application::result::ok ;
 }
 
 //**************************************************************
-natus::application::result context::swap( void_t ) 
+natus::application::result context::swap( void_t ) noexcept
 {
     glXSwapBuffers( _display, _wnd ) ;
     const GLenum glerr = natus::ogl::glGetError( ) ;
     natus::log::global_t::warning( glerr != GL_NO_ERROR, 
-            natus_log_fn( "glXSwapBuffers" ) ) ;
+            motor_log_fn( "glXSwapBuffers" ) ) ;
     return natus::application::result::ok ;
 }
 
@@ -125,7 +125,7 @@ natus::graphics::backend_res_t context::create_backend( void_t ) noexcept
 
 //**************************************************************
 natus::application::result context::create_context( 
-     Display* display, Window wnd, GLXContext context ) 
+     Display* display, Window wnd, GLXContext context ) noexcept
 {
     _display = display ;
     _wnd = wnd ;
@@ -138,7 +138,7 @@ natus::application::result context::create_context(
 
 //***************************************************************
 natus::application::result context::is_extension_supported( 
-    natus::ntd::string_cref_t extension_name ) 
+    natus::ntd::string_cref_t extension_name ) noexcept
 {
     this_t::strings_t ext_list ;
     if( natus::application::no_success( get_glx_extension(ext_list) ) ) 
@@ -155,13 +155,13 @@ natus::application::result context::is_extension_supported(
 }
 
 //*****************************************************************
-natus::application::result context::get_glx_extension( this_t::strings_out_t /*ext_list*/ )
+natus::application::result context::get_glx_extension( this_t::strings_out_t /*ext_list*/ ) noexcept
 {
     return natus::application::result::ok ;
 }
 
 //****************************************************************
-natus::application::result context::get_gl_extension( this_t::strings_out_t ext_list )
+natus::application::result context::get_gl_extension( this_t::strings_out_t ext_list ) noexcept
 {
     const GLubyte * ch = natus::ogl::glGetString( GL_EXTENSIONS ) ;
     if( !ch ) return natus::application::result::failed ;
@@ -172,7 +172,7 @@ natus::application::result context::get_gl_extension( this_t::strings_out_t ext_
 }
 
 //****************************************************************
-natus::application::result context::get_gl_version( natus::application::gl_version & version ) const 
+natus::application::result context::get_gl_version( natus::application::gl_version & version ) const noexcept
 {
     const GLubyte* ch = natus::ogl::glGetString(GL_VERSION) ;
     if( !ch ) return natus::application::result::failed ;
@@ -209,7 +209,7 @@ natus::application::result context::get_gl_version( natus::application::gl_versi
 }
 
 //****************************************************************
-void_t context::clear_now( natus::math::vec4f_t const & vec ) 
+void_t context::clear_now( natus::math::vec4f_t const & vec ) noexcept
 {
     natus::ogl::glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
     natus::ogl::glClear( GL_COLOR_BUFFER_BIT ) ;
@@ -219,7 +219,7 @@ void_t context::clear_now( natus::math::vec4f_t const & vec )
 }
 
 //***************************************************************
-natus::application::result context::create_the_context( gl_info_cref_t gli ) 
+natus::application::result context::create_the_context( gl_info_cref_t gli ) noexcept
 {
     auto res = natus::ogl::glx::init( _display, DefaultScreen( _display ) ) ;
 
@@ -245,7 +245,7 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
     natus::application::gl_version glv ;
     if( !this_t::determine_gl_version( glv ) )
     {
-        natus::log::global_t::error( natus_log_fn(
+        natus::log::global_t::error( motor_log_fn(
            "failed to determine gl version ") ) ;
         return natus::application::result::failed ;
     }
@@ -262,7 +262,7 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
           0, True, context_attribs );
 
     if( natus::log::global_t::error( !context, 
-           natus_log_fn( "glXCreateContextAttribs" )) ) 
+           motor_log_fn( "glXCreateContextAttribs" )) ) 
     {
         return natus::application::result::failed ;
     }
@@ -275,7 +275,7 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
         gl_version version ;
         if( !success( this_t::get_gl_version( version ) ) )
         {
-            natus::log::global_t::error( natus_log_fn( "" ) ) ;
+            natus::log::global_t::error( motor_log_fn( "" ) ) ;
             this_t::deactivate() ;
             return result::failed_gfx_context_creation ;
         }
@@ -287,7 +287,7 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
     {
         auto const res = this_t::vsync( gli.vsync_enabled ) ;
         natus::log::global_t::warning( natus::application::no_success(res),
-               natus_log_fn("vsync") ) ;
+               motor_log_fn("vsync") ) ;
     }
     glXMakeCurrent( _display, 0, 0 ) ;
 
@@ -298,7 +298,7 @@ natus::application::result context::create_the_context( gl_info_cref_t gli )
 }
 
 //****************************************************************
-bool_t context::determine_gl_version( gl_version & gl_out ) const 
+bool_t context::determine_gl_version( gl_version & gl_out ) const noexcept
 {
     int context_attribs[] =
     {
@@ -312,7 +312,7 @@ bool_t context::determine_gl_version( gl_version & gl_out ) const
           0, True, context_attribs );
 
     if( natus::log::global_t::error( !context, 
-           natus_log_fn( "glXCreateContextAttribs") ) ) 
+           motor_log_fn( "glXCreateContextAttribs") ) ) 
     {
         return false ;
     }
@@ -324,7 +324,7 @@ bool_t context::determine_gl_version( gl_version & gl_out ) const
     {
         if( !success( this_t::get_gl_version( version ) ) )
         {
-            natus::log::global_t::error( natus_log_fn( "" ) ) ;
+            natus::log::global_t::error( motor_log_fn( "" ) ) ;
             glXMakeCurrent( _display, 0, 0 ) ;
             glXDestroyContext( _display, context ) ;
             return false ;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../../types.h"
-#include <natus/ogl/es/es.h>
+#include <motor/graphics/types.h>
+#include <motor/ogl/es/es.h>
 
-namespace natus
+namespace motor
 {
-    namespace graphics
+    namespace platform
     {
         namespace es3
         {

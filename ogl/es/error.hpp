@@ -3,8 +3,8 @@
 #include "es.h"
 #include "convert.hpp"
 
-#include <natus/ntd/string.hpp>
-#include <natus/log/global.h>
+#include <motor/std/string>
+#include <motor/log/global.h>
 
 namespace motor
 {

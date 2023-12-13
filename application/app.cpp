@@ -36,7 +36,7 @@
 
 #include <natus/concurrent/global.h>
 
-using namespace natus::application ;
+using namespace motor::application ;
 
 //***
 app::app( void_t ) 
@@ -50,7 +50,7 @@ app::app( this_rref_t rhv )
 {
     _windows = ::std::move( rhv._windows ) ;
     _audios = std::move( rhv._audios ) ;
-    natus_move_member_ptr( _access, rhv ) ;
+    motor_move_member_ptr( _access, rhv ) ;
 }
 
 //***
@@ -101,7 +101,7 @@ natus::audio::async_access_t app::create_audio_engine( natus::audio::backend_typ
     natus::audio::async_res_t async = pai.async ;
 
     bool_ptr_t run = natus::memory::global_t::alloc<bool_t>(
-        natus_log_fn( "bool for render thread while" ) ) ;
+        motor_log_fn( "bool for render thread while" ) ) ;
     *run = true ;
     pai.run = run ;
 
@@ -205,7 +205,7 @@ app::window_async_t app::create_window(
     pwi.imgui->init( natus::graphics::async_view_t( async ) ) ;
 
     bool_ptr_t run = natus::memory::global_t::alloc<bool_t>(
-        natus_log_fn( "bool for render thread while") ) ;
+        motor_log_fn( "bool for render thread while") ) ;
     *run = true ;
     pwi.run = run ;
 
@@ -253,7 +253,7 @@ app::window_async_t app::create_window(
             async_->system_update() ; 
             ctx_->swap() ;
         }
-        natus::log::global_t::status( natus_log_fn("thread end") ) ;
+        natus::log::global_t::status( motor_log_fn("thread end") ) ;
         
         async_->end_of_time() ;
         ctx_->deactivate() ;

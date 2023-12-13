@@ -14,18 +14,18 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-namespace natus
+namespace motor
 {
     namespace application
     {
         namespace egl
         {
             class es_context ;
-            natus_class_proto_typedefs( es_context ) ;
+            motor_class_proto_typedefs( es_context ) ;
 
             class context : public gfx_context
             {
-                natus_this_typedefs( context ) ;
+                motor_this_typedefs( context ) ;
 
             private:
 
@@ -40,7 +40,7 @@ namespace natus
 
             public:
 
-                natus_typedefs( 
+                motor_typedefs( 
                      natus::ntd::vector< natus::ntd::string >, strings ) ;
 
             public:
@@ -107,13 +107,13 @@ namespace natus
                 natus::application::result create_the_context( 
                     gl_info_cref_t gli ) ;
             };
-            natus_res_typedef( context ) ;
+            motor_res_typedef( context ) ;
 
             // this is passed to the graphics backend at construction time, so the backend
             // can check for extensions or other context related topics.
             class NATUS_APPLICATION_API es_context : public natus::graphics::es_context
             {
-                natus_this_typedefs( es_context ) ;
+                motor_this_typedefs( es_context ) ;
 
                 friend class natus::application::egl::context ;
 
@@ -129,7 +129,7 @@ namespace natus
 
                 es_context( this_rref_t rhv ) noexcept
                 {
-                    natus_move_member_ptr( _app_context, rhv ) ;
+                    motor_move_member_ptr( _app_context, rhv ) ;
                 }
 
                 void_t change_owner( context_ptr_t ctx ) noexcept { _app_context = ctx ; }
