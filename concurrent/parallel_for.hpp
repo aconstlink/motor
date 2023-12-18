@@ -72,7 +72,7 @@ namespace motor
             } ) ;
 
             #if 0
-            size_t const num_threads = ::std::thread::hardware_concurrency() ;
+            size_t const num_threads = std::thread::hardware_concurrency() ;
 
             motor_typedefs( motor::concurrent::job_1d<T>, job ) ;
 

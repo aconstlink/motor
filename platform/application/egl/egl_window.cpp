@@ -58,10 +58,10 @@ window::window( gl_info_cref_t gli, window_info_cref_t wi )
 }
 
 //***********************************************************************
-window::window( this_rref_t rhv ) : platform_window( ::std::move( rhv ) )
+window::window( this_rref_t rhv ) : platform_window( std::move( rhv ) )
 {
-    _window = ::std::move( rhv._window ) ;
-    _context = ::std::move( rhv._context ) ;
+    _window = std::move( rhv._window ) ;
+    _context = std::move( rhv._context ) ;
 
     _vsync = rhv._vsync ;
 }

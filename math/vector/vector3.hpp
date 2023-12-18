@@ -526,7 +526,7 @@ namespace motor
             this_ref_t normalize( void )
             {
                 type_t len = this->length( ) ;
-                if( ::std::abs( len ) > ::std::numeric_limits<type_t>::epsilon( ) ) ( *this ) /= len ;
+                if( std::abs( len ) > std::numeric_limits<type_t>::epsilon( ) ) ( *this ) /= len ;
                 return (*this) ;
             }
 

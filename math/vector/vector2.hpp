@@ -476,7 +476,7 @@ namespace motor
             //***************************************************
             this_ref_t abs( void ) noexcept
             {
-                _elem[0] = type_t(::std::abs(_elem[0])) ;
+                _elem[0] = type_t(std::abs(_elem[0])) ;
                 _elem[1] = motor::math::fn<type_t>::abs(_elem[1]) ;
                 return *this ;
             }
@@ -493,8 +493,8 @@ namespace motor
             /// @return operates on this object. returns this.
             this_ref_t dead_zone( type_t threshold ) noexcept
             {
-                _elem[0] = ::std::abs(_elem[0]) < threshold ? type_t(0) : _elem[0]  ;
-                _elem[1] = ::std::abs(_elem[1]) < threshold ? type_t(0) : _elem[1]  ;
+                _elem[0] = std::abs(_elem[0]) < threshold ? type_t(0) : _elem[0]  ;
+                _elem[1] = std::abs(_elem[1]) < threshold ? type_t(0) : _elem[1]  ;
                 return *this ;
             }
 
@@ -510,8 +510,8 @@ namespace motor
             //***************************************************
             this_ref_t clamp( this_cref_t min_val, this_cref_t max_val ) noexcept 
             {
-                _elem[0] = ::std::min( ::std::max(_elem[0], min_val.x()), max_val.x()) ;
-                _elem[1] = ::std::min( ::std::max(_elem[1], min_val.y()), max_val.y()) ;
+                _elem[0] = std::min( std::max(_elem[0], min_val.x()), max_val.x()) ;
+                _elem[1] = std::min( std::max(_elem[1], min_val.y()), max_val.y()) ;
 
                 return *this ;
             }
@@ -525,8 +525,8 @@ namespace motor
             //***************************************************
             this_ref_t clamp( type_t min_val, type_t max_val )  noexcept
             {
-                _elem[0] = ::std::min( ::std::max(_elem[0], min_val), max_val) ;
-                _elem[1] = ::std::min( ::std::max(_elem[1], min_val), max_val) ;
+                _elem[0] = std::min( std::max(_elem[0], min_val), max_val) ;
+                _elem[1] = std::min( std::max(_elem[1], min_val), max_val) ;
 
                 return *this ;
             }
@@ -593,8 +593,8 @@ namespace motor
             //***************************************************
             vec2_ref_t floor( void_t ) noexcept 
             {
-                _elem[ 0 ] = ::std::floor( _elem[ 0 ] ) ;
-                _elem[ 1 ] = ::std::floor( _elem[ 1 ] ) ;
+                _elem[ 0 ] = std::floor( _elem[ 0 ] ) ;
+                _elem[ 1 ] = std::floor( _elem[ 1 ] ) ;
                 return *this ;
             }
 
@@ -602,8 +602,8 @@ namespace motor
             vec2_t floored( void_t ) const noexcept
             {
                 return this_t(
-                    ::std::floor( _elem[ 0 ] ),
-                    ::std::floor( _elem[ 1 ] ) ) ;
+                    std::floor( _elem[ 0 ] ),
+                    std::floor( _elem[ 1 ] ) ) ;
             }
 
             //***************************************************

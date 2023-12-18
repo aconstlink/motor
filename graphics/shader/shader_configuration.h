@@ -47,7 +47,7 @@ namespace motor
 
                 this_ref_t operator = ( this_rref_t rhv )
                 {
-                    name = ::std::move( rhv.name ) ; va = rhv.va ;
+                    name = std::move( rhv.name ) ; va = rhv.va ;
                     return *this ;
                 }
 
@@ -68,7 +68,7 @@ namespace motor
 
         public: 
 
-            typedef ::std::function < void_t ( 
+            typedef std::function < void_t ( 
                 natus::graphics::vertex_attribute const va, natus::ntd::string_cref_t name ) > for_each_vab_funk_t ;
             void_t for_each_vertex_input_binding( for_each_vab_funk_t funk ) const
             {
@@ -81,7 +81,7 @@ namespace motor
             this_ref_t add_vertex_input_binding( natus::graphics::vertex_attribute const va,
                 natus::ntd::string_cref_t name )
             {
-                auto iter = ::std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
+                auto iter = std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
                     [&] ( vertex_input_binding const& b )
                 {
                     return b.name == name ;
@@ -89,7 +89,7 @@ namespace motor
 
                 if( iter == _vertex_inputs.end() )
                 {
-                    iter = ::std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
+                    iter = std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
                         [&] ( vertex_input_binding const& b )
                     {
                         return b.va == va ;
@@ -108,7 +108,7 @@ namespace motor
             bool_t find_vertex_input_binding_by_name( natus::ntd::string_cref_t name,
                 natus::graphics::vertex_attribute& va ) const noexcept
             {
-                auto iter = ::std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
+                auto iter = std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
                     [&] ( vertex_input_binding const& b )
                 {
                     return b.name == name ;
@@ -123,7 +123,7 @@ namespace motor
             bool_t find_vertex_input_binding_by_attribute( natus::graphics::vertex_attribute const va,
                 natus::ntd::string_out_t name ) const noexcept
             {
-                auto iter = ::std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
+                auto iter = std::find_if( _vertex_inputs.begin(), _vertex_inputs.end(),
                     [&] ( vertex_input_binding const& b )
                 {
                     return b.va == va ;
@@ -158,7 +158,7 @@ namespace motor
 
         private:
 
-            typedef ::std::pair< natus::graphics::backend_type, natus::graphics::shader_set > ss_item_t ;
+            typedef std::pair< natus::graphics::backend_type, natus::graphics::shader_set > ss_item_t ;
             typedef natus::ntd::vector< ss_item_t > shader_sets_t ;
 
             shader_sets_t _shader_sets ;
@@ -180,12 +180,12 @@ namespace motor
                 _bindings = rhv._bindings ;
             }
 
-            shader_object( this_rref_t rhv ) : object( ::std::move(rhv) )
+            shader_object( this_rref_t rhv ) : object( std::move(rhv) )
             {
-                _name = ::std::move( rhv._name ) ;
-                _vertex_inputs = ::std::move( rhv._vertex_inputs ) ;
-                _shader_sets = ::std::move( rhv._shader_sets ) ;
-                _bindings = ::std::move( rhv._bindings ) ;
+                _name = std::move( rhv._name ) ;
+                _vertex_inputs = std::move( rhv._vertex_inputs ) ;
+                _shader_sets = std::move( rhv._shader_sets ) ;
+                _bindings = std::move( rhv._bindings ) ;
             }
 
             this_ref_t operator = ( this_cref_t rhv )
@@ -202,12 +202,12 @@ namespace motor
 
             this_ref_t operator = ( this_rref_t rhv )
             {
-                object::operator=( ::std::move( rhv ) ) ;
+                object::operator=( std::move( rhv ) ) ;
 
-                _name = ::std::move( rhv._name ) ;
-                _vertex_inputs = ::std::move( rhv._vertex_inputs ) ;
-                _shader_sets = ::std::move( rhv._shader_sets ) ;
-                _bindings = ::std::move( rhv._bindings ) ;
+                _name = std::move( rhv._name ) ;
+                _vertex_inputs = std::move( rhv._vertex_inputs ) ;
+                _shader_sets = std::move( rhv._shader_sets ) ;
+                _bindings = std::move( rhv._bindings ) ;
 
                 return *this ;
             }
@@ -222,7 +222,7 @@ namespace motor
            
             this_ref_t insert( natus::graphics::backend_type const bt, natus::graphics::shader_set_in_t ss )
             {
-                auto iter = ::std::find_if( _shader_sets.begin(), _shader_sets.end(),
+                auto iter = std::find_if( _shader_sets.begin(), _shader_sets.end(),
                     [&] ( this_t::ss_item_t const& item )
                 {
                     return item.first == bt ;
@@ -230,7 +230,7 @@ namespace motor
 
                 if( iter == _shader_sets.end() )
                 {
-                    _shader_sets.emplace_back( ::std::make_pair( bt, ss ) ) ;
+                    _shader_sets.emplace_back( std::make_pair( bt, ss ) ) ;
                 }
                 else
                 {
@@ -242,7 +242,7 @@ namespace motor
 
             bool_t shader_set( natus::graphics::backend_type const bt, natus::graphics::shader_set_out_t ss ) const
             {
-                auto const iter = ::std::find_if( _shader_sets.begin(), _shader_sets.end(), 
+                auto const iter = std::find_if( _shader_sets.begin(), _shader_sets.end(), 
                     [&] ( this_t::ss_item_t const & item ) 
                 { 
                     return item.first == bt ;

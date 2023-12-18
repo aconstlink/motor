@@ -51,43 +51,43 @@ namespace motor
                 switch( e )
                 {
                 case GL_FLOAT: 
-                    return ::std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec1 ) ;
+                    return std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec1 ) ;
                 case GL_FLOAT_VEC2: 
-                    return ::std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec2 ) ;
+                    return std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec2 ) ;
                 case GL_FLOAT_VEC3: 
-                    return ::std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec3 ) ;
+                    return std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec3 ) ;
                 case GL_FLOAT_VEC4:
-                    return ::std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec4 ) ;
+                    return std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::vec4 ) ;
                 case GL_INT:
-                    return ::std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec1 ) ;
+                    return std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec1 ) ;
                 case GL_INT_VEC2:
-                    return ::std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec2 ) ;
+                    return std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec2 ) ;
                 case GL_INT_VEC3:
-                    return ::std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec3 ) ;
+                    return std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec3 ) ;
                 case GL_INT_VEC4:
-                    return ::std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec4 ) ;
+                    return std::make_pair( natus::graphics::type::tint, natus::graphics::type_struct::vec4 ) ;
                 case GL_UNSIGNED_INT:
-                    return ::std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec1 ) ;
+                    return std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec1 ) ;
                 case GL_UNSIGNED_INT_VEC2:
-                    return ::std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec2 ) ;
+                    return std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec2 ) ;
                 case GL_UNSIGNED_INT_VEC3:
-                    return ::std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec3 ) ;
+                    return std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec3 ) ;
                 case GL_UNSIGNED_INT_VEC4:
-                    return ::std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec4 ) ;
+                    return std::make_pair( natus::graphics::type::tuint, natus::graphics::type_struct::vec4 ) ;
                 case GL_BOOL:
-                    return ::std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec1 ) ;
+                    return std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec1 ) ;
                 case GL_BOOL_VEC2:
-                    return ::std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec2 ) ;
+                    return std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec2 ) ;
                 case GL_BOOL_VEC3:
-                    return ::std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec3 ) ;
+                    return std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec3 ) ;
                 case GL_BOOL_VEC4:
-                    return ::std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec4 ) ;
+                    return std::make_pair( natus::graphics::type::tbool, natus::graphics::type_struct::vec4 ) ;
                 case GL_FLOAT_MAT2:
-                    return ::std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::mat2 ) ;
+                    return std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::mat2 ) ;
                 case GL_FLOAT_MAT3:
-                    return ::std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::mat3 ) ;
+                    return std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::mat3 ) ;
                 case GL_FLOAT_MAT4:
-                    return ::std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::mat4 ) ;
+                    return std::make_pair( natus::graphics::type::tfloat, natus::graphics::type_struct::mat4 ) ;
                 case GL_SAMPLER_2D:
                 case GL_SAMPLER_3D:
                 case GL_INT_SAMPLER_2D:

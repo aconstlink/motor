@@ -34,7 +34,7 @@ namespace motor
 
             semaphore( this_rref_t rhv )
             {
-                *this = ::std::move( rhv ) ;
+                *this = std::move( rhv ) ;
             }
 
             semaphore( size_t c ) : _count( c )

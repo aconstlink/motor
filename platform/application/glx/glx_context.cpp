@@ -187,7 +187,7 @@ natus::application::result context::get_gl_version( natus::application::gl_versi
         GLenum err = natus::ogl::glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t const es = ::std::to_string(err) ;
+            natus::ntd::string_t const es = std::to_string(err) ;
             natus::log::global::error( 
                 "[context::get_gl_version] : get gl major <"+es+">" ) ;
         }
@@ -197,7 +197,7 @@ natus::application::result context::get_gl_version( natus::application::gl_versi
         GLenum err = natus::ogl::glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t es = ::std::to_string(err) ;
+            natus::ntd::string_t es = std::to_string(err) ;
             natus::log::global::error( "[context::get_gl_version] : get gl minor <"+es+">" ) ;
         }
     }
@@ -280,8 +280,8 @@ natus::application::result context::create_the_context( gl_info_cref_t gli ) noe
             return result::failed_gfx_context_creation ;
         }
         natus::log::global_t::status( "GL Version: " +
-           ::std::to_string(version.major) + "." + 
-           ::std::to_string(version.minor) ) ;
+           std::to_string(version.major) + "." + 
+           std::to_string(version.minor) ) ;
     }
 
     {
@@ -330,8 +330,8 @@ bool_t context::determine_gl_version( gl_version & gl_out ) const noexcept
             return false ;
         }
         natus::log::global_t::status( "[determine_gl_version] : GL Version: " +
-           ::std::to_string(version.major) + "." + 
-           ::std::to_string(version.minor) ) ;
+           std::to_string(version.major) + "." + 
+           std::to_string(version.minor) ) ;
     }
     glXMakeCurrent( _display, 0, 0 ) ;
     glXDestroyContext( _display, context ) ;

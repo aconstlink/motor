@@ -448,10 +448,10 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
 
     // timing end
     {
-        size_t const milli = size_t( ::std::chrono::duration_cast< ::std::chrono::milliseconds >(
+        size_t const milli = size_t( std::chrono::duration_cast< std::chrono::milliseconds >(
             local_clock_t::now() - t1 ).count() ) ;
 
-        natus::log::global::status( motor_log_fn( "created [" + ::std::to_string( milli ) + " ms]" ) ) ;
+        natus::log::global::status( motor_log_fn( "created [" + std::to_string( milli ) + " ms]" ) ) ;
     }
 
     return natus::application::result::ok ;

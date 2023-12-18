@@ -41,12 +41,12 @@ namespace motor
             //************************************************************************************
             matrix3( this_cref_t rhv ) 
             {
-                ::std::memcpy( (void_ptr_t)_elem, (void_cptr_t)rhv._elem, sizeof(type_t)*9 ) ;
+                std::memcpy( (void_ptr_t)_elem, (void_cptr_t)rhv._elem, sizeof(type_t)*9 ) ;
             }
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {
-                ::std::memcpy( (void_ptr_t)_elem, (void_cptr_t)rhv._elem, sizeof(type_t)*9 ) ;
+                std::memcpy( (void_ptr_t)_elem, (void_cptr_t)rhv._elem, sizeof(type_t)*9 ) ;
                 return *this ;
             }
 

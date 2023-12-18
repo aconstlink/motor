@@ -16,8 +16,8 @@ namespace motor
 {
     namespace ntd
     {
-        namespace filesystem = ::std::filesystem ;
-        namespace fs = ::std::filesystem ;
+        namespace filesystem = std::filesystem ;
+        namespace fs = std::filesystem ;
     }
 }
 

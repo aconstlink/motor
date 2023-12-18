@@ -269,7 +269,7 @@ namespace motor
 
             template< typename T >
             motor::graphics::ivariable_ptr_t from_type_struct( 
-                motor::string_cref_t name, motor::graphics::type_struct const ts ) noexcept
+                motor::string_cref_t /*name*/, motor::graphics::type_struct const ts ) noexcept
             {
                 switch( ts )
                 {

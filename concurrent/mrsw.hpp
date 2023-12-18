@@ -23,8 +23,8 @@ namespace motor
             }
 
             mrsw( this_rref_t rhv ) noexcept :
-                _reader( ::std::move( rhv._reader ) ),
-                _writer( ::std::move( rhv._writer ) ) {}
+                _reader( std::move( rhv._reader ) ),
+                _writer( std::move( rhv._writer ) ) {}
 
             mrsw( this_cref_t ) = delete ;
 

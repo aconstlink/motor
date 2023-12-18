@@ -38,7 +38,7 @@ motor::log::result store_logger::log( motor::log::log_level const ll, motor::str
     sd.ll = ll ;
     sd.msg = msg ;
 
-    std::lock_guard< ::std::mutex > lk( _mtx ) ;
+    std::lock_guard< std::mutex > lk( _mtx ) ;
 
     ++_cp_end ;
 

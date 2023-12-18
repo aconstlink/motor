@@ -32,7 +32,7 @@ global::this_ptr_t global::init( void_t ) noexcept
     if( global_t::_ptr != nullptr ) return this_t::_ptr ;
 
     {
-        std::lock_guard<::std::mutex> lk( this_t::_mtx ) ;
+        std::lock_guard<std::mutex> lk( this_t::_mtx ) ;
 
         if( global_t::_ptr != nullptr ) return this_t::_ptr ;
         

@@ -26,7 +26,7 @@ namespace this_file_db
     {
         static bool_t make_ending_string( motor::string_cref_t si, motor::string_ref_t so ) noexcept
         {
-            ::std::srand( uint_t(si.size()) ) ;
+            std::srand( uint_t(si.size()) ) ;
 
             if( si.size() >= length_validator::fixed_length() ) return false ;
 
@@ -34,7 +34,7 @@ namespace this_file_db
             so.resize( length_validator::fixed_length(), '-' ) ;
             for( size_t i=si.size(); i<so.size(); ++i )
             {
-                so[ i ] = char_t( ::std::rand() ) ;
+                so[ i ] = char_t( std::rand() ) ;
             }
             return true ;
         }
@@ -462,7 +462,7 @@ bool_t database::pack( this_t::encryption const )
         {
             motor::stringstream_t ss ;
             ss  << location.as_string() << ":" << location.extension() << ":"
-                << ::std::to_string( offset ) << ":" << ::std::to_string( sib ) << ": " ;
+                << std::to_string( offset ) << ":" << std::to_string( sib ) << ": " ;
             return ss.str() ;
         }
 
@@ -702,7 +702,7 @@ void_t database::dump_to_std( void_t ) const noexcept
         {
             motor::stringstream_t ss ;
             
-            ss << "[" << ::std::to_string(fr.sib) << " @ " 
+            ss << "[" << std::to_string(fr.sib) << " @ " 
                 << (fr.offset != uint64_t(-2) ? std::to_string(fr.offset) : "extern") 
                 << "] "
                 << fr.location.as_string() ;
@@ -765,7 +765,7 @@ void_t database::detach( motor::io::location_cref_t loc, motor::io::monitor_mtr_
 void_t database::attach( motor::io::monitor_mtr_t moni ) noexcept 
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
-    auto iter = ::std::find_if( _db->monitors.begin(), _db->monitors.end(), 
+    auto iter = std::find_if( _db->monitors.begin(), _db->monitors.end(), 
         [&]( motor::io::monitor_mtr_t m )
     {
         return m == moni ;
@@ -802,7 +802,7 @@ void_t database::detach( motor::io::monitor_mtr_t moni ) noexcept
         {
             for( auto& fr : _db->records )
             {
-                auto iter = ::std::remove_if( fr.monitors.begin(), fr.monitors.end(),
+                auto iter = std::remove_if( fr.monitors.begin(), fr.monitors.end(),
                     [&] ( motor::io::monitor_mtr_t r )
                 {
                     return r == moni ;
@@ -939,7 +939,7 @@ motor::io::location_t database::location_for_index( size_t const idx ) const
 //******************************************************************
 void_t database::file_change_external( this_t::db_t & db,  this_t::file_record_cref_t fri ) noexcept 
 {
-    auto iter = ::std::find_if( db.records.begin(), db.records.end(), [&] ( this_t::file_record_cref_t fr )
+    auto iter = std::find_if( db.records.begin(), db.records.end(), [&] ( this_t::file_record_cref_t fr )
     {
         return fr.location == fri.location ;
     } ) ;

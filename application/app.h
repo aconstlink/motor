@@ -141,8 +141,8 @@ namespace motor
                 per_audio_info( this_cref_t ) = delete ;
                 per_audio_info( this_rref_t rhv )
                 {
-                    rnd_thread = ::std::move( rhv.rnd_thread ) ;
-                    async = ::std::move( rhv.async ) ;
+                    rnd_thread = std::move( rhv.rnd_thread ) ;
+                    async = std::move( rhv.async ) ;
                     motor_move_member_ptr( run, rhv ) ;
                 }
                 ~per_audio_info( void_t ) {}

@@ -219,7 +219,7 @@ namespace motor
             return 0 ;
         }
 
-        typedef ::std::function< void_t ( GLuint, GLuint, void_ptr_t ) > uniform_funk_t ;
+        typedef std::function< void_t ( GLuint, GLuint, void_ptr_t ) > uniform_funk_t ;
 
         static motor::ogl::uniform_funk_t uniform_funk( GLenum const e ) noexcept
         {
@@ -306,7 +306,7 @@ namespace motor
             return empty_funk ;
         }
 
-        typedef ::std::function< void_t ( void_ptr_t ) > uniform_default_value_funk_t ;
+        typedef std::function< void_t ( void_ptr_t ) > uniform_default_value_funk_t ;
 
         static motor::ogl::uniform_default_value_funk_t uniform_default_value( GLenum const e ) noexcept
         {
@@ -319,63 +319,63 @@ namespace motor
                 //************************************************************
 
             case GL_FLOAT: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLfloat ) ) ; } ;
+            { std::memset( p, 0, sizeof( GLfloat ) ) ; } ;
 
             case GL_FLOAT_VEC2: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLfloat ) * 2 ) ; } ;
+            { std::memset( p, 0, sizeof( GLfloat ) * 2 ) ; } ;
 
             case GL_FLOAT_VEC3: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLfloat ) * 3 ) ; } ;
+            { std::memset( p, 0, sizeof( GLfloat ) * 3 ) ; } ;
 
             case GL_FLOAT_VEC4: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLfloat ) * 4 ) ; } ;
+            { std::memset( p, 0, sizeof( GLfloat ) * 4 ) ; } ;
 
                 //************************************************************
 
             case GL_INT: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLint ) ) ; } ;
+            { std::memset( p, 0, sizeof( GLint ) ) ; } ;
 
             case GL_INT_VEC2: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLint ) * 2 ) ; } ;
+            { std::memset( p, 0, sizeof( GLint ) * 2 ) ; } ;
 
             case GL_INT_VEC3: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLint ) * 3 ) ; } ;
+            { std::memset( p, 0, sizeof( GLint ) * 3 ) ; } ;
 
             case GL_INT_VEC4: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLint ) * 4 ) ; } ;
+            { std::memset( p, 0, sizeof( GLint ) * 4 ) ; } ;
 
                 //************************************************************
 
             case GL_UNSIGNED_INT: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLuint ) ) ; } ;
+            { std::memset( p, 0, sizeof( GLuint ) ) ; } ;
 
             case GL_UNSIGNED_INT_VEC2: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLuint ) * 2 ) ; } ;
+            { std::memset( p, 0, sizeof( GLuint ) * 2 ) ; } ;
 
             case GL_UNSIGNED_INT_VEC3: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLuint ) * 3 ) ; } ;
+            { std::memset( p, 0, sizeof( GLuint ) * 3 ) ; } ;
 
             case GL_UNSIGNED_INT_VEC4: return [=] ( void_ptr_t p )
-            { ::std::memset( p, 0, sizeof( GLuint ) * 4 ) ; } ;
+            { std::memset( p, 0, sizeof( GLuint ) * 4 ) ; } ;
 
                 //************************************************************
 
             case GL_FLOAT_MAT2: return [=] ( void_ptr_t p )
             { 
-                ::std::memset( p, 0, sizeof( GLfloat ) * 4 ) ; 
+                std::memset( p, 0, sizeof( GLfloat ) * 4 ) ; 
                 ( ( GLfloat* ) p )[ 0 ] = 1.0f ; ( ( GLfloat* ) p )[ 3 ] = 1.0f ;
             } ;
 
             case GL_FLOAT_MAT3: return [=] ( void_ptr_t p )
             { 
-                ::std::memset( p, 0, sizeof( GLfloat ) * 9 ) ; 
+                std::memset( p, 0, sizeof( GLfloat ) * 9 ) ; 
                 ( ( GLfloat* ) p )[ 0 ] = 1.0f ; ( ( GLfloat* ) p )[ 4 ] = 1.0f ; 
                 ( ( GLfloat* ) p )[ 8 ] = 1.0f ; 
             } ;
 
             case GL_FLOAT_MAT4: return [=] ( void_ptr_t p )
             { 
-                ::std::memset( p, 0, sizeof( GLfloat ) * 16 ) ; 
+                std::memset( p, 0, sizeof( GLfloat ) * 16 ) ; 
                 ( ( GLfloat* ) p )[ 0 ] = 1.0f ; ( ( GLfloat* ) p )[ 5 ] = 1.0f ;
                 ( ( GLfloat* ) p )[ 10 ] = 1.0f ; ( ( GLfloat* ) p )[ 15 ] = 1.0f ;
             } ;
@@ -397,7 +397,7 @@ namespace motor
             case GL_INT_SAMPLER_2D_ARRAY: 
             case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: 
                 return [=] ( void_ptr_t p )
-                { ::std::memset( p, 0, sizeof( GLint ) ) ; } ;
+                { std::memset( p, 0, sizeof( GLint ) ) ; } ;
 
             default: break ;
             }
@@ -414,7 +414,7 @@ namespace motor
             case GL_INVALID_OPERATION: return motor::string_t( "GL_INVALID_OPERATION" ) ;
             default: break ;
             }
-            return ::std::to_string( e ) ;
+            return std::to_string( e ) ;
         }
     }
 }

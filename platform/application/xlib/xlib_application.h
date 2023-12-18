@@ -32,13 +32,13 @@ namespace motor
                 static void_t disconnect_display( void_t ) ;
                 static Display * move_display( void_t ) ;
 
-                natus::device::xlib::xlib_module_res_t _device_module ;
+                motor::device::xlib::xlib_module_res_t _device_module ;
 
             public:
 
                 xlib_application( void_t ) ;
                 xlib_application( this_rref_t ) ;
-                xlib_application( natus::application::app_res_t ) ;
+                xlib_application( motor::application::app_res_t ) ;
                 virtual ~xlib_application( void_t ) ;
 
                 /// singleton. It is required due to the fact
@@ -54,10 +54,10 @@ namespace motor
 
             public:
 
-                virtual natus::application::result on_exec( void_t ) ;
+                virtual motor::application::result on_exec( void_t ) ;
             };
             motor_typedef( xlib_application ) ;
-            typedef natus::memory::res_t< xlib_application > application_res_t ;
+            typedef motor::memory::res_t< xlib_application > application_res_t ;
         }
     }
 }

@@ -56,7 +56,7 @@ namespace motor
 
         stack( this_rref_t rhv ) noexcept
         {
-            *this = ::std::move( rhv ) ;
+            *this = std::move( rhv ) ;
         }
 
         this_ref_t operator = ( this_cref_t rhv ) noexcept
@@ -70,7 +70,7 @@ namespace motor
         {
             _cur_pos = rhv._cur_pos ;
             rhv._cur_pos = 0 ;
-            _stack = ::std::move( rhv._stack ) ;
+            _stack = std::move( rhv._stack ) ;
             return *this ;
         }
 
@@ -94,7 +94,7 @@ namespace motor
         {
             assert( _cur_pos > 0 ) ;
             --_cur_pos ;
-            obj_out = ::std::move( _stack[ _cur_pos ] ) ;
+            obj_out = std::move( _stack[ _cur_pos ] ) ;
         }
 
         size_t size( void ) const noexcept

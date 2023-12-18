@@ -28,7 +28,7 @@ namespace motor
             sync_object( void_t ) noexcept {}
             sync_object( this_rref_t rhv ) noexcept
             {
-                *this = ::std::move( rhv ) ;
+                *this = std::move( rhv ) ;
             }
 
             ~sync_object( void_t ) noexcept

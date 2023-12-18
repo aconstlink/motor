@@ -48,7 +48,7 @@ app::app( void_t )
 //***
 app::app( this_rref_t rhv )
 {
-    _windows = ::std::move( rhv._windows ) ;
+    _windows = std::move( rhv._windows ) ;
     _audios = std::move( rhv._audios ) ;
     motor_move_member_ptr( _access, rhv ) ;
 }
@@ -125,7 +125,7 @@ natus::audio::async_access_t app::create_audio_engine( natus::audio::backend_typ
     pai.async = async ;
     
     natus::concurrent::lock_guard_t lk( _amtx ) ;
-    _audios.emplace_back( ::std::move( pai ) ) ;
+    _audios.emplace_back( std::move( pai ) ) ;
 
     return natus::audio::async_access_t( std::move( async ), _access ) ;
 }
@@ -265,11 +265,11 @@ app::window_async_t app::create_window(
     // add per window info
     //here
     natus::concurrent::lock_guard_t lk( _wmtx ) ;
-    _windows.emplace_back( ::std::move( pwi ) ) ;
+    _windows.emplace_back( std::move( pwi ) ) ;
     
 
     return this_t::window_async_t( this_t::window_view_t( _windows.size()-1, msg_send, gfx_msg_send ), 
-        natus::graphics::async_view_t( ::std::move( async ) ) ) ;
+        natus::graphics::async_view_t( std::move( async ) ) ) ;
 }
 
 //***
@@ -667,8 +667,8 @@ app::window_view::window_view( void_t )
 app::window_view::window_view( this_rref_t rhv )
 {
     _id = rhv._id ;
-    _msg_wnd = ::std::move( rhv._msg_wnd ) ;
-    _msg_gfx = ::std::move( rhv._msg_gfx ) ;
+    _msg_wnd = std::move( rhv._msg_wnd ) ;
+    _msg_gfx = std::move( rhv._msg_gfx ) ;
 }
 
 //***
@@ -688,8 +688,8 @@ app::window_view::~window_view( void_t )
 app::window_view::this_ref_t app::window_view::operator = ( this_rref_t rhv ) 
 {
     _id = rhv._id ;
-    _msg_wnd = ::std::move( rhv._msg_wnd ) ;
-    _msg_gfx = ::std::move( rhv._msg_gfx ) ;
+    _msg_wnd = std::move( rhv._msg_wnd ) ;
+    _msg_gfx = std::move( rhv._msg_gfx ) ;
     return *this ;
 }
 

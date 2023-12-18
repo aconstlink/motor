@@ -185,7 +185,7 @@ struct es3_backend::pimpl
         bool_t find_vertex_input_binding_by_name( motor::ntd::string_cref_t name_,
             motor::graphics::vertex_attribute& va ) const noexcept
         {
-            auto iter = ::std::find_if( vertex_inputs.begin(), vertex_inputs.end(),
+            auto iter = std::find_if( vertex_inputs.begin(), vertex_inputs.end(),
                 [&] ( vertex_input_binding const& b )
             {
                 return b.name == name_ ;
@@ -284,7 +284,7 @@ struct es3_backend::pimpl
         motor::ntd::vector< motor::graphics::variable_set_res_t > var_sets ;
 
         // user provided variable set
-        motor::ntd::vector< ::std::pair<
+        motor::ntd::vector< std::pair<
             motor::graphics::variable_set_res_t,
             motor::ntd::vector< uniform_variable_link > > > var_sets_data ;
 
@@ -298,7 +298,7 @@ struct es3_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        motor::ntd::vector< ::std::pair<
+        motor::ntd::vector< std::pair<
             motor::graphics::variable_set_res_t,
             motor::ntd::vector< uniform_texture_link > > > var_sets_texture ;
 
@@ -1383,7 +1383,7 @@ struct es3_backend::pimpl
             motor::ntd::string_t const variable_name = motor::ntd::string_t( ( const char* ) buffer ) ;
 
             this_t::shader_data::attribute_variable_t vd ;
-            vd.name = ::std::move( variable_name ) ;
+            vd.name = std::move( variable_name ) ;
             vd.loc = location_id ;
             vd.type = gl_attrib_type ;
             
@@ -1454,7 +1454,7 @@ struct es3_backend::pimpl
             uiBegin += uiOffset ;
             uiOffset = e.sib() ;
 
-            auto iter = ::std::find_if( sconfig.attributes.begin(), sconfig.attributes.end(), 
+            auto iter = std::find_if( sconfig.attributes.begin(), sconfig.attributes.end(), 
                 [&]( this_t::shader_data::attribute_variable_cref_t av )
             {
                 return av.va == e.va ;
@@ -1539,7 +1539,7 @@ struct es3_backend::pimpl
             motor::ntd::string const variable_name = motor::ntd::string( char_cptr_t( buffer ) ) ;
 
             this_t::shader_data::uniform_variable_t vd ;
-            vd.name = ::std::move( variable_name ) ;
+            vd.name = std::move( variable_name ) ;
             vd.loc = location_id ;
             vd.type = gl_uniform_type ;
             vd.uniform_funk = motor::ogl::uniform_funk( gl_uniform_type ) ;
@@ -1818,7 +1818,7 @@ struct es3_backend::pimpl
 
         // find shader
         {
-            auto const iter = ::std::find_if( _shaders.begin(), _shaders.end(),
+            auto const iter = std::find_if( _shaders.begin(), _shaders.end(),
                 [&] ( this_t::shader_data const& d )
             {
                 return d.name == rc.get_shader() ;
@@ -2265,13 +2265,13 @@ struct es3_backend::pimpl
     //*********************************************************************************************
     bool_t connect( this_t::render_data & config, motor::graphics::variable_set_res_t vs )
     {
-        auto item_data = ::std::make_pair( vs,
+        auto item_data = std::make_pair( vs,
             motor::ntd::vector< this_t::render_data::uniform_variable_link >() ) ;
 
-        auto item_tex = ::std::make_pair( vs,
+        auto item_tex = std::make_pair( vs,
             motor::ntd::vector< this_t::render_data::uniform_texture_link >() ) ;
 
-        auto item_buf = ::std::make_pair( vs,
+        auto item_buf = std::make_pair( vs,
             motor::ntd::vector< this_t::render_data::uniform_array_data_link >() ) ;
 
         auto item_tfb = std::make_pair( vs,
@@ -3164,7 +3164,7 @@ es3_backend::es3_backend( motor::graphics::es_context_ptr_t ctx ) noexcept :
 }
 
 //********************************************************************************************************************
-es3_backend::es3_backend( this_rref_t rhv ) noexcept : backend( ::std::move( rhv ) )
+es3_backend::es3_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv ) )
 {
     motor_move_member_ptr( _pimpl, rhv ) ;
     motor_move_member_ptr( _context, rhv ) ;

@@ -80,7 +80,7 @@ namespace motor
                 motor::vector< this_t::data_t > tmp ;
                 {
                     motor::concurrent::lock_guard_t lk( _mtx ) ;
-                    tmp = ::std::move( _changed ) ;
+                    tmp = std::move( _changed ) ;
                 }
 
                 for( auto const & item : tmp ) 

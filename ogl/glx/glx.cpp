@@ -86,7 +86,7 @@ bool_t glx::is_supported( char_cptr_t name )
         return false ;
     }
 
-    auto iter = ::std::find( _glx_extensions.begin(), _glx_extensions.end(), name ) ;
+    auto iter = std::find( _glx_extensions.begin(), _glx_extensions.end(), name ) ;
     if( iter == _glx_extensions.end() )
     {
         return false ;

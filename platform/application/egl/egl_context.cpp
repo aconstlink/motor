@@ -183,7 +183,7 @@ natus::application::result context::get_es_version( natus::application::gl_versi
         GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t const es = ::std::to_string(err) ;
+            natus::ntd::string_t const es = std::to_string(err) ;
             natus::log::global::error( 
                 "[context::get_gl_version] : get gl major <"+es+">" ) ;
         }
@@ -193,7 +193,7 @@ natus::application::result context::get_es_version( natus::application::gl_versi
         GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t es = ::std::to_string(err) ;
+            natus::ntd::string_t es = std::to_string(err) ;
             natus::log::global::error( "[context::get_gl_version] : get gl minor <"+es+">" ) ;
         }
     }

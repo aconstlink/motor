@@ -1,20 +1,20 @@
-#include "xlib_application.h"
+#include "xlib_carrier.h"
 #include "xlib_window.h"
 
-#include <natus/device/global.h>
-#include <natus/log/global.h>
+#include <motor/device/global.h>
+#include <motor/log/global.h>
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
-using namespace motor::application ;
-using namespace motor::application::xlib ;
+using namespace motor::platform ;
+using namespace motor::platform::xlib ;
 
-Display * xlib_application::_display = NULL ;
-size_t xlib_application::_display_use_count = 0 ;
+Display * xlib_carrier::_display = NULL ;
+size_t xlib_carrier::_display_use_count = 0 ;
 
 //**********************************************************************
-Display * xlib_application::connect_display( void_t ) 
+Display * xlib_carrier::connect_display( void_t ) noexcept
 {
     if( _display_use_count++ > 0 )
     {
@@ -23,8 +23,8 @@ Display * xlib_application::connect_display( void_t )
 
     _display = XOpenDisplay( NULL ) ;
 
-    if( natus::log::global_t::error( 
-         _display==NULL, "[xlib_application] : XOpenDisplay" ) )
+    if( motor::log::global_t::error( 
+         _display==NULL, "[xlib_carrier] : XOpenDisplay" ) )
     {
         exit(0) ;
     }
@@ -33,7 +33,7 @@ Display * xlib_application::connect_display( void_t )
 }
 
 //**********************************************************************
-void_t xlib_application::disconnect_display( void_t ) 
+void_t xlib_carrier::disconnect_display( void_t ) noexcept
 {
     if( _display_use_count-- == 1 )
     {
@@ -43,72 +43,54 @@ void_t xlib_application::disconnect_display( void_t )
 }
 
 //**********************************************************************
-Display * xlib_application::move_display( void_t ) 
+Display * xlib_carrier::move_display( void_t ) noexcept
 {
     ++_display_use_count ;
     return _display ;
 }
 
 //**********************************************************************
-xlib_application::xlib_application( void_t ) 
+xlib_carrier::xlib_carrier( void_t ) noexcept
 {
     connect_display() ;
 
-    _device_module = natus::device::xlib::xlib_module_t() ;
-    natus::device::global_t::system()->add_module( _device_module ) ;
+    //_device_module = motor::device::xlib::xlib_module_t() ;
+    //motor::device::global_t::system()->add_module( _device_module ) ;
 }
 
 //***********************************************************************
-xlib_application::xlib_application( natus::application::app_res_t app ) : base_t( app )
+xlib_carrier::xlib_carrier( motor::application::iapp_mtr_shared_t /*app*/ ) noexcept
 {
     connect_display() ;
 
-    _device_module = natus::device::xlib::xlib_module_t() ;
-    natus::device::global_t::system()->add_module( _device_module ) ;
+    //_device_module = motor::device::xlib::xlib_module_t() ;
+    //motor::device::global_t::system()->add_module( _device_module ) ;
 }
 //**********************************************************************
-Display * xlib_application::get_display( void_t ) 
+Display * xlib_carrier::get_display( void_t ) noexcept
 {
     return this_t::connect_display()  ;
 }
 
 //**********************************************************************
-xlib_application::xlib_application( this_rref_t rhv ) : base_t( ::std::move( rhv ) )
+xlib_carrier::xlib_carrier( this_rref_t /*rhv*/ ) noexcept
 {
     this_t::move_display() ;
-    _device_module = ::std::move( rhv._device_module ) ;
+    //_device_module = std::move( rhv._device_module ) ;
 }
 
 //**********************************************************************
-xlib_application::~xlib_application( void_t )
+xlib_carrier::~xlib_carrier( void_t ) noexcept
 {
     this_t::disconnect_display() ;
 }
 
-//***********************************************************************
-xlib_application::this_ptr_t xlib_application::create( void_t ) 
-{
-    return this_t::create( this_t() ) ;
-}
-
-//***********************************************************************
-xlib_application::this_ptr_t xlib_application::create( this_rref_t rhv )
-{
-    return natus::memory::global_t::alloc( ::std::move( rhv ), "[xlib_application::create]" ) ;
-}
-
 //********************************************************************
-void_t xlib_application::destroy( this_ptr_t ptr ) 
-{
-    natus::memory::global_t::dealloc( ptr ) ;
-}
-
-//********************************************************************
-natus::application::result xlib_application::on_exec( void_t )
+motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 {
     int_t ret = XInitThreads() ;
-    if( natus::log::global_t::error( 
-           ret == 0, "[xlib_application] : XInitThreads" ) )
+    if( motor::log::global_t::error( 
+           ret == 0, "[xlib_carrier] : XInitThreads" ) )
         {
             exit(ret) ;
         }
@@ -140,18 +122,20 @@ natus::application::result xlib_application::on_exec( void_t )
                     at, &at_ret, &format_out, &len_out, 
                     &bytes_after, (uchar_ptr_t*)&stored_data ) ;
 
-                auto * wnd_ptr = natus::application::xlib::window_ptr_t(
+#if 0
+                auto * wnd_ptr = motor::application::xlib::window_ptr_t(
                                         *(this_ptr_t*)stored_data) ;
                 wnd_ptr->xevent_callback( event ) ;
+                #endif
 
             }
-
+#if 0
             _device_module->handle_input_event( event ) ;
-
+#endif
             switch( event.type )
             {
             case Expose:
-                //natus::log::global_t::status("application expose") ;
+                //motor::log::global_t::status("application expose") ;
                 break ;
 
             case DestroyNotify:
@@ -169,8 +153,23 @@ natus::application::result xlib_application::on_exec( void_t )
         }
     }
 
-    return natus::application::result::ok ;
+    return motor::application::result::ok ;
 }
 
+//********************************************************************
+motor::application::result xlib_carrier::close( void_t ) noexcept
+{
+    return motor::application::result::failed ;
+}
 
+//********************************************************************
+motor::application::iwindow_mtr_shared_t xlib_carrier::create_window( motor::application::window_info_cref_t /*info*/ ) noexcept  
+{
+    return motor::application::iwindow_mtr_shared_t::make() ;
+}
 
+//********************************************************************
+motor::application::iwindow_mtr_shared_t xlib_carrier::create_window( motor::application::graphics_window_info_in_t /*info*/ ) noexcept 
+{
+    return motor::application::iwindow_mtr_shared_t::make() ;
+}
