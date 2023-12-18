@@ -65,9 +65,20 @@ win32_carrier::~win32_carrier( void_t ) noexcept
 //***********************************************************************
 motor::application::result win32_carrier::on_exec( void_t ) noexcept
 {
+    using _clock_t = std::chrono::high_resolution_clock ;
+    _clock_t::time_point tp_begin = _clock_t::now() ;
+
     while( !_done )
     {
-        std::this_thread::sleep_for( std::chrono::milliseconds(2) )  ;
+        _clock_t::duration const dur = _clock_t::now() - tp_begin ;
+        tp_begin = _clock_t::now() ;
+
+        size_t const micro = std::chrono::duration_cast< std::chrono::milliseconds >( dur ).count() ;
+        //motor::log::global_t::status( "main loop: " + motor::to_string(micro) ) ; 
+
+        // this also determines the maximum frame 
+        // rate of rendering windows
+        //std::this_thread::sleep_for( std::chrono::milliseconds(2) )  ;
 
         {
             // The main message loop
@@ -124,6 +135,12 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     d.ptr->ctx.activate() ;
                     d.ptr->ctx.swap() ;
                     d.ptr->ctx.deactivate() ;
+
+                    // set frame time
+                    {
+                        auto const & wd = _win32_windows[d.idx_win32_window] ;
+                        SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
+                    }
                 }
             }
 
@@ -135,7 +152,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     d.wi.window_name += " [win32]" ;
 
                     HWND hwnd = this_t::create_win32_window( d.wi ) ;
-                    _win32_windows.emplace_back( win32_window_data{ hwnd, d.wnd, d.lsn } ) ;
+
+                    {
+                        win32_window_data wd ;
+                        wd.hwnd = hwnd ;
+                        wd.wnd = d.wnd ;
+                        wd.lsn = d.lsn ;
+                        wd.window_text = d.wi.window_name ;
+
+                        _win32_windows.emplace_back(wd);
+                    }
 
                     this_t::send_create( _win32_windows.back() ) ;
                 }
@@ -152,7 +178,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     d.gi.wi.window_name += " [wgl#" + motor::to_string(wnd_idx) +"]";
 
                     HWND hwnd = this_t::create_win32_window( d.gi.wi ) ;
-                    _win32_windows.emplace_back( win32_window_data{ hwnd, d.wnd, d.lsn } ) ;
+
+                    {
+                        win32_window_data wd ;
+                        wd.hwnd = hwnd ;
+                        wd.wnd = d.wnd ;
+                        wd.lsn = d.lsn ;
+                        wd.window_text = d.gi.wi.window_name ;
+
+                        _win32_windows.emplace_back(wd);
+                    }
 
                     this_t::send_create( _win32_windows.back() ) ;
 
@@ -169,6 +204,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
                             ctx.swap() ;
                             ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                            ctx.vsync( false ) ;
                             ctx.deactivate() ;
 
                             this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
@@ -357,7 +393,7 @@ HWND win32_carrier::create_win32_window( motor::application::window_info_cref_t 
     // Important action here. The user data is used pass the object
     // that will perform the callback in the static wndproc
     SetWindowLongPtr( hwnd, GWLP_USERDATA, (LONG_PTR)this ) ;
-
+    
     return hwnd ;
 }
 

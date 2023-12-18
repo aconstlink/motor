@@ -34,7 +34,12 @@ namespace motor
                     HWND hwnd ;
                     motor::application::iwindow_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
+                    // can be used to store messages to be used continuously.
+                    // this needs to be done with cursor messages.
                     motor::application::window_message_listener_t::state_vector_t sv ;
+
+                    // store window text for later alteration.
+                    motor::string_t window_text ;
                 };
                 motor_typedef( win32_window_data ) ;
 
