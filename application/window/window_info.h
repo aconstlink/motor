@@ -29,10 +29,11 @@ namespace motor
             enum class graphics_api_type
             {
                 none,
+                automatic,
                 gl4,
                 d3d11
             };
-            graphics_api_type api_type ;
+            graphics_api_type api_type = graphics_api_type::automatic ;
             window_info_t wi ;
         };
         motor_typedef( graphics_window_info ) ;

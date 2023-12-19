@@ -247,6 +247,19 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                     this_t::send_create( _win32_windows.back() ) ;
 
+                    // deduce auto graphics api type
+                    if( d.gi.api_type == motor::application::graphics_window_info_t::
+                        graphics_api_type::automatic ) 
+                    {
+                        #if MOTOR_GRAPHICS_DIRECT3D
+                        d.gi.api_type = motor::application::graphics_window_info_t::graphics_api_type::d3d11 ;
+                        #elif MOTOR_GRAPHICS_WGL
+                        d.gi.api_type = motor::application::graphics_window_info_t::graphics_api_type::gl4 ;
+                        #else
+                        d.gi.api_type = motor::application::graphics_window_info_t::graphics_api_type::none ;
+                        #endif
+                    }
+
                     if( d.gi.api_type == motor::application::graphics_window_info_t::
                         graphics_api_type::gl4 )
                     {
@@ -263,13 +276,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
                             ctx.swap() ;
                             ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
-                            ctx.vsync( false ) ;
                             ctx.deactivate() ;
 
                             this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
                                 this_t::wgl_pimpl( {std::move(ctx) } ), "[win32_carrier] : wgl context") ;
 
                             _wgl_windows.emplace_back( wgl_window_data({ wnd_idx, pimpl }) )  ;
+                        }
+                        else
+                        {
+                            motor::log::global_t::critical( "Wanted to create a WGL window but could not." ) ;
                         }
                         #else
                         // create null context ?
@@ -292,7 +308,6 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             ctx.clear_now( motor::math::vec4f_t( 0.0f, 0.5f, 0.3f, 1.0f ) ) ;
                             ctx.swap() ;
                             ctx.clear_now( motor::math::vec4f_t( 0.0f, 0.5f, 0.3f, 1.0f ) ) ;
-                            ctx.vsync( false ) ;
                             ctx.deactivate() ;
 
                             this_t::d3d11_pimpl * pimpl = motor::memory::global_t::alloc(
@@ -300,9 +315,19 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             _d3d11_windows.emplace_back( d3d11_window_data({ wnd_idx, pimpl }) )  ;
                         }
+                        else
+                        {
+                            motor::log::global_t::critical( "Wanted to create a D3D11 window but could not." ) ;
+                        }
                         #else
                         // create null context ?
                         #endif
+                    }
+
+                    if( d.gi.api_type == motor::application::graphics_window_info_t::
+                        graphics_api_type::none )
+                    {
+                        motor::log::global_t::error( "Wanted to create a graphics window but no api chosen or available." ) ;
                     }
                 }
                 _gqueue.clear() ;
