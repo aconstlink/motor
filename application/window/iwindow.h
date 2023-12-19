@@ -47,10 +47,6 @@ namespace motor
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept = 0 ;
             
-        public:
-
-            // check for user messages and pass further to window implementation.
-            virtual void_t check_for_messages( void_t ) noexcept = 0 ;
         } ;
         motor_typedef( iwindow ) ;
     }
