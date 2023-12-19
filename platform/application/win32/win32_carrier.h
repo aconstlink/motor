@@ -59,6 +59,19 @@ namespace motor
 
                 motor::vector< wgl_window_data_t > _wgl_windows ;
 
+            private: // d3d11 window data
+
+                struct d3d11_pimpl ;
+
+                struct d3d11_window_data
+                {
+                    size_t idx_win32_window ;
+                    d3d11_pimpl * ptr ;
+                };
+                motor_typedef( d3d11_window_data ) ;
+
+                motor::vector< d3d11_window_data_t > _d3d11_windows ;
+
             private: // win32 windows queue
 
                 struct window_queue_msg

@@ -9,6 +9,10 @@
 #include "../wgl/wgl_context.h"
 #endif
 
+#if MOTOR_GRAPHICS_DIRECT3D
+#include "../d3d/d3d_context.h"
+#endif
+
 #include <windows.h>
 
 using namespace motor::platform ;
@@ -19,7 +23,13 @@ struct win32_carrier::wgl_pimpl
 {
     motor::platform::wgl::wgl_context_t ctx ;
 } ;
+#endif
 
+#if MOTOR_GRAPHICS_DIRECT3D
+struct win32_carrier::d3d11_pimpl
+{
+    motor::platform::d3d::d3d11_context_t ctx ;
+} ;
 #endif
 //***********************************************************************
 win32_carrier::win32_carrier( void_t ) noexcept
@@ -37,6 +47,7 @@ win32_carrier::win32_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rh
     _queue = std::move( rhv._queue ) ;
 
     _wgl_windows = std::move( rhv._wgl_windows ) ;
+    _d3d11_windows = std::move( rhv._d3d11_windows ) ;
     _gqueue = std::move( rhv._gqueue ) ;
 }
 
@@ -125,6 +136,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 _destroy_queue.clear() ;
             }
 
+            #if MOTOR_GRAPHICS_WGL
+
             // update wgl window context
             // must be done here. If the window is closed,
             // the window handle is not valid anymore and must be
@@ -141,8 +154,53 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         auto const & wd = _win32_windows[d.idx_win32_window] ;
                         SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
                     }
+
+                    // set vsync
+                    {
+                        auto & wd = _win32_windows[d.idx_win32_window] ;
+                        if( wd.sv.vsync_msg_changed ) 
+                        {
+                            d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
+                            wd.sv.vsync_msg_changed = false ;
+                        }
+                    }
                 }
             }
+
+            #endif
+
+            #if MOTOR_GRAPHICS_DIRECT3D
+
+            // update d3d11 window context
+            // must be done here. If the window is closed,
+            // the window handle is not valid anymore and must be
+            // destructed in this class first.
+            {
+                for( auto & d : _d3d11_windows )
+                {
+                    d.ptr->ctx.activate() ;
+                    d.ptr->ctx.swap() ;
+                    d.ptr->ctx.deactivate() ;
+
+                    // set frame time
+                    {
+                        auto const & wd = _win32_windows[d.idx_win32_window] ;
+                        SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
+                    }
+
+                    // set vsync
+                    {
+                        auto & wd = _win32_windows[d.idx_win32_window] ;
+                        if( wd.sv.vsync_msg_changed ) 
+                        {
+                            d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
+                            wd.sv.vsync_msg_changed = false ;
+                        }
+                    }
+                }
+            }
+
+            #endif
 
             // test window queue for creation
             {
@@ -174,9 +232,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 for( auto & d : _gqueue )
                 {
                     size_t const wnd_idx = _win32_windows.size() ;
-
-                    d.gi.wi.window_name += " [wgl#" + motor::to_string(wnd_idx) +"]";
-
+                    
                     HWND hwnd = this_t::create_win32_window( d.gi.wi ) ;
 
                     {
@@ -195,6 +251,9 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         graphics_api_type::gl4 )
                     {
                         #if MOTOR_GRAPHICS_WGL
+
+                        _win32_windows.back().window_text = " [gfx#" + motor::to_string(wnd_idx) +"]";
+
                         motor::platform::wgl::wgl_context_t ctx ;
 
                         auto const res = ctx.create_context( hwnd ) ;
@@ -221,6 +280,26 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         graphics_api_type::d3d11 )
                     {
                         #if MOTOR_GRAPHICS_DIRECT3D
+
+                        _win32_windows.back().window_text = " [d3d11#" + motor::to_string(wnd_idx) +"]";
+
+                        motor::platform::d3d::d3d11_context_t ctx ;
+
+                        auto const res = ctx.create_context( hwnd ) ;
+                        if( motor::platform::success( res ) )
+                        {
+                            ctx.activate() ;
+                            ctx.clear_now( motor::math::vec4f_t( 0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                            ctx.swap() ;
+                            ctx.clear_now( motor::math::vec4f_t( 0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                            ctx.vsync( false ) ;
+                            ctx.deactivate() ;
+
+                            this_t::d3d11_pimpl * pimpl = motor::memory::global_t::alloc(
+                                this_t::d3d11_pimpl( {std::move(ctx) } ), "[win32_carrier] : d3d11 context") ;
+
+                            _d3d11_windows.emplace_back( d3d11_window_data({ wnd_idx, pimpl }) )  ;
+                        }
                         #else
                         // create null context ?
                         #endif
@@ -620,6 +699,12 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::appli
         d.sv.cursor_msg_changed = true ;
         d.sv.cursor_msg = msg ;
     }
+
+    if( states.vsync_msg_changed )
+    {
+        d.sv.vsync_msg_changed = true ;
+        d.sv.vsync_msg = states.vsync_msg ;
+    }
 }
 
 //*******************************************************************************************
@@ -634,6 +719,7 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
 
     size_t const dist = std::distance( _win32_windows.begin(), iter ) ;
 
+    #if MOTOR_GRAPHICS_WGL
     // look for wgl windows/context connection
     // and remove those along with the window
     {
@@ -648,6 +734,24 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
             _wgl_windows.erase( iter2 ) ;
         }
     }
+    #endif
+
+    #if MOTOR_GRAPHICS_DIRECT3D
+    // look for d3d11 windows/context connection
+    // and remove those along with the window
+    {
+        auto iter2 = std::find_if( _d3d11_windows.begin(), _d3d11_windows.end(), [&]( d3d11_window_data_cref_t d )
+        {
+            return d.idx_win32_window == dist ;
+        } ) ;
+
+        if( iter2 != _d3d11_windows.end() )
+        {
+            motor::memory::global_t::dealloc( iter2->ptr ) ;
+            _d3d11_windows.erase( iter2 ) ;
+        }
+    }
+    #endif
 
     this_t::send_destroy( *iter ) ;
 

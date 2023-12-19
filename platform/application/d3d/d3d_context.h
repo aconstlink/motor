@@ -1,14 +1,12 @@
 #pragma once
 
-#include "../d3d_info.h"
+#include "../../api.h"
+#include "../../typedefs.h"
+#include "../../result.h"
 
-#include "../gfx_context.h"
+#include <motor/application/d3d_info.h>
 
-#include <natus/graphics/backend/d3d/d3d11_context.h>
-#include <natus/graphics/backend/null/null.h>
-
-#include <natus/memory/res.hpp>
-#include <natus/math/vector/vector4.hpp>
+#include <motor/math/vector/vector4.hpp>
 
 #include <windows.h>
 #include <d3d11_1.h>
@@ -16,18 +14,18 @@
 
 namespace motor
 {
-    namespace application
+    namespace platform
     {
         namespace d3d
         {
-            class d3d11_context ;
-            motor_class_proto_typedefs( d3d11_context ) ;
+            //class d3d11_context ;
+            //motor_class_proto_typedefs( d3d11_context ) ;
 
-            class NATUS_APPLICATION_API context : public gfx_context
+            class MOTOR_PLATFORM_API d3d11_context //: public gfx_context
             {
-                friend class d3d11_context ;
+                //friend class d3d11_context ;
 
-                motor_this_typedefs( context ) ;
+                motor_this_typedefs( d3d11_context ) ;
 
             private:
 
@@ -47,21 +45,17 @@ namespace motor
                 ID3D11DepthStencilView* _pDepthStencilView = nullptr;
                 ID3D11Debug * _pDebug = nullptr ;
 
-                d3d11_context_ptr_t _bend_ctx = nullptr ;
+                //d3d11_context_ptr_t _bend_ctx = nullptr ;
 
             public:
 
                 /// initializes this context but does not create the context.
                 /// @see create_context
-                context( void_t ) noexcept ;
-                context( HWND ) noexcept ;
-                context( this_cref_t ) = delete ;
-                context( this_rref_t ) noexcept ;
-                ~context( void_t ) noexcept ;
-
-            private:
-
-                context( HWND hwnd, HGLRC ctx ) noexcept ;
+                d3d11_context( void_t ) noexcept ;
+                d3d11_context( HWND ) noexcept ;
+                d3d11_context( this_cref_t ) = delete ;
+                d3d11_context( this_rref_t ) noexcept ;
+                ~d3d11_context( void_t ) noexcept ;
 
             public: // operator =
 
@@ -70,35 +64,35 @@ namespace motor
 
             public:
 
-                virtual natus::application::result activate( void_t ) ;
-                virtual natus::application::result deactivate( void_t ) ;
-                virtual natus::application::result vsync( bool_t const on_off ) ;
-                virtual natus::application::result swap( void_t ) ;
+                virtual motor::platform::result activate( void_t ) noexcept ;
+                virtual motor::platform::result deactivate( void_t ) noexcept ;
+                virtual motor::platform::result vsync( bool_t const on_off ) noexcept ;
+                virtual motor::platform::result swap( void_t ) noexcept ;
 
-                virtual natus::graphics::backend_res_t create_backend( void_t ) noexcept ;
+                //virtual motor::graphics::backend_res_t create_backend( void_t ) noexcept ;
 
             public:
 
                 /// @note a valid window handle must be passed.
-                natus::application::result create_context( HWND hwnd ) ;
+                motor::platform::result create_context( HWND hwnd ) noexcept ;
 
                 /// @precondition Context must be active. For debug purpose. Just clears the screen.
-                void_t clear_now( natus::math::vec4f_t const& vec ) ;
-                void_t clear_depth_stencil( void_t ) ;
-                void_t activate_render_target( void_t ) ;
+                void_t clear_now( motor::math::vec4f_cref_t vec ) noexcept ;
+                void_t clear_depth_stencil( void_t ) noexcept ;
+                void_t activate_render_target( void_t ) noexcept ;
 
             private:
 
-                natus::application::result create_the_context( natus::application::d3d_info_cref_t gli ) ;
+                motor::platform::result create_the_context( motor::application::d3d_info_cref_t gli ) noexcept ;
             };
-            motor_typedef( context ) ;
-            typedef natus::memory::res_t< context_t > context_res_t ;
+            motor_typedef( d3d11_context ) ;
 
-            class NATUS_APPLICATION_API d3d11_context : public natus::graphics::d3d11_context
+            #if 0
+            class NATUS_APPLICATION_API d3d11_context : public motor::graphics::d3d11_context
             {
                 motor_this_typedefs( d3d11_context ) ;
 
-                friend class natus::application::d3d::context ;
+                friend class motor::application::d3d::context ;
 
             private:
 
@@ -145,7 +139,7 @@ namespace motor
                 }
 
                 // clear the backbuffer
-                virtual void_t clear_render_target_view( natus::math::vec4f_cref_t color ) noexcept
+                virtual void_t clear_render_target_view( motor::math::vec4f_cref_t color ) noexcept
                 {
                     _app_context->clear_now( color ) ;
                 }
@@ -155,6 +149,7 @@ namespace motor
                     _app_context->clear_depth_stencil() ;
                 }
             };
+            #endif
 
         }
     }
