@@ -149,21 +149,22 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     d.ptr->ctx.swap() ;
                     d.ptr->ctx.deactivate() ;
 
-                    // set frame time
+                    this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
                     {
-                        auto const & wd = _win32_windows[d.idx_win32_window] ;
-                        SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
-                    }
-
-                    // set vsync
-                    {
-                        auto & wd = _win32_windows[d.idx_win32_window] ;
-                        if( wd.sv.vsync_msg_changed ) 
+                        // set frame time
                         {
-                            d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
-                            wd.sv.vsync_msg_changed = false ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
                         }
-                    }
+
+                        // set vsync
+                        {
+                            if( wd.sv.vsync_msg_changed ) 
+                            {
+                                d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
+                                wd.sv.vsync_msg_changed = false ;
+                            }
+                        }
+                    } )  ;
                 }
             }
 
@@ -182,21 +183,22 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     d.ptr->ctx.swap() ;
                     d.ptr->ctx.deactivate() ;
 
-                    // set frame time
+                    this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
                     {
-                        auto const & wd = _win32_windows[d.idx_win32_window] ;
-                        SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
-                    }
-
-                    // set vsync
-                    {
-                        auto & wd = _win32_windows[d.idx_win32_window] ;
-                        if( wd.sv.vsync_msg_changed ) 
+                        // set frame time
                         {
-                            d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
-                            wd.sv.vsync_msg_changed = false ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
                         }
-                    }
+
+                        // set vsync
+                        {
+                            if( wd.sv.vsync_msg_changed ) 
+                            {
+                                d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
+                                wd.sv.vsync_msg_changed = false ;
+                            }
+                        }
+                    } ) ;
                 }
             }
 
@@ -281,7 +283,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
                                 this_t::wgl_pimpl( {std::move(ctx) } ), "[win32_carrier] : wgl context") ;
 
-                            _wgl_windows.emplace_back( wgl_window_data({ wnd_idx, pimpl }) )  ;
+                            _wgl_windows.emplace_back( wgl_window_data({ hwnd, pimpl }) )  ;
                         }
                         else
                         {
@@ -313,7 +315,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             this_t::d3d11_pimpl * pimpl = motor::memory::global_t::alloc(
                                 this_t::d3d11_pimpl( {std::move(ctx) } ), "[win32_carrier] : d3d11 context") ;
 
-                            _d3d11_windows.emplace_back( d3d11_window_data({ wnd_idx, pimpl }) )  ;
+                            _d3d11_windows.emplace_back( d3d11_window_data({ hwnd, pimpl }) )  ;
                         }
                         else
                         {
@@ -742,15 +744,13 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
 
     if( iter == _win32_windows.end() ) return ;
 
-    size_t const dist = std::distance( _win32_windows.begin(), iter ) ;
-
     #if MOTOR_GRAPHICS_WGL
     // look for wgl windows/context connection
     // and remove those along with the window
     {
         auto iter2 = std::find_if( _wgl_windows.begin(), _wgl_windows.end(), [&]( wgl_window_data_cref_t d )
         {
-            return d.idx_win32_window == dist ;
+            return d.hwnd == hwnd ;
         } ) ;
 
         if( iter2 != _wgl_windows.end() )
@@ -767,7 +767,7 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
     {
         auto iter2 = std::find_if( _d3d11_windows.begin(), _d3d11_windows.end(), [&]( d3d11_window_data_cref_t d )
         {
-            return d.idx_win32_window == dist ;
+            return d.hwnd == hwnd ;
         } ) ;
 
         if( iter2 != _d3d11_windows.end() )
@@ -783,4 +783,19 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
     motor::memory::release_ptr( iter->wnd ) ;
     motor::memory::release_ptr( iter->lsn ) ;
     _win32_windows.erase( iter ) ;
+}
+
+//*******************************************************************************************
+bool_t win32_carrier::find_window_info( HWND hwnd, win32_carrier::find_window_info_funk_t funk ) noexcept 
+{
+    auto iter = std::find_if( _win32_windows.begin(), _win32_windows.end(), [&]( this_t::win32_window_data_cref_t d )
+    {
+        return d.hwnd == hwnd ;
+    } ) ;
+
+    if( iter == _win32_windows.end() ) return false ;
+
+    funk( *iter ) ;
+
+    return true ;
 }

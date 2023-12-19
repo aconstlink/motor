@@ -52,7 +52,7 @@ namespace motor
 
                 struct wgl_window_data
                 {
-                    size_t idx_win32_window ;
+                    HWND hwnd ;
                     wgl_pimpl * ptr ;
                 };
                 motor_typedef( wgl_window_data ) ;
@@ -65,7 +65,7 @@ namespace motor
 
                 struct d3d11_window_data
                 {
-                    size_t idx_win32_window ;
+                    HWND hwnd ;
                     d3d11_pimpl * ptr ;
                 };
                 motor_typedef( d3d11_window_data ) ;
@@ -151,6 +151,13 @@ namespace motor
             private:
 
                 void_t handle_destroyed_hwnd( HWND ) noexcept ;
+
+            private:
+
+                using find_window_info_funk_t = std::function< void_t ( win32_carrier::this_t::win32_window_data_ref_t ) > ;
+                bool_t find_window_info( HWND hwnd, find_window_info_funk_t ) noexcept ;
+
+
             };
             motor_typedef( win32_carrier ) ;
         }
