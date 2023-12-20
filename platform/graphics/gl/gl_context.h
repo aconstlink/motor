@@ -11,16 +11,15 @@ namespace motor
 {
     namespace platform
     {
-        class MOTOR_PLATFORM_API gl_context : public motor::graphics::icontext
+        namespace opengl
         {
-        public:
+            class rendering_context 
+            {
+            public:
 
-            virtual ~gl_context( void_t ) noexcept {}
-
-        public:
-
-            virtual bool_t is_extension_supported( motor::string_cref_t ) const noexcept = 0 ;
-        };
-        motor_typedef( gl_context ) ;
+                virtual bool_t is_ext_supported( motor::string_cref_t ) const noexcept = 0 ;
+            };
+            motor_typedef( rendering_context ) ;
+        }
     }
 }

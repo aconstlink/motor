@@ -6,6 +6,14 @@ namespace motor
 {    
     namespace application
     {
+        enum class graphics_generation
+        {
+            none,
+            gen4_auto,
+            gen4_gl4,
+            gen4_d3d11
+        };
+
         struct window_info
         {
             int_t x = 0 ;
@@ -21,21 +29,10 @@ namespace motor
             bool_t show = true ;
 
             bool_t dpi_aware = false ;
+
+            motor::application::graphics_generation gen = 
+                motor::application::graphics_generation::gen4_auto ;
         };
         motor_typedef( window_info ) ;
-
-        struct graphics_window_info
-        {
-            enum class graphics_api_type
-            {
-                none,
-                automatic,
-                gl4,
-                d3d11
-            };
-            graphics_api_type api_type = graphics_api_type::automatic ;
-            window_info_t wi ;
-        };
-        motor_typedef( graphics_window_info ) ;
     }
 }

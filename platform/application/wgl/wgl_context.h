@@ -4,12 +4,9 @@
 #include "../../typedefs.h"
 #include "../../result.h"
 
-//#include "../gl_info.h"
+#include "../../graphics/gl/gl_context.h"
+#include "../../graphics/gl/gl4.h"
 
-//#include "../gfx_context.h"
-
-//#include <natus/graphics/backend/gl/gl_context.h>
-//#include <natus/graphics/backend/gl/gl4.h>
 #include <motor/application/gl_info.h>
 
 #include <motor/math/vector/vector4.hpp>
@@ -25,10 +22,7 @@ namespace motor
     {
         namespace wgl
         {
-            //class gl_context ;
-            //motor_class_proto_typedefs( gl_context ) ;
-
-            class MOTOR_PLATFORM_API wgl_context //: public gfx_context
+            class MOTOR_PLATFORM_API wgl_context : public motor::platform::opengl::rendering_context
             {
                 motor_this_typedefs( wgl_context ) ;
 
@@ -41,7 +35,7 @@ namespace motor
                 /// context active. Will be released on deactivation.
                 HDC _hdc = NULL ;
 
-                //gl_context_ptr_t _bend_ctx = nullptr ;
+                motor::platform::gl4_backend_mtr_t _backend = nullptr ;
 
             public:
 
@@ -71,7 +65,9 @@ namespace motor
                 virtual motor::platform::result vsync( bool_t const on_off ) noexcept ;
                 virtual motor::platform::result swap( void_t ) noexcept ;
 
-                //virtual motor::graphics::backend_res_t create_backend( void_t ) noexcept ;
+            public: // which interface ?
+
+                motor::graphics::backend_mtr_shared_t backend( void_t ) noexcept ;
 
             public:
 
@@ -80,11 +76,11 @@ namespace motor
 
                 /// Returns ok, if the extension is supported, otherwise, this function fails.
                 /// @precondition Must be used after context has been created and made current.
-                motor::platform::result is_extension_supported( motor::string_cref_t extension_name ) noexcept ;
+                motor::platform::result is_extension_supported( motor::string_cref_t extension_name ) const noexcept ;
 
                 /// This function fills the incoming list with all wgl extension strings.
                 /// @precondition Must be used after context has been created and made current.
-                motor::platform::result get_wgl_extension( motor::vector< motor::string_t >& ext_list ) noexcept ;
+                motor::platform::result get_wgl_extension( motor::vector< motor::string_t >& ext_list ) const noexcept ;
 
                 /// @precondition Context must be current.
                 motor::platform::result get_gl_extension( motor::vector< motor::string_t >& ext_list ) noexcept ;
@@ -98,48 +94,17 @@ namespace motor
             private:
 
                 motor::platform::result create_the_context( motor::application::gl_info_cref_t gli ) noexcept ;
-            };
-            motor_typedef( wgl_context ) ;
 
-            #if 0
-            // this is passed to the graphics backend at construction time, so the backend
-            // can check for extensions or other context related topics.
-            class NATUS_APPLICATION_API gl_context : public motor::graphics::gl_context
-            {
-                motor_this_typedefs( gl_context ) ;
+            private: // rendering_context interface
 
-                friend class motor::application::wgl::context ;
-
-            private:
-
-                // owner
-                context_ptr_t _app_context = nullptr ;
-
-                gl_context( context_ptr_t ctx ) noexcept : _app_context( ctx ) {}
-                gl_context( this_cref_t ) = delete ;
-
-            public:
-
-                gl_context( this_rref_t rhv ) noexcept
-                { 
-                    motor_move_member_ptr( _app_context, rhv ) ;
-                }
-
-                void_t change_owner( context_ptr_t ctx ) noexcept { _app_context = ctx ; }
-
-            public:
-
-                virtual ~gl_context( void_t ) noexcept {}
-
-            public:
-
-                virtual bool_t is_extension_supported( motor::string_cref_t ext ) const noexcept 
+                virtual bool_t is_ext_supported( motor::string_cref_t ext ) const noexcept 
                 {
-                    auto const res = _app_context->is_extension_supported( ext ) ;
+                    auto const res = this_t::is_extension_supported( ext ) ;
                     return res == motor::platform::result::ok ;
                 }
+
             };
-            #endif
+            motor_typedef( wgl_context ) ;
         }
     }
 }

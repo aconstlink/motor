@@ -1,26 +1,26 @@
-#include "d3d_context.h"
+#include "dx11_context.h"
 
 #include <motor/std/string_split.hpp>
 
 #include <motor/log/global.h>
 
 using namespace motor::platform ;
-using namespace motor::platform::d3d ;
+using namespace motor::platform::directx ;
 
 //***********************************************************************
-d3d11_context::d3d11_context( void_t ) noexcept
+dx11_context::dx11_context( void_t ) noexcept
 {
     #if 0
-    _bend_ctx = motor::memory::global_t::alloc( motor::platform::d3d::d3d11_context( this ),
+    _bend_ctx = motor::memory::global_t::alloc( motor::platform::d3d::dx11_context( this ),
         "[context] : backend gl_context" ) ;
     #endif
 }
 
 //***********************************************************************
-d3d11_context::d3d11_context( HWND hwnd ) noexcept
+dx11_context::dx11_context( HWND hwnd ) noexcept
 {
     #if 0 
-    _bend_ctx = motor::memory::global_t::alloc( motor::platform::d3d::d3d11_context( this ),
+    _bend_ctx = motor::memory::global_t::alloc( motor::platform::d3d::dx11_context( this ),
         "[context] : backend gl_context" ) ;
 
     #endif
@@ -28,7 +28,7 @@ d3d11_context::d3d11_context( HWND hwnd ) noexcept
 }
 
 //***********************************************************************
-d3d11_context::d3d11_context( this_rref_t rhv ) noexcept
+dx11_context::dx11_context( this_rref_t rhv ) noexcept
 {
     *this = std::move( rhv ) ;
     //motor_move_member_ptr( _bend_ctx, rhv ) ;
@@ -36,7 +36,7 @@ d3d11_context::d3d11_context( this_rref_t rhv ) noexcept
 }
 
 //***********************************************************************
-d3d11_context::~d3d11_context( void_t ) noexcept
+dx11_context::~dx11_context( void_t ) noexcept
 {
     this_t::deactivate() ;
 
@@ -55,7 +55,7 @@ d3d11_context::~d3d11_context( void_t ) noexcept
 }
 
 //***********************************************************************
-d3d11_context::this_ref_t d3d11_context::operator = ( this_rref_t rhv ) noexcept
+dx11_context::this_ref_t dx11_context::operator = ( this_rref_t rhv ) noexcept
 {
     _hwnd = rhv._hwnd ;
     rhv._hwnd = NULL ;
@@ -79,7 +79,7 @@ d3d11_context::this_ref_t d3d11_context::operator = ( this_rref_t rhv ) noexcept
 }
 
 //***********************************************************************
-motor::platform::result d3d11_context::activate( void_t ) noexcept
+motor::platform::result dx11_context::activate( void_t ) noexcept
 {
     // make current
 
@@ -87,20 +87,20 @@ motor::platform::result d3d11_context::activate( void_t ) noexcept
 }
 
 //***********************************************************************
-motor::platform::result d3d11_context::deactivate( void_t ) noexcept
+motor::platform::result dx11_context::deactivate( void_t ) noexcept
 {
     return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-motor::platform::result d3d11_context::vsync( bool_t const on_off ) noexcept
+motor::platform::result dx11_context::vsync( bool_t const on_off ) noexcept
 {
     _vsync = on_off ? 1 : 0 ;
     return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-motor::platform::result d3d11_context::swap( void_t ) noexcept
+motor::platform::result dx11_context::swap( void_t ) noexcept
 {
     _pSwapChain->Present( _vsync, 0 );
 
@@ -190,7 +190,7 @@ motor::platform::result d3d11_context::swap( void_t ) noexcept
 }
 #if 0
 //***********************************************************************
-motor::graphics::backend_res_t d3d11_context::create_backend( void_t ) noexcept 
+motor::graphics::backend_res_t dx11_context::create_backend( void_t ) noexcept 
 {
     if( _pd3dDevice != nullptr )
     {
@@ -203,12 +203,12 @@ motor::graphics::backend_res_t d3d11_context::create_backend( void_t ) noexcept
 }
 #endif
 //***********************************************************************
-motor::platform::result d3d11_context::create_context( HWND hwnd ) noexcept 
+motor::platform::result dx11_context::create_context( HWND hwnd ) noexcept 
 {
     _hwnd = hwnd ;
 
     if( motor::log::global::error( _hwnd == NULL,
-        "[d3d11_context::create_context] : Window handle is no win32 handle." ) )
+        "[dx11_context::create_context] : Window handle is no win32 handle." ) )
         return motor::platform::result::invalid_argument ;
 
     return this_t::create_the_context( motor::application::d3d_info_t() ) ;
@@ -216,7 +216,7 @@ motor::platform::result d3d11_context::create_context( HWND hwnd ) noexcept
 
 
 //***********************************************************************
-void_t d3d11_context::clear_now( motor::math::vec4f_cref_t vec ) noexcept 
+void_t dx11_context::clear_now( motor::math::vec4f_cref_t vec ) noexcept 
 {
     // old: DirectX::Colors::MidnightBlue
     FLOAT color[ 4 ] = { vec.x(), vec.y(), vec.z(), vec.w() } ;
@@ -224,19 +224,19 @@ void_t d3d11_context::clear_now( motor::math::vec4f_cref_t vec ) noexcept
 }
 
 //***********************************************************************
-void_t d3d11_context::clear_depth_stencil( void_t )  noexcept 
+void_t dx11_context::clear_depth_stencil( void_t )  noexcept 
 {
     _pImmediateContext->ClearDepthStencilView( _pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0 ) ;
 }
 
 //***********************************************************************
-void_t d3d11_context::activate_render_target( void_t )  noexcept 
+void_t dx11_context::activate_render_target( void_t )  noexcept 
 {
     _pImmediateContext->OMSetRenderTargets( 1, &_pRenderTargetView, _pDepthStencilView );
 }
 
 //***********************************************************************
-motor::platform::result d3d11_context::create_the_context( motor::application::d3d_info_cref_t gli ) noexcept 
+motor::platform::result dx11_context::create_the_context( motor::application::d3d_info_cref_t gli ) noexcept 
 {
     typedef std::chrono::high_resolution_clock local_clock_t ;
     auto t1 = local_clock_t::now() ;
@@ -433,7 +433,7 @@ motor::platform::result d3d11_context::create_the_context( motor::application::d
         this_t::activate() ;
 
         motor::log::global::warning( motor::platform::no_success( this_t::vsync( gli.vsync_enabled ) ),
-            "[d3d11_context::create_the_context] : vsync setting failed." ) ;
+            "[dx11_context::create_the_context] : vsync setting failed." ) ;
 
         this_t::deactivate() ;
     }

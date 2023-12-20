@@ -17,11 +17,11 @@ namespace motor
             struct pimpl ;
             pimpl* _pimpl ;
 
-            motor::platform::d3d11_context_ptr_t _context = nullptr ;
+            motor::platform::d3d11::rendering_context_ptr_t _context = nullptr ;
 
         public:
 
-            d3d11_backend( motor::platform::d3d11_context_ptr_t ) noexcept ;
+            d3d11_backend( motor::platform::d3d11::rendering_context_ptr_t ) noexcept ;
             d3d11_backend( this_cref_t ) = delete ;
             d3d11_backend( this_rref_t ) noexcept ;
             virtual ~d3d11_backend( void_t ) ;

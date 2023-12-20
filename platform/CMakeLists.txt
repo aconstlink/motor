@@ -88,8 +88,8 @@ endif()
 if( MOTOR_GRAPHICS_DIRECT3D )
 
     list( APPEND sources
-      "application/d3d/d3d_context.h"
-      "application/d3d/d3d_context.cpp" )
+      "application/d3d/dx11_context.h"
+      "application/d3d/dx11_context.cpp" )
 endif()
 
 

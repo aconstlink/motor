@@ -10,7 +10,7 @@
 #endif
 
 #if MOTOR_GRAPHICS_DIRECT3D
-#include "../d3d/d3d_context.h"
+#include "../d3d/dx11_context.h"
 #endif
 
 #include <windows.h>
@@ -28,7 +28,7 @@ struct win32_carrier::wgl_pimpl
 #if MOTOR_GRAPHICS_DIRECT3D
 struct win32_carrier::d3d11_pimpl
 {
-    motor::platform::d3d::d3d11_context_t ctx ;
+    motor::platform::directx::dx11_context_t ctx ;
 } ;
 #endif
 //***********************************************************************
@@ -48,7 +48,6 @@ win32_carrier::win32_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rh
 
     _wgl_windows = std::move( rhv._wgl_windows ) ;
     _d3d11_windows = std::move( rhv._d3d11_windows ) ;
-    _gqueue = std::move( rhv._gqueue ) ;
 }
 
 //***********************************************************************
@@ -146,6 +145,10 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 for( auto & d : _wgl_windows )
                 {
                     d.ptr->ctx.activate() ;
+
+                    
+                    // call all rendering commands
+
                     d.ptr->ctx.swap() ;
                     d.ptr->ctx.deactivate() ;
 
@@ -209,8 +212,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 std::lock_guard< std::mutex > lk ( _mtx_queue ) ;
                 for( auto & d : _queue )
                 {
-                    d.wi.window_name += " [win32]" ;
-
+                    size_t const wnd_idx = _win32_windows.size() ;
                     HWND hwnd = this_t::create_win32_window( d.wi ) ;
 
                     {
@@ -224,50 +226,23 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     }
 
                     this_t::send_create( _win32_windows.back() ) ;
-                }
-                _queue.clear() ;
-            }
-
-            // test graphics window queue for creation
-            {
-                std::lock_guard< std::mutex > lk ( _mtx_gqueue ) ;
-                for( auto & d : _gqueue )
-                {
-                    size_t const wnd_idx = _win32_windows.size() ;
-                    
-                    HWND hwnd = this_t::create_win32_window( d.gi.wi ) ;
-
-                    {
-                        win32_window_data wd ;
-                        wd.hwnd = hwnd ;
-                        wd.wnd = d.wnd ;
-                        wd.lsn = d.lsn ;
-                        wd.window_text = d.gi.wi.window_name ;
-
-                        _win32_windows.emplace_back(wd);
-                    }
-
-                    this_t::send_create( _win32_windows.back() ) ;
 
                     // deduce auto graphics api type
-                    if( d.gi.api_type == motor::application::graphics_window_info_t::
-                        graphics_api_type::automatic ) 
+                    if( d.wi.gen == motor::application::graphics_generation::gen4_auto ) 
                     {
                         #if MOTOR_GRAPHICS_DIRECT3D
-                        d.gi.api_type = motor::application::graphics_window_info_t::graphics_api_type::d3d11 ;
+                        d.wi.gen = motor::application::graphics_generation::gen4_d3d11 ;
                         #elif MOTOR_GRAPHICS_WGL
-                        d.gi.api_type = motor::application::graphics_window_info_t::graphics_api_type::gl4 ;
+                        d.wi.gen = motor::application::graphics_generation::gen4_gl4 ;
                         #else
-                        d.gi.api_type = motor::application::graphics_window_info_t::graphics_api_type::none ;
+                        d.wi.gen = motor::application::graphics_generation::none ;
                         #endif
                     }
 
-                    if( d.gi.api_type == motor::application::graphics_window_info_t::
-                        graphics_api_type::gl4 )
+                    #if MOTOR_GRAPHICS_WGL
+                    if( d.wi.gen == motor::application::graphics_generation::gen4_gl4 )
                     {
-                        #if MOTOR_GRAPHICS_WGL
-
-                        _win32_windows.back().window_text = " [gfx#" + motor::to_string(wnd_idx) +"]";
+                        _win32_windows.back().window_text = " [gl4 #" + motor::to_string(wnd_idx) +"]";
 
                         motor::platform::wgl::wgl_context_t ctx ;
 
@@ -281,7 +256,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             ctx.deactivate() ;
 
                             this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
-                                this_t::wgl_pimpl( {std::move(ctx) } ), "[win32_carrier] : wgl context") ;
+                                this_t::wgl_pimpl( { std::move(ctx) } ), "[win32_carrier] : wgl context") ;
 
                             _wgl_windows.emplace_back( wgl_window_data({ hwnd, pimpl }) )  ;
                         }
@@ -289,19 +264,15 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         {
                             motor::log::global_t::critical( "Wanted to create a WGL window but could not." ) ;
                         }
-                        #else
-                        // create null context ?
-                        #endif
                     }
+                    #endif
 
-                    if( d.gi.api_type == motor::application::graphics_window_info_t::
-                        graphics_api_type::d3d11 )
+                    #if MOTOR_GRAPHICS_DIRECT3D
+                    if( d.wi.gen == motor::application::graphics_generation::gen4_d3d11 )
                     {
-                        #if MOTOR_GRAPHICS_DIRECT3D
+                        _win32_windows.back().window_text = " [d3d11 #" + motor::to_string(wnd_idx) +"]";
 
-                        _win32_windows.back().window_text = " [d3d11#" + motor::to_string(wnd_idx) +"]";
-
-                        motor::platform::d3d::d3d11_context_t ctx ;
+                        motor::platform::directx::dx11_context_t ctx ;
 
                         auto const res = ctx.create_context( hwnd ) ;
                         if( motor::platform::success( res ) )
@@ -321,26 +292,17 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         {
                             motor::log::global_t::critical( "Wanted to create a D3D11 window but could not." ) ;
                         }
-                        #else
-                        // create null context ?
-                        #endif
                     }
+                    #endif
 
-                    if( d.gi.api_type == motor::application::graphics_window_info_t::
-                        graphics_api_type::none )
+                    if( d.wi.gen == motor::application::graphics_generation::none )
                     {
                         motor::log::global_t::error( "Wanted to create a graphics window but no api chosen or available." ) ;
                     }
                 }
-                _gqueue.clear() ;
+                _queue.clear() ;
             }
         }
-
-        #if 0
-        _rawinput->handle_input_event( msg.hwnd, msg.message,
-            msg.wParam, msg.lParam ) ;
-        #endif
-        //std::this_thread::sleep_for( std::chrono::milliseconds(200) ) ;
     }
 
 
@@ -392,25 +354,6 @@ motor::application::iwindow_mtr_shared_t win32_carrier::create_window( motor::ap
     }
 
     return motor::share( wnd )  ;
-}
-
-//***********************************************************************
-motor::application::iwindow_mtr_shared_t win32_carrier::create_window( motor::application::graphics_window_info_in_t info ) noexcept
-{
-    motor::application::window_mtr_t wnd = motor::memory::create_ptr<motor::application::window_t>(
-        "[win32_carrier] : window handle" ) ;
-
-    motor::application::window_message_listener_mtr_t lsn = motor::memory::create_ptr<
-        motor::application::window_message_listener_t>("[win32_carrier] : window message listener") ;
-
-    wnd->register_in( motor::share( lsn ) ) ;
-
-    {
-        std::lock_guard< std::mutex > lk( _mtx_queue ) ;
-        _gqueue.emplace_back( this_t::graphics_queue_msg_t{info, wnd, lsn} ) ;
-    }
-
-    return motor::share( wnd ) ;
 }
 
 //***********************************************************************

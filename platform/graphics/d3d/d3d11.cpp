@@ -1051,9 +1051,8 @@ struct d3d11_backend::pimpl
 public: // variables
 
     motor::graphics::backend_type const bt = motor::graphics::backend_type::d3d11 ;
-    motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0
-        ;
-    motor::platform::d3d11_context_ptr_t _ctx ;
+    motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0 ;
+    motor::platform::d3d11::rendering_context_mtr_t _ctx ;
 
     typedef motor::vector< this_t::so_data > so_datas_t ;
     so_datas_t _streamouts ;
@@ -1143,7 +1142,7 @@ public: // variables
 public: // functions
 
     //******************************************************************************************************************************
-    pimpl( motor::platform::d3d11_context_ptr_t ctx ) noexcept
+    pimpl( motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept
     {
         _ctx = ctx ;
         geo_datas.resize( 10 ) ;
@@ -3752,19 +3751,18 @@ public: // functions
 //************************************************************************************************
 
 //******************************************************************************************************************************
-d3d11_backend::d3d11_backend( motor::platform::d3d11_context_ptr_t ctx ) noexcept : 
+d3d11_backend::d3d11_backend( motor::platform::d3d11::rendering_context_ptr_t ctx ) noexcept : 
     backend( motor::graphics::backend_type::d3d11 )
 {
     _pimpl = motor::memory::global_t::alloc( this_t::pimpl( ctx ), "d3d11_backend::pimpl" ) ;
-
     _context = ctx ;
 }
 
 //******************************************************************************************************************************
 d3d11_backend::d3d11_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv ) )
 {
-    motor_move_member_ptr( _pimpl, rhv ) ;
-    motor_move_member_ptr( _context, rhv ) ;
+    _pimpl = motor::move( rhv._pimpl ) ;
+    _context = motor::move( rhv._context ) ;
 }
 
 //******************************************************************************************************************************

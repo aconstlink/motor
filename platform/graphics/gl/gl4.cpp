@@ -430,12 +430,12 @@ struct gl4_backend::pimpl
     // the current render state set
     motor::graphics::render_state_sets_t render_states ;
 
-    motor::platform::gl_context_ptr_t _ctx ;
+    motor::platform::opengl::rendering_context_ptr_t _ctx ;
 
     size_t _tf_active_id = size_t( -1 ) ;
 
     //****************************************************************************************
-    pimpl( motor::platform::gl_context_ptr_t ctx ) 
+    pimpl( motor::platform::opengl::rendering_context_ptr_t ctx ) 
     {
         _ctx = ctx ;
 
@@ -3224,7 +3224,7 @@ struct gl4_backend::pimpl
 //************************************************************************************************
 
 //****
-gl4_backend::gl4_backend( motor::platform::gl_context_ptr_t ctx ) noexcept : 
+gl4_backend::gl4_backend( motor::platform::opengl::rendering_context_ptr_t ctx ) noexcept : 
     backend( motor::graphics::backend_type::gl4 )
 {
     _pimpl = motor::memory::global_t::alloc( pimpl( ctx ), "gl4_backend::pimpl" ) ;
@@ -3234,8 +3234,8 @@ gl4_backend::gl4_backend( motor::platform::gl_context_ptr_t ctx ) noexcept :
 //****
 gl4_backend::gl4_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv ) )
 {
-    motor_move_member_ptr( _pimpl, rhv ) ;
-    motor_move_member_ptr( _context, rhv ) ;
+    _pimpl = motor::move( rhv._pimpl ) ;
+    _context = motor::move( rhv._context ) ;
 }
 
 //****

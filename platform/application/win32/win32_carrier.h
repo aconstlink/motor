@@ -85,20 +85,6 @@ namespace motor
                 std::mutex _mtx_queue ;
                 motor::vector< window_queue_msg_t > _queue ;
 
-
-            private: // graphics windows queue
-
-                struct graphics_queue_msg
-                {
-                    motor::application::graphics_window_info_t gi ;
-                    motor::application::iwindow_mtr_t wnd ;
-                    motor::application::window_message_listener_mtr_t lsn ;
-                };
-                motor_typedef( graphics_queue_msg ) ;
-
-                std::mutex _mtx_gqueue ;
-                motor::vector< graphics_queue_msg_t > _gqueue ;
-
             private: // destruction queue 
 
                 motor::vector< HWND > _destroy_queue ;
@@ -120,7 +106,6 @@ namespace motor
                 virtual motor::application::result close( void_t ) noexcept ;
 
                 virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
-                virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::graphics_window_info_in_t info ) noexcept override ; 
 
             private:
 

@@ -3,6 +3,7 @@
 #include "../../api.h"
 #include "../../typedefs.h"
 #include "../../result.h"
+#include "../../graphics/d3d/d3d11_context.h"
 
 #include <motor/application/d3d_info.h>
 
@@ -16,16 +17,12 @@ namespace motor
 {
     namespace platform
     {
-        namespace d3d
+        namespace directx
         {
-            //class d3d11_context ;
-            //motor_class_proto_typedefs( d3d11_context ) ;
-
-            class MOTOR_PLATFORM_API d3d11_context //: public gfx_context
+            // is the context constructed for the window
+            class dx11_context : public motor::platform::d3d11::rendering_context
             {
-                //friend class d3d11_context ;
-
-                motor_this_typedefs( d3d11_context ) ;
+                motor_this_typedefs( dx11_context ) ;
 
             private:
 
@@ -45,17 +42,15 @@ namespace motor
                 ID3D11DepthStencilView* _pDepthStencilView = nullptr;
                 ID3D11Debug * _pDebug = nullptr ;
 
-                //d3d11_context_ptr_t _bend_ctx = nullptr ;
-
             public:
 
                 /// initializes this context but does not create the context.
                 /// @see create_context
-                d3d11_context( void_t ) noexcept ;
-                d3d11_context( HWND ) noexcept ;
-                d3d11_context( this_cref_t ) = delete ;
-                d3d11_context( this_rref_t ) noexcept ;
-                ~d3d11_context( void_t ) noexcept ;
+                dx11_context( void_t ) noexcept ;
+                dx11_context( HWND ) noexcept ;
+                dx11_context( this_cref_t ) = delete ;
+                dx11_context( this_rref_t ) noexcept ;
+                ~dx11_context( void_t ) noexcept ;
 
             public: // operator =
 
@@ -84,73 +79,39 @@ namespace motor
             private:
 
                 motor::platform::result create_the_context( motor::application::d3d_info_cref_t gli ) noexcept ;
-            };
-            motor_typedef( d3d11_context ) ;
 
-            #if 0
-            class NATUS_APPLICATION_API d3d11_context : public motor::graphics::d3d11_context
-            {
-                motor_this_typedefs( d3d11_context ) ;
-
-                friend class motor::application::d3d::context ;
-
-            private:
-
-                // owner
-                context_ptr_t _app_context = nullptr ;
-
-                d3d11_context( context_ptr_t ctx ) noexcept : _app_context( ctx ) {}
-                d3d11_context( this_cref_t ) = delete ;
-
-            public:
-
-                d3d11_context( this_rref_t rhv ) noexcept
-                {
-                    motor_move_member_ptr( _app_context, rhv ) ;
-                }
-
-                void_t change_owner( context_ptr_t ctx ) noexcept { _app_context = ctx ; }
-
-            public:
-
-                virtual ~d3d11_context( void_t ) noexcept {}
-
-            public:
-
+            private: // rendering context interface.
 
                 virtual ID3D11DeviceContext * ctx( void_t ) noexcept 
                 {
-                    return _app_context->_pImmediateContext ;
+                    return _pImmediateContext ;
                 }
-
                 virtual ID3D11Device * dev( void_t ) noexcept 
                 {
-                    return _app_context->_pd3dDevice ;
+                    return _pd3dDevice ;
                 }
 
                 virtual ID3D11Debug * debug( void_t ) noexcept 
                 {
-                    return _app_context->_pDebug ;
+                    return _pDebug ;
                 }
 
                 virtual void_t activate_framebuffer( void_t ) noexcept 
                 {
-                    return _app_context->activate_render_target() ;
+                    this_t::activate_render_target() ;
                 }
 
-                // clear the backbuffer
-                virtual void_t clear_render_target_view( motor::math::vec4f_cref_t color ) noexcept
+                virtual void_t clear_render_target_view( motor::math::vec4f_cref_t color ) noexcept 
                 {
-                    _app_context->clear_now( color ) ;
+                    this_t::clear_now( color ) ;
                 }
 
                 virtual void_t clear_depth_stencil_view( void_t ) noexcept 
                 {
-                    _app_context->clear_depth_stencil() ;
+                    this_t::clear_depth_stencil() ;
                 }
             };
-            #endif
-
+            motor_typedef( dx11_context ) ;
         }
     }
 }

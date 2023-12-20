@@ -17,11 +17,11 @@ namespace motor
             struct pimpl ;
             pimpl * _pimpl ;
 
-            motor::platform::gl_context_ptr_t _context = nullptr ;
+            motor::platform::opengl::rendering_context_ptr_t _context = nullptr ;
 
         public:
 
-            gl4_backend( motor::platform::gl_context_ptr_t ) noexcept ;
+            gl4_backend( motor::platform::opengl::rendering_context_ptr_t ) noexcept ;
             gl4_backend( this_cref_t ) = delete ;
             gl4_backend( this_rref_t ) noexcept ;
             virtual ~gl4_backend( void_t ) ;
