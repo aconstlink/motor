@@ -4,7 +4,6 @@
 #include "../../api.h"
 #include "../../typedefs.h"
 
-#include <motor/graphics/backend/icontext.h>
 #include <motor/std/string>
 
 namespace motor
