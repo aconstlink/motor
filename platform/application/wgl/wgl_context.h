@@ -35,7 +35,7 @@ namespace motor
                 /// context active. Will be released on deactivation.
                 HDC _hdc = NULL ;
 
-                motor::platform::gl4_backend_mtr_t _backend = nullptr ;
+                motor::platform::gen4::gl4_backend_mtr_t _backend = nullptr ;
 
             public:
 
@@ -67,7 +67,7 @@ namespace motor
 
             public: // which interface ?
 
-                motor::graphics::backend_mtr_shared_t backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_mtr_shared_t backend( void_t ) noexcept ;
 
             public:
 

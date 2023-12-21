@@ -15,7 +15,7 @@
 #include <motor/std/stack>
 #include <motor/std/string_split.hpp>
 
-using namespace motor::platform ;
+using namespace motor::platform::gen4 ;
 using namespace motor::ogl ;
 
 struct gl4_backend::pimpl
@@ -424,7 +424,7 @@ struct gl4_backend::pimpl
     GLsizei vp_width = 0 ;
     GLsizei vp_height = 0 ;
 
-    motor::graphics::backend_type const bt = motor::graphics::backend_type::gl4 ;
+    motor::graphics::gen4::backend_type const bt = motor::graphics::gen4::backend_type::gl4 ;
     motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::glsl_1_4 ;
 
     // the current render state set
@@ -442,7 +442,7 @@ struct gl4_backend::pimpl
         {
             motor::graphics::state_object_t obj( "gl4_default_states" ) ;
 
-            auto new_states = motor::graphics::backend_t::default_render_states() ;
+            auto new_states = motor::graphics::gen4::backend_t::default_render_states() ;
 
             new_states.view_s.do_change = true ;
             new_states.view_s.ss.do_activate = true ;
@@ -1098,7 +1098,7 @@ struct gl4_backend::pimpl
             {
                 motor::log::global_t::warning( motor_log_fn(
                     "config [" + obj.name() + "] has no shaders for " + 
-                    motor::graphics::to_string( this_t::bt ) ) ) ;
+                    motor::graphics::gen4::to_string( this_t::bt ) ) ) ;
                 return oid ;
             }
         }
@@ -3223,28 +3223,27 @@ struct gl4_backend::pimpl
 //
 //************************************************************************************************
 
-//****
-gl4_backend::gl4_backend( motor::platform::opengl::rendering_context_ptr_t ctx ) noexcept : 
-    backend( motor::graphics::backend_type::gl4 )
+//******************************************************************************************************
+gl4_backend::gl4_backend( motor::platform::opengl::rendering_context_ptr_t ctx ) noexcept 
 {
     _pimpl = motor::memory::global_t::alloc( pimpl( ctx ), "gl4_backend::pimpl" ) ;
     _context = ctx ;
 }
 
-//****
+//******************************************************************************************************
 gl4_backend::gl4_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv ) )
 {
     _pimpl = motor::move( rhv._pimpl ) ;
     _context = motor::move( rhv._context ) ;
 }
 
-//****
+//******************************************************************************************************
 gl4_backend::~gl4_backend( void_t ) 
 {
     motor::memory::global_t::dealloc( _pimpl ) ;
 }
 
-//****
+//******************************************************************************************************
 void_t gl4_backend::set_window_info( window_info_cref_t wi ) noexcept 
 {
     {
@@ -3262,97 +3261,63 @@ void_t gl4_backend::set_window_info( window_info_cref_t wi ) noexcept
     }
 }
 
-//****
-motor::graphics::result gl4_backend::configure( motor::graphics::geometry_object_mtr_t gconf ) noexcept 
+//******************************************************************************************************
+motor::graphics::result gl4_backend::configure( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = gconf->get_id() ;
+    size_t const oid = obj->set_oid( this_t::get_bid(),
+        _pimpl->construct_geo( obj->get_oid(this_t::get_bid() ), *obj ) ) ;
 
+    if( !_pimpl->update( oid, obj, true ) )
     {
-        id->set_oid( this_t::get_bid(),
-            _pimpl->construct_geo( id->get_oid(this_t::get_bid() ), *gconf ) ) ;
-    }
-
-    {
-        auto const res = _pimpl->update( id->get_oid( this_t::get_bid() ), gconf, true ) ;
-        if( !res )
-        {
-            return motor::graphics::result::failed ;
-        }
+        return motor::graphics::result::failed ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//****
-motor::graphics::result gl4_backend::configure( motor::graphics::render_object_mtr_t config ) noexcept 
+//******************************************************************************************************
+motor::graphics::result gl4_backend::configure( motor::graphics::render_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = config->get_id() ;
-
+    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_render_data( 
+        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
+    
+    if( !_pimpl->update( oid, *obj ) )
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_render_data( 
-            id->get_oid( this_t::get_bid() ), *config ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    {
-        auto const res = _pimpl->update( oid, *config ) ;
-        if( !res )
-        {
-            return motor::graphics::result::failed ;
-        }
+        return motor::graphics::result::failed ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//***
-motor::graphics::result gl4_backend::configure( motor::graphics::shader_object_mtr_t config ) noexcept
+//******************************************************************************************************
+motor::graphics::result gl4_backend::configure( motor::graphics::shader_object_mtr_t obj ) noexcept
 {
-    motor::graphics::id_mtr_t id = config->get_id() ;
-
+    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_shader_config( 
+        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
+    
+    if( !_pimpl->update( oid, *obj ) )
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_shader_config( 
-            id->get_oid( this_t::get_bid() ), *config ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    {
-        auto const res = _pimpl->update( oid, *config ) ;
-        if( !res )
-        {
-            return motor::graphics::result::failed ;
-        }
+        return motor::graphics::result::failed ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//***
-motor::graphics::result gl4_backend::configure( motor::graphics::image_object_mtr_t config ) noexcept 
+//******************************************************************************************************
+motor::graphics::result gl4_backend::configure( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = config->get_id() ;
-
+    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
+        obj->get_oid( this_t::get_bid() ), obj->name(), *obj ) ) ;
+    
+    if( !_pimpl->update( oid, *obj, true ) )
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
-            id->get_oid( this_t::get_bid() ), config->name(), *config ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    {
-        auto const res = _pimpl->update( oid, *config, true ) ;
-        if( !res )
-        {
-            return motor::graphics::result::failed ;
-        }
+        return motor::graphics::result::failed ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//***
+//******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::framebuffer_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3361,17 +3326,15 @@ motor::graphics::result gl4_backend::configure( motor::graphics::framebuffer_obj
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
+        obj->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
+            obj->get_oid( this_t::get_bid() ), *obj ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//***
+//******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::state_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3380,55 +3343,37 @@ motor::graphics::result gl4_backend::configure( motor::graphics::state_object_mt
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_state(
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
+        obj->set_oid( this_t::get_bid(), _pimpl->construct_state(
+            obj->get_oid( this_t::get_bid() ), *obj ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//***
+//******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
+    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_array_data( 
+        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
-    {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_array_data( 
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    {
-        auto const res = _pimpl->update( oid, *obj, true ) ;
-        if( !res ) return motor::graphics::result::failed ;
-    }
+    if( !_pimpl->update( oid, *obj, true ) ) return motor::graphics::result::failed ;
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
-    {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_feedback( 
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    {
-        auto const res = _pimpl->update( oid, *obj, true ) ;
-        if( !res ) return motor::graphics::result::failed ;
-    }
+    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_feedback( 
+        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
+    
+    if( !_pimpl->update( oid, *obj, true ) ) return motor::graphics::result::failed ;
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3438,14 +3383,14 @@ motor::graphics::result gl4_backend::release( motor::graphics::geometry_object_m
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        _pimpl->release_geometry( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        _pimpl->release_geometry( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::render_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3455,14 +3400,14 @@ motor::graphics::result gl4_backend::release( motor::graphics::render_object_mtr
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        _pimpl->release_render_data( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        _pimpl->release_render_data( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::shader_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3472,14 +3417,14 @@ motor::graphics::result gl4_backend::release( motor::graphics::shader_object_mtr
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        _pimpl->release_shader_data( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        _pimpl->release_shader_data( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3489,14 +3434,14 @@ motor::graphics::result gl4_backend::release( motor::graphics::image_object_mtr_
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        _pimpl->release_image_data( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        _pimpl->release_image_data( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::framebuffer_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3506,14 +3451,14 @@ motor::graphics::result gl4_backend::release( motor::graphics::framebuffer_objec
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        _pimpl->release_framebuffer( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        _pimpl->release_framebuffer( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::state_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3523,14 +3468,14 @@ motor::graphics::result gl4_backend::release( motor::graphics::state_object_mtr_
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        //_pimpl->relese( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        //_pimpl->relese( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::array_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3540,15 +3485,14 @@ motor::graphics::result gl4_backend::release( motor::graphics::array_object_mtr_
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        _pimpl->release_array_data( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        _pimpl->release_array_data( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//*******************************************************************************************
+//******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -3558,27 +3502,24 @@ motor::graphics::result gl4_backend::release( motor::graphics::streamout_object_
     }
 
     {
-        motor::graphics::id_mtr_t id = obj->get_id() ;
-        _pimpl->release_tf_data( id->get_oid( this_t::get_bid() ) ) ;
-        id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+        _pimpl->release_tf_data( obj->get_oid( this_t::get_bid() ) ) ;
+        obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
     return motor::graphics::result::ok ;
 }
 
-//*******************************************************************************************
-motor::graphics::result gl4_backend::connect( motor::graphics::render_object_mtr_t config, 
+//******************************************************************************************************
+motor::graphics::result gl4_backend::connect( motor::graphics::render_object_mtr_t obj, 
     motor::graphics::variable_set_mtr_t vs ) noexcept
 {
-    motor::graphics::id_mtr_t id = config->get_id() ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
         motor::log::global_t::error( motor_log_fn( "invalid render configuration id" ) ) ;
         return motor::graphics::result::failed ;
     }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     auto const res = _pimpl->connect( oid, vs ) ;
     motor::log::global_t::error( !res, 
@@ -3588,21 +3529,18 @@ motor::graphics::result gl4_backend::connect( motor::graphics::render_object_mtr
 }
 
 //*******************************************************************************************
-motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mtr_t config ) noexcept 
+motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = config->get_id() ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
         motor::log::global_t::error( motor_log_fn( "invalid geometry configuration id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    auto const res = _pimpl->update( oid, config ) ;
-    motor::log::global_t::error( !res,
-        motor_log_fn( "update geometry" ) ) ;
+    auto const res = _pimpl->update( oid, obj ) ;
+    motor::log::global_t::error( !res, motor_log_fn( "update geometry" ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -3610,8 +3548,7 @@ motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mt
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::streamout_object_mtr_t obj ) noexcept
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, false ) ;
@@ -3624,8 +3561,7 @@ motor::graphics::result gl4_backend::update( motor::graphics::streamout_object_m
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, false ) ;
@@ -3644,8 +3580,7 @@ motor::graphics::result gl4_backend::update( motor::graphics::image_object_mtr_t
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::render_object_mtr_t obj, size_t const varset ) noexcept 
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update_variables( oid, varset ) ;
@@ -3660,17 +3595,16 @@ motor::graphics::result gl4_backend::use( motor::graphics::framebuffer_object_mt
 {
     if( obj == nullptr )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
     }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    
     auto const res = _pimpl->activate_framebuffer( oid ) ;
     if( !res ) return motor::graphics::result::failed ;
 
@@ -3682,17 +3616,15 @@ motor::graphics::result gl4_backend::use( motor::graphics::streamout_object_mtr_
 {
     if( obj == nullptr )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::streamout ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::streamout ) ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
-    if( id->is_not_valid( this_t::get_bid() ) )
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+    if( oid == size_t(-1) )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::streamout ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::streamout ) ;
     }
 
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
     auto const res = _pimpl->use_transform_feedback( oid ) ;
     if( !res ) return motor::graphics::result::failed ;
 
@@ -3700,12 +3632,12 @@ motor::graphics::result gl4_backend::use( motor::graphics::streamout_object_mtr_
 }
 
 //*******************************************************************************************
-motor::graphics::result gl4_backend::unuse( motor::graphics::backend::unuse_type const t ) noexcept 
+motor::graphics::result gl4_backend::unuse( motor::graphics::gen4::backend::unuse_type const t ) noexcept 
 {
     switch( t ) 
     {
-    case motor::graphics::backend::unuse_type::framebuffer: _pimpl->deactivate_framebuffer() ; break ;
-    case motor::graphics::backend::unuse_type::streamout: _pimpl->unuse_transform_feedback() ; break ;
+    case motor::graphics::gen4::backend::unuse_type::framebuffer: _pimpl->deactivate_framebuffer() ; break ;
+    case motor::graphics::gen4::backend::unuse_type::streamout: _pimpl->unuse_transform_feedback() ; break ;
     }
     
     return motor::graphics::result::ok ;
@@ -3717,38 +3649,36 @@ motor::graphics::result gl4_backend::push( motor::graphics::state_object_mtr_t o
 {
     if( obj == nullptr )
     {
-        return this_t::pop( motor::graphics::backend::pop_type::render_state ) ;
+        return this_t::pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
-        return this_t::pop( motor::graphics::backend::pop_type::render_state ) ;
+        return this_t::pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    
     _pimpl->handle_render_state( oid, sid ) ;
 
     return motor::graphics::result::ok ;
 }
 
 //*****************************************************************************************
-motor::graphics::result gl4_backend::pop( motor::graphics::backend::pop_type const ) noexcept 
+motor::graphics::result gl4_backend::pop( motor::graphics::gen4::backend::pop_type const ) noexcept 
 {
     _pimpl->handle_render_state( size_t( -1 ), size_t( -1 ) ) ;
     return motor::graphics::result::ok ;
 }
 
 //***************************************************************************************
-motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_t config, 
-          motor::graphics::backend::render_detail_cref_t detail ) noexcept 
+motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_t obj, 
+          motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept 
 { 
-    motor::graphics::id_mtr_t id = config->get_id() ;
-
     //motor::log::global_t::status( motor_log_fn("render") ) ;
 
-    if( id->is_not_valid( this_t::get_bid() )  )
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+    if( oid == size_t(-1)  )
     {
         motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
@@ -3756,8 +3686,7 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
 
     // @todo
     // change per object render states here.
-
-    _pimpl->render( id->get_oid( this_t::get_bid() ), detail.geo, 
+    _pimpl->render( oid, detail.geo, 
                     detail.feed_from_streamout, detail.use_streamout_count,
                     detail.varset, (GLsizei)detail.start, (GLsizei)detail.num_elems ) ;
 

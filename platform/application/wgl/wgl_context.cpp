@@ -1,6 +1,6 @@
 #include "wgl_context.h"
 
-#include <motor/graphics/backend/null/null.h>
+#include <motor/graphics/backend/gen4/null.h>
 
 #include <motor/ogl/gl/gl.h>
 #include <motor/ogl/wgl/wgl.h>
@@ -138,7 +138,7 @@ motor::platform::result wgl_context::swap( void_t ) noexcept
 }
 
 //***********************************************************************
-motor::graphics::backend_mtr_shared_t wgl_context::backend( void_t ) noexcept 
+motor::graphics::gen4::backend_mtr_shared_t wgl_context::backend( void_t ) noexcept 
 {
     if( _backend != nullptr ) return motor::share( _backend ) ;
 
@@ -148,7 +148,7 @@ motor::graphics::backend_mtr_shared_t wgl_context::backend( void_t ) noexcept
     // create gen 4 renderer
     if( glv.major >= 4 || (glv.major >= 4 && glv.minor >= 0) )
     {
-        _backend = motor::memory::create_ptr( motor::platform::gl4_backend_t( this ) ) ;
+        _backend = motor::memory::create_ptr( motor::platform::gen4::gl4_backend_t( this ) ) ;
     }
     else
     {

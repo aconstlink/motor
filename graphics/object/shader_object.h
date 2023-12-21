@@ -7,8 +7,6 @@
 #include "../shader/shader_set.hpp"
 #include "../buffer/vertex_attribute.h"
 
-#include "../backend/types.h"
-
 #include <motor/std/vector>
 
 #include <algorithm>

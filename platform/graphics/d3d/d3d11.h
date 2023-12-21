@@ -2,13 +2,13 @@
 #pragma once
 
 #include "d3d11_context.h"
-#include <motor/graphics/backend/backend.h>
+#include <motor/graphics/backend/gen4/backend.h>
 
 namespace motor
 {
     namespace platform
     {
-        class MOTOR_PLATFORM_API d3d11_backend : public motor::graphics::backend
+        class MOTOR_PLATFORM_API d3d11_backend : public motor::graphics::gen4::backend
         {
             motor_this_typedefs( d3d11_backend ) ;
 
@@ -57,11 +57,11 @@ namespace motor
 
             virtual motor::graphics::result use( motor::graphics::framebuffer_object_mtr_t ) noexcept ;
             virtual motor::graphics::result use( motor::graphics::streamout_object_mtr_t ) noexcept ;
-            virtual motor::graphics::result unuse( motor::graphics::backend::unuse_type const ) noexcept ;
+            virtual motor::graphics::result unuse( motor::graphics::gen4::backend::unuse_type const ) noexcept ;
             virtual motor::graphics::result push( motor::graphics::state_object_mtr_t, size_t const, bool_t const ) noexcept ;
-            virtual motor::graphics::result pop( motor::graphics::backend::pop_type const ) noexcept ;
+            virtual motor::graphics::result pop( motor::graphics::gen4::backend::pop_type const ) noexcept ;
 
-            virtual motor::graphics::result render( motor::graphics::render_object_mtr_t, motor::graphics::backend::render_detail_cref_t ) noexcept override ;
+            virtual motor::graphics::result render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept override ;
 
             virtual void_t render_begin( void_t ) noexcept ;
             virtual void_t render_end( void_t ) noexcept ;

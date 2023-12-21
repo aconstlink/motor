@@ -5,14 +5,13 @@
 #include "typedefs.h"
 #include "result.h"
 
-#include "id.hpp"
-
 #include <motor/concurrent/typedefs.h>
 
 namespace motor
 {
     namespace graphics
     {
+        #if 0
         /// 
         class MOTOR_GRAPHICS_API async_id
         {
@@ -21,8 +20,7 @@ namespace motor
             friend class async ;
 
         private:
-
-            motor::graphics::id_t _id ;            
+            
             mutable motor::concurrent::mutex_t _mtx ;
             motor::graphics::async_result _res = motor::graphics::async_result::invalid ;
             motor::graphics::async_result _config = motor::graphics::async_result::invalid ;
@@ -33,7 +31,6 @@ namespace motor
             async_id( this_cref_t ) = delete ;
             async_id( this_rref_t rhv ) noexcept
             {
-                _id = std::move( rhv._id ) ;
                 _res = std::move( rhv._res ) ;
             }
             ~async_id( void_t ) noexcept {}
@@ -88,6 +85,7 @@ namespace motor
             }
         };
         motor_typedef( async_id ) ;
+        #endif
     }
 }
 

@@ -3,7 +3,6 @@
 
 #include "../object.hpp"
 
-#include "../backend/types.h"
 #include "../buffer/vertex_buffer.hpp"
 #include "../buffer/index_buffer.hpp"
 #include <motor/std/vector>
