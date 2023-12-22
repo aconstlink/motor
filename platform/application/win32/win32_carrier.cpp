@@ -98,17 +98,6 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 {
                     while( PeekMessage( &msg, d.hwnd, 0, 0, PM_REMOVE ) )
                     {
-                        // the WM_USER message could be used for 
-                        // further state reset.
-                        if( msg.message == WM_USER )
-                        {
-                            // used for cursor handling, at the moment.
-                            if( msg.wParam == WPARAM(-1) && msg.lParam == LPARAM(-1) )
-                            {
-                                this_t::handle_messages( d, d.sv ) ;
-                            }
-                        }
-
                         TranslateMessage( &msg ) ;
                         DispatchMessage( &msg ) ;
                     }
@@ -486,12 +475,11 @@ LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPA
       
     case WM_SETCURSOR:
     {
-        // must return true so recognizes 
-        // set cursor properties in handle_messages.
-        // + post message so message loop handles reset of  
-        // cursor message.
-        PostMessage( hwnd, WM_USER, WPARAM(-1), LPARAM(-1) ) ;
-        return TRUE ;
+        if( LOWORD(lParam) == HTCLIENT )
+        {
+            SetCursor(NULL);
+            return TRUE;
+        }
     }
 
     case WM_KILLFOCUS:
