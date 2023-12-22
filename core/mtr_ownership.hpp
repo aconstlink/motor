@@ -334,6 +334,12 @@ namespace motor
     }
 
     template< typename T >
+    static core::mtr_delay< T > delay( T * ptr ) noexcept
+    {
+        return core::mtr_delay<T>::make( ptr ) ;
+    }
+
+    template< typename T >
     static core::mtr_shared< T > share( T * ptr ) noexcept
     {
         return core::mtr_shared<T>::make( ptr ) ;
