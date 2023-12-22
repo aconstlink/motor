@@ -727,11 +727,12 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
 
         if( iter2 != _wgl_windows.end() )
         {
+            motor::memory::global_t::dealloc( iter2->ptr->fe ) ;
             motor::memory::global_t::dealloc( iter2->ptr ) ;
             _wgl_windows.erase( iter2 ) ;
         }
     }
-    #endif
+    #endif  
 
     #if MOTOR_GRAPHICS_DIRECT3D
     // look for d3d11 windows/context connection
@@ -744,6 +745,7 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
 
         if( iter2 != _d3d11_windows.end() )
         {
+            motor::memory::global_t::dealloc( iter2->ptr->fe ) ;
             motor::memory::global_t::dealloc( iter2->ptr ) ;
             _d3d11_windows.erase( iter2 ) ;
         }

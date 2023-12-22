@@ -51,7 +51,7 @@ dx11_context::~dx11_context( void_t ) noexcept
     if( _pd3dDevice ) _pd3dDevice->Release();
     if( _pDebug ) _pDebug->Release() ;
 
-    //motor::memory::global_t::dealloc( _bend_ctx ) ;
+    motor::memory::release_ptr( _backend ) ;
 }
 
 //***********************************************************************
