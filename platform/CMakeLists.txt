@@ -85,6 +85,15 @@ if( MOTOR_GRAPHICS_WGL )
       "application/wgl/wgl_context.cpp" )
 endif()
 
+if( MOTOR_GRAPHICS_DIRECT3D )
+
+    list( APPEND sources
+      "application/d3d/dx11_context.h"
+      "application/d3d/dx11_context.cpp" )
+endif()
+
+
+
 if( MOTOR_GRAPHICS_GLX )
 
     list( APPEND sources_
@@ -101,16 +110,6 @@ if( MOTOR_GRAPHICS_EGL )
       "platform/egl/egl_window.cpp"
       "platform/egl/egl_context.h"
       "platform/egl/egl_context.cpp" )
-endif()
-
-if( MOTOR_GRAPHICS_DIRECT3D )
-
-    list( APPEND sources_
-      "platform/d3d_info.h"
-      "platform/d3d/d3d_window.h"
-      "platform/d3d/d3d_window.cpp"
-      "platform/d3d/d3d_context.h"
-      "platform/d3d/d3d_context.cpp" )
 endif()
 
 if( MOTOR_WINDOW_SYSTEM_WIN32 )

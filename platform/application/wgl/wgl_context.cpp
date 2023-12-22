@@ -1,14 +1,10 @@
 #include "wgl_context.h"
 
-//#include <natus/graphics/backend/null/null.h>
-
-
+#include <motor/graphics/backend/gen4/null.h>
 
 #include <motor/ogl/gl/gl.h>
 #include <motor/ogl/wgl/wgl.h>
-
 #include <motor/std/string_split.hpp>
-
 #include <motor/log/global.h>
 
 using namespace motor::platform ;
@@ -61,7 +57,8 @@ wgl_context::~wgl_context( void_t ) noexcept
     if( _hrc != NULL )
         wglDeleteContext( _hrc ) ;
 
-    //motor::memory::global_t::dealloc( _bend_ctx ) ;
+    // the backend can not exist without the context.
+    assert( motor::memory::release_ptr( _backend ) == nullptr ) ;
 }
 
 //***********************************************************************
@@ -73,6 +70,8 @@ wgl_context::this_ref_t wgl_context::operator = ( this_rref_t rhv ) noexcept
     rhv._hdc = NULL ;
     _hrc = rhv._hrc ;
     rhv._hrc = NULL ;
+
+    _backend = motor::move( rhv._backend ) ;
 
     return *this ;
 }
@@ -138,22 +137,27 @@ motor::platform::result wgl_context::swap( void_t ) noexcept
     return motor::platform::result::ok ;
 }
 
-#if 0
 //***********************************************************************
-motor::graphics::backend_res_t wgl_context::create_backend( void_t ) noexcept 
+motor::graphics::gen4::backend_mtr_shared_t wgl_context::backend( void_t ) noexcept 
 {
+    if( _backend != nullptr ) return motor::share( _backend ) ;
+
     motor::application::gl_version glv ;
     this->get_gl_version( glv ) ;
+
+    // create gen 4 renderer
     if( glv.major >= 4 || (glv.major >= 4 && glv.minor >= 0) )
     {
-        return motor::graphics::gl4_backend_res_t(
-            motor::graphics::gl4_backend_t( _bend_ctx ) ) ;
+        _backend = motor::memory::create_ptr( motor::platform::gen4::gl4_backend_t( this ) ) ;
+    }
+    else
+    {
+        motor::log::global_t::error( "Can not create requested OpenGL 4 renderer. "
+            "OpenGL not matching the version requirement.") ;
     }
     
-    return motor::graphics::null_backend_res_t(
-        motor::graphics::null_backend_t() ) ;
+    return motor::share( _backend ) ;
 }
-#endif
 
 //***********************************************************************
 motor::platform::result wgl_context::create_context( HWND hwnd ) noexcept
@@ -168,7 +172,7 @@ motor::platform::result wgl_context::create_context( HWND hwnd ) noexcept
 }
 
 //***********************************************************************
-motor::platform::result wgl_context::is_extension_supported( motor::string_cref_t extension_name ) noexcept
+motor::platform::result wgl_context::is_extension_supported( motor::string_cref_t extension_name ) const noexcept
 {
     motor::vector< motor::string_t > ext_list ;
     if( this_t::get_wgl_extension(ext_list) != motor::platform::result::ok ) 
@@ -181,7 +185,7 @@ motor::platform::result wgl_context::is_extension_supported( motor::string_cref_
 }
 
 //***********************************************************************
-motor::platform::result wgl_context::get_wgl_extension( motor::vector< motor::string_t > & ext_list ) noexcept
+motor::platform::result wgl_context::get_wgl_extension( motor::vector< motor::string_t > & ext_list ) const noexcept
 {
     if( !motor::ogl::wgl::wglGetExtensionsString ) 
         return motor::platform::result::invalid_extension ;

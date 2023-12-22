@@ -1,50 +1,42 @@
-#include "d3d_context.h"
+#include "dx11_context.h"
 
-#include <natus/graphics/backend/d3d/d3d11.h>
+#include <motor/std/string_split.hpp>
 
-#include <natus/core/assert.h>
+#include <motor/log/global.h>
 
-#include <natus/ntd/string/split.hpp>
-
-#include <natus/log/global.h>
-
-using namespace motor::application ;
-using namespace motor::application::d3d ;
+using namespace motor::platform ;
+using namespace motor::platform::directx ;
 
 //***********************************************************************
-context::context( void_t ) noexcept
+dx11_context::dx11_context( void_t ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::d3d::d3d11_context( this ),
+    #if 0
+    _bend_ctx = motor::memory::global_t::alloc( motor::platform::d3d::dx11_context( this ),
         "[context] : backend gl_context" ) ;
+    #endif
 }
 
 //***********************************************************************
-context::context( HWND hwnd ) noexcept
+dx11_context::dx11_context( HWND hwnd ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::d3d::d3d11_context( this ),
+    #if 0 
+    _bend_ctx = motor::memory::global_t::alloc( motor::platform::d3d::dx11_context( this ),
         "[context] : backend gl_context" ) ;
+
+    #endif
     this_t::create_context( hwnd ) ;
 }
 
 //***********************************************************************
-context::context( HWND hwnd, HGLRC ctx ) noexcept
-{
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::d3d::d3d11_context( this ),
-        "[context] : backend gl_context" ) ;
-
-    _hwnd = hwnd ;
-}
-
-//***********************************************************************
-context::context( this_rref_t rhv ) noexcept
+dx11_context::dx11_context( this_rref_t rhv ) noexcept
 {
     *this = std::move( rhv ) ;
-    motor_move_member_ptr( _bend_ctx, rhv ) ;
-    _bend_ctx->change_owner( this ) ;
+    //motor_move_member_ptr( _bend_ctx, rhv ) ;
+    //_bend_ctx->change_owner( this ) ;
 }
 
 //***********************************************************************
-context::~context( void_t ) noexcept
+dx11_context::~dx11_context( void_t ) noexcept
 {
     this_t::deactivate() ;
 
@@ -59,11 +51,11 @@ context::~context( void_t ) noexcept
     if( _pd3dDevice ) _pd3dDevice->Release();
     if( _pDebug ) _pDebug->Release() ;
 
-    natus::memory::global_t::dealloc( _bend_ctx ) ;
+    motor::memory::release_ptr( _backend ) ;
 }
 
 //***********************************************************************
-context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
+dx11_context::this_ref_t dx11_context::operator = ( this_rref_t rhv ) noexcept
 {
     _hwnd = rhv._hwnd ;
     rhv._hwnd = NULL ;
@@ -83,32 +75,34 @@ context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
     motor_move_member_ptr( _pDepthStencilView, rhv ) ;
     motor_move_member_ptr( _pDebug, rhv ) ;
 
+    _backend = motor::move( rhv._backend ) ;
+
     return *this ;
 }
 
 //***********************************************************************
-natus::application::result context::activate( void_t )
+motor::platform::result dx11_context::activate( void_t ) noexcept
 {
     // make current
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::deactivate( void_t )
+motor::platform::result dx11_context::deactivate( void_t ) noexcept
 {
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::vsync( bool_t const on_off )
+motor::platform::result dx11_context::vsync( bool_t const on_off ) noexcept
 {
     _vsync = on_off ? 1 : 0 ;
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::application::result context::swap( void_t )
+motor::platform::result dx11_context::swap( void_t ) noexcept
 {
     _pSwapChain->Present( _vsync, 0 );
 
@@ -122,7 +116,7 @@ natus::application::result context::swap( void_t )
         _pSwapChain->GetDesc( &desc ) ;
 
         if( width == 0 || height == 0 ) 
-            return natus::application::result::ok ;
+            return motor::platform::result::ok ;
 
         if( desc.BufferDesc.Width != width ||
             desc.BufferDesc.Height != height )
@@ -140,8 +134,8 @@ natus::application::result context::swap( void_t )
             
             if( FAILED( hr ) )
             {
-                natus::log::global_t::error( "D3D11 context resize failed" ) ;
-                return natus::application::result::failed_d3d ;
+                motor::log::global_t::error( "D3D11 context resize failed" ) ;
+                return motor::platform::result::failed_d3d ;
             }
 
             {
@@ -172,7 +166,7 @@ natus::application::result context::swap( void_t )
                 descDepth.CPUAccessFlags = 0;
                 descDepth.MiscFlags = 0;
                 hr = _pd3dDevice->CreateTexture2D( &descDepth, nullptr, &_pDepthStencil );
-                if( FAILED( hr ) ) return natus::application::result::failed_d3d ;
+                if( FAILED( hr ) ) return motor::platform::result::failed_d3d ;
 
                 // Create the depth stencil view
                 D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = { };
@@ -194,37 +188,48 @@ natus::application::result context::swap( void_t )
             _pImmediateContext->RSSetViewports( 1, &vp );
         }
     }
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***********************************************************************
-natus::graphics::backend_res_t context::create_backend( void_t ) noexcept 
+motor::graphics::gen4::backend_mtr_shared_t dx11_context::backend( void_t ) noexcept 
+{
+    if( _backend != nullptr ) return motor::share( _backend ) ;
+
+    _backend = motor::memory::create_ptr( motor::platform::gen4::d3d11_backend_t( this ) ) ;
+    
+    return motor::share( _backend ) ;
+}
+
+#if 0
+//***********************************************************************
+motor::graphics::backend_res_t dx11_context::create_backend( void_t ) noexcept 
 {
     if( _pd3dDevice != nullptr )
     {
-        return natus::graphics::d3d11_backend_res_t(
-            natus::graphics::d3d11_backend_t( _bend_ctx ) ) ;
+        return motor::graphics::d3d11_backend_res_t(
+            motor::graphics::d3d11_backend_t( _bend_ctx ) ) ;
     }
 
-    return natus::graphics::null_backend_res_t(
-        natus::graphics::null_backend_t() ) ;
+    return motor::graphics::null_backend_res_t(
+        motor::graphics::null_backend_t() ) ;
 }
-
+#endif
 //***********************************************************************
-natus::application::result context::create_context( HWND hwnd )
+motor::platform::result dx11_context::create_context( HWND hwnd ) noexcept 
 {
     _hwnd = hwnd ;
 
-    if( natus::log::global::error( _hwnd == NULL,
-        "[context::create_context] : Window handle is no win32 handle." ) )
-        return natus::application::result::invalid_argument ;
+    if( motor::log::global::error( _hwnd == NULL,
+        "[dx11_context::create_context] : Window handle is no win32 handle." ) )
+        return motor::platform::result::invalid_argument ;
 
-    return this_t::create_the_context( natus::application::d3d_info_t() ) ;
+    return this_t::create_the_context( motor::application::d3d_info_t() ) ;
 }
 
 
 //***********************************************************************
-void_t context::clear_now( natus::math::vec4f_t const& vec )
+void_t dx11_context::clear_now( motor::math::vec4f_cref_t vec ) noexcept 
 {
     // old: DirectX::Colors::MidnightBlue
     FLOAT color[ 4 ] = { vec.x(), vec.y(), vec.z(), vec.w() } ;
@@ -232,19 +237,19 @@ void_t context::clear_now( natus::math::vec4f_t const& vec )
 }
 
 //***********************************************************************
-void_t context::clear_depth_stencil( void_t ) 
+void_t dx11_context::clear_depth_stencil( void_t )  noexcept 
 {
     _pImmediateContext->ClearDepthStencilView( _pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0 ) ;
 }
 
 //***********************************************************************
-void_t context::activate_render_target( void_t ) 
+void_t dx11_context::activate_render_target( void_t )  noexcept 
 {
     _pImmediateContext->OMSetRenderTargets( 1, &_pRenderTargetView, _pDepthStencilView );
 }
 
 //***********************************************************************
-natus::application::result context::create_the_context( d3d_info_cref_t gli )
+motor::platform::result dx11_context::create_the_context( motor::application::d3d_info_cref_t gli ) noexcept 
 {
     typedef std::chrono::high_resolution_clock local_clock_t ;
     auto t1 = local_clock_t::now() ;
@@ -262,7 +267,7 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
         UINT createDeviceFlags = 0 ;
 
         #ifdef _DEBUG
-        createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+        createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG ;
         #endif
 
         D3D_DRIVER_TYPE const driverTypes[] =
@@ -298,7 +303,7 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
             if( SUCCEEDED( hr ) )
                 break;
         }
-        if( FAILED( hr ) ) return natus::application::result::failed_d3d ;
+        if( FAILED( hr ) ) return motor::platform::result::failed_d3d ;
 
         
         #if _DEBUG
@@ -308,7 +313,7 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
             hr = _pd3dDevice->QueryInterface( __uuidof( ID3D11Debug ), reinterpret_cast< void** >( &debug ) );
             if( FAILED( hr ) ) 
             {
-                natus::log::global_t::error("[D3D11] : Can not query debug interface.") ;
+                motor::log::global_t::error("[D3D11] : Can not query debug interface.") ;
             }
             _pDebug = debug ;
         }
@@ -331,7 +336,7 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
                 dxgiDevice->Release();
             }
         }
-        if( FAILED( hr ) ) return natus::application::result::failed_d3d ;
+        if( FAILED( hr ) ) return motor::platform::result::failed_d3d ;
 
         // Create swap chain
         IDXGIFactory2* dxgiFactory2 = nullptr;
@@ -386,18 +391,18 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
 
         dxgiFactory->Release();
 
-        if( FAILED( hr ) ) return natus::application::result::failed_d3d ;
+        if( FAILED( hr ) ) return motor::platform::result::failed_d3d ;
 
         // Create a render target view
         ID3D11Texture2D* pBackBuffer = nullptr;
         hr = _pSwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ), reinterpret_cast< void** >( &pBackBuffer ) );
         if( FAILED( hr ) )
-            return natus::application::result::failed_d3d ;
+            return motor::platform::result::failed_d3d ;
 
         hr = _pd3dDevice->CreateRenderTargetView( pBackBuffer, nullptr, &_pRenderTargetView );
         pBackBuffer->Release();
         if( FAILED( hr ) )
-            return natus::application::result::failed_d3d ;
+            return motor::platform::result::failed_d3d ;
 
         // Create depth stencil texture
         D3D11_TEXTURE2D_DESC descDepth = { };
@@ -413,7 +418,7 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
         descDepth.CPUAccessFlags = 0;
         descDepth.MiscFlags = 0;
         hr = _pd3dDevice->CreateTexture2D( &descDepth, nullptr, &_pDepthStencil );
-        if( FAILED( hr ) ) return natus::application::result::failed_d3d ;
+        if( FAILED( hr ) ) return motor::platform::result::failed_d3d ;
 
         // Create the depth stencil view
         D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = { };
@@ -421,7 +426,7 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
         descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
         descDSV.Texture2D.MipSlice = 0;
         hr = _pd3dDevice->CreateDepthStencilView( _pDepthStencil, &descDSV, &_pDepthStencilView );
-        if( FAILED( hr ) ) return natus::application::result::failed_d3d ;
+        if( FAILED( hr ) ) return motor::platform::result::failed_d3d ;
 
         _pImmediateContext->OMSetRenderTargets( 1, &_pRenderTargetView, _pDepthStencilView );
 
@@ -440,8 +445,8 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
     {
         this_t::activate() ;
 
-        natus::log::global::warning( natus::application::no_success( this_t::vsync( gli.vsync_enabled ) ),
-            "[context::create_the_context] : vsync setting failed." ) ;
+        motor::log::global::warning( motor::platform::no_success( this_t::vsync( gli.vsync_enabled ) ),
+            "[dx11_context::create_the_context] : vsync setting failed." ) ;
 
         this_t::deactivate() ;
     }
@@ -451,8 +456,12 @@ natus::application::result context::create_the_context( d3d_info_cref_t gli )
         size_t const milli = size_t( std::chrono::duration_cast< std::chrono::milliseconds >(
             local_clock_t::now() - t1 ).count() ) ;
 
+<<<<<<< HEAD:platform/application/d3d/d3d_context.cpp
         natus::log::global::status( motor_log_fn( "created [" + std::to_string( milli ) + " ms]" ) ) ;
+=======
+        motor::log::global::status( motor_log_fn( "created [" + ::std::to_string( milli ) + " ms]" ) ) ;
+>>>>>>> main:platform/application/d3d/dx11_context.cpp
     }
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }

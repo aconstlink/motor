@@ -24,6 +24,7 @@
 #endif
 
 using namespace motor::platform ;
+using namespace motor::platform::gen4 ;
 
 template< typename T >
 class guard
@@ -1050,10 +1051,9 @@ struct d3d11_backend::pimpl
 
 public: // variables
 
-    motor::graphics::backend_type const bt = motor::graphics::backend_type::d3d11 ;
-    motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0
-        ;
-    motor::platform::d3d11_context_ptr_t _ctx ;
+    motor::graphics::gen4::backend_type const bt = motor::graphics::gen4::backend_type::d3d11 ;
+    motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0 ;
+    motor::platform::d3d11::rendering_context_mtr_t _ctx ;
 
     typedef motor::vector< this_t::so_data > so_datas_t ;
     so_datas_t _streamouts ;
@@ -1143,7 +1143,7 @@ public: // variables
 public: // functions
 
     //******************************************************************************************************************************
-    pimpl( motor::platform::d3d11_context_ptr_t ctx ) noexcept
+    pimpl( motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept
     {
         _ctx = ctx ;
         geo_datas.resize( 10 ) ;
@@ -1151,7 +1151,7 @@ public: // functions
         {
             motor::graphics::state_object_t obj( "d3d11_default_states" ) ;
 
-            auto new_states = motor::graphics::backend_t::default_render_states() ;
+            auto new_states = motor::graphics::gen4::backend_t::default_render_states() ;
 
             new_states.view_s.do_change = true ;
             new_states.view_s.ss.do_activate = true ;
@@ -2228,7 +2228,7 @@ public: // functions
             {
                 motor::log::global_t::warning( motor_log_fn(
                     "config [" + obj.name() + "] has no shaders for " + 
-                    motor::graphics::to_string( this->bt ) ) ) ;
+                    motor::graphics::gen4::to_string( this->bt ) ) ) ;
                 return oid ;
             }
         }
@@ -2259,7 +2259,7 @@ public: // functions
                     {
                         motor::log::global_t::warning( motor_log_fn(
                             "vertex shader [" + obj.name() + "] failed " +
-                            motor::graphics::to_string( this->bt ) ) ) ;
+                            motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
                         if( errblob != nullptr )
                         {
@@ -2304,7 +2304,7 @@ public: // functions
                 {
                     motor::log::global_t::warning( motor_log_fn(
                         "geometry shader [" + obj.name() + "] failed " +
-                        motor::graphics::to_string( this->bt ) ) ) ;
+                        motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
                     if( errblob != nullptr )
                     {
@@ -2352,7 +2352,7 @@ public: // functions
                 {
                     motor::log::global_t::warning( motor_log_fn(
                         "pixel shader [" + obj.name() + "] failed " +
-                        motor::graphics::to_string( this->bt ) ) ) ;
+                        motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
                     if( errblob != nullptr )
                     {
@@ -3752,19 +3752,17 @@ public: // functions
 //************************************************************************************************
 
 //******************************************************************************************************************************
-d3d11_backend::d3d11_backend( motor::platform::d3d11_context_ptr_t ctx ) noexcept : 
-    backend( motor::graphics::backend_type::d3d11 )
+d3d11_backend::d3d11_backend( motor::platform::d3d11::rendering_context_ptr_t ctx ) noexcept 
 {
     _pimpl = motor::memory::global_t::alloc( this_t::pimpl( ctx ), "d3d11_backend::pimpl" ) ;
-
     _context = ctx ;
 }
 
 //******************************************************************************************************************************
 d3d11_backend::d3d11_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv ) )
 {
-    motor_move_member_ptr( _pimpl, rhv ) ;
-    motor_move_member_ptr( _context, rhv ) ;
+    _pimpl = motor::move( rhv._pimpl ) ;
+    _context = motor::move( rhv._context ) ;
 }
 
 //******************************************************************************************************************************
@@ -3801,15 +3799,13 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::geometry_obje
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
-    {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_geo( 
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
+    
+    size_t const oid = obj->set_oid( this_t::get_bid(), 
+        _pimpl->construct_geo( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
+    
     
     {
-        auto const res = _pimpl->update( id->get_oid( this_t::get_bid() ), obj ) ;
+        auto const res = _pimpl->update( oid, obj ) ;
         if( !res )
         {
             return motor::graphics::result::failed ;
@@ -3827,15 +3823,9 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::render_object
         motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
-
-    motor::graphics::id_mtr_t id = obj->get_id() ;
     
-    {
-        id->set_oid( this_t::get_bid(),
-            _pimpl->construct_render_config( id->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->set_oid( this_t::get_bid(),
+        _pimpl->construct_render_config( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj ) ;
@@ -3856,12 +3846,10 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::shader_object
         motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
-
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    
+        
     {
-        id->set_oid( this_t::get_bid(),
-            _pimpl->construct_shader_config( id->get_oid( this_t::get_bid() ), *obj ) ) ;
+        obj->set_oid( this_t::get_bid(),
+            _pimpl->construct_shader_config( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
     }
 
     #if 0
@@ -3886,15 +3874,9 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::image_object_
         motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
-
-    motor::graphics::id_mtr_t id = obj->get_id() ;
     
-    {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
+        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
     #if 0
     {
@@ -3904,7 +3886,10 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::image_object_
             return motor::graphics::result::failed ;
         }
     }
+    #else
+    (void) oid ;
     #endif
+
     return motor::graphics::result::ok ;
 }
 
@@ -3917,11 +3902,9 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::framebuffer_o
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
+        obj->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
+            obj->get_oid( this_t::get_bid() ), *obj ) ) ;
     }
 
     return motor::graphics::result::ok ;
@@ -3936,11 +3919,9 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::state_object_
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_state(
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
+        obj->set_oid( this_t::get_bid(), _pimpl->construct_state(
+            obj->get_oid( this_t::get_bid() ), *obj ) ) ;
     }
 
     return motor::graphics::result::ok ;
@@ -3954,15 +3935,9 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::array_object_
         motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
-
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
-    {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_array_data( 
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    
+    size_t const oid = obj->set_oid( this_t::get_bid(), 
+        _pimpl->construct_array_data( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, true ) ;
@@ -3980,15 +3955,9 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::streamout_obj
         motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
-
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
-    {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_streamout( 
-            id->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
     
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->set_oid( this_t::get_bid(), 
+        _pimpl->construct_streamout( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, true ) ;
@@ -4008,10 +3977,8 @@ motor::graphics::result d3d11_backend::release( motor::graphics::geometry_object
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-
-    _pimpl->release_geometry( id->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    _pimpl->release_geometry( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4024,10 +3991,9 @@ motor::graphics::result d3d11_backend::release( motor::graphics::render_object_m
         motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
-
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    _pimpl->release_render_data( obj->get_id()->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    
+    _pimpl->release_render_data( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4041,9 +4007,8 @@ motor::graphics::result d3d11_backend::release( motor::graphics::shader_object_m
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    _pimpl->release_shader_data( obj->get_id()->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    _pimpl->release_shader_data( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4057,9 +4022,8 @@ motor::graphics::result d3d11_backend::release( motor::graphics::image_object_mt
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    _pimpl->release_image_data( obj->get_id()->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    _pimpl->release_image_data( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4073,9 +4037,8 @@ motor::graphics::result d3d11_backend::release( motor::graphics::framebuffer_obj
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    _pimpl->release_framebuffer( obj->get_id()->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    _pimpl->release_framebuffer( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4089,9 +4052,8 @@ motor::graphics::result d3d11_backend::release( motor::graphics::state_object_mt
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    _pimpl->release_state( obj->get_id()->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    _pimpl->release_state( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4105,9 +4067,8 @@ motor::graphics::result d3d11_backend::release( motor::graphics::array_object_mt
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    _pimpl->release_array_data( obj->get_id()->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    _pimpl->release_array_data( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4121,9 +4082,8 @@ motor::graphics::result d3d11_backend::release( motor::graphics::streamout_objec
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    _pimpl->release_streamout( obj->get_id()->get_oid( this_t::get_bid() ) ) ;
-    id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    _pimpl->release_streamout( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4131,8 +4091,6 @@ motor::graphics::result d3d11_backend::release( motor::graphics::streamout_objec
 //******************************************************************************************************************************
 motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_mtr_t config, motor::graphics::variable_set_mtr_t vs ) noexcept
 {
-    motor::graphics::id_mtr_t id = config->get_id() ;
-
     #if 0
     if( id->is_not_valid( this_t::get_bid() ) )
     {
@@ -4152,22 +4110,18 @@ motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_m
 }
 
 //******************************************************************************************************************************
-motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_mtr_t config ) noexcept 
-{
-    motor::graphics::id_mtr_t id = config->get_id() ;
-    
-    if( id->is_not_valid( this_t::get_bid() ) )
+motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_mtr_t obj ) noexcept 
+{    
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+
+    if( oid == size_t(-1) )
     {
         motor::log::global_t::error( motor_log_fn( "invalid geometry object id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    auto const res = _pimpl->update( oid, config ) ;
-    motor::log::global_t::error( !res,
-        motor_log_fn( "update geometry" ) ) ;
-    
+    auto const res = _pimpl->update( oid, obj ) ;
+    motor::log::global_t::error( !res, motor_log_fn( "update geometry" ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4175,8 +4129,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_
 //******************************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, false ) ;
@@ -4189,8 +4142,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::array_object_mtr
 //******************************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     {
         auto const res = _pimpl->update( oid, *obj, false ) ;
@@ -4209,15 +4161,15 @@ motor::graphics::result d3d11_backend::update( motor::graphics::image_object_mtr
 //******************************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::render_object_mtr_t obj, size_t const varset ) noexcept 
 {
-    motor::graphics::id_mtr_t id = obj->get_id() ;
-    
-    if( id->is_not_valid( this_t::get_bid() ) )
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+
+    if( oid == size_t(-1) )
     {
         motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
-    _pimpl->update( id->get_oid( this_t::get_bid() ), *obj, varset ) ;
+    _pimpl->update( oid, *obj, varset ) ;
     
     return motor::graphics::result::ok ;
 }
@@ -4227,17 +4179,16 @@ motor::graphics::result d3d11_backend::use( motor::graphics::framebuffer_object_
 {
     if( obj == nullptr )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
     }
 
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
     auto const res = _pimpl->activate_framebuffer( oid ) ;
     if( !res ) return motor::graphics::result::failed ;
 
@@ -4249,17 +4200,16 @@ motor::graphics::result d3d11_backend::use( motor::graphics::streamout_object_mt
 {
     if( obj == nullptr )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::streamout ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::streamout ) ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
-        return this_t::unuse( motor::graphics::backend::unuse_type::streamout ) ;
+        return this_t::unuse( motor::graphics::gen4::backend::unuse_type::streamout ) ;
     }
 
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
     auto const res = _pimpl->activate_streamout( oid ) ;
     if( !res ) return motor::graphics::result::failed ;
 
@@ -4267,13 +4217,13 @@ motor::graphics::result d3d11_backend::use( motor::graphics::streamout_object_mt
 }
 
 //******************************************************************************************************************************
-motor::graphics::result d3d11_backend::unuse( motor::graphics::backend::unuse_type const t ) noexcept 
+motor::graphics::result d3d11_backend::unuse( motor::graphics::gen4::backend::unuse_type const t ) noexcept 
 {
     switch( t )
     {
-    case motor::graphics::backend::unuse_type::framebuffer: 
+    case motor::graphics::gen4::backend::unuse_type::framebuffer: 
         _pimpl->deactivate_framebuffer() ; break ;
-    case motor::graphics::backend::unuse_type::streamout: 
+    case motor::graphics::gen4::backend::unuse_type::streamout: 
         _pimpl->deactivate_streamout() ;break ;
     }
     
@@ -4285,43 +4235,40 @@ motor::graphics::result d3d11_backend::push( motor::graphics::state_object_mtr_t
 {
     if( obj == nullptr )
     {
-        return this_t::pop( motor::graphics::backend::pop_type::render_state ) ;
+        return this_t::pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
 
-    motor::graphics::id_mtr_t id = obj->get_id() ;
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
-        return this_t::pop( motor::graphics::backend::pop_type::render_state ) ;
+        return this_t::pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
 
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
     _pimpl->handle_render_state( oid, sid ) ;
 
     return motor::graphics::result::ok ;
 }
 
 //******************************************************************************************************************************
-motor::graphics::result d3d11_backend::pop( motor::graphics::backend::pop_type const ) noexcept 
+motor::graphics::result d3d11_backend::pop( motor::graphics::gen4::backend::pop_type const ) noexcept 
 {
     _pimpl->handle_render_state( size_t( -1 ), size_t( -1 ) ) ;
     return motor::graphics::result::ok ;
 }
 
 //******************************************************************************************************************************
-motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mtr_t config, motor::graphics::backend::render_detail_cref_t detail ) noexcept 
-{ 
-    motor::graphics::id_mtr_t id = config->get_id() ;
+motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mtr_t obj, motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept 
+{     
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    //motor::log::global_t::status( motor_log_fn("render") ) ;
-    
-    if( id->is_not_valid( this_t::get_bid() ) )
+    if( oid == size_t(-1) )
     {
         motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
-    _pimpl->render( id->get_oid( this_t::get_bid() ), detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
+    _pimpl->render( oid, detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
         detail.varset, (UINT)detail.start, (UINT)detail.num_elems ) ;
     
     return motor::graphics::result::ok ;

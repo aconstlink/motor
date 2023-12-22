@@ -1,6 +1,6 @@
 
 #include "async.h"
-#include "backend/null/null.h"
+#include "backend/gen4/null.h"
 
 using namespace motor::graphics ;
 
@@ -9,7 +9,7 @@ async::async( void_t ) noexcept
 {}
 
 //***********************************************************
-async::async( backend_mtr_shared_t rptr ) noexcept : _backend( motor::memory::copy_ptr(rptr) ) 
+async::async( motor::graphics::gen4::backend_mtr_shared_t rptr ) noexcept : _backend( motor::memory::copy_ptr(rptr) ) 
 {}
 
 //***********************************************************
@@ -28,7 +28,7 @@ async::~async( void_t ) noexcept
 {}
 
 //***********************************************************
-motor::graphics::result async::set_window_info( motor::graphics::backend_t::window_info_cref_t wi ) noexcept 
+motor::graphics::result async::set_window_info( motor::graphics::gen4::backend_t::window_info_cref_t wi ) noexcept 
 {
     motor::concurrent::lock_guard_t lk( _window_info_mtx ) ;
     _window_info_set = true ;
@@ -42,7 +42,7 @@ async::this_ref_t async::configure( motor::graphics::geometry_object_mtr_delay_t
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable 
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable 
         { 
             auto const ires = be->configure( gconfig ) ;
             if( res != nullptr ) *res = ires ;
@@ -57,7 +57,7 @@ async::this_ref_t async::configure( motor::graphics::render_object_mtr_delay_t r
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->configure( rc ) ;
             if( res != nullptr ) *res = ires ;
@@ -73,7 +73,7 @@ async::this_ref_t async::configure( motor::graphics::shader_object_mtr_delay_t s
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->configure( sc ) ;
             if( res != nullptr ) *res = ires ;
@@ -89,7 +89,7 @@ async::this_ref_t async::configure( motor::graphics::image_object_mtr_delay_t sc
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->configure( sc ) ;
             if( res != nullptr ) *res = ires ;
@@ -105,7 +105,7 @@ async::this_ref_t async::configure( motor::graphics::framebuffer_object_mtr_dela
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->configure( fb ) ;
             if( res != nullptr ) *res = ires ;
@@ -119,7 +119,7 @@ async::this_ref_t async::configure( motor::graphics::state_object_mtr_delay_t s,
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->configure( s ) ;
             if( res != nullptr ) *res = ires ;
@@ -134,7 +134,7 @@ async::this_ref_t async::configure( motor::graphics::array_object_mtr_delay_t ob
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->configure( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -148,7 +148,7 @@ async::this_ref_t async::configure( motor::graphics::streamout_object_mtr_delay_
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->configure( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -162,7 +162,7 @@ async::this_ref_t async::release( motor::graphics::geometry_object_mtr_delay_t o
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -176,7 +176,7 @@ async::this_ref_t async::release( motor::graphics::render_object_mtr_delay_t obj
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -190,7 +190,7 @@ async::this_ref_t async::release( motor::graphics::shader_object_mtr_delay_t obj
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -204,7 +204,7 @@ async::this_ref_t async::release( motor::graphics::image_object_mtr_delay_t obj,
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -218,7 +218,7 @@ async::this_ref_t async::release( motor::graphics::framebuffer_object_mtr_delay_
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -232,7 +232,7 @@ async::this_ref_t async::release( motor::graphics::state_object_mtr_delay_t obj,
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -246,7 +246,7 @@ async::this_ref_t async::release( motor::graphics::array_object_mtr_delay_t obj,
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -260,7 +260,7 @@ async::this_ref_t async::release( motor::graphics::streamout_object_mtr_delay_t 
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->release( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -276,7 +276,7 @@ async::this_ref_t async::update( motor::graphics::geometry_object_mtr_delay_t gs
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
 
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->update( gs ) ;
             if( res != nullptr ) *res = ires ;
@@ -293,7 +293,7 @@ async::this_ref_t async::update( motor::graphics::array_object_mtr_delay_t obj,
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
 
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->update( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -310,7 +310,7 @@ async::this_ref_t async::update( motor::graphics::image_object_mtr_delay_t obj,
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
 
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->update( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -327,7 +327,7 @@ async::this_ref_t async::use( motor::graphics::framebuffer_object_mtr_delay_t fb
     {
         motor::concurrent::lock_guard_t lk( _runtimes_mtx ) ;
 
-        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->use( fb ) ;
             if( res != nullptr ) *res = ires ;
@@ -341,7 +341,7 @@ async::this_ref_t async::use( motor::graphics::streamout_object_mtr_delay_t obj,
     {
         motor::concurrent::lock_guard_t lk( _runtimes_mtx ) ;
 
-        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->use( obj ) ;
             if( res != nullptr ) *res = ires ;
@@ -351,12 +351,12 @@ async::this_ref_t async::use( motor::graphics::streamout_object_mtr_delay_t obj,
     return *this ;
 }
 
-async::this_ref_t async::unuse( motor::graphics::backend::unuse_type const t, motor::graphics::result_mtr_t res ) noexcept
+async::this_ref_t async::unuse( motor::graphics::gen4::backend::unuse_type const t, motor::graphics::result_mtr_t res ) noexcept
 {
     {
         motor::concurrent::lock_guard_t lk( _runtimes_mtx ) ;
 
-        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->unuse( t ) ;
             if( res != nullptr ) *res = ires ;
@@ -371,7 +371,7 @@ async::this_ref_t async::push( motor::graphics::state_object_mtr_delay_t s, size
 {
     motor::concurrent::lock_guard_t lk( _runtimes_mtx ) ;
 
-    _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+    _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
     {
         auto const ires = be->push( std::move( s ), sid, push ) ;
         if( res != nullptr ) *res = ires ;
@@ -379,11 +379,11 @@ async::this_ref_t async::push( motor::graphics::state_object_mtr_delay_t s, size
     return *this ;
 }
 //***********************************************************
-async::this_ref_t async::pop( motor::graphics::backend::pop_type const t, motor::graphics::result_mtr_t res ) noexcept
+async::this_ref_t async::pop( motor::graphics::gen4::backend::pop_type const t, motor::graphics::result_mtr_t res ) noexcept
 {
     motor::concurrent::lock_guard_t lk( _runtimes_mtx ) ;
 
-    _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+    _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
     {
         auto const ires = be->pop( t ) ;
         if( res != nullptr ) *res = ires ;
@@ -393,13 +393,13 @@ async::this_ref_t async::pop( motor::graphics::backend::pop_type const t, motor:
 }
 
 //***********************************************************
-async::this_ref_t async::render( motor::graphics::render_object_mtr_delay_t obj, motor::graphics::backend::render_detail_cref_t detail,
+async::this_ref_t async::render( motor::graphics::render_object_mtr_delay_t obj, motor::graphics::gen4::backend::render_detail_cref_t detail,
     motor::graphics::result_mtr_t res ) noexcept
 {
     {
         motor::concurrent::lock_guard_t lk( _configures_mtx ) ;
 
-        _configures[_configures_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _configures[_configures_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         {
             auto const ires = be->update( obj, detail.varset ) ;
             if( res != nullptr ) *res = ires ;
@@ -409,7 +409,7 @@ async::this_ref_t async::render( motor::graphics::render_object_mtr_delay_t obj,
     {
         motor::concurrent::lock_guard_t lk( _runtimes_mtx ) ;
 
-        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::backend_ptr_t be ) mutable
+        _runtimes[_runtimes_id].push_back( [=] ( motor::graphics::gen4::backend_ptr_t be ) mutable
         { 
             auto const ires = be->render( obj, detail ) ;
             if( res != nullptr ) *res = ires ;
@@ -424,7 +424,7 @@ void_t async::system_update( void_t ) noexcept
     // window info
     if( _window_info_set )
     {
-        motor::graphics::backend_t::window_info_t wi ;
+        motor::graphics::gen4::backend_t::window_info_t wi ;
         {
             motor::concurrent::lock_guard_t lk( _window_info_mtx ) ;
             wi = _window_info ;

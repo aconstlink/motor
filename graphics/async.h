@@ -2,7 +2,7 @@
 #pragma once
 
 #include "async_id.hpp"
-#include "backend/backend.h"
+#include "backend/gen4/backend.h"
 
 #include <motor/concurrent/typedefs.h>
 #include <motor/std/vector>
@@ -18,13 +18,13 @@ namespace motor
         private:
 
             /// decorated backend.
-            backend_mtr_t _backend ;
+            motor::graphics::gen4::backend_mtr_t _backend ;
 
             bool_t _window_info_set = false  ;
-            motor::graphics::backend_t::window_info_t _window_info ;
+            motor::graphics::gen4::backend_t::window_info_t _window_info ;
             motor::concurrent::mutex_t _window_info_mtx ;
 
-            typedef std::function< void_t ( motor::graphics::backend_ptr_t ) > runtime_command_t ;
+            typedef std::function< void_t ( motor::graphics::gen4::backend_ptr_t ) > runtime_command_t ;
             motor_typedefs( motor::vector< runtime_command_t >, commands ) ;
             size_t _configures_id = 0 ;
             commands_t _configures[2] ;
@@ -42,14 +42,14 @@ namespace motor
         public:
 
             async( void_t ) noexcept ;
-            async( backend_mtr_shared_t ) noexcept ;
+            async( motor::graphics::gen4::backend_mtr_shared_t ) noexcept ;
             async( this_cref_t ) = delete ;
             async( this_rref_t ) noexcept ;
             ~async( void_t ) noexcept ;
 
         public:
 
-            motor::graphics::result set_window_info( motor::graphics::backend_t::window_info_cref_t ) noexcept ;
+            motor::graphics::result set_window_info( motor::graphics::gen4::backend_t::window_info_cref_t ) noexcept ;
 
             this_ref_t configure( motor::graphics::geometry_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
             this_ref_t configure( motor::graphics::render_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
@@ -75,11 +75,11 @@ namespace motor
 
             this_ref_t use( motor::graphics::framebuffer_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
             this_ref_t use( motor::graphics::streamout_object_mtr_delay_t, motor::graphics::result_mtr_t = nullptr ) noexcept ;
-            this_ref_t unuse( motor::graphics::backend::unuse_type const, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t unuse( motor::graphics::gen4::backend::unuse_type const, motor::graphics::result_mtr_t = nullptr ) noexcept ;
 
             this_ref_t push( motor::graphics::state_object_mtr_delay_t, size_t const = 0, bool_t const = true, motor::graphics::result_mtr_t = nullptr ) noexcept ;
-            this_ref_t pop( motor::graphics::backend::pop_type const, motor::graphics::result_mtr_t = nullptr ) noexcept ;
-            this_ref_t render( motor::graphics::render_object_mtr_delay_t, motor::graphics::backend::render_detail_cref_t, 
+            this_ref_t pop( motor::graphics::gen4::backend::pop_type const, motor::graphics::result_mtr_t = nullptr ) noexcept ;
+            this_ref_t render( motor::graphics::render_object_mtr_delay_t, motor::graphics::gen4::backend::render_detail_cref_t, 
                 motor::graphics::result_mtr_t = nullptr ) noexcept ;
 
         public:
@@ -283,7 +283,7 @@ namespace motor
                 return *this ;
             }
 
-            this_ref_t unuse( motor::graphics::backend::unuse_type const t, 
+            this_ref_t unuse( motor::graphics::gen4::backend::unuse_type const t, 
                 motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->unuse( t, std::move(res) ) ;
@@ -297,7 +297,7 @@ namespace motor
                 return *this ;
             }
 
-            this_ref_t pop( motor::graphics::backend::pop_type const t, 
+            this_ref_t pop( motor::graphics::gen4::backend::pop_type const t, 
                 motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->pop( t, std::move(res) ) ;
@@ -307,12 +307,12 @@ namespace motor
             this_ref_t render( motor::graphics::render_object_mtr_delay_t config, 
                 motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
-                motor::graphics::backend_t::render_detail_t detail ;
+                motor::graphics::gen4::backend_t::render_detail_t detail ;
                 _async->render( std::move(config), detail, std::move(res) ) ;
                 return *this ;
             }
 
-            this_ref_t render( motor::graphics::render_object_mtr_delay_t config, motor::graphics::backend::render_detail_cref_t detail, 
+            this_ref_t render( motor::graphics::render_object_mtr_delay_t config, motor::graphics::gen4::backend::render_detail_cref_t detail, 
                 motor::graphics::result_mtr_t res = nullptr ) noexcept
             {
                 _async->render( std::move(config), detail, std::move(res) ) ;

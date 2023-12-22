@@ -7,6 +7,8 @@
 
 #include "iwindow_message_listener.h"
 
+#include <motor/graphics/frontend/ifrontend.h>
+
 namespace motor
 {
     namespace application
@@ -46,11 +48,26 @@ namespace motor
             virtual void_t send_message( motor::application::vsync_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept = 0 ;
-            
+
+
         public:
 
-            // check for user messages and pass further to window implementation.
-            virtual void_t check_for_messages( void_t ) noexcept = 0 ;
+            using render_frame_funk_t = std::function< void_t ( motor::graphics::ifrontend* ) > ;
+            virtual bool_t render_frame_virt( render_frame_funk_t ) noexcept = 0 ;
+
+
+            template< typename frontend_t >
+            bool_t render_frame( std::function< void_t ( frontend_t * ) > funk ) noexcept
+            {
+                return this->render_frame_virt( [&]( motor::graphics::ifrontend* ife )
+                {
+                    if( frontend_t * fe = dynamic_cast<frontend_t *>(ife); fe!= nullptr )
+                    {
+                        funk( fe ) ;
+                    }
+                } ) ;
+            }
+            
         } ;
         motor_typedef( iwindow ) ;
     }

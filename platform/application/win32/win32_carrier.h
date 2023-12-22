@@ -4,6 +4,7 @@
 #include "../../device/win32/rawinput_module.h"
 #include "../../device/win32/xinput_module.h"
 
+#include <motor/application/window/window.h>
 #include <motor/application/window/window_message_listener.h>
 #include <motor/application/carrier.h>
 
@@ -32,9 +33,14 @@ namespace motor
                 struct win32_window_data
                 {
                     HWND hwnd ;
-                    motor::application::iwindow_mtr_t wnd ;
+                    motor::application::window_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
+                    // can be used to store messages to be used continuously.
+                    // Use for vsync messages.
                     motor::application::window_message_listener_t::state_vector_t sv ;
+
+                    // store window text for later alteration.
+                    motor::string_t window_text ;
                 };
                 motor_typedef( win32_window_data ) ;
 
@@ -47,39 +53,38 @@ namespace motor
 
                 struct wgl_window_data
                 {
-                    size_t idx_win32_window ;
+                    HWND hwnd ;
                     wgl_pimpl * ptr ;
                 };
                 motor_typedef( wgl_window_data ) ;
 
                 motor::vector< wgl_window_data_t > _wgl_windows ;
 
+            private: // d3d11 window data
+
+                struct d3d11_pimpl ;
+
+                struct d3d11_window_data
+                {
+                    HWND hwnd ;
+                    d3d11_pimpl * ptr ;
+                };
+                motor_typedef( d3d11_window_data ) ;
+
+                motor::vector< d3d11_window_data_t > _d3d11_windows ;
+
             private: // win32 windows queue
 
                 struct window_queue_msg
                 {
                     motor::application::window_info_t wi ;
-                    motor::application::iwindow_mtr_t wnd ;
+                    motor::application::window_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
                 };
                 motor_typedef( window_queue_msg ) ;
 
                 std::mutex _mtx_queue ;
                 motor::vector< window_queue_msg_t > _queue ;
-
-
-            private: // graphics windows queue
-
-                struct graphics_queue_msg
-                {
-                    motor::application::graphics_window_info_t gi ;
-                    motor::application::iwindow_mtr_t wnd ;
-                    motor::application::window_message_listener_mtr_t lsn ;
-                };
-                motor_typedef( graphics_queue_msg ) ;
-
-                std::mutex _mtx_gqueue ;
-                motor::vector< graphics_queue_msg_t > _gqueue ;
 
             private: // destruction queue 
 
@@ -102,7 +107,6 @@ namespace motor
                 virtual motor::application::result close( void_t ) noexcept ;
 
                 virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
-                virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::graphics_window_info_in_t info ) noexcept override ; 
 
             private:
 
@@ -133,6 +137,13 @@ namespace motor
             private:
 
                 void_t handle_destroyed_hwnd( HWND ) noexcept ;
+
+            private:
+
+                using find_window_info_funk_t = std::function< void_t ( win32_carrier::this_t::win32_window_data_ref_t ) > ;
+                bool_t find_window_info( HWND hwnd, find_window_info_funk_t ) noexcept ;
+
+
             };
             motor_typedef( win32_carrier ) ;
         }
