@@ -35,6 +35,7 @@ target_link_libraries( ${cur_lib_name}
     PUBLIC motor::concurrent
     PUBLIC motor::log
     PUBLIC motor::memory
+    PUBLIC motor::graphics
 ) 
 
 

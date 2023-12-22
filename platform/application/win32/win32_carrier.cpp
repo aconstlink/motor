@@ -1,6 +1,7 @@
 #include "win32_carrier.h"
 
-#include <motor/application/window/window.h>
+#include <motor/graphics/render_engine.h>
+#include <motor/graphics/frontend/gen4/frontend.h>
 
 #include <motor/device/global.h>
 #include <motor/log/global.h>
@@ -22,6 +23,8 @@ using namespace motor::platform::win32 ;
 struct win32_carrier::wgl_pimpl
 {
     motor::platform::wgl::wgl_context_t ctx ;
+    motor::graphics::render_engine_t re ;
+    motor::graphics::ifrontend_ptr_t fe ;
 } ;
 #endif
 
@@ -29,6 +32,8 @@ struct win32_carrier::wgl_pimpl
 struct win32_carrier::d3d11_pimpl
 {
     motor::platform::directx::dx11_context_t ctx ;
+    motor::graphics::render_engine_t re ;
+    motor::graphics::ifrontend_ptr_t fe ;
 } ;
 #endif
 //***********************************************************************
@@ -83,7 +88,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
         _clock_t::duration const dur = _clock_t::now() - tp_begin ;
         tp_begin = _clock_t::now() ;
 
-        size_t const micro = std::chrono::duration_cast< std::chrono::milliseconds >( dur ).count() ;
+        size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >( dur ).count() ;
         //motor::log::global_t::status( "main loop: " + motor::to_string(micro) ) ; 
 
         // this also determines the maximum frame 
@@ -133,19 +138,29 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             {
                 for( auto & d : _wgl_windows )
                 {
-                    d.ptr->ctx.activate() ;
-
-                    
-                    // call all rendering commands
-
-                    d.ptr->ctx.swap() ;
-                    d.ptr->ctx.deactivate() ;
+                    // could be threaded
+                    {
+                        d.ptr->ctx.activate() ;
+                        if( d.ptr->re.can_execute() )
+                        {
+                            d.ptr->ctx.backend()->render_begin() ;
+                            d.ptr->re.execute_frame() ;
+                            d.ptr->ctx.backend()->render_end() ;
+                            d.ptr->ctx.swap() ;
+                        }
+                        // required for now, otherwise the application stalls.
+                        else if( milli == 0 )
+                        {
+                            std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
+                        }
+                        d.ptr->ctx.deactivate() ;
+                    }
 
                     this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
                     {
                         // set frame time
                         {
-                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
                         }
 
                         // set vsync
@@ -171,15 +186,29 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             {
                 for( auto & d : _d3d11_windows )
                 {
-                    d.ptr->ctx.activate() ;
-                    d.ptr->ctx.swap() ;
-                    d.ptr->ctx.deactivate() ;
+                    // could be threaded
+                    {
+                        d.ptr->ctx.activate() ;
+                        if( d.ptr->re.can_execute() )
+                        {
+                            d.ptr->ctx.backend()->render_begin() ;
+                            d.ptr->re.execute_frame() ;
+                            d.ptr->ctx.backend()->render_end() ;
+                            d.ptr->ctx.swap() ;
+                        }
+                        // required for now, otherwise the application stalls.
+                        else if( milli == 0 )
+                        {
+                            std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
+                        }
+                        d.ptr->ctx.deactivate() ;
+                    }
 
                     this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
                     {
                         // set frame time
                         {
-                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(micro) + " ms]").c_str() ) ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
                         }
 
                         // set vsync
@@ -214,8 +243,6 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         _win32_windows.emplace_back(wd);
                     }
 
-                    this_t::send_create( _win32_windows.back() ) ;
-
                     // deduce auto graphics api type
                     if( d.wi.gen == motor::application::graphics_generation::gen4_auto ) 
                     {
@@ -242,10 +269,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
                             ctx.swap() ;
                             ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                            ctx.swap() ;
                             ctx.deactivate() ;
 
                             this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
                                 this_t::wgl_pimpl( { std::move(ctx) } ), "[win32_carrier] : wgl context") ;
+
+                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
+                                 "[carrier32] : gen4 frontend") ;
+                             
+                             _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
                             _wgl_windows.emplace_back( wgl_window_data({ hwnd, pimpl }) )  ;
                         }
@@ -270,10 +303,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             ctx.clear_now( motor::math::vec4f_t( 0.0f, 0.5f, 0.3f, 1.0f ) ) ;
                             ctx.swap() ;
                             ctx.clear_now( motor::math::vec4f_t( 0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                            ctx.swap() ;
                             ctx.deactivate() ;
 
                             this_t::d3d11_pimpl * pimpl = motor::memory::global_t::alloc(
                                 this_t::d3d11_pimpl( {std::move(ctx) } ), "[win32_carrier] : d3d11 context") ;
+
+                            pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
+                                 "[carrier32] : gen4 frontend") ;
+
+                            _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
                             _d3d11_windows.emplace_back( d3d11_window_data({ hwnd, pimpl }) )  ;
                         }
@@ -288,6 +327,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     {
                         motor::log::global_t::error( "Wanted to create a graphics window but no api chosen or available." ) ;
                     }
+
+                    this_t::send_create( _win32_windows.back() ) ;
                 }
                 _queue.clear() ;
             }

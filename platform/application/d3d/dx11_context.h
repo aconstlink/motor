@@ -3,7 +3,9 @@
 #include "../../api.h"
 #include "../../typedefs.h"
 #include "../../result.h"
+
 #include "../../graphics/d3d/d3d11_context.h"
+#include "../../graphics/d3d/d3d11.h"
 
 #include <motor/application/d3d_info.h>
 
@@ -42,6 +44,8 @@ namespace motor
                 ID3D11DepthStencilView* _pDepthStencilView = nullptr;
                 ID3D11Debug * _pDebug = nullptr ;
 
+                motor::platform::gen4::d3d11_backend_mtr_t _backend = nullptr ;
+
             public:
 
                 /// initializes this context but does not create the context.
@@ -64,7 +68,7 @@ namespace motor
                 virtual motor::platform::result vsync( bool_t const on_off ) noexcept ;
                 virtual motor::platform::result swap( void_t ) noexcept ;
 
-                //virtual motor::graphics::backend_res_t create_backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_mtr_shared_t backend( void_t ) noexcept ;
 
             public:
 

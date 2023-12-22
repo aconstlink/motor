@@ -5,6 +5,8 @@
 #include "iwindow.h"
 #include "window_message.h"
 #include "iwindow_message_listener.h"
+#include <motor/graphics/render_engine.h>
+#include <motor/graphics/frontend/ifrontend.h>
 
 #include <motor/std/vector>
 
@@ -29,6 +31,9 @@ namespace motor
             // other entity -> this window
             motor::vector< motor::application::iwindow_message_listener_mtr_t > _outs ;
 
+            motor::graphics::render_engine_ptr_t _re = nullptr ;
+            motor::graphics::ifrontend_ptr_t _fe = nullptr ;
+
         public:
 
             window( void_t ) noexcept ;
@@ -36,6 +41,10 @@ namespace motor
             window( this_rref_t rhv ) noexcept ;
             virtual ~window( void_t ) noexcept ;
 
+        public:
+
+            void_t set_renderable( motor::graphics::render_engine_ptr_t, motor::graphics::ifrontend_ptr_t ) noexcept ;
+            
         public: // ins
 
             virtual void_t register_in( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept override;
@@ -66,6 +75,9 @@ namespace motor
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept ;
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept ;
 
+        public:
+
+            virtual bool_t render_frame_virt( motor::application::iwindow_t::render_frame_funk_t ) noexcept ;
         };
         motor_typedef( window ) ;
     }

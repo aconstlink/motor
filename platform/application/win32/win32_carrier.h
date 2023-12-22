@@ -4,6 +4,7 @@
 #include "../../device/win32/rawinput_module.h"
 #include "../../device/win32/xinput_module.h"
 
+#include <motor/application/window/window.h>
 #include <motor/application/window/window_message_listener.h>
 #include <motor/application/carrier.h>
 
@@ -32,10 +33,10 @@ namespace motor
                 struct win32_window_data
                 {
                     HWND hwnd ;
-                    motor::application::iwindow_mtr_t wnd ;
+                    motor::application::window_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
                     // can be used to store messages to be used continuously.
-                    // this needs to be done with cursor messages.
+                    // Use for vsync messages.
                     motor::application::window_message_listener_t::state_vector_t sv ;
 
                     // store window text for later alteration.
@@ -77,7 +78,7 @@ namespace motor
                 struct window_queue_msg
                 {
                     motor::application::window_info_t wi ;
-                    motor::application::iwindow_mtr_t wnd ;
+                    motor::application::window_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
                 };
                 motor_typedef( window_queue_msg ) ;

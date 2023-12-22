@@ -24,6 +24,7 @@
 #endif
 
 using namespace motor::platform ;
+using namespace motor::platform::gen4 ;
 
 template< typename T >
 class guard

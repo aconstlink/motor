@@ -11,6 +11,8 @@ window::window( this_rref_t rhv ) noexcept
 {
     _ins = std::move( rhv._ins ) ;
     _outs = std::move( rhv._outs ) ;
+    _re = motor::move( rhv._re ) ;
+    _fe = motor::move( rhv._fe ) ;
 }
 
 //***************************************************************************
@@ -171,4 +173,23 @@ void_t window::send_message( motor::application::cursor_message_cref_t msg ) noe
     {
         lsn->on_message( msg ) ;
     } ) ;
+}
+
+//***************************************************************************
+bool_t window::render_frame_virt( motor::application::iwindow_t::render_frame_funk_t funk ) noexcept 
+{
+    if( _re == nullptr ) return false ;
+
+    if( _re->enter_frame() )
+    {
+        funk( _fe ) ;
+        _re->leave_frame() ;
+        return true ;
+    }
+    return false ;
+}
+
+void_t window::set_renderable( motor::graphics::render_engine_ptr_t re, motor::graphics::ifrontend_ptr_t fe ) noexcept 
+{
+    _re = re ;_fe = fe ;
 }

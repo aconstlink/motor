@@ -75,6 +75,8 @@ dx11_context::this_ref_t dx11_context::operator = ( this_rref_t rhv ) noexcept
     motor_move_member_ptr( _pDepthStencilView, rhv ) ;
     motor_move_member_ptr( _pDebug, rhv ) ;
 
+    _backend = motor::move( rhv._backend ) ;
+
     return *this ;
 }
 
@@ -188,6 +190,17 @@ motor::platform::result dx11_context::swap( void_t ) noexcept
     }
     return motor::platform::result::ok ;
 }
+
+//***********************************************************************
+motor::graphics::gen4::backend_mtr_shared_t dx11_context::backend( void_t ) noexcept 
+{
+    if( _backend != nullptr ) return motor::share( _backend ) ;
+
+    _backend = motor::memory::create_ptr( motor::platform::gen4::d3d11_backend_t( this ) ) ;
+    
+    return motor::share( _backend ) ;
+}
+
 #if 0
 //***********************************************************************
 motor::graphics::backend_res_t dx11_context::create_backend( void_t ) noexcept 

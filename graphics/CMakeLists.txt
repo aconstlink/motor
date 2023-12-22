@@ -11,6 +11,9 @@ set( sources
     "async.cpp"
     "async_id.hpp"
 
+    "render_engine.h"
+    "render_engine.cpp"
+
     "state/render_states.h"
     "state/state_set.h"
 
@@ -20,6 +23,10 @@ set( sources
     "backend/gen4/backend.h"
     "backend/gen4/null.h"
     "backend/gen4/null.cpp"
+
+    "frontend/ifrontend.h"
+    "frontend/gen4/frontend.h"
+    "frontend/gen4/frontend.cpp"
 
     "shader/shader_set.hpp"
     "shader/shader.hpp"
@@ -58,7 +65,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::memory
   PUBLIC motor::log
   PUBLIC motor::std
-  PUBLIC motor::concurrent )
+  PUBLIC motor::concurrent  )
 
 ###########################################################
 # SECTION: Build Tree
