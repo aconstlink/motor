@@ -516,11 +516,23 @@ LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPA
       
     case WM_SETCURSOR:
     {
-        if( LOWORD(lParam) == HTCLIENT )
+        bool_t handle_it = false ;
+
+        this_ptr_t p = (this_ptr_t)GetWindowLongPtr( hwnd, GWLP_USERDATA ) ;
+        p->find_window_info( hwnd, [&]( this_t::win32_window_data_ref_t wi )
+        {
+            if( wi.sv.cursor_msg_changed && !wi.sv.cursor_msg.on_off )
+            {
+                handle_it = true ;
+            }
+        } ) ;
+
+        if( handle_it && (LOWORD(lParam) == HTCLIENT) )
         {
             SetCursor(NULL);
             return TRUE;
         }
+        
     }
 
     case WM_KILLFOCUS:
