@@ -456,11 +456,7 @@ motor::platform::result dx11_context::create_the_context( motor::application::d3
         size_t const milli = size_t( std::chrono::duration_cast< std::chrono::milliseconds >(
             local_clock_t::now() - t1 ).count() ) ;
 
-<<<<<<< HEAD:platform/application/d3d/d3d_context.cpp
-        natus::log::global::status( motor_log_fn( "created [" + std::to_string( milli ) + " ms]" ) ) ;
-=======
         motor::log::global::status( motor_log_fn( "created [" + ::std::to_string( milli ) + " ms]" ) ) ;
->>>>>>> main:platform/application/d3d/dx11_context.cpp
     }
 
     return motor::platform::result::ok ;
