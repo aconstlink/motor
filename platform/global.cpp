@@ -9,8 +9,8 @@
 
 #elif defined( MOTOR_GRAPHICS_GLX )
 
-#include "application/glx/glx_window.h"
-//#include "application/xlib/xlib_carrier.h"
+//#include "application/glx/glx_context.h"
+#include "application/xlib/xlib_carrier.h"
 
 #elif defined( MOTOR_GRAPHICS_EGL )
 
@@ -25,13 +25,13 @@ motor::application::carrier_mtr_unique_t global::create_carrier( void_t ) noexce
     #if defined( MOTOR_GRAPHICS_WGL )
 
     return motor::memory::create_ptr<motor::platform::win32::win32_carrier_t>( 
-        "[platform::win32] : win32 carrier" ) ;
+        "[platform::global] : win32 carrier" ) ;
     
     #elif defined( MOTOR_GRAPHICS_GLX )
-    #if 0
-    return motor::memory::create_ptr<motor::platform::xlib::carrier_t>( 
-        "[platform::xlib] : xlib carrier" ) ;
-    #endif
+
+    return motor::memory::create_ptr<motor::platform::xlib::xlib_carrier_t>( 
+        "[platform::global] : xlib carrier" ) ;
+
     #elif defined( MOTOR_GRAPHICS_EGL )
 
     return motor::application::xlib::application_res_t(
@@ -48,12 +48,12 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
     #if defined( MOTOR_GRAPHICS_WGL )
 
     return motor::memory::create_ptr( motor::platform::win32::win32_carrier_t( std::move(app) ),
-        "[platform::win32] : win32 carrier" ) ;
+        "[platform::global] : win32 carrier" ) ;
 
     #elif defined( MOTOR_GRAPHICS_GLX )
 
-    (void) app ;
-    //return todo ;
+    return motor::memory::create_ptr( motor::platform::xlib::xlib_carrier_t( std::move(app) ),
+        "[platform::global] : xlib carrier" ) ;
 
     #elif defined( MOTOR_GRAPHICS_EGL )
 
@@ -69,12 +69,12 @@ motor::application::carrier_mtr_unique_t global::create_carrier( motor::applicat
     #if defined( MOTOR_GRAPHICS_WGL )
 
     return motor::memory::create_ptr( motor::platform::win32::win32_carrier_t( std::move(app) ),
-        "[platform::win32] : win32 carrier" ) ;
+        "[platform::global] : win32 carrier" ) ;
 
     #elif defined( MOTOR_GRAPHICS_GLX )
 
-    (void) app ;
-    //return todo ;
+    return motor::memory::create_ptr( motor::platform::xlib::xlib_carrier_t( std::move(app) ),
+        "[platform::global] : xlib carrier" ) ;
 
     #elif defined( MOTOR_GRAPHICS_EGL )
 

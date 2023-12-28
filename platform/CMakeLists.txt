@@ -124,8 +124,8 @@ elseif( MOTOR_WINDOW_SYSTEM_XLIB )
     list( APPEND sources
     "application/xlib/xlib_carrier.h"
     "application/xlib/xlib_carrier.cpp"
-    "application/xlib/xlib_window.h"
-    "application/xlib/xlib_window.cpp" )
+    
+     )
     set( os_libs ${X11_LIBRARIES} )
 
 else()

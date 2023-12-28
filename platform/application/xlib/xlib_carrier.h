@@ -5,6 +5,7 @@
 
 #include "../../device/linux/xlib_module.h"
 
+#include <motor/application/window/window.h>
 #include <motor/application/window/window_message_listener.h>
 #include <motor/application/carrier.h>
 
@@ -29,14 +30,50 @@ namespace motor
                 /// I would like to manage all windows and dispatch
                 /// all window messaged centralized in this 
                 /// application.
-                static Display * _display ;
-                static size_t _display_use_count ;
+                Display * _display ;
+                size_t _display_use_count ;
 
-                static Display * connect_display( void_t ) noexcept ;
-                static void_t disconnect_display( void_t ) noexcept ;
-                static Display * move_display( void_t ) noexcept ;
+                Display * connect_display( void_t ) noexcept ;
+                void_t disconnect_display( void_t ) noexcept ;
+                Display * move_display( void_t ) noexcept ;
 
                 //motor::device::xlib::xlib_module_res_t _device_module ;
+            
+                bool_t _done = false ;
+
+            private:
+
+                struct xlib_window_data
+                {
+                    Window hwnd ;
+                    motor::application::window_mtr_t wnd ;
+                    motor::application::window_message_listener_mtr_t lsn ;
+                    // can be used to store messages to be used continuously.
+                    motor::application::window_message_listener_t::state_vector_t sv ;
+
+                    // store window text for later alteration.
+                    motor::string_t window_text ;
+                };
+                motor_typedef( xlib_window_data ) ;
+
+                motor::vector< xlib_window_data_t > _xlib_windows ;
+
+            private: // destruction queue 
+
+                motor::vector< Window > _destroy_queue ;
+
+            private: // xlib windows queue
+
+                struct window_queue_msg
+                {
+                    motor::application::window_info_t wi ;
+                    motor::application::window_mtr_t wnd ;
+                    motor::application::window_message_listener_mtr_t lsn ;
+                };
+                motor_typedef( window_queue_msg ) ;
+
+                std::mutex _mtx_queue ;
+                motor::vector< window_queue_msg_t > _queue ;
 
             public:
 
@@ -46,18 +83,18 @@ namespace motor
                 xlib_carrier( motor::application::iapp_mtr_unique_t ) noexcept ;
                 virtual ~xlib_carrier( void_t ) noexcept ;
 
-                /// singleton. It is required due to the fact
-                /// that windows and application can not be 
-                /// brought together.
-                static Display * get_display( void_t ) noexcept ;
-
             public:
 
                 virtual motor::application::result on_exec( void_t ) noexcept override ;
                 virtual motor::application::result close( void_t ) noexcept override ;
 
                 virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
-                virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::graphics_window_info_in_t info ) noexcept override ; 
+
+            private:
+
+                Window create_xlib_window( motor::application::window_info_cref_t ) noexcept ;
+                void_t handle_destroyed_hwnd( Window hwnd ) noexcept ;
+                void_t send_destroy( xlib_window_data_in_t d ) noexcept ;
             };
             motor_typedef( xlib_carrier ) ;
         }
