@@ -1,5 +1,7 @@
 #include "xlib_carrier.h"
 
+#include "../glx/glx_context.h"
+
 #include <motor/device/global.h>
 #include <motor/log/global.h>
 
@@ -8,6 +10,68 @@
 
 using namespace motor::platform ;
 using namespace motor::platform::xlib ;
+
+#if MOTOR_GRAPHICS_GLX
+struct xlib_carrier::glx_pimpl
+{
+    //motor::platform::wgl::wgl_context_t ctx ;
+    motor::graphics::render_engine_t re ;
+    motor::graphics::ifrontend_ptr_t fe ;
+
+    static GLXFBConfig get_config( Display  * display ) noexcept
+    {
+        static GLXFBConfig *fbc = nullptr ;
+        if( fbc != nullptr )
+        {
+            return fbc[0] ;
+        }
+
+        int_ptr_t visual_attribs = motor::memory::global_t::alloc_raw<int_t>( 24, 
+                "[glx_window::create_glx_window] : visual_attribs" ) ;
+
+        {
+            struct va_pair{
+                int_t flag ;
+                int_t value ;
+            };
+
+            va_pair * va_pairs = (va_pair*)visual_attribs ;
+            va_pairs[0] = {GLX_X_RENDERABLE, True} ;
+            va_pairs[1] = {GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT} ;
+            va_pairs[2] = {GLX_RENDER_TYPE, GLX_RGBA_BIT} ;
+            va_pairs[3] = {GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR} ;
+            va_pairs[4] = {GLX_RED_SIZE, 8} ;
+            va_pairs[5] = {GLX_GREEN_SIZE, 8} ;
+            va_pairs[6] = {GLX_BLUE_SIZE, 8} ;
+            va_pairs[7] = {GLX_ALPHA_SIZE, 8} ;
+            va_pairs[8] = {GLX_DEPTH_SIZE, 24} ;
+            va_pairs[9] = {GLX_STENCIL_SIZE, 8} ;
+            va_pairs[10] = {GLX_DOUBLEBUFFER, True} ;
+            va_pairs[11] = {None, None} ;
+        }
+
+        int fbcount ;
+        fbc = glXChooseFBConfig( 
+                display, DefaultScreen( display ),
+                visual_attribs, &fbcount ) ;
+
+        if( fbc == nullptr || fbcount == 0 ) 
+        {
+            motor::log::global_t::error( 
+                "[glx_window::create_glx_window] : glXChooseFBConfig" ) ;
+
+            return 0 ;
+        }
+
+        GLXFBConfig fbconfig = fbc[0] ;
+
+        //XFree( fbc ) ;
+        //natus::memory::global_t::dealloc( visual_attribs ) ;
+
+        return fbconfig ;
+    }
+} ;
+#endif
 
 //**********************************************************************
 Display * xlib_carrier::connect_display( void_t ) noexcept
