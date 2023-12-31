@@ -47,7 +47,7 @@ namespace motor
 
         public: // window creation interface
 
-            virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept = 0 ;
+            virtual motor::application::iwindow_mtr_unique_t create_window( motor::application::window_info_cref_t info ) noexcept = 0 ;
 
         private:
 

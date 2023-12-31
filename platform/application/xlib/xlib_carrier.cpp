@@ -318,7 +318,7 @@ motor::application::result xlib_carrier::close( void_t ) noexcept
 }
 
 //********************************************************************
-motor::application::iwindow_mtr_shared_t xlib_carrier::create_window( motor::application::window_info_cref_t info ) noexcept  
+motor::application::iwindow_mtr_unique_t xlib_carrier::create_window( motor::application::window_info_cref_t info ) noexcept  
 {
     motor::application::window_mtr_t wnd = motor::memory::create_ptr<motor::application::window_t>(
         "[xlib_carrier] : window handle" ) ;
@@ -333,7 +333,7 @@ motor::application::iwindow_mtr_shared_t xlib_carrier::create_window( motor::app
         _queue.emplace_back( this_t::window_queue_msg_t{info, wnd, lsn} ) ;
     }
 
-    return motor::share( wnd )  ;
+    return motor::unique( motor::memory::copy_ptr(wnd) )  ;
 }
 
 //********************************************************************

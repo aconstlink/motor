@@ -101,7 +101,7 @@ namespace motor
                 virtual motor::application::result on_exec( void_t ) noexcept override ;
                 virtual motor::application::result close( void_t ) noexcept override ;
 
-                virtual motor::application::iwindow_mtr_shared_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
+                virtual motor::application::iwindow_mtr_unique_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
 
             private:
 
