@@ -50,6 +50,7 @@ jobs:
         submodules: recursive
 
     - name: Install required libs
+      if: runner.os == 'Linux'
       run: sudo apt-get install -y libgles-dev libgl-dev libegl-dev
   
     - name: Set reusable strings
