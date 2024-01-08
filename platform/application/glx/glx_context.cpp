@@ -117,6 +117,19 @@ context::~context( void_t ) noexcept
     motor::memory::global_t::dealloc( _pimpl ) ;
 }
 
+//***********************************************************************
+motor::platform::result context::create_context( Window wnd, Display * disp ) noexcept
+{   
+    _display = disp ;
+    _wnd = wnd ;
+    
+    if( motor::log::global::error( disp == NULL || _wnd == 0, 
+        "[wgl_context::create_context] : Window handle is not valid." ) )
+        return motor::platform::result::invalid_argument ;
+
+    return this_t::create_the_context( motor::application::gl_info_t() ) ;
+}
+
 //***************************************************************
 motor::platform::result context::activate( void_t ) noexcept
 {
@@ -180,10 +193,10 @@ motor::graphics::gen4::backend_mtr_shared_t context::backend( void_t ) noexcept
 
 //***************************************************************
 motor::platform::result context::is_extension_supported( 
-    motor::string_cref_t extension_name ) noexcept
+    motor::string_cref_t extension_name ) const noexcept
 {
     this_t::strings_t ext_list ;
-    if( motor::platform::no_success( get_glx_extension(ext_list) ) ) 
+    if( motor::platform::no_success( this_t::get_glx_extension(ext_list) ) ) 
         return motor::platform::result::failed_glx ;
 
     this_t::strings_t::iterator iter = ext_list.begin() ;
@@ -197,13 +210,13 @@ motor::platform::result context::is_extension_supported(
 }
 
 //*****************************************************************
-motor::platform::result context::get_glx_extension( this_t::strings_out_t /*ext_list*/ ) noexcept
+motor::platform::result context::get_glx_extension( this_t::strings_out_t /*ext_list*/ ) const noexcept
 {
     return motor::platform::result::ok ;
 }
 
 //****************************************************************
-motor::platform::result context::get_gl_extension( this_t::strings_out_t ext_list ) noexcept
+motor::platform::result context::get_gl_extension( this_t::strings_out_t ext_list ) const noexcept
 {
     const GLubyte * ch = glGetString( GL_EXTENSIONS ) ;
     if( !ch ) return motor::platform::result::failed ;

@@ -1,5 +1,8 @@
 #include "xlib_carrier.h"
 
+#include <motor/graphics/render_engine.h>
+#include <motor/graphics/frontend/gen4/frontend.h>
+
 #include "../glx/glx_context.h"
 
 #include <motor/device/global.h>
@@ -15,7 +18,7 @@ using namespace motor::platform::xlib ;
 #if MOTOR_GRAPHICS_GLX
 struct xlib_carrier::glx_pimpl
 {
-    //motor::platform::wgl::wgl_context_t ctx ;
+    motor::platform::glx::glx_context_t ctx ;
     motor::graphics::render_engine_t re ;
     motor::graphics::ifrontend_ptr_t fe ;
 
@@ -253,19 +256,21 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     d.wi.gen = motor::application::graphics_generation::gen4_d3d11 ;
                     #elif MOTOR_GRAPHICS_WGL
                     d.wi.gen = motor::application::graphics_generation::gen4_gl4 ;
+                    #elif MOTOR_GRAPHICS_GLX
+                    d.wi.gen = motor::application::graphics_generation::gen4_gl4 ;
                     #else
                     d.wi.gen = motor::application::graphics_generation:: none ;
                     #endif
                 }
 
-                #if MOTOR_GRAPHICS_WGL
+                #if MOTOR_GRAPHICS_GLX
                 if( d.wi.gen == motor::application::graphics_generation::gen4_gl4 )
                 {
-                    _win32_windows.back().window_text = " [gl4 #" + motor::to_string(wnd_idx) +"]";
+                    _xlib_windows.back().window_text = " [gl4 #" + motor::to_string(wnd_idx) +"]";
 
-                    motor::platform::wgl::wgl_context_t ctx ;
+                    motor::platform::glx::glx_context_t ctx ;
 
-                    auto const res = ctx.create_context( hwnd ) ;
+                    auto const res = ctx.create_context( hwnd, _display ) ;
                     if( motor::platform::success( res ) )
                     {
                         ctx.activate() ;
@@ -275,15 +280,15 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         ctx.swap() ;
                         ctx.deactivate() ;
 
-                        this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
-                            this_t::wgl_pimpl( { std::move(ctx) } ), "[win32_carrier] : wgl context") ;
+                        this_t::glx_pimpl * pimpl = motor::memory::global_t::alloc(
+                            this_t::glx_pimpl( { std::move(ctx) } ), "[win32_carrier] : glx context") ;
 
                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
-                                "[carrier32] : gen4 frontend") ;
+                                "[xlib_carrier] : gen4 frontend") ;
                             
-                            _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
+                            _xlib_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
-                        _wgl_windows.emplace_back( wgl_window_data({ hwnd, pimpl }) )  ;
+                        _glx_windows.emplace_back( glx_window_data({ hwnd, pimpl }) )  ;
                     }
                     else
                     {
@@ -420,20 +425,20 @@ void_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
 
     if( iter == _xlib_windows.end() ) return ;
 
-    #if MOTOR_GRAPHICS_WGL
+    #if MOTOR_GRAPHICS_GLX
     // look for glx windows/context connection
     // and remove those along with the window
     {
-        auto iter2 = std::find_if( _wgl_windows.begin(), _wgl_windows.end(), [&]( wgl_window_data_cref_t d )
+        auto iter2 = std::find_if( _glx_windows.begin(), _glx_windows.end(), [&]( glx_window_data_cref_t d )
         {
             return d.hwnd == hwnd ;
         } ) ;
 
-        if( iter2 != _wgl_windows.end() )
+        if( iter2 != _glx_windows.end() )
         {
             motor::memory::global_t::dealloc( iter2->ptr->fe ) ;
             motor::memory::global_t::dealloc( iter2->ptr ) ;
-            _wgl_windows.erase( iter2 ) ;
+            _glx_windows.erase( iter2 ) ;
         }
     }
     #endif 

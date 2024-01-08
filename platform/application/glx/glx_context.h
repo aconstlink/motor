@@ -69,9 +69,13 @@ namespace motor
 
             public:
 
-                
+                virtual bool_t is_ext_supported( motor::string_cref_t ext ) const noexcept 
+                {
+                    auto const res = this_t::is_extension_supported( ext ) ;
+                    return res == motor::platform::result::ok ;
+                }
 
-                
+                motor::platform::result create_context( Window wnd, Display * disp ) noexcept ;
 
             public:
 
@@ -80,18 +84,18 @@ namespace motor
                 /// @precondition Must be used after context has 
                 /// been created and made current.
                 motor::platform::result is_extension_supported( 
-                    motor::string_cref_t extension_name ) noexcept ;
+                    motor::string_cref_t extension_name ) const noexcept ;
 
                 /// This function fills the incoming list with all 
                 /// wgl extension strings.
                 /// @precondition Must be used after context has 
                 /// been created and made current.
                 motor::platform::result get_glx_extension( 
-                    strings_out_t ext_list ) noexcept ;
+                    strings_out_t ext_list ) const noexcept ;
 
                 /// @precondition Context must be current.
                 motor::platform::result get_gl_extension( 
-                    strings_out_t ext_list )  noexcept;
+                    strings_out_t ext_list ) const noexcept;
 
                 /// @precondition Must be used after context has 
                 /// been created and made current. 
@@ -110,6 +114,7 @@ namespace motor
                 static void_t init_gl_context( void_t ) noexcept ;
             };
             motor_typedef( context ) ;
+            motor_typedefs( context, glx_context ) ;
         }
     }
 }
