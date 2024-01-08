@@ -1,6 +1,7 @@
 #include "gl_load.h"
 
 #if defined( MOTOR_TARGET_OS_WIN )
+#include <GL/glcorearb.h>
 #include <GL/wglext.h>
 #elif defined( MOTOR_TARGET_OS_LIN )
 //#include <X11/X.h>
