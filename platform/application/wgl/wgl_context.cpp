@@ -184,7 +184,7 @@ motor::platform::result wgl_context::get_wgl_extension( motor::vector< motor::st
 //***********************************************************************
 motor::platform::result wgl_context::get_gl_extension( motor::vector< motor::string_t > & ext_list ) noexcept
 {
-    const GLubyte * ch = glGetString( GL_EXTENSIONS ) ;
+    const GLubyte * ch = motor::ogl::glGetString( GL_EXTENSIONS ) ;
     if( !ch ) return motor::platform::result::failed ;
 
     motor::mstd::string_ops::split( motor::string_t(char_cptr_t(ch)), ' ', ext_list ) ;
@@ -195,7 +195,7 @@ motor::platform::result wgl_context::get_gl_extension( motor::vector< motor::str
 //***********************************************************************
 motor::platform::result wgl_context::get_gl_version( motor::application::gl_version & version ) const noexcept
 {
-    const GLubyte* ch = glGetString(GL_VERSION) ;
+    const GLubyte* ch = motor::ogl::glGetString(GL_VERSION) ;
     if( !ch ) return motor::platform::result::failed ;
 
     std::string version_string = std::string((const char*)ch) ;
@@ -204,8 +204,8 @@ motor::platform::result wgl_context::get_gl_version( motor::application::gl_vers
     GLint minor = 0 ;
 
     {
-        glGetIntegerv( GL_MAJOR_VERSION, &major ) ;
-        GLenum err = glGetError() ;
+        motor::ogl::glGetIntegerv( GL_MAJOR_VERSION, &major ) ;
+        GLenum err = motor::ogl::glGetError() ;
         if( err != GL_NO_ERROR )
         {
             motor::string_t const es = motor::to_string(err) ;
@@ -213,8 +213,8 @@ motor::platform::result wgl_context::get_gl_version( motor::application::gl_vers
         }
     }
     {
-        glGetIntegerv( GL_MINOR_VERSION, &minor) ;
-        GLenum err = glGetError() ;
+        motor::ogl::glGetIntegerv( GL_MINOR_VERSION, &minor) ;
+        GLenum err = motor::ogl::glGetError() ;
         if( err != GL_NO_ERROR )
         {
             motor::string_t es = motor::to_string(err) ;
@@ -230,10 +230,10 @@ motor::platform::result wgl_context::get_gl_version( motor::application::gl_vers
 //***********************************************************************
 void_t wgl_context::clear_now( motor::math::vec4f_t const & vec ) noexcept
 {
-    glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
-    glClear( GL_COLOR_BUFFER_BIT ) ;
+    motor::ogl::glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
+    motor::ogl::glClear( GL_COLOR_BUFFER_BIT ) ;
     
-    GLenum const gler = glGetError() ;
+    GLenum const gler = motor::ogl::glGetError() ;
     motor::log::global::error( gler != GL_NO_ERROR, "[wgl_context::clear_now] : glClear" ) ;
 }
 
