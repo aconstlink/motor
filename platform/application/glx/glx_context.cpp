@@ -372,10 +372,11 @@ bool_t context::determine_gl_version( motor::application::gl_version & gl_out ) 
         return false ;
     }
 
-    this_t::init_gl_context() ;
-
     motor::application::gl_version version ;
     glXMakeCurrent( _display, _wnd, context ) ;
+
+    this_t::init_gl_context() ;
+
     {
         if( !success( this_t::get_gl_version( version ) ) )
         {

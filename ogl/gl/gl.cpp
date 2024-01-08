@@ -9,10 +9,7 @@ using namespace motor::ogl ;
 // some defines
 /////////////////////////////////////////////////////////////////////////
 
-#define CHECK_AND_LOAD_COND( fn, name ) \
-    !motor::log::global_t::error( \
-    (fn = (fn == NULL ? (decltype(fn))(motor::ogl::gl_load::load_function( name )) : fn)) == NULL, \
-    "[CHECK_AND_LOAD_COND] : Failed to load: "  name  )
+
 
 #define CHECK_AND_LOAD( fn, name ) \
 { \
@@ -28,12 +25,30 @@ using namespace motor::ogl ;
 
 #define JUST_LOAD( fn, name ) \
 { \
-    /*motor::ogl::*/fn = (decltype(/*motor::ogl::*/fn))(motor::ogl::gl_load::load_function( name ) ) ; \
-    motor::log::global_t::error( /*motor::ogl::*/fn == NULL, "[JUST_LOAD] : Failed to load: "  name  ) ; \
+    motor::ogl::fn = (decltype(motor::ogl::fn))(motor::ogl::gl_load::load_function( name ) ) ; \
+    motor::log::global_t::error( motor::ogl::fn == NULL, "[JUST_LOAD] : Failed to load: "  name  ) ; \
 }
 #define JUST_LOAD_BY_FN( fn ) JUST_LOAD( fn, #fn )
 
-#define NULL_STATIC_MEMBER( fn ) decltype(/*motor::ogl::gl::*/fn) /*motor::ogl::gl::*/fn = nullptr
+#define CHECK_AND_LOAD_COND( fn, name ) \
+{\
+    if( motor::ogl::fn == nullptr ) \
+    {\
+        JUST_LOAD( fn,name ) ; \
+    }\
+}
+#define NULL_STATIC_MEMBER( fn ) decltype(motor::ogl::fn) motor::ogl::fn = nullptr
+
+namespace this_file
+{
+    template< typename fn_t >
+    static void_t just_load( fn_t fn, char const * const name ) noexcept
+    { 
+        fn_t fn_ = (fn_t)(motor::ogl::gl_load::load_function( name ) ) ; 
+        motor::log::global_t::error( fn_ == nullptr, "[gl::just_load] : Failed to load: " + motor::string_t( name )  ) ; 
+        return fn_ ;
+    }
+}
 
 /////////////////////////////////////////////////////////////////////////
 // member init
@@ -42,7 +57,7 @@ using namespace motor::ogl ;
 motor::ogl::gl::string_list_t gl::_extensions = motor::ogl::gl::string_list_t( ) ;
 bool_t motor::ogl::gl::_init = false ;
 
-#if 0
+#if 1
 NULL_STATIC_MEMBER( glCullFace ) ;
 NULL_STATIC_MEMBER( glFrontFace ) ;
 NULL_STATIC_MEMBER( glHint ) ;
@@ -580,24 +595,23 @@ motor::ogl::result motor::ogl::gl::init( void_t )
 {
     //if( _init ) return motor::ogl::result::ok ;
 
-    if( !CHECK_AND_LOAD_COND( glGetIntegerv, "glGetIntegerv" ) )
-    {
+    if( motor::ogl::glGetIntegerv != nullptr ) 
+        return motor::ogl::result::ok ;
+
+    JUST_LOAD_BY_FN( glGetIntegerv ) 
+    JUST_LOAD_BY_FN( glGetStringi ) 
+
+    if( motor::ogl::glGetIntegerv == nullptr )
         return motor::ogl::result::failed_load_function ;
-    }
-
-    if( !CHECK_AND_LOAD_COND( glGetStringi, "glGetStringi" ) )
-    {
-
-    }
 
     // load all supported extension strings
     {
         GLint numext = 0 ;
-        glGetIntegerv( GL_NUM_EXTENSIONS, &numext  ) ;
+        motor::ogl::glGetIntegerv( GL_NUM_EXTENSIONS, &numext  ) ;
 
         for( GLint i=0; i<numext; ++i )
         {
-            GLubyte const * name = glGetStringi( GL_EXTENSIONS, i  ) ;
+            GLubyte const * name = motor::ogl::glGetStringi( GL_EXTENSIONS, i  ) ;
             _extensions.push_back( reinterpret_cast<char const*>( name )) ;
         }
     }

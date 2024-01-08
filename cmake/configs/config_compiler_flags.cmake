@@ -45,7 +45,7 @@ elseif( MOTOR_COMPILER_GNU )
 
     set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MOTOR_UNWANTED_COMPILER_OPTIONS} -fcommon")
     set( CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} ${MOTOR_UNWANTED_COMPILER_OPTIONS} -fcommon")
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOTOR_UNWANTED_COMPILER_OPTIONS} -Wno-pessimizing-move -Wno-redundant-move")
+    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MOTOR_UNWANTED_COMPILER_OPTIONS} -Wno-pessimizing-move -Wno-redundant-move -fcommon")
 
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
     set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")

@@ -39,7 +39,7 @@ namespace motor
     }
 }
 
-#if 0
+#if 1
 namespace motor
 {
     namespace ogl
@@ -566,7 +566,7 @@ namespace motor
         MOTOR_OGL_API_CXX PFNGLGETFLOATI_VPROC glGetFloati_v ;
         MOTOR_OGL_API_CXX PFNGLGETDOUBLEI_VPROC glGetDoublei_v ;
 
-        #if 0
+        #if 1
     }
 }
 #endif
