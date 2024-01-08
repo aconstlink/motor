@@ -17,8 +17,7 @@
 
 #else
 
-#define MOTOR_@LIB_NAME_UPPER@_API_C
-#define MOTOR_@LIB_NAME_UPPER@_API_CXX extern
+#define MOTOR_@LIB_NAME_UPPER@_API_C extern
 #define MOTOR_@LIB_NAME_UPPER@_API
 
 #endif

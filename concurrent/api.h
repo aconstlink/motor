@@ -17,8 +17,7 @@
 
 #else
 
-#define MOTOR_CONCURRENT_API_C
-#define MOTOR_CONCURRENT_API_CXX extern
+#define MOTOR_CONCURRENT_API_C extern
 #define MOTOR_CONCURRENT_API
 
 #endif
