@@ -50,7 +50,7 @@ jobs:
         submodules: recursive
 
     - name: Install required libs
-      run: sudo apt-get install -y mesa-libGLES-dev mesa-libGL-dev mesa-libEGL-dev
+      run: sudo apt-get install -y libgles-dev libgl-dev libegl-dev
   
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
