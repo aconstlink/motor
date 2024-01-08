@@ -49,6 +49,9 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Install required libs
+      run: sudo apt-get install -y mesa-libGLES-dev mesa-libGL-dev mesa-libEGL-dev
+  
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
@@ -59,7 +62,7 @@ jobs:
     - name: Test Build Type
       shell: bash
       run: echo Build Type is ${{ matrix.build_type }}
-        
+      
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
