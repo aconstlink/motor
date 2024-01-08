@@ -15,7 +15,7 @@
 
 #else
 
-#define MOTOR_LOG_API_C 
+#define MOTOR_LOG_API_C extern
 #define MOTOR_LOG_API
 
 #endif

@@ -14,7 +14,7 @@ namespace motor
         {
             static bool_t check_and_log( motor::string_in_t msg ) noexcept
             {
-                GLenum __so__err = motor::ogl::glGetError() ;
+                GLenum __so__err = glGetError() ;
                 if( __so__err == GL_NO_ERROR ) return false ;
 
                 motor::string_t const __glstring = motor::ogl::to_string( __so__err ) ;

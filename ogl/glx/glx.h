@@ -6,7 +6,7 @@
 
 #include <motor/std/vector>
 
-#include <GL/glcorearb.h>
+//#include <GL/glcorearb.h>
 #include <GL/glx.h>
 #include <GL/glxext.h>
 

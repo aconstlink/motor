@@ -1,31 +1,80 @@
 #include "glx_context.h"
-#include "glx_window.h"
 
-#include <natus/graphics/backend/gl/gl4.h>
+#include <motor/graphics/backend/gen4/null.h>
 
-#include <natus/ogl/gl/gl.h>
-#include <natus/ogl/glx/glx.h>
-#include <natus/ntd/string/split.hpp>
+#include <motor/std/string_split.hpp>
+#include <motor/log/global.h>
 
-using namespace motor::application ;
-using namespace motor::application::glx ;
+//#include <GL/glcorearb.h>
+#include <motor/ogl/glx/glx.h>
+
+using namespace motor::platform ;
+using namespace motor::platform::glx ;
+
+struct context::pimpl
+{
+    GLXContext context ;
+    static GLXFBConfig make_config( Display * display ) noexcept 
+    {
+        int_ptr_t visual_attribs = motor::memory::global_t::alloc_raw<int_t>( 24, 
+            "[glx_window::create_glx_window] : visual_attribs" ) ;
+
+        {
+            struct va_pair{
+                int_t flag ;
+                int_t value ;
+            };
+
+            va_pair * va_pairs = (va_pair*)visual_attribs ;
+            va_pairs[0] = {GLX_X_RENDERABLE, True} ;
+            va_pairs[1] = {GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT} ;
+            va_pairs[2] = {GLX_RENDER_TYPE, GLX_RGBA_BIT} ;
+            va_pairs[3] = {GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR} ;
+            va_pairs[4] = {GLX_RED_SIZE, 8} ;
+            va_pairs[5] = {GLX_GREEN_SIZE, 8} ;
+            va_pairs[6] = {GLX_BLUE_SIZE, 8} ;
+            va_pairs[7] = {GLX_ALPHA_SIZE, 8} ;
+            va_pairs[8] = {GLX_DEPTH_SIZE, 24} ;
+            va_pairs[9] = {GLX_STENCIL_SIZE, 8} ;
+            va_pairs[10] = {GLX_DOUBLEBUFFER, True} ;
+            va_pairs[11] = {None, None} ;
+        }
+
+        int fbcount ;
+        GLXFBConfig * fbc = glXChooseFBConfig( 
+                display, DefaultScreen( display ),
+                visual_attribs, &fbcount ) ;
+
+        if( fbc == nullptr || fbcount == 0 ) 
+        {
+            motor::log::global_t::error( 
+                "[glx_window::create_glx_window] : glXChooseFBConfig" ) ;
+
+            return 0 ;
+        }
+
+        GLXFBConfig fbconfig = fbc[0] ;
+
+        //XFree( fbc ) ;
+        motor::memory::global_t::dealloc_raw( visual_attribs ) ;
+
+        return fbconfig ;
+    }
+} ;
 
 //****************************************************************
 context::context( void_t ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::glx::gl_context( this ),
-        "[context] : backend gl_context" ) ;
+    _pimpl = motor::memory::global_t::alloc( this_t::pimpl(), "glx context pimpl" ) ;
 }
 
 //****************************************************************
-context::context( gl_info_in_t gli, Window wnd, Display * disp ) noexcept
+context::context( Window wnd, Display * disp ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::glx::gl_context( this ),
-        "[context] : backend gl_context" ) ;
-
     _display = disp ;
     _wnd = wnd ;
-    this_t::create_the_context( gli ) ;
+    _pimpl = motor::memory::global_t::alloc( this_t::pimpl(), "glx context pimpl" ) ;
+    this_t::create_the_context( motor::application::gl_info_t()  ) ;
 }
 
 //****************************************************************
@@ -37,11 +86,8 @@ context::context( this_rref_t rhv ) noexcept
     _wnd = rhv._wnd ;
     rhv._wnd = 0 ;
 
-    _context = rhv._context ;
-    rhv._context = 0 ;
-
-    motor_move_member_ptr( _bend_ctx, rhv ) ;
-    _bend_ctx->change_owner( this ) ;
+    _pimpl = motor::move( _pimpl ) ;
+    _backend = motor::move( rhv._backend ) ;
 }
 
 //****************************************************************
@@ -53,11 +99,9 @@ context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
     _wnd = rhv._wnd ;
     rhv._wnd = 0 ;
 
-    _context = rhv._context ;
-    rhv._context = 0 ;
+    _pimpl = motor::move( _pimpl ) ;
     
-    motor_move_member_ptr( _bend_ctx, rhv ) ;
-    _bend_ctx->change_owner( this ) ;
+    _backend = motor::move( rhv._backend ) ;
 
     return *this ;
 }
@@ -67,187 +111,185 @@ context::~context( void_t ) noexcept
 {
     this_t::deactivate() ;
 
-    natus::memory::global_t::dealloc( _bend_ctx ) ;
+    // the backend can not exist without the context.
+    assert( motor::memory::release_ptr( _backend ) == nullptr ) ;
+
+    motor::memory::global_t::dealloc( _pimpl ) ;
 }
 
 //***************************************************************
-natus::application::result context::activate( void_t ) noexcept
+motor::platform::result context::activate( void_t ) noexcept
 {
     //glXMakeCurrent( _display, _wnd, NULL ) ;
     //XLockDisplay( _display ) ;
-    auto const res = glXMakeCurrent( _display, _wnd, _context ) ;
+    auto const res = glXMakeCurrent( _display, _wnd, _pimpl->context ) ;
     //XUnlockDisplay( _display ) ;
-    natus::log::global_t::warning( natus::core::is_not(res), 
+    motor::log::global_t::warning( !res, 
             motor_log_fn( "glXMakeCurrent" ) ) ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***************************************************************
-natus::application::result context::deactivate( void_t ) noexcept
+motor::platform::result context::deactivate( void_t ) noexcept
 {
     auto const res = glXMakeCurrent( _display, 0, 0 ) ;
-    natus::log::global_t::warning( natus::core::is_not(res), 
+    motor::log::global_t::warning( !res, 
             motor_log_fn( "glXMakeCurrent" ) ) ;
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***************************************************************
-natus::application::result context::vsync( bool_t const on_off ) noexcept
+motor::platform::result context::vsync( bool_t const on_off ) noexcept
 {
-    natus::ogl::glx::glXSwapInterval( _display, _wnd, on_off ? 1 : 0 ) ;
-    return natus::application::result::ok ;
+    motor::ogl::glx::glXSwapInterval( _display, _wnd, on_off ? 1 : 0 ) ;
+    return motor::platform::result::ok ;
 }
 
 //**************************************************************
-natus::application::result context::swap( void_t ) noexcept
+motor::platform::result context::swap( void_t ) noexcept
 {
     glXSwapBuffers( _display, _wnd ) ;
-    const GLenum glerr = natus::ogl::glGetError( ) ;
-    natus::log::global_t::warning( glerr != GL_NO_ERROR, 
+    const GLenum glerr = glGetError( ) ;
+    motor::log::global_t::warning( glerr != GL_NO_ERROR, 
             motor_log_fn( "glXSwapBuffers" ) ) ;
-    return natus::application::result::ok ;
-}
-
-natus::graphics::backend_res_t context::create_backend( void_t ) noexcept 
-{
-    natus::application::gl_version glv ;
-    this->get_gl_version( glv ) ;
-    if( glv.major >= 3 )
-    {
-        return natus::graphics::gl4_backend_res_t(
-            natus::graphics::gl4_backend_t( _bend_ctx ) ) ;
-    }
-
-    return natus::graphics::null_backend_res_t(
-        natus::graphics::null_backend_t() ) ;
+    return motor::platform::result::ok ;
 }
 
 //**************************************************************
-natus::application::result context::create_context( 
-     Display* display, Window wnd, GLXContext context ) noexcept
+motor::graphics::gen4::backend_mtr_shared_t context::backend( void_t ) noexcept 
 {
-    _display = display ;
-    _wnd = wnd ;
+    if( _backend != nullptr ) return motor::share( _backend ) ;
 
-    // the context comes in already create
-    _context = context ;
+    motor::application::gl_version glv ;
+    this->get_gl_version( glv ) ;
 
-    return natus::application::result::ok ;
+    // create gen 4 renderer
+    if( glv.major >= 4 || (glv.major >= 4 && glv.minor >= 0) )
+    {
+        _backend = motor::memory::create_ptr( motor::platform::gen4::gl4_backend_t( this ) ) ;
+    }
+    else
+    {
+        motor::log::global_t::error( "Can not create requested OpenGL 4 renderer. "
+            "OpenGL not matching the version requirement.") ;
+    }
+    
+    return motor::share( _backend ) ;
 }
 
 //***************************************************************
-natus::application::result context::is_extension_supported( 
-    natus::ntd::string_cref_t extension_name ) noexcept
+motor::platform::result context::is_extension_supported( 
+    motor::string_cref_t extension_name ) noexcept
 {
     this_t::strings_t ext_list ;
-    if( natus::application::no_success( get_glx_extension(ext_list) ) ) 
-        return natus::application::result::failed_wgl ;
+    if( motor::platform::no_success( get_glx_extension(ext_list) ) ) 
+        return motor::platform::result::failed_glx ;
 
     this_t::strings_t::iterator iter = ext_list.begin() ;
     while( iter != ext_list.end() )
     {
         if( *iter == extension_name ) 
-            return natus::application::result::ok ;
+            return motor::platform::result::ok ;
         ++iter ;
     }
-    return natus::application::result::invalid_extension ;
+    return motor::platform::result::invalid_extension ;
 }
 
 //*****************************************************************
-natus::application::result context::get_glx_extension( this_t::strings_out_t /*ext_list*/ ) noexcept
+motor::platform::result context::get_glx_extension( this_t::strings_out_t /*ext_list*/ ) noexcept
 {
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //****************************************************************
-natus::application::result context::get_gl_extension( this_t::strings_out_t ext_list ) noexcept
+motor::platform::result context::get_gl_extension( this_t::strings_out_t ext_list ) noexcept
 {
-    const GLubyte * ch = natus::ogl::glGetString( GL_EXTENSIONS ) ;
-    if( !ch ) return natus::application::result::failed ;
+    const GLubyte * ch = glGetString( GL_EXTENSIONS ) ;
+    if( !ch ) return motor::platform::result::failed ;
 
-    natus::ntd::string_t extension_string( (const char*)ch) ;
-    natus::ntd::string_ops::split( extension_string, ' ', ext_list ) ;
-    return natus::application::result::ok ;
+    motor::string_t extension_string( (const char*)ch) ;
+    motor::mstd::string_ops::split( extension_string, ' ', ext_list ) ;
+    return motor::platform::result::ok ;
 }
 
 //****************************************************************
-natus::application::result context::get_gl_version( natus::application::gl_version & version ) const noexcept
+motor::platform::result context::get_gl_version( motor::application::gl_version & version ) const noexcept
 {
-    const GLubyte* ch = natus::ogl::glGetString(GL_VERSION) ;
-    if( !ch ) return natus::application::result::failed ;
+    const GLubyte* ch = glGetString(GL_VERSION) ;
+    if( !ch ) return motor::platform::result::failed ;
 
-    natus::ntd::string_t version_string = natus::ntd::string((const char*)ch) ;
+    motor::string_t version_string = motor::string_t((const char*)ch) ;
 
-    GLint major = 0;//boost::lexical_cast<GLint, std::string>(*token) ;
-    GLint minor = 0;//boost::lexical_cast<GLint, std::string>(*(++token));
+    GLint major = 0;
+    GLint minor = 0;
 
     {
-        natus::ogl::glGetIntegerv( GL_MAJOR_VERSION, &major ) ;
-        GLenum err = natus::ogl::glGetError() ;
+        glGetIntegerv( GL_MAJOR_VERSION, &major ) ;
+        GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t const es = std::to_string(err) ;
-            natus::log::global::error( 
+            motor::string_t const es = motor::to_string(err) ;
+            motor::log::global::error( 
                 "[context::get_gl_version] : get gl major <"+es+">" ) ;
         }
     }
     {
-        natus::ogl::glGetIntegerv( GL_MINOR_VERSION, &minor) ;
-        GLenum err = natus::ogl::glGetError() ;
+        glGetIntegerv( GL_MINOR_VERSION, &minor) ;
+        GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t es = std::to_string(err) ;
-            natus::log::global::error( "[context::get_gl_version] : get gl minor <"+es+">" ) ;
+            motor::string_t es = motor::to_string(err) ;
+            motor::log::global::error( "[context::get_gl_version] : get gl minor <"+es+">" ) ;
         }
     }
 
     version.major = major ;
     version.minor = minor ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //****************************************************************
-void_t context::clear_now( natus::math::vec4f_t const & vec ) noexcept
+void_t context::clear_now( motor::math::vec4f_t const & vec ) noexcept
 {
-    natus::ogl::glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
-    natus::ogl::glClear( GL_COLOR_BUFFER_BIT ) ;
+    glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
+    glClear( GL_COLOR_BUFFER_BIT ) ;
     
-    GLenum const gler = natus::ogl::glGetError() ;
-    natus::log::global_t::error( gler != GL_NO_ERROR, "[context::clear_now] : glClear" ) ;
+    GLenum const gler = glGetError() ;
+    motor::log::global_t::error( gler != GL_NO_ERROR, "[context::clear_now] : glClear" ) ;
 }
 
 //***************************************************************
-natus::application::result context::create_the_context( gl_info_cref_t gli ) noexcept
+motor::platform::result context::create_the_context( motor::application::gl_info_cref_t gli ) noexcept
 {
-    auto res = natus::ogl::glx::init( _display, DefaultScreen( _display ) ) ;
+    auto res = motor::ogl::glx::init( _display, DefaultScreen( _display ) ) ;
 
-    if( natus::log::global_t::error( natus::ogl::no_success(res), 
+    if( motor::log::global_t::error( motor::ogl::no_success(res), 
                "[glx_window::create_glx_window] : init glx") )
     {
-        return natus::application::result::failed ;
+        return motor::platform::result::failed ;
     }
 
     int glx_major, glx_minor ;
 
     if( !glXQueryVersion( _display, &glx_major, &glx_minor ) ) 
     {
-        natus::log::global_t::error( 
+        motor::log::global_t::error( 
               "[glx_window::create_glx_window] : glXQueryVersion") ;
-        return natus::application::result::failed ;
+        return motor::platform::result::failed ;
     }
 
-    if( glx_major < 1 ) return natus::application::result::failed_glx ;
-    if( glx_minor < 3 ) return natus::application::result::failed_glx ;
+    if( glx_major < 1 ) return motor::platform::result::failed_glx ;
+    if( glx_minor < 3 ) return motor::platform::result::failed_glx ;
 
     // determine the GL version by creating a simple 1.0 context.
-    natus::application::gl_version glv ;
+    motor::application::gl_version glv ;
     if( !this_t::determine_gl_version( glv ) )
     {
-        natus::log::global_t::error( motor_log_fn(
+        motor::log::global_t::error( motor_log_fn(
            "failed to determine gl version ") ) ;
-        return natus::application::result::failed ;
+        return motor::platform::result::failed ;
     }
 
     int context_attribs[] =
@@ -257,48 +299,48 @@ natus::application::result context::create_the_context( gl_info_cref_t gli ) noe
      None
     } ;
 
-    GLXContext context = natus::ogl::glx::glXCreateContextAttribs( 
-          _display, natus::application::glx::window::get_config(), 
+    GLXContext context = motor::ogl::glx::glXCreateContextAttribs( 
+          _display, this_t::pimpl::make_config( _display ), 
           0, True, context_attribs );
 
-    if( natus::log::global_t::error( !context, 
+    if( motor::log::global_t::error( !context, 
            motor_log_fn( "glXCreateContextAttribs" )) ) 
     {
-        return natus::application::result::failed ;
+        return motor::platform::result::failed ;
     }
 
-    natus::ogl::gl::init() ;
+    this_t::init_gl_context() ;
     
     //this_t::activate() ;
     glXMakeCurrent( _display, _wnd, context ) ;
     {
-        gl_version version ;
+        motor::application::gl_version version ;
         if( !success( this_t::get_gl_version( version ) ) )
         {
-            natus::log::global_t::error( motor_log_fn( "" ) ) ;
+            motor::log::global_t::error( motor_log_fn( "" ) ) ;
             this_t::deactivate() ;
             return result::failed_gfx_context_creation ;
         }
-        natus::log::global_t::status( "GL Version: " +
-           std::to_string(version.major) + "." + 
-           std::to_string(version.minor) ) ;
+        motor::log::global_t::status( "GL Version: " +
+           motor::to_string(version.major) + "." + 
+           motor::to_string(version.minor) ) ;
     }
 
     {
         auto const res = this_t::vsync( gli.vsync_enabled ) ;
-        natus::log::global_t::warning( natus::application::no_success(res),
+        motor::log::global_t::warning( motor::platform::no_success(res),
                motor_log_fn("vsync") ) ;
     }
     glXMakeCurrent( _display, 0, 0 ) ;
 
 
-    _context = context ;
+    _pimpl->context = context ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //****************************************************************
-bool_t context::determine_gl_version( gl_version & gl_out ) const noexcept
+bool_t context::determine_gl_version( motor::application::gl_version & gl_out ) const noexcept
 {
     int context_attribs[] =
     {
@@ -307,31 +349,31 @@ bool_t context::determine_gl_version( gl_version & gl_out ) const noexcept
      None
     } ;
 
-    GLXContext context = natus::ogl::glx::glXCreateContextAttribs( 
-          _display, natus::application::glx::window::get_config(), 
+    GLXContext context = motor::ogl::glx::glXCreateContextAttribs( 
+          _display, this_t::pimpl::make_config(_display), 
           0, True, context_attribs );
 
-    if( natus::log::global_t::error( !context, 
+    if( motor::log::global_t::error( !context, 
            motor_log_fn( "glXCreateContextAttribs") ) ) 
     {
         return false ;
     }
 
-    natus::ogl::gl::init() ;
+    this_t::init_gl_context() ;
 
-    gl_version version ;
+    motor::application::gl_version version ;
     glXMakeCurrent( _display, _wnd, context ) ;
     {
         if( !success( this_t::get_gl_version( version ) ) )
         {
-            natus::log::global_t::error( motor_log_fn( "" ) ) ;
+            motor::log::global_t::error( motor_log_fn( "" ) ) ;
             glXMakeCurrent( _display, 0, 0 ) ;
             glXDestroyContext( _display, context ) ;
             return false ;
         }
-        natus::log::global_t::status( "[determine_gl_version] : GL Version: " +
-           std::to_string(version.major) + "." + 
-           std::to_string(version.minor) ) ;
+        motor::log::global_t::status( "[determine_gl_version] : GL Version: " +
+           motor::to_string(version.major) + "." + 
+           motor::to_string(version.minor) ) ;
     }
     glXMakeCurrent( _display, 0, 0 ) ;
     glXDestroyContext( _display, context ) ;

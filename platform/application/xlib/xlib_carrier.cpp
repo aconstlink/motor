@@ -7,6 +7,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#include <motor/ogl/glx/glx.h>
 
 using namespace motor::platform ;
 using namespace motor::platform::xlib ;

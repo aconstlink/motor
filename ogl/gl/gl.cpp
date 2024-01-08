@@ -1,17 +1,7 @@
 #include "gl.h"
+#include "gl_load.h"
 
 #include <motor/log/global.h>
-
-#if defined( MOTOR_TARGET_OS_WIN )
-#include <GL/wglext.h>
-#elif defined( MOTOR_TARGET_OS_LIN )
-//#include <X11/X.h>
-//#include <X11/Xlib.h>
-//#include <X11/Xutil.h>
-//#include <X11/Xmd.h>
-#include <GL/glx.h>
-#include <GL/glxext.h>
-#endif
 
 using namespace motor::ogl ;
 
@@ -21,14 +11,14 @@ using namespace motor::ogl ;
 
 #define CHECK_AND_LOAD_COND( fn, name ) \
     !motor::log::global_t::error( \
-    (fn = (fn == NULL ? (decltype(fn))(this_t::load_gl_function( name )) : fn)) == NULL, \
+    (fn = (fn == NULL ? (decltype(fn))(motor::ogl::gl_load::load_function( name )) : fn)) == NULL, \
     "[CHECK_AND_LOAD_COND] : Failed to load: "  name  )
 
 #define CHECK_AND_LOAD( fn, name ) \
 { \
     if( fn == NULL ) \
     { \
-        fn = (decltype(fn))(this_t::load_gl_function( name ) ) ; \
+        fn = (decltype(fn))(motor::ogl::gl_load::load_function( name ) ) ; \
     } \
     \
     motor::log::global_t::error( fn == NULL, "[CHECK_AND_LOAD] : Failed to load: "  name  ) ; \
@@ -38,12 +28,12 @@ using namespace motor::ogl ;
 
 #define JUST_LOAD( fn, name ) \
 { \
-    motor::ogl::fn = (decltype(motor::ogl::fn))(this_t::load_gl_function( name ) ) ; \
-    motor::log::global_t::error( motor::ogl::fn == NULL, "[JUST_LOAD] : Failed to load: "  name  ) ; \
+    /*motor::ogl::*/fn = (decltype(/*motor::ogl::*/fn))(motor::ogl::gl_load::load_function( name ) ) ; \
+    motor::log::global_t::error( /*motor::ogl::*/fn == NULL, "[JUST_LOAD] : Failed to load: "  name  ) ; \
 }
 #define JUST_LOAD_BY_FN( fn ) JUST_LOAD( fn, #fn )
 
-#define NULL_STATIC_MEMBER( fn ) decltype(motor::ogl::gl::fn) motor::ogl::gl::fn = nullptr
+#define NULL_STATIC_MEMBER( fn ) decltype(/*motor::ogl::gl::*/fn) /*motor::ogl::gl::*/fn = nullptr
 
 /////////////////////////////////////////////////////////////////////////
 // member init
@@ -573,29 +563,10 @@ NULL_STATIC_MEMBER( glDepthRangeIndexed ) ;
 NULL_STATIC_MEMBER( glGetFloati_v ) ;
 NULL_STATIC_MEMBER( glGetDoublei_v ) ;
 #endif
+
 /////////////////////////////////////////////////////////////////////////
 // Function definitions
 /////////////////////////////////////////////////////////////////////////
-
-//**************************************************************
-void_ptr_t motor::ogl::gl::load_gl_function( char_cptr_t name ) 
-{
-#if defined( MOTOR_TARGET_OS_WIN )
-    void *p = (void *)wglGetProcAddress(name);
-    if (p == 0 ||
-        (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
-        (p == (void*)-1))
-    {
-        HMODULE module = LoadLibraryA("opengl32.dll");
-        p = (void *)GetProcAddress(module, name);
-    }
-#elif defined( MOTOR_TARGET_OS_LIN )
-    void_ptr_t p = (void_ptr_t) glXGetProcAddress( (GLubyte const *) name ) ;
-#else
-#error "Requires implementation"
-#endif
-    return p;
-}
 
 //**************************************************************
 bool_t motor::ogl::gl::is_supported( char const * name ) 
@@ -622,11 +593,11 @@ motor::ogl::result motor::ogl::gl::init( void_t )
     // load all supported extension strings
     {
         GLint numext = 0 ;
-        motor::ogl::glGetIntegerv( GL_NUM_EXTENSIONS, &numext  ) ;
+        glGetIntegerv( GL_NUM_EXTENSIONS, &numext  ) ;
 
         for( GLint i=0; i<numext; ++i )
         {
-            GLubyte const * name = motor::ogl::glGetStringi( GL_EXTENSIONS, i  ) ;
+            GLubyte const * name = glGetStringi( GL_EXTENSIONS, i  ) ;
             _extensions.push_back( reinterpret_cast<char const*>( name )) ;
         }
     }

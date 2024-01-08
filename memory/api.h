@@ -15,7 +15,7 @@
 
 #else
 
-#define MOTOR_MEMORY_API_C 
+#define MOTOR_MEMORY_API_C extern
 #define MOTOR_MEMORY_API
 
 #endif

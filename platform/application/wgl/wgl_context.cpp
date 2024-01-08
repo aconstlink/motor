@@ -13,19 +13,11 @@ using namespace motor::platform::wgl ;
 //***********************************************************************
 wgl_context::wgl_context( void_t ) noexcept
 {
-    #if 0
-    _bend_ctx = motor::memory::global_t::alloc( motor::application::wgl::gl_context( this ),
-        "[context] : backend gl_context" ) ;
-    #endif
 }
 
 //***********************************************************************
 wgl_context::wgl_context( HWND hwnd ) noexcept
 {
-    #if 0
-    _bend_ctx = motor::memory::global_t::alloc( motor::application::wgl::gl_context( this ),
-        "[context] : backend gl_context" ) ;
-    #endif
     this_t::create_context( hwnd ) ;
 }
 
@@ -33,20 +25,13 @@ wgl_context::wgl_context( HWND hwnd ) noexcept
 wgl_context::wgl_context( HWND hwnd, HGLRC ctx ) noexcept
 {
     _hwnd = hwnd ;
-    _hrc = ctx ;
-
-    #if 0
-    _bend_ctx = motor::memory::global_t::alloc( motor::application::wgl::gl_context( this ),
-        "[context] : backend gl_context" ) ;
-    #endif
+    _hrc = ctx ;    
 }
 
 //***********************************************************************
 wgl_context::wgl_context( this_rref_t rhv ) noexcept
 {
     *this = std::move( rhv ) ;
-    //motor_move_member_ptr( _bend_ctx, rhv ) ;
-    //_bend_ctx->change_owner( this ) ;
 }
 
 //***********************************************************************

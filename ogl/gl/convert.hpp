@@ -224,56 +224,56 @@ namespace motor
                 //************************************************************
 
             case GL_FLOAT: return [=] ( GLuint loc, GLuint /*count*/, void_ptr_t p )
-            { motor::ogl::glUniform1f( loc, *( const GLfloat* ) p ); } ;
+            { glUniform1f( loc, *( const GLfloat* ) p ); } ;
 
             case GL_FLOAT_VEC2: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform2fv( loc, count, ( const GLfloat* ) p ); } ;
+            { glUniform2fv( loc, count, ( const GLfloat* ) p ); } ;
 
             case GL_FLOAT_VEC3: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform3fv( loc, count, ( const GLfloat* ) p ); } ;
+            { glUniform3fv( loc, count, ( const GLfloat* ) p ); } ;
 
             case GL_FLOAT_VEC4: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform4fv( loc, count, ( const GLfloat* ) p ); } ;
+            { glUniform4fv( loc, count, ( const GLfloat* ) p ); } ;
 
                 //************************************************************
 
             case GL_INT: return [=] ( GLuint loc, GLuint /*count*/, void_ptr_t p )
-            { motor::ogl::glUniform1i( loc, *( const GLint* ) p ); } ;
+            { glUniform1i( loc, *( const GLint* ) p ); } ;
 
             case GL_INT_VEC2: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform2iv( loc, count, ( const GLint* ) p ); } ;
+            { glUniform2iv( loc, count, ( const GLint* ) p ); } ;
 
             case GL_INT_VEC3: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform3iv( loc, count, ( const GLint* ) p ); } ;
+            { glUniform3iv( loc, count, ( const GLint* ) p ); } ;
 
             case GL_INT_VEC4: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform4iv( loc, count, ( const GLint* ) p ); } ;
+            { glUniform4iv( loc, count, ( const GLint* ) p ); } ;
 
                 //************************************************************
 
             case GL_UNSIGNED_INT: return [=] ( GLuint loc, GLuint /*count*/, void_ptr_t p )
-            { motor::ogl::glUniform1ui( loc, *( const GLuint* ) p ); } ;
+            { glUniform1ui( loc, *( const GLuint* ) p ); } ;
 
             case GL_UNSIGNED_INT_VEC2: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform2uiv( loc, count, ( const GLuint* ) p ); } ;
+            { glUniform2uiv( loc, count, ( const GLuint* ) p ); } ;
 
             case GL_UNSIGNED_INT_VEC3: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform3uiv( loc, count, ( const GLuint* ) p ); } ;
+            { glUniform3uiv( loc, count, ( const GLuint* ) p ); } ;
 
             case GL_UNSIGNED_INT_VEC4: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniform4uiv( loc, count, ( const GLuint* ) p ); } ;
+            { glUniform4uiv( loc, count, ( const GLuint* ) p ); } ;
 
                 //************************************************************
 
             case GL_FLOAT_MAT2: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniformMatrix2fv( loc, count, GL_TRUE, ( const GLfloat* ) p ); } ;
+            { glUniformMatrix2fv( loc, count, GL_TRUE, ( const GLfloat* ) p ); } ;
 
             case GL_FLOAT_MAT3: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-            { motor::ogl::glUniformMatrix3fv( loc, count, GL_TRUE, ( const GLfloat* ) p ); } ;
+            { glUniformMatrix3fv( loc, count, GL_TRUE, ( const GLfloat* ) p ); } ;
 
             case GL_FLOAT_MAT4: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
             { 
-                motor::ogl::glUniformMatrix4fv( loc, count, GL_TRUE, ( const GLfloat* ) p ); 
+                glUniformMatrix4fv( loc, count, GL_TRUE, ( const GLfloat* ) p ); 
             } ;
 
                 //************************************************************
@@ -297,7 +297,7 @@ namespace motor
             case GL_INT_SAMPLER_2D_ARRAY: 
             case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: 
                 return [=] ( GLuint loc, GLuint count, void_ptr_t p )
-                { motor::ogl::glUniform1iv( loc, count, ( const GLint* ) p ); } ;
+                { glUniform1iv( loc, count, ( const GLint* ) p ); } ;
 
             default: break ;
             }

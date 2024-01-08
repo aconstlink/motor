@@ -96,11 +96,12 @@ endif()
 
 if( MOTOR_GRAPHICS_GLX )
 
-    list( APPEND sources_
-      "platform/glx/glx_window.h"
-      "platform/glx/glx_window.cpp"
-      "platform/glx/glx_context.h"
-      "platform/glx/glx_context.cpp" )
+    list( APPEND sources
+      #"platform/glx/glx_window.h"
+      #"platform/glx/glx_window.cpp"
+      "application/glx/glx_context.h"
+      "application/glx/glx_context.cpp"
+      "application/glx/glx_context_gl.cpp" )
 endif()
 
 if( MOTOR_GRAPHICS_EGL )
