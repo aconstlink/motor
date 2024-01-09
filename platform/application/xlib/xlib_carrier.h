@@ -109,6 +109,9 @@ namespace motor
                 void_t handle_destroyed_hwnd( Window hwnd ) noexcept ;
                 void_t send_destroy( xlib_window_data_in_t d ) noexcept ;
                 void_t send_create( xlib_window_data_in_t ) noexcept ;
+
+                using find_window_info_funk_t = std::function< void_t ( this_t::xlib_window_data_ref_t ) > ;
+                bool_t find_window_info( Window hwnd, find_window_info_funk_t ) noexcept ;
             };
             motor_typedef( xlib_carrier ) ;
         }

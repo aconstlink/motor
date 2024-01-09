@@ -86,7 +86,7 @@ context::context( this_rref_t rhv ) noexcept
     _wnd = rhv._wnd ;
     rhv._wnd = 0 ;
 
-    _pimpl = motor::move( _pimpl ) ;
+    _pimpl = motor::move( rhv._pimpl ) ;
     _backend = motor::move( rhv._backend ) ;
 }
 
@@ -99,7 +99,7 @@ context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
     _wnd = rhv._wnd ;
     rhv._wnd = 0 ;
 
-    _pimpl = motor::move( _pimpl ) ;
+    _pimpl = motor::move( rhv._pimpl ) ;
     
     _backend = motor::move( rhv._backend ) ;
 

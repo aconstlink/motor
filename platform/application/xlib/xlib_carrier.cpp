@@ -159,8 +159,16 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
         exit(ret) ;
     }
 
+    using _clock_t = std::chrono::high_resolution_clock ;
+    _clock_t::time_point tp_begin = _clock_t::now() ;
+
     while( !_done )
     {
+        _clock_t::duration const dur = _clock_t::now() - tp_begin ;
+        tp_begin = _clock_t::now() ;
+
+        size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >( dur ).count() ;
+
         int_t num_events = 0 ;
 
         while( (num_events = XPending(_display)) != 0 )
@@ -229,7 +237,53 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
             _destroy_queue.clear() ;
         }
 
-        motor::log::global_t::status( "[after]" ) ;
+        #if MOTOR_GRAPHICS_GLX
+
+            // update glx window context
+            // must be done here. If the window is closed,
+            // the window handle is not valid anymore and must be
+            // destructed in this class first.
+            {
+                for( auto & d : _glx_windows )
+                {
+                    // could be threaded
+                    {
+                        d.ptr->ctx.activate() ;
+                        if( d.ptr->re.can_execute() )
+                        {
+                            d.ptr->ctx.backend()->render_begin() ;
+                            d.ptr->re.execute_frame() ;
+                            d.ptr->ctx.backend()->render_end() ;
+                            d.ptr->ctx.swap() ;
+                        }
+                        // required for now, otherwise the application stalls.
+                        else if( milli == 0 )
+                        {
+                            std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
+                        }
+                        d.ptr->ctx.deactivate() ;
+                    }
+
+                    this_t::find_window_info( d.hwnd, [&]( this_t::xlib_window_data_ref_t wd )
+                    {
+                        // set frame time
+                        {
+                            XStoreName( _display, wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
+                        }
+
+                        // set vsync
+                        {
+                            if( wd.sv.vsync_msg_changed ) 
+                            {
+                                d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
+                                wd.sv.vsync_msg_changed = false ;
+                            }
+                        }
+                    } )  ;
+                }
+            }
+
+            #endif
         
         // test window queue for creation
         {
@@ -468,4 +522,19 @@ void_t xlib_carrier::send_create( xlib_window_data_in_t d ) noexcept
     {
         l->on_message( motor::application::create_message_t() ) ;
     } ) ;
+}
+
+//*******************************************************************************************
+bool_t xlib_carrier::find_window_info( Window hwnd, xlib_carrier::find_window_info_funk_t funk ) noexcept 
+{
+    auto iter = std::find_if( _xlib_windows.begin(), _xlib_windows.end(), [&]( this_t::xlib_window_data_cref_t d )
+    {
+        return d.hwnd == hwnd ;
+    } ) ;
+
+    if( iter == _xlib_windows.end() ) return false ;
+
+    funk( *iter ) ;
+
+    return true ;
 }
