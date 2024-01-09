@@ -138,29 +138,45 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             {
                 for( auto & d : _wgl_windows )
                 {
+                    d.ptr->ctx.activate() ;
+
                     // could be threaded
                     {
-                        d.ptr->ctx.activate() ;
+                        
                         if( d.ptr->re.can_execute() )
                         {
+                            {
+                                RECT rect ;
+                                GetClientRect( d.hwnd, &rect ) ;
+
+                                d.ptr->ctx.backend()->set_window_info( {
+                                    size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
+                            }
+
+                            _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
+
                             d.ptr->ctx.backend()->render_begin() ;
                             d.ptr->re.execute_frame() ;
                             d.ptr->ctx.backend()->render_end() ;
                             d.ptr->ctx.swap() ;
+
+                            d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
+                                _clock_t::now() - rnd_beg_tp ).count() ;
                         }
                         // required for now, otherwise the application stalls.
                         else if( milli == 0 )
                         {
                             std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
                         }
-                        d.ptr->ctx.deactivate() ;
+                        
+                        
                     }
 
                     this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
                     {
                         // set frame time
                         {
-                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(d.micro_rnd/1000) + " ms]").c_str() ) ;
                         }
 
                         // set vsync
@@ -172,6 +188,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             }
                         }
                     } )  ;
+
+                    d.ptr->ctx.deactivate() ;
                 }
             }
 
@@ -191,10 +209,23 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         d.ptr->ctx.activate() ;
                         if( d.ptr->re.can_execute() )
                         {
+                            {
+                                RECT rect ;
+                                GetClientRect( d.hwnd, &rect ) ;
+
+                                d.ptr->ctx.backend()->set_window_info( {
+                                    size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
+                            }
+
+                            _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
+
                             d.ptr->ctx.backend()->render_begin() ;
                             d.ptr->re.execute_frame() ;
                             d.ptr->ctx.backend()->render_end() ;
                             d.ptr->ctx.swap() ;
+
+                            d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
+                                _clock_t::now() - rnd_beg_tp ).count() ;
                         }
                         // required for now, otherwise the application stalls.
                         else if( milli == 0 )
@@ -208,7 +239,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     {
                         // set frame time
                         {
-                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(d.micro_rnd/1000) + " ms]").c_str() ) ;
                         }
 
                         // set vsync

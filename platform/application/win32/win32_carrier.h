@@ -55,6 +55,7 @@ namespace motor
                 {
                     HWND hwnd ;
                     wgl_pimpl * ptr ;
+                    size_t micro_rnd ;
                 };
                 motor_typedef( wgl_window_data ) ;
 
@@ -68,6 +69,7 @@ namespace motor
                 {
                     HWND hwnd ;
                     d3d11_pimpl * ptr ;
+                    size_t micro_rnd ;
                 };
                 motor_typedef( d3d11_window_data ) ;
 
