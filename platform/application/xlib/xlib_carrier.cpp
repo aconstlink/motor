@@ -302,7 +302,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     motor::log::global_t::error( "Wanted to create a graphics window but no api chosen or available." ) ;
                 }
 
-                //this_t::send_create( _xlib_windows.back() ) ;
+                this_t::send_create( _xlib_windows.back() ) ;
             }
             _queue.clear() ;
         }
@@ -458,5 +458,14 @@ void_t xlib_carrier::send_destroy( xlib_window_data_in_t d ) noexcept
     d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
     {
         l->on_message( motor::application::close_message_t{true} ) ;
+    } ) ;
+}
+
+//*******************************************************************************************
+void_t xlib_carrier::send_create( xlib_window_data_in_t d ) noexcept 
+{
+    d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
+    {
+        l->on_message( motor::application::create_message_t() ) ;
     } ) ;
 }
