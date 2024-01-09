@@ -7,11 +7,9 @@
 
 #if defined( MOTOR_@LIB_NAME_UPPER@_EXPORT )
 #define MOTOR_@LIB_NAME_UPPER@_API_C extern "C" __declspec(dllexport)
-#define MOTOR_@LIB_NAME_UPPER@_API_CXX __declspec(dllexport)
 #define MOTOR_@LIB_NAME_UPPER@_API __declspec(dllexport)
 #else
 #define MOTOR_@LIB_NAME_UPPER@_API_C extern "C" __declspec(dllimport)
-#define MOTOR_@LIB_NAME_UPPER@_API_CXX __declspec(dllimport)
 #define MOTOR_@LIB_NAME_UPPER@_API __declspec(dllimport)
 #endif    
 
