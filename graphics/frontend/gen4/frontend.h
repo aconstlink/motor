@@ -35,11 +35,103 @@ namespace motor
 
             public:
 
-                this_ref_t configure( motor::graphics::state_object_mtr_delay_t so ) noexcept 
+                template< typename T >
+                this_ref_t configure( motor::core::mtr_delay< T > o ) noexcept 
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->configure( so.mtr() ) ;
+                        _be->configure( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                template< typename T >
+                this_ref_t release( motor::core::mtr_delay< T > o ) noexcept 
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->release( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t update( motor::graphics::geometry_object_mtr_delay_t o ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->update( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t update( motor::graphics::array_object_mtr_delay_t o ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->update( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t update( motor::graphics::streamout_object_mtr_delay_t o ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->update( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t update( motor::graphics::image_object_mtr_delay_t o ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->update( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t update( motor::graphics::render_object_mtr_delay_t o, size_t const varset ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->update( o.mtr(), varset ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t use( motor::graphics::framebuffer_object_mtr_delay_t o ) noexcept 
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->use( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t use( motor::graphics::streamout_object_mtr_delay_t o ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->use( o.mtr() ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t unuse( motor::graphics::gen4::backend::unuse_type const t ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->unuse( t ) ;
                     } ) ;
 
                     return *this ;
@@ -60,6 +152,16 @@ namespace motor
                     _re->send_execute( [=]( void_t )
                     {
                         _be->pop( pt ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
+                this_ref_t render( motor::graphics::render_object_mtr_delay_t o, motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept 
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->render( o.mtr(), rd ) ;
                     } ) ;
 
                     return *this ;
