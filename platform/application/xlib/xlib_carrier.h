@@ -108,6 +108,7 @@ namespace motor
                 Window create_xlib_window( motor::application::window_info_cref_t ) noexcept ;
                 void_t handle_destroyed_hwnd( Window hwnd ) noexcept ;
                 void_t send_destroy( xlib_window_data_in_t d ) noexcept ;
+                void_t send_create( xlib_window_data_in_t ) noexcept ;
             };
             motor_typedef( xlib_carrier ) ;
         }
