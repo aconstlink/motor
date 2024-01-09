@@ -2669,7 +2669,7 @@ public: // functions
                 UINT offset = 0 ;
                 for( auto const & b : vibs )
                 {
-                    char_cptr_t name = motor::platform::d3d11::vertex_binding_to_semantic( b.va ).c_str() ;
+                    char_cptr_t name = motor::platform::d3d11::vertex_binding_to_semantic( b.va ) ;
                     UINT const semantic_index = motor::platform::d3d11::vertex_output_binding_to_semantic_index( b.va ) ;
                     DXGI_FORMAT const fmt = geo_datas[rd.geo_ids[0]].get_format_from_element( b.va ) ;
                     UINT input_slot = 0 ;
@@ -2752,7 +2752,7 @@ public: // functions
                 UINT offset = 0 ;
                 for( auto const & b : vibs )
                 {
-                    char_cptr_t name = motor::platform::d3d11::vertex_binding_to_semantic( b.va ).c_str() ;
+                    char_cptr_t name = motor::platform::d3d11::vertex_binding_to_semantic( b.va ) ;
                     UINT const semantic_index = motor::platform::d3d11::vertex_output_binding_to_semantic_index( b.va ) ;
                     DXGI_FORMAT const fmt = _streamouts[rd.so_ids[0]].get_format_from_element( b.va ) ;
                     UINT input_slot = 0 ;
