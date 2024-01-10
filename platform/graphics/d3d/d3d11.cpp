@@ -924,6 +924,15 @@ struct d3d11_backend::pimpl
                 blend_state = nullptr ;
             }
 
+            for( auto & v : var_sets_imgs_vs ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_imgs_ps ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_buffers_vs ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_buffers_so_vs ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_buffers_gs ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_buffers_so_gs ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_buffers_ps ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_buffers_so_ps ) motor::memory::release_ptr( v.first ) ;
+
             var_sets_imgs_vs.clear() ;
             var_sets_imgs_ps.clear() ;
             var_sets_buffers_vs.clear() ;
@@ -938,6 +947,7 @@ struct d3d11_backend::pimpl
                 {
                     for( auto & d : datum )
                     {
+                        motor::memory::release_ptr( d.first ) ;
                         for( auto & d2 : d.second )
                         {
                             motor::memory::global_t::dealloc_raw( d2.mem ) ;
@@ -2909,7 +2919,7 @@ public: // functions
 
                     cbs.emplace_back( std::move( cb ) ) ;
                 }
-                vtcb.emplace_back( std::make_pair( vs, std::move( cbs ) ) ) ;
+                vtcb.emplace_back( std::make_pair( motor::memory::copy_ptr(vs), std::move( cbs ) ) ) ;
             } ;
 
             this_t::shader_data_ref_t shd = shaders[ rd.shd_id ] ;
@@ -2949,7 +2959,7 @@ public: // functions
                         var->set( images[i].requires_y_flip ) ;
                     }
                 }
-                rd.var_sets_imgs_ps.emplace_back( std::make_pair( vs, std::move( ivs ) ) ) ;
+                rd.var_sets_imgs_ps.emplace_back( std::make_pair( motor::memory::copy_ptr(vs), std::move( ivs ) ) ) ;
             } ) ;
         }
 
@@ -2994,8 +3004,8 @@ public: // functions
                         }                        
                     }
                 }
-                var_sets_buffers.emplace_back( std::make_pair( vs, std::move( bvs ) ) ) ;
-                var_sets_buffers_so.emplace_back( std::make_pair( vs, std::move( bvs_so ) ) ) ;
+                var_sets_buffers.emplace_back( std::make_pair( motor::memory::copy_ptr( vs ), std::move( bvs ) ) ) ;
+                var_sets_buffers_so.emplace_back( std::make_pair( motor::memory::copy_ptr( vs ), std::move( bvs_so ) ) ) ;
             } ) ;
         } ;
         

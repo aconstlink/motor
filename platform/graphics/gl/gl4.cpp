@@ -1799,6 +1799,13 @@ struct gl4_backend::pimpl
         
         rd.shd_id = GLuint( -1 ) ;
         rd.rss.clear() ;
+        
+        for( auto * v : rd.var_sets ) motor::memory::release_ptr( v ) ;
+        for( auto & v : rd.var_sets_array ) motor::memory::release_ptr( v.first ) ;
+        for( auto & v : rd.var_sets_streamout ) motor::memory::release_ptr( v.first ) ;
+        for( auto & v : rd.var_sets_data ) motor::memory::release_ptr( v.first ) ;
+        for( auto & v : rd.var_sets_texture ) motor::memory::release_ptr( v.first ) ;
+
         rd.var_sets.clear() ;
         rd.var_sets_array.clear() ;
         rd.var_sets_streamout.clear() ;
@@ -2328,16 +2335,16 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t connect( this_t::render_data & config, motor::graphics::variable_set_mtr_t vs )
     {
-        auto item_data = std::make_pair( vs,
+        auto item_data = std::make_pair( motor::memory::copy_ptr( vs ),
             motor::vector< this_t::render_data::uniform_variable_link >() ) ;
 
-        auto item_tex = std::make_pair( vs,
+        auto item_tex = std::make_pair( motor::memory::copy_ptr( vs ),
             motor::vector< this_t::render_data::uniform_texture_link >() ) ;
 
-        auto item_buf = std::make_pair( vs,
+        auto item_buf = std::make_pair( motor::memory::copy_ptr( vs ),
             motor::vector< this_t::render_data::uniform_array_data_link >() ) ;
 
-        auto item_tfb = std::make_pair( vs,
+        auto item_tfb = std::make_pair( motor::memory::copy_ptr( vs ),
             motor::vector< this_t::render_data::uniform_streamout_link >() ) ;
 
         this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
