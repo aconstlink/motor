@@ -34,6 +34,8 @@ namespace motor
             motor::graphics::render_engine_ptr_t _re = nullptr ;
             motor::graphics::ifrontend_ptr_t _fe = nullptr ;
 
+            std::mutex _mtx_rnd ;
+
         public:
 
             window( void_t ) noexcept ;

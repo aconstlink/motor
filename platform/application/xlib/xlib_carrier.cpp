@@ -479,6 +479,8 @@ void_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
 
     if( iter == _xlib_windows.end() ) return ;
 
+    iter->wnd->set_renderable( nullptr, nullptr ) ;
+    
     #if MOTOR_GRAPHICS_GLX
     // look for glx windows/context connection
     // and remove those along with the window

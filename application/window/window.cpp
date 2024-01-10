@@ -178,6 +178,8 @@ void_t window::send_message( motor::application::cursor_message_cref_t msg ) noe
 //***************************************************************************
 bool_t window::render_frame_virt( motor::application::iwindow_t::render_frame_funk_t funk ) noexcept 
 {
+    std::lock_guard< std::mutex > lk( _mtx_rnd ) ;
+
     if( _re == nullptr ) return false ;
 
     if( _re->enter_frame() )
@@ -189,7 +191,9 @@ bool_t window::render_frame_virt( motor::application::iwindow_t::render_frame_fu
     return false ;
 }
 
+//***************************************************************************
 void_t window::set_renderable( motor::graphics::render_engine_ptr_t re, motor::graphics::ifrontend_ptr_t fe ) noexcept 
 {
+    std::lock_guard< std::mutex > lk( _mtx_rnd ) ;
     _re = re ;_fe = fe ;
 }

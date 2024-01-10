@@ -168,8 +168,6 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         {
                             std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
                         }
-                        
-                        
                     }
 
                     this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
@@ -759,6 +757,8 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
 
     if( iter == _win32_windows.end() ) return ;
 
+    iter->wnd->set_renderable( nullptr, nullptr ) ;
+
     #if MOTOR_GRAPHICS_WGL
     // look for wgl windows/context connection
     // and remove those along with the window
@@ -794,9 +794,9 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
         }
     }
     #endif
-
+    
     this_t::send_destroy( *iter ) ;
-
+    
     motor::memory::release_ptr( iter->wnd ) ;
     motor::memory::release_ptr( iter->lsn ) ;
     _win32_windows.erase( iter ) ;
