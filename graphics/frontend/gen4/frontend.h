@@ -177,6 +177,15 @@ namespace motor
                     _re->send_execute( [=]( void_t ){} ) ;
                 }
 
+                using fence_funk_t = std::function< void_t ( void_t ) > ;
+                void_t fence( fence_funk_t funk ) noexcept
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        funk() ;
+                    } ) ;
+                }
+
             };
             motor_typedef( frontend ) ;
         }
