@@ -3684,6 +3684,12 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
         return motor::graphics::result::failed ;
     }
 
+    // update variables before render
+    {
+        auto const res = _pimpl->update_variables( oid, detail.varset ) ;
+        if( !res ) return motor::graphics::result::failed ;
+    }
+
     // @todo
     // change per object render states here.
     _pimpl->render( oid, detail.geo, 

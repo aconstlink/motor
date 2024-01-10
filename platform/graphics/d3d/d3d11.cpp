@@ -4268,8 +4268,16 @@ motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mt
         return motor::graphics::result::failed ;
     }
 
-    _pimpl->render( oid, detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
+    // update variables
+    {
+        _pimpl->update( oid, *obj, detail.varset ) ;
+    }
+
+    // render
+    {
+        _pimpl->render( oid, detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
         detail.varset, (UINT)detail.start, (UINT)detail.num_elems ) ;
+    }
     
     return motor::graphics::result::ok ;
 }
