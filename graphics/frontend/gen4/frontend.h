@@ -57,6 +57,20 @@ namespace motor
                     return *this ;
                 }
 
+                // takes the managed pointer and releases it after
+                // the backend function is called.
+                template< typename T >
+                this_ref_t release( motor::core::mtr_unique< T > o ) noexcept 
+                {
+                    _re->send_execute( [=, mtr = o.mtr() ]( void_t )
+                    {
+                        _be->release( mtr ) ;
+                        motor::memory::release_ptr( mtr ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
                 this_ref_t update( motor::graphics::geometry_object_mtr_delay_t o ) noexcept
                 {
                     _re->send_execute( [=]( void_t )
