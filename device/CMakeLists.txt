@@ -3,8 +3,6 @@ set( sources
     "api.h"
     "result.h"
     "typedefs.h"
-    "global.h"
-    "global.cpp"
 
     "device.hpp"
     "component.hpp"
