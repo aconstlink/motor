@@ -137,7 +137,7 @@ list( APPEND subdirs
     #"audio"
     #"geometry"
     #"font"
-    #"tool"
+    "tool"
     #"physics"
     #"profile"
     #${subdirs_header_only}
