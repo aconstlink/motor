@@ -7,10 +7,6 @@ set( sources
     "types.h"
     "object.hpp"
 
-    "async.h"
-    "async.cpp"
-    "async_id.hpp"
-
     "render_engine.h"
     "render_engine.cpp"
 
