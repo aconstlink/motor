@@ -10,6 +10,9 @@ namespace motor
     {
         class MOTOR_DEVICE_API imodule
         {
+        public:
+
+            virtual ~imodule( void_t ) noexcept {}
 
         public:
 
