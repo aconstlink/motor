@@ -2,7 +2,6 @@
 #include "carrier.h"
 //#include "../app.h"
 
-#include <motor/device/global.h>
 #include <motor/memory/global.h>
 #include <motor/log/global.h>
 
@@ -13,6 +12,8 @@ using namespace motor::application ;
 carrier::carrier( void_t ) noexcept
 {
     _sd = motor::memory::global::alloc< this_t::shared_data >("shared data") ;
+    _dev_system = motor::memory::global_t::alloc( motor::device::system_t(), 
+        "[carrier] : device system" ) ;
 }
 
 //******************************************************
@@ -21,6 +22,8 @@ carrier::carrier( this_rref_t rhv ) noexcept
     _thr = std::move( rhv._thr ) ;
     motor_move_member_ptr( _sd, rhv ) ;
     _app = motor::move( rhv._app ) ;
+
+    _dev_system = motor::move( rhv._dev_system ) ;
 }
 
 //******************************************************
@@ -39,6 +42,7 @@ carrier::carrier( motor::application::iapp_mtr_unique_t app ) noexcept : this_t(
 carrier::~carrier( void_t ) noexcept
 {
     motor::memory::global_t::dealloc( _sd ) ;
+    motor::memory::global_t::dealloc( _dev_system ) ;
 }
 
 //******************************************************
@@ -121,4 +125,16 @@ int_t carrier::exec( void_t ) noexcept
     this_t::stop_update_thread() ;
 
     return 0 ;
+}
+
+//******************************************************
+motor::device::system_ptr_t carrier::get_dev_system( void_t ) noexcept 
+{
+    return _dev_system ;
+}
+
+//******************************************************
+void_t carrier::update_device_system( void_t ) noexcept 
+{
+    _dev_system->update() ;
 }

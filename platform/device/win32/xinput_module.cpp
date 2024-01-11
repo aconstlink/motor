@@ -458,7 +458,7 @@ void_t xinput_module::update( void_t ) noexcept
 
         // buttons : Just the on/off buttons
         {
-            static const std::array<DWORD, 14> buttons__ (
+            constexpr const std::array<DWORD, 14> buttons__ (
                 { 
                     XINPUT_GAMEPAD_BACK, XINPUT_GAMEPAD_START, XINPUT_GAMEPAD_A,
                     XINPUT_GAMEPAD_B, XINPUT_GAMEPAD_X, XINPUT_GAMEPAD_Y,

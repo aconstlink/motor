@@ -73,6 +73,10 @@ namespace motor
                 {
                     motor::memory::global_t::dealloc( ptr ) ;
                 }
+                for( auto * mtr : _mappings )
+                {
+                    motor::memory::release_ptr( mtr ) ;
+                }
             }
 
             this_ref_t operator = ( this_cref_t rhv ) = delete ;

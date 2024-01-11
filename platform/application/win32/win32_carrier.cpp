@@ -3,7 +3,6 @@
 #include <motor/graphics/render_engine.h>
 #include <motor/graphics/frontend/gen4/frontend.h>
 
-#include <motor/device/global.h>
 #include <motor/log/global.h>
 
 #if MOTOR_GRAPHICS_WGL
@@ -105,6 +104,9 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     {
                         TranslateMessage( &msg ) ;
                         DispatchMessage( &msg ) ;
+
+                        _rawinput->handle_input_event( msg.hwnd, msg.message,
+                            msg.wParam, msg.lParam ) ;
                     }
 
                     // handle all incoming messages directed to the window
@@ -384,16 +386,14 @@ motor::application::result win32_carrier::close( void_t ) noexcept
 //***********************************************************************
 void_t win32_carrier::create_and_register_device_modules( void_t ) noexcept 
 {
-    #if 0
     _rawinput = motor::memory::create_ptr< motor::platform::win32::rawinput_module_t >( 
         "[win32] : raw input module" ) ;
 
     _xinput = motor::memory::create_ptr< motor::platform::win32::xinput_module_t > (
         "[win32] : xinput module" ) ;
 
-    motor::device::global_t::system()->add_module( motor::share( _rawinput ) ) ;
-    motor::device::global_t::system()->add_module( motor::share( _xinput ) ) ;
-    #endif
+    this_t::get_dev_system()->add_module( motor::share( _rawinput ) ) ;
+    this_t::get_dev_system()->add_module( motor::share( _xinput ) ) ;
 }
 
 //***********************************************************************

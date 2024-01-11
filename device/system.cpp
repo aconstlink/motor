@@ -73,7 +73,6 @@ void_t system::release( void_t ) noexcept
 
     for( auto & res : _modules )
     {
-        res->release() ;
         motor::memory::release_ptr( res ) ;
     }
     //_vdev.reset() ;

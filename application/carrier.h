@@ -9,6 +9,8 @@
 #include "window/iwindow.h"
 #include "window/window_info.h"
 
+#include <motor/device/system.h>
+
 #include <thread>
 
 namespace motor
@@ -32,6 +34,8 @@ namespace motor
             std::mutex _mtx ;
             std::thread _thr ;
 
+            motor::device::system_ptr_t _dev_system = nullptr ;
+
         public:
 
             carrier( void_t ) noexcept ;
@@ -44,10 +48,15 @@ namespace motor
         public:
             
             int_t exec( void_t ) noexcept ;
+            void_t update_device_system( void_t ) noexcept ;
 
         public: // window creation interface
 
             virtual motor::application::iwindow_mtr_unique_t create_window( motor::application::window_info_cref_t info ) noexcept = 0 ;
+
+        protected:
+
+            motor::device::system_ptr_t get_dev_system( void_t ) noexcept ;
 
         private:
 
