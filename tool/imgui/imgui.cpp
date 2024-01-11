@@ -16,10 +16,10 @@ imgui::imgui( this_rref_t rhv ) noexcept
 {
     motor_move_member_ptr( _ctx, rhv ) ;
 
-    _rc = std::move( rhv._rc ) ;
-    _sc = std::move( rhv._sc ) ;
-
-    _gc = std::move( rhv._gc ) ;
+    _rc = motor::move( rhv._rc ) ;
+    _sc = motor::move( rhv._sc ) ;
+    _gc = motor::move( rhv._gc ) ;
+    _rs = motor::move( rhv._rs ) ;
 
     _vars = std::move( rhv._vars ) ;
 }
@@ -31,6 +31,12 @@ imgui::~imgui( void_t ) noexcept
     {
         ImGui::DestroyContext(_ctx);
     }
+
+    // requires deinit to be called.
+    assert( _rc == nullptr ) ;
+    assert( _sc == nullptr ) ;
+    assert( _gc == nullptr ) ;
+    assert( _rs == nullptr ) ;
 
     for( auto * mtr : _vars )
         motor::memory::release_ptr( mtr ) ;
@@ -66,13 +72,15 @@ void_t imgui::init( void_t ) noexcept
         auto ib = motor::graphics::index_buffer_t().
             set_layout_element( motor::graphics::type::tuint ).resize( 6*100 ) ;
 
-        _gc = motor::graphics::geometry_object_t( "motor.system.imgui",
+        _gc = motor::memory::create_ptr( 
+            motor::graphics::geometry_object_t( "motor.system.imgui",
             motor::graphics::primitive_type::triangles,
-            std::move( vb ), std::move( ib ) ) ;
+            std::move( vb ), std::move( ib ) ), "[imgui] : geometry object" ) ;
     }
 
     {
-        _render_states = motor::graphics::state_object_t("motor.system.imgui") ;
+        _rs = motor::memory::create_ptr( 
+            motor::graphics::state_object_t("motor.system.imgui"), "[imgui] : render states" ) ;
     }
 
     // shader config
@@ -220,6 +228,8 @@ void_t imgui::init( void_t ) noexcept
                 .add_input_binding( motor::graphics::binding_point::view_matrix, "u_view" )
                 .add_input_binding( motor::graphics::binding_point::projection_matrix, "u_proj" ) ;
         }
+
+        _sc = motor::memory::create_ptr( std::move( sc ), "[imgui] : shader object" ) ;
     }
 
     // image configuration
@@ -245,11 +255,13 @@ void_t imgui::init( void_t ) noexcept
             }
         } ) ;
 
-        _ic = motor::graphics::image_object_t( "motor.system.imgui.font", std::move( img ) )
+        auto ic = motor::graphics::image_object_t( "motor.system.imgui.font", std::move( img ) )
             .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::clamp )
             .set_wrap( motor::graphics::texture_wrap_mode::wrap_t, motor::graphics::texture_wrap_type::clamp )
             .set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::linear )
-            .set_filter( motor::graphics::texture_filter_mode::mag_filter, motor::graphics::texture_filter_type::linear );
+            .set_filter( motor::graphics::texture_filter_mode::mag_filter, motor::graphics::texture_filter_type::linear ) ;
+
+        _ic = motor::memory::create_ptr( std::move( ic ), "[imgui] : image object" );
 
     }
 
@@ -269,7 +281,7 @@ void_t imgui::init( void_t ) noexcept
 
         rc.add_variable_set( motor::share( _vars[0] ) ) ;
 
-        _rc = std::move( rc ) ;
+        _rc = motor::memory::create_ptr( std::move( rc ), "[imgui] : render object" )  ;
      }
 
     {
@@ -295,11 +307,11 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 {
     if( !_init )
     {
-        fe->configure( motor::delay(&_render_states) ) ;
-        fe->configure( motor::delay(&_gc) ) ;
-        fe->configure( motor::delay(&_sc) ) ;
-        fe->configure( motor::delay(&_ic) ) ;
-        fe->configure( motor::delay(&_rc) ) ;
+        fe->configure( motor::delay(_rs) ) ;
+        fe->configure( motor::delay(_gc) ) ;
+        fe->configure( motor::delay(_sc) ) ;
+        fe->configure( motor::delay(_ic) ) ;
+        fe->configure( motor::delay(_rc) ) ;
 
         _init = true ;
     }
@@ -334,11 +346,11 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             size += cmd_list->CmdBuffer.Size ;
         }
         
-        _gc.vertex_buffer().resize( draw_data->TotalVtxCount ) ;
-        _gc.index_buffer().resize( draw_data->TotalIdxCount ) ;
+        _gc->vertex_buffer().resize( draw_data->TotalVtxCount ) ;
+        _gc->index_buffer().resize( draw_data->TotalIdxCount ) ;
 
         {
-            _render_states.resize( size ) ;
+            _rs->resize( size ) ;
             motor::graphics::render_state_sets_t rss ;
 
             rss.depth_s.do_change = true ;
@@ -359,12 +371,12 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             rss.blend_s.ss.src_blend_factor = motor::graphics::blend_factor::src_alpha ;
             rss.blend_s.ss.dst_blend_factor = motor::graphics::blend_factor::one_minus_src_alpha ;
 
-            for( size_t i=0; i<_render_states.size(); ++i )
+            for( size_t i=0; i<_rs->size(); ++i )
             {
-                _render_states.set_render_states_set( i, rss ) ;
+                _rs->set_render_states_set( i, rss ) ;
             }
 
-            fe->configure( motor::delay(&_render_states) ) ;
+            fe->configure( motor::delay(_rs) ) ;
         }
     }
 
@@ -378,7 +390,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
         {
             const ImDrawList* cmd_list = draw_data->CmdLists[ n ];
 
-            _gc.vertex_buffer().update<this_t::vertex>( [&] ( vertex* array, size_t const /*ne*/ )
+            _gc->vertex_buffer().update<this_t::vertex>( [&] ( vertex* array, size_t const /*ne*/ )
             {
                 for( int_t i = 0; i < cmd_list->VtxBuffer.Size; ++i )
                 {
@@ -392,7 +404,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                 }
             } );
 
-            _gc.index_buffer().update<uint_t>( [&] ( uint_t* array, size_t const /*ne*/ )
+            _gc->index_buffer().update<uint_t>( [&] ( uint_t* array, size_t const /*ne*/ )
             {
                 for( int_t i = 0 ; i < cmd_list->IdxBuffer.Size; ++i )
                 {
@@ -403,7 +415,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             vb_off += cmd_list->VtxBuffer.Size ;
             ib_off += cmd_list->IdxBuffer.Size ;
         }
-        fe->update( motor::delay( &_gc ) ) ;
+        fe->update( motor::delay( _gc ) ) ;
     }
 
     size_t rs_id = 0 ;
@@ -428,7 +440,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 
             if( _texture_added )
             {
-                fe->configure( motor::delay( &_rc ) ) ;
+                fe->configure( motor::delay( _rc ) ) ;
                 _texture_added = false ;
             }
 
@@ -436,7 +448,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             {
                 // change scissor
                 {
-                    _render_states.access_render_state( rs_id,
+                    _rs->access_render_state( rs_id,
                         [&] ( motor::graphics::render_state_sets_ref_t sets )
                     {
                         sets.scissor_s.ss.rect = motor::math::vec4ui_t( ( uint_t ) clip_rect.x, ( uint_t ) ( fb_height - clip_rect.w ), ( uint_t ) ( clip_rect.z - clip_rect.x ), ( uint_t ) ( clip_rect.w - clip_rect.y ) ) ;
@@ -444,7 +456,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                 }
 
                 {
-                    fe->push( motor::delay( &_render_states), rs_id, false ) ;
+                    fe->push( motor::delay( _rs), rs_id, false ) ;
                 }
 
                 // do rendering
@@ -453,7 +465,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                     rd.num_elems = pcmd->ElemCount ;
                     rd.start = offset ;
                     rd.varset = size_t( pcmd->TextureId ) ;
-                    fe->render( motor::delay( &_rc ), rd ) ;
+                    fe->render( motor::delay( _rc ), rd ) ;
                 }
 
                 {
@@ -467,7 +479,17 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     }
 }
 
-//****
+//*****************************************************************************
+void_t imgui::deinit( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+{
+    fe->release( motor::move( _gc ) ) ;
+    fe->release( motor::move( _rc ) ) ;
+    fe->release( motor::move( _sc ) ) ;
+    fe->release( motor::move( _ic ) ) ;
+    fe->release( motor::move( _rs ) ) ;
+}
+
+//*****************************************************************************
 void_t imgui::do_default_imgui_init( void_t ) 
 {
     // Setup back-end capabilities flags
@@ -781,8 +803,9 @@ ImTextureID imgui::texture( motor::string_in_t name ) noexcept
     // except the data variable that are changed anyway.
     if( i == _vars.size() )
     {
-        _vars.emplace_back( motor::memory::create_ptr( motor::graphics::variable_set_t() ) ) ;
-        _rc.add_variable_set( motor::share( _vars[ i ] ) ) ;
+        _vars.emplace_back( motor::memory::create_ptr( 
+            motor::graphics::variable_set_t(), "[imgui] : variable set " ) ) ;
+        _rc->add_variable_set( motor::share( _vars[ i ] ) ) ;
         auto * var = _vars[ i ]->texture_variable( "u_tex" ) ;
         var->set( name ) ;
 

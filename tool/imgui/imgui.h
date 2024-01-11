@@ -34,13 +34,13 @@ namespace motor
                 motor::math::vec4f_t color ; 
             } ;
 
-            motor::graphics::render_object_t _rc ;
-            motor::graphics::shader_object_t _sc ;
-            motor::graphics::geometry_object_t _gc ;
-            motor::graphics::image_object_t _ic ;
+            motor::graphics::render_object_mtr_t _rc = nullptr ;
+            motor::graphics::shader_object_mtr_t _sc = nullptr ;
+            motor::graphics::geometry_object_mtr_t _gc = nullptr ;
+            motor::graphics::image_object_mtr_t _ic = nullptr ;
 
             motor::vector< motor::graphics::variable_set_mtr_t > _vars ;
-            motor::graphics::state_object_t  _render_states ;
+            motor::graphics::state_object_mtr_t  _rs = nullptr ;
 
             uint_t _width = 0 ;
             uint_t _height = 0 ;
@@ -65,7 +65,7 @@ namespace motor
             void_t begin( void_t ) noexcept ;
             void_t end( void_t ) noexcept ;
             void_t render( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
-            bool_t deinit( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
+            void_t deinit( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
 
             typedef std::function< void_t ( ImGuiContext* ) > exec_funk_t ;
             void_t execute( exec_funk_t ) noexcept ;
