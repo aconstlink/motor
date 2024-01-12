@@ -518,7 +518,14 @@ LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPA
         //this_t::send_show( wParam ) ;
         // pass-through
     case WM_SIZE:
-        //this_t::send_resize( hwnd ) ;
+    {
+        this_ptr_t p = (this_ptr_t)GetWindowLongPtr( hwnd, GWLP_USERDATA ) ;
+        p->find_window_info( hwnd, [&]( this_t::win32_window_data_ref_t wi )
+        {
+            p->send_resize( wi ) ;
+        } ) ;
+    }
+        
         break ;
         
     case WM_DPICHANGED:
@@ -634,6 +641,25 @@ void_t win32_carrier::send_create( win32_window_data_in_t d ) noexcept
     d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
     {
         l->on_message( motor::application::create_message_t() ) ;
+    } ) ;
+}
+
+//*******************************************************************************************
+void_t win32_carrier::send_resize( win32_window_data_in_t d ) noexcept
+{
+    RECT rect ;
+    GetClientRect( d.hwnd, &rect ) ;
+
+    motor::application::resize_message const rm {
+        true,
+        int_t(rect.left), int_t(rect.top), 
+        true,
+        size_t(rect.right-rect.left), size_t(rect.bottom-rect.top)
+    } ;
+
+    d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
+    {
+        l->on_message( rm ) ;
     } ) ;
 }
 

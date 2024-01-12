@@ -129,7 +129,7 @@ namespace motor
                 // send listeners of the window that is about to die
                 void_t send_destroy( win32_window_data_in_t ) noexcept ;
                 void_t send_create( win32_window_data_in_t ) noexcept ;
-
+                void_t send_resize( win32_window_data_in_t ) noexcept ;
 
             private: // handle messages -> incoming messages
 
