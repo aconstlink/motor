@@ -5,7 +5,6 @@
 
 #include "../glx/glx_context.h"
 
-#include <motor/device/global.h>
 #include <motor/log/global.h>
 
 #include <X11/Xlib.h>
