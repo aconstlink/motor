@@ -50,11 +50,12 @@ namespace motor
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept = 0 ;
 
 
-        public:
+        protected:
 
             using render_frame_funk_t = std::function< void_t ( motor::graphics::ifrontend* ) > ;
             virtual bool_t render_frame_virt( render_frame_funk_t ) noexcept = 0 ;
 
+        public:
 
             template< typename frontend_t >
             bool_t render_frame( std::function< void_t ( frontend_t * ) > funk ) noexcept

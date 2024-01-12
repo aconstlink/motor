@@ -77,7 +77,7 @@ namespace motor
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept ;
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept ;
 
-        public:
+        protected:
 
             virtual bool_t render_frame_virt( motor::application::iwindow_t::render_frame_funk_t ) noexcept ;
         };
