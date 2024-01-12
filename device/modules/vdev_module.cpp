@@ -48,7 +48,7 @@ void_t vdev_module::search( motor::device::imodule::search_funk_t funk ) noexcep
 {
     for( auto & g : _games )
     {
-        funk( g.dev ) ;
+        funk( motor::share( g.dev ) ) ;
     }
 }
 

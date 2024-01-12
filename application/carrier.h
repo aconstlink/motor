@@ -48,6 +48,7 @@ namespace motor
         public:
             
             int_t exec( void_t ) noexcept ;
+            motor::device::system_mtr_t device_system( void_t ) noexcept ;
             void_t update_device_system( void_t ) noexcept ;
 
         public: // window creation interface

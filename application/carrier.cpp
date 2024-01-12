@@ -138,3 +138,9 @@ void_t carrier::update_device_system( void_t ) noexcept
 {
     _dev_system->update() ;
 }
+
+//******************************************************
+motor::device::system_mtr_t carrier::device_system( void_t ) noexcept 
+{
+    return _dev_system ;
+}
