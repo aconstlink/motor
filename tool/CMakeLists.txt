@@ -30,7 +30,7 @@ add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
 target_link_libraries( ${cur_lib_name}
   PRIVATE stb
-  PRIVATE imgui
+  PUBLIC imgui
   PUBLIC motor::io
   PUBLIC motor::device
   PUBLIC motor::graphics

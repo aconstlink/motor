@@ -571,7 +571,7 @@ void_t imgui::update( window_data_cref_t data ) noexcept
 void_t imgui::update( motor::device::three_device_mtr_shared_t dev ) noexcept
 {
     ImGuiIO& io = ImGui::GetIO();
-
+    
     // handle mouse
     if( dev != nullptr )
     {
@@ -594,7 +594,7 @@ void_t imgui::update( motor::device::three_device_mtr_shared_t dev ) noexcept
                     float_t( io.DisplaySize.x ),
                     float_t( io.DisplaySize.y ) ) ;
 
-                io.MousePos = ImVec2( pos.x(), pos.y() ) ;
+                io.AddMousePosEvent( pos.x(), pos.y() ) ;
             }
         }
 
@@ -604,20 +604,30 @@ void_t imgui::update( motor::device::three_device_mtr_shared_t dev ) noexcept
 
             for( size_t i = 0; i < 3; ++i )
             {
-                io.MouseDown[ i ] = false ;
+                //io.MouseDown[ i ] = false ;
+                
             }
 
             if( mouse.is_pressing( layout_t::button::left ) )
             {
-                io.MouseDown[ 0 ] = true ;
+                //io.MouseDown[ 0 ] = true ;
+                io.AddMouseButtonEvent( 0, true ) ;
             }
+            else if( mouse.is_released( layout_t::button::left ) )
+            {
+                //io.MouseDown[ 0 ] = true ;
+                io.AddMouseButtonEvent( 0, false ) ;
+            }
+
             if( mouse.is_pressing( layout_t::button::right ) )
             {
-                io.MouseDown[ 1 ] = true ;
+                //io.MouseDown[ 1 ] = true ;
+                io.AddMouseButtonEvent( 1, true ) ;
             }
             if( mouse.is_pressing( layout_t::button::middle ) )
             {
-                io.MouseDown[ 2 ] = true ;
+                //io.MouseDown[ 2 ] = true ;
+                io.AddMouseButtonEvent( 2, true ) ;
             }
         }
 
@@ -648,7 +658,7 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
     if( dev == nullptr ) return ;
 
     ImGuiIO& io = ImGui::GetIO();
-    io.ClearInputKeys() ;
+    //io.ClearInputKeys() ;
 
     motor::device::layouts::ascii_keyboard_t keyboard( dev ) ;
 
