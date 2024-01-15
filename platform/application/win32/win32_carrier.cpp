@@ -71,9 +71,6 @@ win32_carrier::~win32_carrier( void_t ) noexcept
 {
     motor::memory::release_ptr( _rawinput ) ;
     motor::memory::release_ptr( _xinput ) ;
-
-    //for( motor::platform::win32::window_mtr_t mtr : _win32_windows ) 
-      //  motor::memory::release_ptr( mtr ) ;
 }
 
 //***********************************************************************

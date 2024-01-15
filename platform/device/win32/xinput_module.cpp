@@ -396,7 +396,7 @@ xinput_module::xinput_module( void_t ) noexcept
         XINPUT_STATE state ;
         std::memset( ( void_ptr_t ) &state, 0, sizeof(XINPUT_STATE) ) ;
         gd.xinput_ptr->exchange_state( state ) ;
-        gd.dev = motor::memory::create_ptr( motor::device::xbc_device_t(),
+        gd.dev = motor::memory::create_ptr( motor::device::xbc_device_t("xbox controller #"+motor::to_string(i)),
             "[xinput_module] : xbc_device" ) ;
 
         _devices.push_back( gd ) ;
