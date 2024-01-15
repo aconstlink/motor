@@ -20,6 +20,7 @@ imgui::imgui( this_rref_t rhv ) noexcept
     _sc = motor::move( rhv._sc ) ;
     _gc = motor::move( rhv._gc ) ;
     _rs = motor::move( rhv._rs ) ;
+    _ic = motor::move( rhv._ic ) ;
 
     _vars = std::move( rhv._vars ) ;
 }
@@ -32,12 +33,12 @@ imgui::~imgui( void_t ) noexcept
         ImGui::DestroyContext(_ctx);
     }
 
-    // requires deinit to be called.
-    assert( _rc == nullptr ) ;
-    assert( _sc == nullptr ) ;
-    assert( _gc == nullptr ) ;
-    assert( _rs == nullptr ) ;
-
+    motor::memory::release_ptr( motor::move(_rc) ) ;
+    motor::memory::release_ptr( motor::move(_sc) ) ;
+    motor::memory::release_ptr( motor::move(_gc) ) ;
+    motor::memory::release_ptr( motor::move(_rs) ) ;
+    motor::memory::release_ptr( motor::move(_ic) ) ;
+    
     for( auto * mtr : _vars )
         motor::memory::release_ptr( mtr ) ;
 }
