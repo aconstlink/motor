@@ -716,11 +716,10 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
         auto const ks = keyboard.get_state( key_t( i ) ) ;
 
         if( ks == ks_t::none ) continue ;
-
-        #if 0
+        
         if( layout_t::is_key_character( key_t(i) ) )
         {
-            auto const ik = ImGuiKey_( size_t( ImGuiKey_A ) + size_t( key_t::z ) - i ) ;
+            auto const ik = (ImGuiKey)( size_t( ImGuiKey_A ) + size_t( key_t::z ) - i ) ;
             io.AddKeyEvent( ik, ks == ks_t::pressed || ks == ks_t::pressing ) ;
             
             if( ks == ks_t::pressed )
@@ -732,7 +731,7 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
         }
         else if( layout_t::is_key_number( key_t(i) ) )
         {
-            auto const ik = ImGuiKey_( size_t( ImGuiKey_0 ) + size_t( key_t::k_9 ) - i ) ;
+            auto const ik = (ImGuiKey)( size_t( ImGuiKey_0 ) + size_t( key_t::k_9 ) - i ) ;
             io.AddKeyEvent( ik, ks == ks_t::pressed || ks == ks_t::pressing ) ;
 
             if( ks == ks_t::pressed )
@@ -741,10 +740,10 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
                 layout_t::convert_key_to_ascii_number( alt, shift, key_t( i ), c ) ;
                 io.AddInputCharacter( c ) ;
             }
-        }
+        }        
         else if( layout_t::is_key_num_number( key_t(i) ) )
         {
-            auto const ik = ImGuiKey_( size_t( ImGuiKey_0 ) + size_t( key_t::num_9 ) - i ) ;
+            auto const ik = (ImGuiKey)( size_t( ImGuiKey_0 ) + size_t( key_t::num_9 ) - i ) ;
             io.AddKeyEvent( ik, ks == ks_t::pressed || ks == ks_t::pressing ) ;
 
             if( ks == ks_t::pressed )
@@ -754,13 +753,14 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
                 io.AddInputCharacter( c ) ;
             }
         }
-        else if( ks != ks_t::none )
+        else if( ks != ks_t::none && ks != ks_t::pressing )
         {
             size_t ii = ImGuiKey_None ;
             if( key_t(i) == key_t::space  ) 
             {
                 ii = ImGuiKey_Space ;
-                io.AddInputCharacter( ' ' ) ;
+                if( ks == ks_t::pressed )
+                    io.AddInputCharacter( ' ' ) ;
             }
             else if( key_t(i) == key_t::k_return ) 
             {
@@ -777,21 +777,23 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
             else if( key_t(i) == key_t::minus && shift) 
             {
                 ii = ImGuiKey_Minus ;
-                io.AddInputCharacter( '_' ) ;
+                if( ks == ks_t::pressed )
+                    io.AddInputCharacter( '_' ) ;
             }
             else if( key_t(i) == key_t::minus) 
             {
                 ii = ImGuiKey_Minus ;
-                io.AddInputCharacter( '-' ) ;
+                if( ks == ks_t::pressed )
+                    io.AddInputCharacter( '-' ) ;
             }
             else if( key_t(i) == key_t::plus) 
             {
-                io.AddInputCharacter( '+' ) ;
+                if( ks == ks_t::pressed )
+                    io.AddInputCharacter( '+' ) ;
             }
 
-            io.AddKeyEvent( ii, ks == ks_t::pressed || ks == ks_t::pressing ) ;
+            io.AddKeyEvent( (ImGuiKey)ii, ks == ks_t::pressed ) ;
         }
-        #endif
     }
 }
 
