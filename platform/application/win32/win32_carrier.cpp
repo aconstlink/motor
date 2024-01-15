@@ -81,10 +81,19 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
     while( !_done )
     {
-        _clock_t::duration const dur = _clock_t::now() - tp_begin ;
-        tp_begin = _clock_t::now() ;
+        {
+            _clock_t::duration const dur = _clock_t::now() - tp_begin ;
+            tp_begin = _clock_t::now() ;
 
-        size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >( dur ).count() ;
+            size_t const micro = std::chrono::duration_cast< std::chrono::microseconds >( dur ).count() ;
+        
+            // required for now, otherwise the application stalls.
+            if( micro == 0 )
+            {
+                std::this_thread::sleep_for( std::chrono::microseconds(1) ) ;
+            }
+        }
+
         //motor::log::global_t::status( "main loop: " + motor::to_string(micro) ) ; 
 
         // this also determines the maximum frame 
@@ -137,11 +146,39 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             {
                 for( auto & d : _wgl_windows )
                 {
-                    d.ptr->ctx.activate() ;
+                    bool_t need_vsync_change = false ;
+                    bool_t do_vsync = false ;
+
+                    this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
+                    {
+                        // set frame time
+                        {
+                            size_t const milli = d.micro_rnd/1000 ;
+                            size_t const fps = size_t( 1.0 / (double_t(milli)/1000.0) ) ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
+                                motor::to_string(fps) + " fps]").c_str() ) ;
+                        }
+
+                        // set vsync
+                        {
+                            if( wd.sv.vsync_msg_changed ) 
+                            {
+                                need_vsync_change = true ;
+                                do_vsync = wd.sv.vsync_msg.on_off ;
+                                wd.sv.vsync_msg_changed = false ;
+                            }
+                        }
+                    } )  ;
 
                     // could be threaded
                     {
-                        
+                        d.ptr->ctx.activate() ;
+
+                        if( need_vsync_change )
+                        {
+                            d.ptr->ctx.vsync( do_vsync ) ;
+                        }
+
                         if( d.ptr->re.can_execute() )
                         {
                             {
@@ -161,32 +198,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
                                 _clock_t::now() - rnd_beg_tp ).count() ;
+
+                            motor::log::global_t::status("render") ;
                         }
-                        // required for now, otherwise the application stalls.
-                        else if( milli == 0 )
+                        else
                         {
-                            std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
+                            //d.ptr->ctx.swap() ;
+                            motor::log::global_t::status("miss") ;
                         }
+                        d.ptr->ctx.deactivate() ;
                     }
-
-                    this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
-                    {
-                        // set frame time
-                        {
-                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(d.micro_rnd/1000) + " ms]").c_str() ) ;
-                        }
-
-                        // set vsync
-                        {
-                            if( wd.sv.vsync_msg_changed ) 
-                            {
-                                d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
-                                wd.sv.vsync_msg_changed = false ;
-                            }
-                        }
-                    } )  ;
-
-                    d.ptr->ctx.deactivate() ;
                 }
             }
 
@@ -224,11 +245,6 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
                                 _clock_t::now() - rnd_beg_tp ).count() ;
                         }
-                        // required for now, otherwise the application stalls.
-                        else if( milli == 0 )
-                        {
-                            std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
-                        }
                         d.ptr->ctx.deactivate() ;
                     }
 
@@ -252,7 +268,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             }
 
             #endif
-
+            
             // test window queue for creation
             {
                 std::lock_guard< std::mutex > lk ( _mtx_queue ) ;
