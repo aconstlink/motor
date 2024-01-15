@@ -154,7 +154,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         // set frame time
                         {
                             size_t const milli = d.micro_rnd/1000 ;
-                            size_t const fps = size_t( 1.0 / (double_t(milli)/1000.0) ) ;
+                            size_t const fps = size_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
                             SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
                                 motor::to_string(fps) + " fps]").c_str() ) ;
                         }
@@ -198,13 +198,10 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
                                 _clock_t::now() - rnd_beg_tp ).count() ;
-
-                            motor::log::global_t::status("render") ;
                         }
                         else
                         {
                             //d.ptr->ctx.swap() ;
-                            motor::log::global_t::status("miss") ;
                         }
                         d.ptr->ctx.deactivate() ;
                     }
@@ -252,7 +249,10 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     {
                         // set frame time
                         {
-                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(d.micro_rnd/1000) + " ms]").c_str() ) ;
+                            size_t const milli = d.micro_rnd/1000 ;
+                            size_t const fps = size_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
+                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
+                                motor::to_string(fps) + " fps]").c_str() ) ;
                         }
 
                         // set vsync
