@@ -361,9 +361,6 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             const ImDrawList* cmd_list = draw_data->CmdLists[ n ];
             size += cmd_list->CmdBuffer.Size ;
         }
-        
-        _gc->vertex_buffer().resize( draw_data->TotalVtxCount ) ;
-        _gc->index_buffer().resize( draw_data->TotalIdxCount ) ;
 
         {
             _rs->resize( size ) ;
@@ -397,7 +394,11 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     }
 
     // update geometry
+    #if 1
     {
+        _gc->vertex_buffer().resize( draw_data->TotalVtxCount ) ;
+        _gc->index_buffer().resize( draw_data->TotalIdxCount ) ;
+
         size_t vb_off = 0 ;
         size_t ib_off = 0 ;
 
@@ -430,9 +431,64 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 
             vb_off += cmd_list->VtxBuffer.Size ;
             ib_off += cmd_list->IdxBuffer.Size ;
+
+            #if 0 // test. Let in until tested extensively
+            cmd_list->VtxBuffer.Size = 4 ;
+            cmd_list->IdxBuffer.Size = 6 ;
+            ImDrawCmd* pcmd = &cmd_list->CmdBuffer[ 0 ];
+            pcmd->ElemCount = 6 ;
+            #endif
         }
         fe->update( motor::delay( _gc ) ) ;
     }
+    #else // test. Let in until tested extensively
+    {
+        _gc->vertex_buffer().resize( 4 ) ;
+        _gc->index_buffer().resize( 6 ) ;
+
+        _gc->vertex_buffer().update<this_t::vertex>( [&] ( vertex* array, size_t const /*ne*/ )
+        {
+            array[ 0 ].pos = motor::math::vec2f_t( -0.5f, -0.5f ) *300.0f;
+            array[ 1 ].pos = motor::math::vec2f_t( -0.5f, +0.5f ) *300.0f;
+            array[ 2 ].pos = motor::math::vec2f_t( +0.5f, +0.5f ) *300.0f;
+            array[ 3 ].pos = motor::math::vec2f_t( +0.5f, -0.5f ) *300.0f;
+
+            array[ 0 ].uv = motor::math::vec2f_t( -0.0f, -0.0f ) ;
+            array[ 1 ].uv = motor::math::vec2f_t( -0.0f, +1.0f ) ;
+            array[ 2 ].uv = motor::math::vec2f_t( +1.0f, +1.0f ) ;
+            array[ 3 ].uv = motor::math::vec2f_t( +1.0f, -0.0f ) ;
+
+            array[ 0 ].color = motor::math::vec4f_t( 1.0f,1.0f,1.0f,1.0f ) ;
+            array[ 1 ].color = motor::math::vec4f_t( 1.0f,1.0f,1.0f,1.0f ) ;
+            array[ 2 ].color = motor::math::vec4f_t( 1.0f,1.0f,1.0f,1.0f ) ;
+            array[ 3 ].color = motor::math::vec4f_t( 1.0f,1.0f,1.0f,1.0f ) ;
+
+        } );
+
+        _gc->index_buffer().update<uint_t>( [&] ( uint_t* array, size_t const /*ne*/ )
+        {
+            array[ 0 ] = 0 ;
+            array[ 1 ] = 1 ;
+            array[ 2 ] = 2 ;
+
+            array[ 3 ] = 0 ;
+            array[ 4 ] = 2 ;
+            array[ 5 ] = 3 ;
+        } ) ;
+       
+        fe->update( motor::delay( _gc ) ) ;
+
+        if( draw_data->CmdListsCount > 0 )
+        {
+
+        draw_data->CmdListsCount = 1 ;
+        ImDrawList* cmd_list = draw_data->CmdLists[ 0 ];
+        cmd_list->CmdBuffer.Size = 1 ;
+        ImDrawCmd* pcmd = &cmd_list->CmdBuffer[ 0 ];
+        pcmd->ElemCount = 6 ;
+        }
+    }
+    #endif
 
     size_t rs_id = 0 ;
     size_t offset = 0 ;
