@@ -55,7 +55,7 @@ namespace motor
 
         public:
 
-            bool_t begin( motor::tool::time_info_ref_t ti, motor::tool::imgui_view_t ) noexcept ;
+            bool_t begin( motor::tool::time_info_ref_t ti ) noexcept ;
             void_t end( void_t ) noexcept ;
 
         public:

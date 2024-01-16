@@ -770,7 +770,7 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
         {
             io.AddKeyEvent( ImGuiKey_LeftShift, ks == ks_t::pressed || ks == ks_t::pressing ) ;
             shift = ks == ks_t::pressed || ks == ks_t::pressing ;
-            io.KeyShift = ks == ks_t::pressed || ks == ks_t::pressing ;
+            //io.KeyShift = ks == ks_t::pressed || ks == ks_t::pressing ;
         }
         else if( key_t(i) == key_t::shift_right )
         {

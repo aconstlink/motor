@@ -75,7 +75,7 @@ timeline::this_ref_t timeline::operator = ( this_rref_t ) noexcept
 }
 
 //***************************************************************
-bool_t timeline::begin( motor::tool::time_info_ref_t ti,  motor::tool::imgui_view_t ) noexcept 
+bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept 
 {
     if( _begin ) return false ;
     _begin = true ;
@@ -132,9 +132,9 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti,  motor::tool::imgui_vie
         ImVec2( ImGui::GetScrollX(), 0.0f) + ImGui::GetCursorScreenPos(), 
         ImVec2( ImGui::GetScrollX(), 0.0f) + ImGui::GetCursorScreenPos()+ImGui::GetContentRegionAvail() ) && ImGui::IsWindowHovered() ; 
 
-    if( ImGui::GetIO().KeyCtrl && mouse_in_cr )
+    if( ImGui::IsKeyDown(ImGuiKey::ImGuiKey_LeftCtrl) && mouse_in_cr )
     {
-        auto const f = ImGui::GetIO().KeyShift ? 10.0f : 1.0f ;
+        auto const f = ImGui::IsKeyDown(ImGuiKey::ImGuiKey_LeftShift) ? 10.0f : 1.0f ;
         auto const mw = ImGui::GetIO().MouseWheel ;
         int_t tmp = int_t( -mw * f ) ;
         if( tmp < 0 && _zoom >= size_t( std::abs( tmp ) ) )
