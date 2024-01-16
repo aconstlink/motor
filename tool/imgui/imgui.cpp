@@ -9,6 +9,9 @@ imgui::imgui( void_t ) noexcept
 {
     _vars.emplace_back( motor::memory::create_ptr( 
         motor::graphics::variable_set_t(), "imgui variable set" ) ) ;
+
+    _ctx = ImGui::CreateContext() ;
+    this_t::init() ;
 }
 
 //***
@@ -45,14 +48,17 @@ imgui::~imgui( void_t ) noexcept
 
 //***
 void_t imgui::execute( exec_funk_t funk ) noexcept
-{    
+{  
+    auto * old = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
     funk( _ctx ) ;
+    ImGui::SetCurrentContext( old ) ;
 }
 
 //***
 void_t imgui::init( void_t ) noexcept 
-{    
-    _ctx = ImGui::CreateContext() ;
+{
+    auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
 
     // geometry
@@ -66,12 +72,10 @@ void_t imgui::init( void_t ) noexcept
                 motor::graphics::type::tfloat, motor::graphics::type_struct::vec2 )
 
             .add_layout_element( motor::graphics::vertex_attribute::color0, 
-                motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 )
-
-            .resize( 100 ) ;
+                motor::graphics::type::tfloat, motor::graphics::type_struct::vec4 ) ;
 
         auto ib = motor::graphics::index_buffer_t().
-            set_layout_element( motor::graphics::type::tuint ).resize( 6*100 ) ;
+            set_layout_element( motor::graphics::type::tuint ) ;
 
         _gc = motor::memory::create_ptr( 
             motor::graphics::geometry_object_t( "motor.system.imgui",
@@ -290,22 +294,33 @@ void_t imgui::init( void_t ) noexcept
 
         ImGui::StyleColorsDark() ;
     }
+
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 //***
 void_t imgui::begin( void_t ) noexcept
 {
+    auto * old_ctx = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
     ImGui::NewFrame() ;
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 void_t imgui::end( void_t ) noexcept
 {
+    auto * old_ctx = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
     ImGui::EndFrame() ;
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 //***
 void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 {
+    auto * old_ctx = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
+
     if( !_init )
     {
         fe->configure( motor::delay(_rs) ) ;
@@ -478,6 +493,8 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             rs_id++ ;
         }
     }
+
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 //*****************************************************************************
@@ -493,6 +510,9 @@ void_t imgui::deinit( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 //*****************************************************************************
 void_t imgui::do_default_imgui_init( void_t ) 
 {
+    auto * old_ctx = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
+
     // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
     io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
@@ -557,20 +577,30 @@ void_t imgui::do_default_imgui_init( void_t )
     g_MouseCursors[ ImGuiMouseCursor_ResizeNWSE ] = glfwCreateStandardCursor( GLFW_ARROW_CURSOR );
     g_MouseCursors[ ImGuiMouseCursor_NotAllowed ] = glfwCreateStandardCursor( GLFW_ARROW_CURSOR );
     #endif*/
+
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 //****
 void_t imgui::update( window_data_cref_t data ) noexcept
 {
+    auto * old_ctx = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
+
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2( ( float_t ) data.width, ( float_t ) data.height );
     _width = data.width ;
     _height = data.height ;
+
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 //****
 void_t imgui::update( motor::device::three_device_mtr_shared_t dev ) noexcept
 {
+    auto * old_ctx = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
+
     ImGuiIO& io = ImGui::GetIO();
     
     // handle mouse
@@ -646,11 +676,16 @@ void_t imgui::update( motor::device::three_device_mtr_shared_t dev ) noexcept
             }
         }
     }
+
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 //****
 void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
 {
+    auto * old_ctx = ImGui::GetCurrentContext() ;
+    ImGui::SetCurrentContext( _ctx ) ;
+
     using ks_t = motor::device::components::key_state ;
     using layout_t = motor::device::layouts::ascii_keyboard_t ;
     using key_t = layout_t::ascii_key ;
@@ -795,6 +830,8 @@ void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
             io.AddKeyEvent( (ImGuiKey)ii, ks == ks_t::pressed ) ;
         }
     }
+
+    ImGui::SetCurrentContext( old_ctx ) ;
 }
 
 //****
