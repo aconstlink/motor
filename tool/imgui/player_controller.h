@@ -36,11 +36,17 @@ namespace motor
 
         public:
 
-            player_state do_tool( motor::string_cref_t label, motor::tool::imgui_view_t ) noexcept ;
+            player_state do_tool( motor::string_cref_t label ) noexcept ;
 
             bool_t is_play_clicked( void_t ) const noexcept ;
             bool_t is_pause_clicked( void_t ) const noexcept ;
-            
+
+            player_state get_state( void_t ) const noexcept 
+            {
+                if( _play ) return player_state::play ;
+                else if( _pause ) return player_state::pause ;
+                return player_state::stop ;
+            }
         };
         motor_typedef( player_controller ) ;
     }

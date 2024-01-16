@@ -6,7 +6,7 @@
 using namespace motor::tool ;
 
 //****************************************************************
-player_controller::player_state player_controller::do_tool( motor::string_cref_t label_, motor::tool::imgui_view_t imgui ) noexcept 
+player_controller::player_state player_controller::do_tool( motor::string_cref_t label_ ) noexcept 
 {
     auto circle_button = [&]( motor::string_cref_t l, ImVec2 const & pos, float_t const r ) -> bool_t
     {
