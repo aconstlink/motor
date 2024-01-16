@@ -221,9 +221,10 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 {
                     // could be threaded
                     {
-                        d.ptr->ctx.activate() ;
                         if( d.ptr->re.can_execute() )
                         {
+                            d.ptr->ctx.activate() ;
+
                             {
                                 RECT rect ;
                                 GetClientRect( d.hwnd, &rect ) ;
@@ -241,8 +242,9 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
                                 _clock_t::now() - rnd_beg_tp ).count() ;
+
+                            d.ptr->ctx.deactivate() ;
                         }
-                        d.ptr->ctx.deactivate() ;
                     }
 
                     this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
