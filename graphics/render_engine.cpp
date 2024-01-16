@@ -6,45 +6,38 @@ using namespace motor::graphics ;
 render_engine::render_engine( void_t ) noexcept {}
 render_engine::render_engine( this_rref_t rhv ) noexcept
 {
-    _ridx = rhv._ridx ;
     _has_commands = rhv._has_commands ;
-    _coms_up[0] = std::move( rhv._coms_up[0] ) ;
-    _coms_up[1] = std::move( rhv._coms_up[1] ) ;
-    _coms_ex[0] = std::move( rhv._coms_ex[0] ) ;
-    _coms_ex[1] = std::move( rhv._coms_ex[1] ) ;
+    _coms_up = std::move( rhv._coms_up ) ;
+    _coms_ex = std::move( rhv._coms_ex ) ;
 }
 render_engine::~render_engine( void_t ) noexcept {}
 
 bool_t render_engine::can_execute( void_t ) noexcept 
 {
-    if( !this_t::has_frame_commands() ) return false ;
-    return true ;
+    return this_t::has_frame_commands() ;
 }
 
 bool_t render_engine::execute_frame( void_t ) noexcept 
 {
-    size_t const ridx = this_t::swap_read_idx() ;
+    assert( _has_commands == true ) ;
 
     // 1. execute upstream commands
-    for( auto & c : _coms_up[ridx] )
+    for( auto & c : _coms_up )
     {
         c() ;
     }
-    _coms_up[ridx].clear() ;
+    _coms_up.clear() ;    
 
-    // 2. swap when upstream commands are processed
+    // 2. execute "execute" commands
+    for( auto & c : _coms_ex )
+    {
+        c() ;
+    }
+    _coms_ex.clear() ;
+
+    // 3. swap when upstream commands are processed
     // At this point, the outer entity can write in the back buffer again
-    if( !this_t::swap_has_commands() )
-    {
-        motor::log::global_t::critical( "race condition not in sync" ) ;
-    }
-
-    // 3. execute "execute" commands
-    for( auto & c : _coms_ex[ridx] )
-    {
-        c() ;
-    }
-    _coms_ex[ridx].clear() ;
+    this_t::swap_has_commands() ;
 
     return true ;
 }
@@ -63,35 +56,18 @@ void_t render_engine::leave_frame( void_t ) noexcept
 
 void_t render_engine::send_upstream( this_t::command_t c ) noexcept
 {
-    _coms_up[this_t::widx()].emplace_back( std::move( c ) ) ;
+    _coms_up.emplace_back( std::move( c ) ) ;
 }
 
 void_t render_engine::send_execute( this_t::command_t c ) noexcept
 {
-    _coms_ex[this_t::widx()].emplace_back( std::move( c ) ) ;
-}
-
-size_t render_engine::widx( void_t ) const noexcept
-{
-    return (_ridx+1)%2 ;
-}
-
-size_t render_engine::swap_read_idx( void_t ) noexcept
-{
-    std::lock_guard< std::mutex > lk( _mtx_ridx ) ;
-    _ridx = ++_ridx % 2 ;
-    return _ridx ;
+    _coms_ex.emplace_back( std::move( c ) ) ;
 }
             
-bool_t render_engine::swap_has_commands( void_t ) noexcept
+void_t render_engine::swap_has_commands( void_t ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx_has_commands ) ;
-    if( _has_commands )
-    {
-        _has_commands = false ;
-        return true ;
-    }
-    return false ;
+    _has_commands = false ;
 }
 
 bool_t render_engine::has_frame_commands( void_t ) const noexcept 

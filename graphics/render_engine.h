@@ -24,17 +24,14 @@ namespace motor
 
         private:
 
-            mutable std::mutex _mtx_ridx ;
-            size_t _ridx = 0 ;
-
             mutable std::mutex _mtx_has_commands ;
             bool_t _has_commands = false ;
 
             // upstream commands
-            motor::vector< command_t > _coms_up[2] ;
+            motor::vector< command_t > _coms_up ;
 
             // execute commands
-            motor::vector< command_t > _coms_ex[2] ;
+            motor::vector< command_t > _coms_ex ;
 
         public:
 
@@ -64,17 +61,9 @@ namespace motor
             // !not thread safe! Only use within enter_frame/leave_frame
             void_t send_execute( this_t::command_t c ) noexcept ;
 
-        private: 
-
-            inline size_t widx( void_t ) const noexcept ;
-
-        private: // read idx specific
-
-            size_t swap_read_idx( void_t ) noexcept ;
-
         private: // has commands specific
             
-            bool_t swap_has_commands( void_t ) noexcept ;
+            void_t swap_has_commands( void_t ) noexcept ;
 
             bool_t has_frame_commands( void_t ) const noexcept ;
 
