@@ -62,12 +62,11 @@ namespace motor
 
             void_t init( void_t ) noexcept ;
             
-            void_t begin( void_t ) noexcept ;
-            void_t end( void_t ) noexcept ;
+            
             void_t render( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
             void_t deinit( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
 
-            typedef std::function< void_t ( ImGuiContext* ) > exec_funk_t ;
+            typedef std::function< void_t ( void_t ) > exec_funk_t ;
             void_t execute( exec_funk_t ) noexcept ;
 
         public:
@@ -89,6 +88,9 @@ namespace motor
             
 
         private:
+
+            void_t begin( void_t ) noexcept ;
+            void_t end( void_t ) noexcept ;
 
             void_t do_default_imgui_init( void_t ) ;
         };

@@ -51,7 +51,9 @@ void_t imgui::execute( exec_funk_t funk ) noexcept
 {  
     auto * old = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
-    funk( _ctx ) ;
+    this_t::begin() ;
+    funk() ;
+    this_t::end() ;
     ImGui::SetCurrentContext( old ) ;
 }
 
