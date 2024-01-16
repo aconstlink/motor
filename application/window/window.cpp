@@ -61,12 +61,14 @@ void_t window::foreach_in( foreach_listener_funk_t funk ) noexcept
 //***************************************************************************
 void_t window::register_out( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept
 {
+    std::lock_guard< std::mutex > lk( _mtx_outs ) ;
     _outs.push_back( motor::memory::copy_ptr( l ) ) ;
 }
 
 //***************************************************************************
 void_t window::register_out( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept
 {
+    std::lock_guard< std::mutex > lk( _mtx_outs ) ;
     _outs.push_back( l ) ;
 }
 
@@ -88,6 +90,7 @@ void_t window::unregister_out( motor::application::iwindow_message_listener_mtr_
 //***************************************************************************
 void_t window::foreach_out( foreach_out_funk_t funk ) noexcept
 {
+    std::lock_guard< std::mutex > lk( _mtx_outs ) ;
     for( auto& l : _outs )
     {
         funk( l ) ;

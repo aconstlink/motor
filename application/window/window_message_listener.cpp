@@ -50,6 +50,8 @@ void_t window_message_listener::reset_change_flags( void_t ) noexcept
     _states.dpi_msg_changed = false ;
     _states.vsync_msg_changed = false ;
     _states.fulls_msg_changed = false ;
+    _states.create_changed = false ;
+    _states.cursor_msg_changed = false ;
     _has_any_change = false ;
 }
 

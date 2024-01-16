@@ -29,6 +29,7 @@ namespace motor
             motor::vector< motor::application::iwindow_message_listener_mtr_t > _ins ;
 
             // other entity -> this window
+            std::mutex _mtx_outs ;
             motor::vector< motor::application::iwindow_message_listener_mtr_t > _outs ;
 
             motor::graphics::render_engine_ptr_t _re = nullptr ;
