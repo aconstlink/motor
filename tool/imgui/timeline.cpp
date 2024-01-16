@@ -116,6 +116,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
             ImVec2 pos = ImGui::GetCursorScreenPos() ;
             draw_list->AddLine( pos + ImVec2(0.0f,0.0f), pos + ImVec2( 0.0f,10.0f ), IM_COL32(255, 255, 255, 255), 10.0f ) ;
         }
+        ImGui::Dummy(ImVec2(0, 10));
 
         ImGui::SetCursorScreenPos( capture_pos ) ;
     }
@@ -145,7 +146,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
         else
         {
             _zoom += tmp ;
-            _zoom = std::min( size_t( 1000 ), _zoom ) ;
+            _zoom = std::min( size_t( 100000 ), _zoom ) ;
         }
 
         if( tmp != 0 ) ImGui::SetScrollX( std::max( mouse_x - ImGui::GetContentRegionAvail().x * 0.5f, 0.0f ) ) ;
