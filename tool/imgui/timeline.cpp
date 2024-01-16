@@ -330,8 +330,10 @@ void_t timeline::end( void_t ) noexcept
     ImGui::SameLine() ;
 
     {
-        motor::string_t const s = motor::to_string( _zoom ) ;
-        ImGui::Text( s.c_str() ) ;
+        int_t z = (int_t)_zoom;
+        ImGui::SetNextItemWidth( 50 ) ;
+        ImGui::DragInt("Zoom##dragInt", &z, 5.0f, 0, (int_t)_max_milli / (int_t)ImGui::GetContentRegionAvail().x );
+        _zoom = (size_t)std::max( z, 1 )  ;
     }
 
     ImGui::SameLine() ;
