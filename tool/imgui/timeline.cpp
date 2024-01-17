@@ -6,7 +6,7 @@
 
 using namespace motor::tool ;
 
-static auto tri_down = []( ImVec2 const pos, float_t const height, ImU32 const color, ImDrawList * draw_list )
+auto tri_down = []( ImVec2 const pos, float_t const height, ImU32 const color, ImDrawList * draw_list )
 {
     float_t const h = motor::math::fn<float_t>::ceil( height * 0.5f ) ;
 
@@ -18,7 +18,7 @@ static auto tri_down = []( ImVec2 const pos, float_t const height, ImU32 const c
     draw_list->AddConvexPolyFilled( points, 3, color ) ;
 } ;
 
-static auto tri_up = []( ImVec2 const pos, float_t const height, ImU32 const color, ImDrawList * draw_list )
+auto tri_up = []( ImVec2 const pos, float_t const height, ImU32 const color, ImDrawList * draw_list )
 {
     float_t const h = motor::math::fn<float_t>::ceil( height * 0.5f ) ;
 
@@ -30,25 +30,10 @@ static auto tri_up = []( ImVec2 const pos, float_t const height, ImU32 const col
     draw_list->AddConvexPolyFilled( points, 3, color ) ;
 } ;
 
-size_t timeline::_label_counter = 0 ;
-
-size_t timeline::inc_label_counter( void_t ) noexcept 
-{
-    static motor::concurrent::mutex_t __mtx ;
-    motor::concurrent::lock_guard_t lk( __mtx ) ; 
-    return _label_counter++ ;
-}
-
-timeline::timeline( void_t ) noexcept 
-{
-    auto const c = this_t::inc_label_counter() ;
-    _label = "unkown_timeline_" + motor::to_string( c ) ;
-}
-
 //***************************************************************
 timeline::timeline( motor::string_in_t label ) noexcept 
 {
-    _label = label + "_" + motor::to_string( this_t::inc_label_counter() ) ;
+    _label = label ;
 }
 
 //***************************************************************
@@ -332,7 +317,7 @@ void_t timeline::end( void_t ) noexcept
     {
         int_t z = (int_t)_zoom;
         ImGui::SetNextItemWidth( 50 ) ;
-        ImGui::DragInt("Zoom##dragInt", &z, 5.0f, 0, (int_t)_max_milli / (int_t)ImGui::GetContentRegionAvail().x );
+        ImGui::DragInt( ("Zoom##dragInt" + _label).c_str(), &z, 5.0f, 0, (int_t)_max_milli / (int_t)ImGui::GetContentRegionAvail().x );
         _zoom = (size_t)std::max( z, 1 )  ;
     }
 

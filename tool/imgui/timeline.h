@@ -36,15 +36,11 @@ namespace motor
 
             bool_t _begin = false ;
 
-            static size_t _label_counter ;
-
-
             // used for moving the timeline
             ImVec2 _old_mouse_pos ;
 
         public:
 
-            timeline( void_t ) noexcept ;
             timeline( motor::string_in_t ) noexcept ;
             timeline( this_cref_t ) = delete ;
             timeline( this_rref_t ) noexcept ;
@@ -91,9 +87,6 @@ namespace motor
             motor::string_t make_time_string2( size_t const milli ) const noexcept ;
 
 
-        private:
-
-            size_t inc_label_counter( void_t ) noexcept ;
         } ;
         motor_typedef( timeline ) ;
     }

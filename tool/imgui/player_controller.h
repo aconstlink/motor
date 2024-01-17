@@ -47,6 +47,20 @@ namespace motor
                 else if( _pause ) return player_state::pause ;
                 return player_state::stop ;
             }
+
+            void_t set_pause( void_t ) noexcept
+            {
+                _internal_play = false ;
+                _play = false ;
+                _pause = true ;
+            }
+
+            void_t set_stop( void_t ) noexcept
+            {
+                _internal_play = false ;
+                _play = false ;
+                _pause = false ;
+            }
         };
         motor_typedef( player_controller ) ;
     }
