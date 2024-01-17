@@ -8,6 +8,7 @@
 #include "../../protos.h"
 #include "../bid_generator.h"
 
+#include "../../object/msl_object.h"
 #include "../../object/shader_object.h"
 #include "../../object/render_object.h"
 #include "../../object/geometry_object.h"
@@ -64,6 +65,7 @@ namespace motor
 
             public: // user interface
 
+                virtual motor::graphics::result configure( motor::graphics::msl_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result configure( motor::graphics::geometry_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result configure( motor::graphics::render_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result configure( motor::graphics::shader_object_mtr_t ) noexcept = 0 ;

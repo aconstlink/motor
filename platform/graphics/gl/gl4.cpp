@@ -3269,6 +3269,12 @@ void_t gl4_backend::set_window_info( window_info_cref_t wi ) noexcept
 }
 
 //******************************************************************************************************
+motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_t ) noexcept
+{
+    return motor::graphics::result::invalid ;
+}
+
+//******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
     size_t const oid = obj->set_oid( this_t::get_bid(),

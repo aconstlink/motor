@@ -3,6 +3,11 @@
 #include "d3d11.h"
 #include "d3d11_convert.h"
 
+#include <motor/msl/symbol.hpp>
+#include <motor/msl/database.hpp>
+#include <motor/msl/generator.h>
+#include <motor/msl/dependency_resolver.hpp>
+
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
 #include <motor/graphics/texture/image.hpp>
@@ -3796,6 +3801,12 @@ void_t d3d11_backend::set_window_info( window_info_cref_t wi ) noexcept
             
         }
     }
+}
+
+//******************************************************************************************************
+motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mtr_t ) noexcept
+{
+    return motor::graphics::result::invalid ;
 }
 
 //******************************************************************************************************************************

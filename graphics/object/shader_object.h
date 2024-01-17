@@ -21,8 +21,8 @@ namespace motor
             glsl_1_4,       // gl 3.1
             glsl_4_0,       // gl 4.0
             glsles_3_0,     // gles 3.1
-            hlsl_5_0,       // dx 11
-            msl_4_0         // gen 4 shader
+            hlsl_5_0       // dx 11
+            
         };
 
         class MOTOR_GRAPHICS_API shader_object : public object

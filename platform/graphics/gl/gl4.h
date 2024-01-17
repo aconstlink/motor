@@ -33,6 +33,7 @@ namespace motor
 
                 virtual void_t set_window_info( window_info_cref_t ) noexcept ;
 
+                virtual motor::graphics::result configure( motor::graphics::msl_object_mtr_t ) noexcept override ;
                 virtual motor::graphics::result configure( motor::graphics::geometry_object_mtr_t ) noexcept override ;
                 virtual motor::graphics::result configure( motor::graphics::render_object_mtr_t ) noexcept override ;
                 virtual motor::graphics::result configure( motor::graphics::shader_object_mtr_t ) noexcept override ;

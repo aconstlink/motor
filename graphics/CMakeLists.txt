@@ -37,6 +37,7 @@ set( sources
     "object/render_object.h"
     "object/geometry_object.h"
     "object/image_object.h"
+    "object/msl_object.h"
     "object/shader_object.h"
     "object/framebuffer_object.h"
     "object/state_object.h"
@@ -61,7 +62,8 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::memory
   PUBLIC motor::log
   PUBLIC motor::std
-  PUBLIC motor::concurrent  )
+  PUBLIC motor::concurrent
+  PUBLIC motor::msl  )
 
 ###########################################################
 # SECTION: Build Tree
