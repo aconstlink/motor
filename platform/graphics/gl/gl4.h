@@ -66,6 +66,7 @@ namespace motor
                 virtual motor::graphics::result pop( motor::graphics::gen4::backend::pop_type const ) noexcept ;
 
                 virtual motor::graphics::result render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept override ;
+                virtual motor::graphics::result render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept ;
 
                 virtual void_t render_begin( void_t ) noexcept ;
                 virtual void_t render_end( void_t ) noexcept ;

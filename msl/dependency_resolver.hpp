@@ -18,7 +18,7 @@ namespace motor
 
         public:
 
-            motor::msl::generatable_t resolve( motor::msl::database_mtr_shared_t db, motor::msl::symbol_cref_t sym ) noexcept
+            motor::msl::generatable_t resolve( motor::msl::database_mtr_t db, motor::msl::symbol_cref_t sym ) noexcept
             {
                 motor::msl::generatable_t res ;
                 motor::msl::symbols_t syms( { sym } ) ;

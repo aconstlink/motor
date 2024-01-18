@@ -3713,6 +3713,12 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
 }
 
 //*************************************************************************************
+motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept 
+{
+    return motor::graphics::result::invalid ;
+}
+
+//*************************************************************************************
 void_t gl4_backend::render_begin( void_t ) noexcept 
 {
     _pimpl->begin_frame() ;
