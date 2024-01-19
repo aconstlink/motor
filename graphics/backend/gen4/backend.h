@@ -51,7 +51,7 @@ namespace motor
                     bool_t use_streamout_count = false ;
 
                     // only used if msl is rendered
-                    size_t ro_id = size_t( 0 ) ;
+                    size_t ro_idx = size_t( 0 ) ;
                 };
                 motor_typedef( render_detail ) ;
 

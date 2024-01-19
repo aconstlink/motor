@@ -34,6 +34,7 @@ namespace motor
 
         public: 
 
+            //@obsolete
             motor::msl::generated_code_t generate_old( void_t ) noexcept ;
 
             motor::msl::variable_mappings_t generate( motor::msl::generated_code_inout_t ) noexcept ;

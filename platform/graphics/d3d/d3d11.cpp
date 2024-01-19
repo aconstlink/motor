@@ -1081,7 +1081,7 @@ public: // variables
     motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0 ;
     motor::platform::d3d11::rendering_context_mtr_t _ctx ;
 
-    motor::msl::database_t mdb ;
+    motor::msl::database_t _mdb ;
     typedef motor::vector< this_t::msl_data > msl_datas_t ;
     msl_datas_t _msl_datas ;
 
@@ -1117,7 +1117,7 @@ public: // variables
     FLOAT vp_height = FLOAT( 0 ) ;
 
     // set by the backend using this pimpl
-    size_t bid = size_t(-1) ;
+    size_t _bid = size_t(-1) ;
 
     template< typename T >
     static size_t determine_oid( motor::string_cref_t name, motor::vector< T >& v ) noexcept
@@ -1176,7 +1176,7 @@ public: // variables
 public: // functions
 
     //******************************************************************************************************************************
-    pimpl( size_t const bid, motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept : bid( bid )
+    pimpl( size_t const bid, motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept : _bid( bid )
     {
         _ctx = ctx ;
         geo_datas.resize( 10 ) ;
@@ -1219,7 +1219,7 @@ public: // functions
         state_sets = std::move( rhv.state_sets ) ;
         _cur_fb_active = rhv._cur_fb_active ;
 
-        bid = rhv.bid ;
+        _bid = rhv._bid ;
     }
     
     //******************************************************************************************************************************
@@ -2034,7 +2034,7 @@ public: // functions
             motor::msl::post_parse::document_t doc = 
                 motor::msl::parser_t( "d3d11" ).process( code ) ;
 
-            mdb.insert( std::move( doc ), config_symbols ) ;
+            _mdb.insert( std::move( doc ), config_symbols ) ;
         } ) ; 
 
         for( auto const & c : config_symbols )
@@ -2042,7 +2042,7 @@ public: // functions
             motor::graphics::render_object_t ro( c.expand() ) ;
             motor::graphics::shader_object_t so( c.expand() ) ;
 
-            motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &mdb, c ) ;
+            motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &_mdb, c ) ;
             if( res.missing.size() != 0 )
             {
                 motor::log::global_t::warning( "We have missing symbols." ) ;
@@ -2064,8 +2064,8 @@ public: // functions
 
             ro.add_variable_sets( obj.get_varibale_sets() ) ;
 
-            so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
-            ro.set_oid( bid, this_t::construct_render_config( ro.get_oid( bid ), ro ) ) ;
+            so.set_oid( _bid, this_t::construct_shader_config( so.get_oid( _bid ), so ) ) ;
+            ro.set_oid( _bid, this_t::construct_render_config( ro.get_oid( _bid ), ro ) ) ;
 
             motor::graphics::msl_object_t::private_accessor( &obj ).add_objects( 
                 motor::memory::create_ptr( std::move(ro), "[d3d11] : render_object from msl" ),
@@ -3902,7 +3902,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
     size_t const oid = obj->set_oid( this_t::get_bid(), 
         _pimpl->construct_msl( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
-    return motor::graphics::result::invalid ;
+    return motor::graphics::result::ok ;
 }
 
 //******************************************************************************************************************************
@@ -4404,7 +4404,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
         return motor::graphics::result::failed ;
     }
 
-    motor::graphics::render_object_mtr_t ro = obj->get_render_object( detail.ro_id ) ;
+    motor::graphics::render_object_mtr_t ro = obj->get_render_object( detail.ro_idx ) ;
 
     return this_t::render( ro, detail ) ;
 }
