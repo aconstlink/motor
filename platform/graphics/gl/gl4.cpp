@@ -1845,6 +1845,7 @@ struct gl4_backend::pimpl
                 {
                     motor::log::global_t::status( s.expand() ) ;
                 }
+                continue ;
             }
 
             motor::msl::generator_t gen( std::move( res ) ) ;
@@ -1862,9 +1863,12 @@ struct gl4_backend::pimpl
             so.set_oid( _bid, this_t::construct_shader_data( so.get_oid( _bid ), so ) ) ;
             ro.set_oid( _bid, this_t::construct_render_data( ro.get_oid( _bid ), ro ) ) ;
 
+            #if 0
             motor::graphics::msl_object_t::private_accessor( &obj ).add_objects( 
                 motor::memory::create_ptr( std::move(ro), "[gl4] : render_object from msl" ),
                 motor::memory::create_ptr( std::move(so), "[gl4] : so_object from msl" ) ) ;
+
+            #endif
         }
         return oid ;
     }
@@ -3836,9 +3840,14 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
         return motor::graphics::result::failed ;
     }
 
+    #if 0
+    auto & msl = _pimpl->_msls[oid].
+
     motor::graphics::render_object_mtr_t ro = obj->get_render_object( detail.ro_idx ) ;
 
     return this_t::render( ro, detail ) ;
+    #endif
+    return motor::graphics::result::invalid ;
 }
 
 //*************************************************************************************

@@ -39,9 +39,6 @@ namespace motor
             motor::vector< data > _datas ;
             motor::vector< motor::graphics::variable_set_mtr_t > _vars ;
 
-            motor::vector< motor::graphics::render_object_mtr_t > _ros ; 
-            motor::vector< motor::graphics::shader_object_mtr_t > _sos ; 
-
         public:
 
             msl_object( void_t ) noexcept {}
@@ -51,16 +48,21 @@ namespace motor
                 _name = std::move( rhv._name ) ;
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
-                _sos = std::move( rhv._sos ) ;
-                _ros = std::move( rhv._ros ) ;
+
+                for( auto * vs : _vars )
+                    motor::memory::release_ptr( vs ) ;
+                _vars = std::move( rhv._vars ) ;
             }
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
                 _name = std::move( rhv._name ) ;
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
-                _sos = std::move( rhv._sos ) ;
-                _ros = std::move( rhv._ros ) ;
+
+                for( auto * vs : _vars )
+                    motor::memory::release_ptr( vs ) ;
+                _vars = std::move( rhv._vars ) ;
+
                 return *this ;
             }
 
@@ -68,12 +70,6 @@ namespace motor
 
             virtual ~msl_object( void_t ) noexcept 
             {
-                for( auto * ro : _ros )
-                    motor::memory::release_ptr( ro ) ;
-                
-                for( auto * so : _sos )
-                    motor::memory::release_ptr( so ) ;
-
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
             }
@@ -134,40 +130,6 @@ namespace motor
 
                 return ret ;
             }
-
-            motor::graphics::render_object_mtr_t get_render_object( size_t const i ) noexcept 
-            {
-                if( i >= _ros.size() ) return nullptr ;
-                return _ros[i] ;
-            }
-
-        public:
-
-            class private_accessor
-            {
-            private: 
-
-                msl_object * _ptr ;
-
-            public:
-
-                private_accessor( msl_object * ptr ) noexcept : _ptr( ptr ) {}
-
-                void_t add_objects( motor::graphics::render_object_mtr_unique_t ro, motor::graphics::shader_object_mtr_unique_t so ) noexcept
-                {
-                    _ptr->add_objects( std::move( ro ), std::move( so ) ) ;
-                }
-            };
-            friend class private_accessor ;
-            
-        private:
-
-            void_t add_objects( motor::graphics::render_object_mtr_unique_t ro, motor::graphics::shader_object_mtr_unique_t so ) noexcept
-            {
-                _ros.emplace_back( ro ) ;
-                _sos.emplace_back( so ) ;
-            }
-
         };
         motor_typedef( msl_object ) ;
     }

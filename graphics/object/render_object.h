@@ -58,9 +58,11 @@ namespace motor
                 _name = std::move( rhv._name ) ;
                 _geo = std::move( rhv._geo ) ;
                 _shader = std::move( rhv._shader ) ;
-                _vars = std::move( rhv._vars ) ;
                 _states = std::move( rhv._states ) ;
                 _soo = std::move( rhv._soo ) ;
+
+                for( auto * v : _vars ) motor::memory::release_ptr( v ) ;
+                _vars = std::move( rhv._vars ) ;
             }
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
@@ -86,10 +88,12 @@ namespace motor
                 _name = std::move( rhv._name ) ;
                 _geo = std::move( rhv._geo ) ;
                 _shader = std::move( rhv._shader ) ;
-                _vars = std::move( rhv._vars ) ;
                 _states = std::move( rhv._states ) ;
                 _soo = std::move( rhv._soo ) ;
                 
+                for( auto * v : _vars ) motor::memory::release_ptr( v ) ;
+                _vars = std::move( rhv._vars ) ;
+
                 return *this ;
             }
 

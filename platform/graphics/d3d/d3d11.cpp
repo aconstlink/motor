@@ -931,6 +931,9 @@ struct d3d11_backend::pimpl
                 blend_state = nullptr ;
             }
 
+            for( auto & v : var_sets_data_vs ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_data_gs ) motor::memory::release_ptr( v.first ) ;
+            for( auto & v : var_sets_data_ps ) motor::memory::release_ptr( v.first ) ;
             for( auto & v : var_sets_imgs_vs ) motor::memory::release_ptr( v.first ) ;
             for( auto & v : var_sets_imgs_ps ) motor::memory::release_ptr( v.first ) ;
             for( auto & v : var_sets_buffers_vs ) motor::memory::release_ptr( v.first ) ;
@@ -1072,6 +1075,9 @@ struct d3d11_backend::pimpl
         bool_t valid = false ;
         // empty names indicate free configs
         motor::string_t name ;
+
+        motor::vector< motor::graphics::render_object_t > ros ; 
+        motor::vector< motor::graphics::shader_object_t > sos ; 
     } ;
     motor_typedef( msl_data ) ;
 
@@ -1245,6 +1251,11 @@ public: // functions
 
         for( auto & so : _streamouts ) so.invalidate() ;
         _streamouts.clear() ;
+
+        for( auto & msl : _msl_datas )
+        {
+
+        }
 
         state_sets.clear() ;
 
@@ -2067,10 +2078,44 @@ public: // functions
             so.set_oid( _bid, this_t::construct_shader_config( so.get_oid( _bid ), so ) ) ;
             ro.set_oid( _bid, this_t::construct_render_config( ro.get_oid( _bid ), ro ) ) ;
 
-            motor::graphics::msl_object_t::private_accessor( &obj ).add_objects( 
-                motor::memory::create_ptr( std::move(ro), "[d3d11] : render_object from msl" ),
-                motor::memory::create_ptr( std::move(so), "[d3d11] : so_object from msl" ) ) ;
+            if( oid != size_t(-1) )
+            {
+                auto & msl = _msl_datas[oid] ;
 
+                // render object
+                {
+                    auto iter = std::find_if( msl.ros.begin(), msl.ros.end(), [&]( motor::graphics::render_object_cref_t rol )
+                    {
+                        return rol.name() == c.expand() ;
+                    } ) ;
+
+                    if( iter != msl.ros.end() )
+                    {
+                        *iter = std::move( ro ) ;
+                    }
+                    else
+                    {
+                        msl.ros.emplace_back( std::move( ro ) ) ;
+                    }
+                }
+
+                // shader object
+                {
+                    auto iter = std::find_if( msl.sos.begin(), msl.sos.end(), [&]( motor::graphics::shader_object_cref_t rol )
+                    {
+                        return rol.name() == c.expand() ;
+                    } ) ;
+
+                    if( iter != msl.sos.end() )
+                    {
+                        *iter = std::move( so ) ;
+                    }
+                    else
+                    {
+                        msl.sos.emplace_back( std::move( so ) ) ;
+                    }
+                }
+            }
         }
         return oid ;
     }
@@ -2958,11 +3003,29 @@ public: // functions
         #endif
 
         {
+            for( auto & d : rd.var_sets_imgs_ps ) motor::memory::release_ptr(d.first) ;
+
             rd.var_sets_imgs_ps.clear() ;
+
+            for( auto & d : rd.var_sets_data_vs ) motor::memory::release_ptr(d.first) ;
+            for( auto & d : rd.var_sets_data_gs ) motor::memory::release_ptr(d.first) ;
+            for( auto & d : rd.var_sets_data_ps ) motor::memory::release_ptr(d.first) ;
+            
+            rd.var_sets_data_vs.clear() ;
+            rd.var_sets_data_gs.clear() ;
+            rd.var_sets_data_ps.clear() ;
+
+            for( auto & d : rd.var_sets_buffers_vs ) motor::memory::release_ptr(d.first) ;
+            for( auto & d : rd.var_sets_buffers_gs ) motor::memory::release_ptr(d.first) ;
+            for( auto & d : rd.var_sets_buffers_ps ) motor::memory::release_ptr(d.first) ;
 
             rd.var_sets_buffers_vs.clear() ;
             rd.var_sets_buffers_gs.clear() ;
             rd.var_sets_buffers_ps.clear() ;
+
+            for( auto & d : rd.var_sets_buffers_so_vs ) motor::memory::release_ptr(d.first) ;
+            for( auto & d : rd.var_sets_buffers_so_gs ) motor::memory::release_ptr(d.first) ;
+            for( auto & d : rd.var_sets_buffers_so_ps ) motor::memory::release_ptr(d.first) ;
 
             rd.var_sets_buffers_so_vs.clear() ;
             rd.var_sets_buffers_so_gs.clear() ;
@@ -4404,7 +4467,9 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
         return motor::graphics::result::failed ;
     }
 
-    motor::graphics::render_object_mtr_t ro = obj->get_render_object( detail.ro_idx ) ;
+    auto & msl = _pimpl->_msl_datas[oid] ;
+    
+    motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
 
     return this_t::render( ro, detail ) ;
 }
