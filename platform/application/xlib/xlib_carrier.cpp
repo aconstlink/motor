@@ -197,7 +197,10 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     
                     case ResizeRequest:
                     {
-                        int bp = 0 ;
+                        XResizeRequestEvent evt = event.xresizerequest ;
+                        wd.width = evt.width ;
+                        wd.height = evt.height ;
+                        this_t::send_resize( wd ) ;
                     }
                         break ;
                     
@@ -238,51 +241,62 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 
         #if MOTOR_GRAPHICS_GLX
 
-            // update glx window context
-            // must be done here. If the window is closed,
-            // the window handle is not valid anymore and must be
-            // destructed in this class first.
+        // update glx window context
+        // must be done here. If the window is closed,
+        // the window handle is not valid anymore and must be
+        // destructed in this class first.
+        {
+            for( auto & d : _glx_windows )
             {
-                for( auto & d : _glx_windows )
+                // could be threaded
                 {
-                    // could be threaded
+                    if( d.ptr->re.can_execute() )
                     {
+                        {
+                            auto iter = std::find_if( _xlib_windows.begin(), _xlib_windows.end(), [&]( xlib_window_data const & wd )
+                            {
+                                return wd.hwnd == d.hwnd ;
+                            } ) ;
+
+                            d.ptr->ctx.backend()->set_window_info( {
+                                size_t(iter->width), size_t(iter->height) } ) ;
+                        }
+
                         d.ptr->ctx.activate() ;
-                        if( d.ptr->re.can_execute() )
-                        {
-                            d.ptr->ctx.backend()->render_begin() ;
-                            d.ptr->re.execute_frame() ;
-                            d.ptr->ctx.backend()->render_end() ;
-                            d.ptr->ctx.swap() ;
-                        }
-                        // required for now, otherwise the application stalls.
-                        else if( milli == 0 )
-                        {
-                            std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
-                        }
+                        d.ptr->ctx.backend()->render_begin() ;
+                        d.ptr->re.execute_frame() ;
+                        d.ptr->ctx.backend()->render_end() ;
+                        d.ptr->ctx.swap() ;
                         d.ptr->ctx.deactivate() ;
                     }
-
-                    this_t::find_window_info( d.hwnd, [&]( this_t::xlib_window_data_ref_t wd )
+                    // required for now, otherwise the application stalls.
+                    else if( milli == 0 )
                     {
-                        // set frame time
-                        {
-                            XStoreName( _display, wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
-                        }
-
-                        // set vsync
-                        {
-                            if( wd.sv.vsync_msg_changed ) 
-                            {
-                                d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
-                                wd.sv.vsync_msg_changed = false ;
-                            }
-                        }
-                    } )  ;
+                        std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
+                    }
+                    
                 }
-            }
 
-            #endif
+                this_t::find_window_info( d.hwnd, [&]( this_t::xlib_window_data_ref_t wd )
+                {
+                    // set frame time
+                    {
+                        XStoreName( _display, wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
+                    }
+
+                    // set vsync
+                    {
+                        if( wd.sv.vsync_msg_changed ) 
+                        {
+                            d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
+                            wd.sv.vsync_msg_changed = false ;
+                        }
+                    }
+                } )  ;
+            }
+        }
+
+        #endif
         
         // test window queue for creation
         {
@@ -297,6 +311,10 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     wd.hwnd = hwnd ;
                     wd.wnd = d.wnd ;
                     wd.lsn = d.lsn ;
+                    wd.x = 0 ;
+                    wd.y = 0 ;
+                    wd.width = d.wi.w ;
+                    wd.height = d.wi.h ;
                     wd.window_text = d.wi.window_name ;
 
                     _xlib_windows.emplace_back(wd);
@@ -356,6 +374,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                 }
 
                 this_t::send_create( _xlib_windows.back() ) ;
+                this_t::send_resize( _xlib_windows.back() ) ;
             }
             _queue.clear() ;
         }
@@ -522,6 +541,25 @@ void_t xlib_carrier::send_create( xlib_window_data_in_t d ) noexcept
     d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
     {
         l->on_message( motor::application::create_message_t() ) ;
+    } ) ;
+}
+
+//*******************************************************************************************
+void_t xlib_carrier::send_resize( xlib_window_data_in_t d ) noexcept
+{    
+    XWindowAttributes attrs ;
+    XGetWindowAttributes( _display, d.hwnd, &attrs ) ;
+
+    motor::application::resize_message const rm {
+        true,
+        int_t(attrs.x), int_t(attrs.y), 
+        true,
+        size_t(attrs.width), size_t(attrs.height)
+    } ;
+
+    d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
+    {
+        l->on_message( rm ) ;
     } ) ;
 }
 
