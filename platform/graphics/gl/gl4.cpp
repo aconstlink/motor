@@ -287,11 +287,12 @@ struct gl4_backend::pimpl
             void_ptr_t mem = nullptr ;
         };
 
+        // also keep this one for ref counting
         motor::vector< motor::graphics::variable_set_mtr_t > var_sets ;
 
         // user provided variable set
         motor::vector< std::pair<
-            motor::graphics::variable_set_mtr_t,
+            motor::graphics::variable_set_ptr_t,
             motor::vector< uniform_variable_link > > > var_sets_data ;
 
         struct uniform_texture_link
@@ -305,7 +306,7 @@ struct gl4_backend::pimpl
             void_ptr_t mem = nullptr ;
         };
         motor::vector< std::pair<
-            motor::graphics::variable_set_mtr_t,
+            motor::graphics::variable_set_ptr_t,
             motor::vector< uniform_texture_link > > > var_sets_texture ;
 
         struct uniform_array_data_link
@@ -319,7 +320,7 @@ struct gl4_backend::pimpl
             void_ptr_t mem = nullptr ;
         };
         motor::vector< std::pair<
-            motor::graphics::variable_set_mtr_t,
+            motor::graphics::variable_set_ptr_t,
             motor::vector< uniform_array_data_link > > > var_sets_array ;
 
         struct uniform_streamout_link
@@ -333,7 +334,7 @@ struct gl4_backend::pimpl
             void_ptr_t mem = nullptr ;
         };
         motor::vector< std::pair<
-            motor::graphics::variable_set_mtr_t,
+            motor::graphics::variable_set_ptr_t,
             motor::vector< uniform_streamout_link > > > var_sets_streamout ;
 
         // memory block for all variables in all variable sets.
@@ -409,6 +410,9 @@ struct gl4_backend::pimpl
         bool_t valid = false ;
         // empty names indicate free configs
         motor::string_t name ;
+
+        motor::vector< motor::graphics::render_object_t > ros ; 
+        motor::vector< motor::graphics::shader_object_t > sos ; 
     };
     motor_typedef( msl_data ) ;
 
@@ -546,6 +550,11 @@ struct gl4_backend::pimpl
             this_t::release_tf_data( i ) ;
         }
 
+        for( auto & msl : _msls ) 
+        {
+        }
+
+
         _geometries.clear() ;
         _shaders.clear() ;
         _renders.clear() ;
@@ -553,6 +562,7 @@ struct gl4_backend::pimpl
         _arrays.clear() ;
         _images.clear() ;
         _feedbacks.clear() ;
+        _msls.clear() ;
     }
 
     //****************************************************************************************
@@ -1801,8 +1811,10 @@ struct gl4_backend::pimpl
                 rd.var_sets_streamout.clear() ;
 
                 auto vs = std::move( rd.var_sets ) ;
-                for( auto& item : vs )
+                for( auto * item : vs )
+                {
                     this_t::connect( rd, item ) ;
+                }
 
                 this_t::render_object_variable_memory( rd, _shaders[ rd.shd_id ] ) ;
                 for( size_t vs_id=0; vs_id<rd.var_sets.size(); ++vs_id )
@@ -1863,12 +1875,44 @@ struct gl4_backend::pimpl
             so.set_oid( _bid, this_t::construct_shader_data( so.get_oid( _bid ), so ) ) ;
             ro.set_oid( _bid, this_t::construct_render_data( ro.get_oid( _bid ), ro ) ) ;
 
-            #if 0
-            motor::graphics::msl_object_t::private_accessor( &obj ).add_objects( 
-                motor::memory::create_ptr( std::move(ro), "[gl4] : render_object from msl" ),
-                motor::memory::create_ptr( std::move(so), "[gl4] : so_object from msl" ) ) ;
+            if( oid != size_t(-1) )
+            {
+                auto & msl = _msls[oid] ;
 
-            #endif
+                // render object
+                {
+                    auto iter = std::find_if( msl.ros.begin(), msl.ros.end(), [&]( motor::graphics::render_object_cref_t rol )
+                    {
+                        return rol.name() == c.expand() ;
+                    } ) ;
+
+                    if( iter != msl.ros.end() )
+                    {
+                        *iter = std::move( ro ) ;
+                    }
+                    else
+                    {
+                        msl.ros.emplace_back( std::move( ro ) ) ;
+                    }
+                }
+
+                // shader object
+                {
+                    auto iter = std::find_if( msl.sos.begin(), msl.sos.end(), [&]( motor::graphics::shader_object_cref_t rol )
+                    {
+                        return rol.name() == c.expand() ;
+                    } ) ;
+
+                    if( iter != msl.sos.end() )
+                    {
+                        *iter = std::move( so ) ;
+                    }
+                    else
+                    {
+                        msl.sos.emplace_back( std::move( so ) ) ;
+                    }
+                }
+            }
         }
         return oid ;
     }
@@ -1880,11 +1924,7 @@ struct gl4_backend::pimpl
 
         {
             _renders[ oid ].name = obj.name() ;
-            _renders[ oid ].var_sets_data.clear() ;
-            _renders[ oid ].var_sets_texture.clear() ;
-            _renders[ oid ].var_sets_array.clear() ;
-            _renders[ oid ].var_sets_streamout.clear() ;
-            _renders[ oid ].var_sets.clear() ;
+            
             
             _renders[ oid ].geo_ids.clear();
             _renders[ oid ].tf_ids.clear() ;
@@ -1917,10 +1957,12 @@ struct gl4_backend::pimpl
         rd.rss.clear() ;
         
         for( auto * v : rd.var_sets ) motor::memory::release_ptr( v ) ;
+        #if 0
         for( auto & v : rd.var_sets_array ) motor::memory::release_ptr( v.first ) ;
         for( auto & v : rd.var_sets_streamout ) motor::memory::release_ptr( v.first ) ;
         for( auto & v : rd.var_sets_data ) motor::memory::release_ptr( v.first ) ;
         for( auto & v : rd.var_sets_texture ) motor::memory::release_ptr( v.first ) ;
+        #endif
 
         rd.var_sets.clear() ;
         rd.var_sets_array.clear() ;
@@ -2036,11 +2078,20 @@ struct gl4_backend::pimpl
         }
 
         {
+            auto vars = std::move( config.var_sets ) ;
+            config.var_sets_data.clear() ;
+            config.var_sets_texture.clear() ;
+            config.var_sets_array.clear() ;
+            config.var_sets_streamout.clear() ;
+            config.var_sets.clear() ;
+
             rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
             {
-                auto const res = this_t::connect( id, vs ) ;
+                auto const res = this_t::connect( config, motor::memory::copy_ptr(vs) ) ;
                 motor::log::global_t::warning( !res, motor_log_fn( "connect" ) ) ;
             } ) ;
+
+            for( auto * ptr : vars ) motor::memory::release_ptr( ptr ) ;
         }
         
         this_t::render_object_variable_memory( config, _shaders[ config.shd_id ] ) ;
@@ -2439,28 +2490,18 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( size_t const id, motor::graphics::variable_set_mtr_t vs )
-    {
-        auto& config = _renders[ id ] ;
-
-        this_t::connect( config, vs ) ;
-
-        return true ;
-    }
-
-    //****************************************************************************************
     bool_t connect( this_t::render_data & config, motor::graphics::variable_set_mtr_t vs )
     {
-        auto item_data = std::make_pair( motor::memory::copy_ptr( vs ),
+        auto item_data = std::make_pair( vs,
             motor::vector< this_t::render_data::uniform_variable_link >() ) ;
 
-        auto item_tex = std::make_pair( motor::memory::copy_ptr( vs ),
+        auto item_tex = std::make_pair( vs,
             motor::vector< this_t::render_data::uniform_texture_link >() ) ;
 
-        auto item_buf = std::make_pair( motor::memory::copy_ptr( vs ),
+        auto item_buf = std::make_pair( vs,
             motor::vector< this_t::render_data::uniform_array_data_link >() ) ;
 
-        auto item_tfb = std::make_pair( motor::memory::copy_ptr( vs ),
+        auto item_tfb = std::make_pair( vs,
             motor::vector< this_t::render_data::uniform_streamout_link >() ) ;
 
         this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
@@ -2577,11 +2618,11 @@ struct gl4_backend::pimpl
         }
 
         // ref count one copy here for all stored items
-        config.var_sets.emplace_back( motor::memory::copy_ptr( vs ) ) ;
-        config.var_sets_data.emplace_back( item_data ) ;
-        config.var_sets_texture.emplace_back( item_tex ) ;
-        config.var_sets_array.emplace_back( item_buf ) ;
-        config.var_sets_streamout.emplace_back( item_tfb ) ;
+        config.var_sets.emplace_back( vs ) ;
+        config.var_sets_data.emplace_back( std::move( item_data ) ) ;
+        config.var_sets_texture.emplace_back( std::move( item_tex ) ) ;
+        config.var_sets_array.emplace_back( std::move( item_buf ) ) ;
+        config.var_sets_streamout.emplace_back( std::move( item_tfb ) ) ;
 
         return true ;
     }
@@ -3637,6 +3678,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::streamout_object_
     return motor::graphics::result::ok ;
 }
 
+#if 0
 //******************************************************************************************************
 motor::graphics::result gl4_backend::connect( motor::graphics::render_object_mtr_t obj, 
     motor::graphics::variable_set_mtr_t vs ) noexcept
@@ -3655,6 +3697,7 @@ motor::graphics::result gl4_backend::connect( motor::graphics::render_object_mtr
    
     return motor::graphics::result::ok ;
 }
+#endif
 
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mtr_t obj ) noexcept 
@@ -3840,14 +3883,11 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
         return motor::graphics::result::failed ;
     }
 
-    #if 0
-    auto & msl = _pimpl->_msls[oid].
-
-    motor::graphics::render_object_mtr_t ro = obj->get_render_object( detail.ro_idx ) ;
+    auto & msl = _pimpl->_msls[oid] ;
+    
+    motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
 
     return this_t::render( ro, detail ) ;
-    #endif
-    return motor::graphics::result::invalid ;
 }
 
 //*************************************************************************************

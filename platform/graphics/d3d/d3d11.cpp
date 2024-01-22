@@ -930,10 +930,7 @@ struct d3d11_backend::pimpl
                 blend_state->Release() ;
                 blend_state = nullptr ;
             }
-
-            for( auto & v : var_sets_data_vs ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_data_gs ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_data_ps ) motor::memory::release_ptr( v.first ) ;
+            
             for( auto & v : var_sets_imgs_vs ) motor::memory::release_ptr( v.first ) ;
             for( auto & v : var_sets_imgs_ps ) motor::memory::release_ptr( v.first ) ;
             for( auto & v : var_sets_buffers_vs ) motor::memory::release_ptr( v.first ) ;
@@ -4260,6 +4257,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::streamout_objec
     return motor::graphics::result::ok ;
 }
 
+#if 0
 //******************************************************************************************************************************
 motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_mtr_t config, motor::graphics::variable_set_mtr_t vs ) noexcept
 {
@@ -4280,7 +4278,7 @@ motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_m
 
     return motor::graphics::result::ok ;
 }
-
+#endif  
 //******************************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {    

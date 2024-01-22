@@ -105,12 +105,6 @@ motor::graphics::result null_backend::release( motor::graphics::streamout_object
 }
 
 //***
-motor::graphics::result null_backend::connect( motor::graphics::render_object_mtr_t, motor::graphics::variable_set_mtr_t ) noexcept 
-{
-    return motor::graphics::result::ok ;
-}
-
-//***
 motor::graphics::result null_backend::update( motor::graphics::geometry_object_mtr_t ) noexcept 
 {
     return motor::graphics::result::ok ;
