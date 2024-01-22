@@ -96,7 +96,7 @@ void_t imgui::init( void_t ) noexcept
 
         // shaders : ogl 3.0
         {
-            sc.insert( motor::graphics::shader_api_type::glsl_1_4, motor::graphics::shader_set_t().
+            sc.insert( motor::graphics::shader_api_type::glsl_4_0, motor::graphics::shader_set_t().
 
                 set_vertex_shader( motor::graphics::shader_t( R"(
                     #version 140

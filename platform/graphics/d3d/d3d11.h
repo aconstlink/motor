@@ -51,7 +51,6 @@ namespace motor
                 virtual motor::graphics::result release( motor::graphics::array_object_mtr_t ) noexcept ;
                 virtual motor::graphics::result release( motor::graphics::streamout_object_mtr_t ) noexcept ;
 
-                virtual motor::graphics::result connect( motor::graphics::render_object_mtr_t, motor::graphics::variable_set_mtr_t ) noexcept ;
                 virtual motor::graphics::result update( motor::graphics::geometry_object_mtr_t ) noexcept override ;
                 virtual motor::graphics::result update( motor::graphics::array_object_mtr_t ) noexcept override ;
                 virtual motor::graphics::result update( motor::graphics::streamout_object_mtr_t ) noexcept override ;
@@ -65,6 +64,7 @@ namespace motor
                 virtual motor::graphics::result pop( motor::graphics::gen4::backend::pop_type const ) noexcept ;
 
                 virtual motor::graphics::result render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept override ;
+                virtual motor::graphics::result render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept ;
 
                 virtual void_t render_begin( void_t ) noexcept ;
                 virtual void_t render_end( void_t ) noexcept ;

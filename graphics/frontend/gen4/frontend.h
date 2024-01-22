@@ -181,6 +181,16 @@ namespace motor
                     return *this ;
                 }
 
+                this_ref_t render( motor::graphics::msl_object_mtr_delay_t o, motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept 
+                {
+                    _re->send_execute( [=]( void_t )
+                    {
+                        _be->render( o.mtr(), rd ) ;
+                    } ) ;
+
+                    return *this ;
+                }
+
                 void_t force_clear_color( motor::math::vec4f_cref_t color ) noexcept 
                 {
                     _re->send_execute( [=]( void_t ){} ) ;

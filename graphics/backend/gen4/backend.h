@@ -49,6 +49,9 @@ namespace motor
                     size_t state_set = size_t( -1 ) ;
                     bool_t feed_from_streamout = false ;
                     bool_t use_streamout_count = false ;
+
+                    // only used if msl is rendered
+                    size_t ro_idx = size_t( 0 ) ;
                 };
                 motor_typedef( render_detail ) ;
 
@@ -84,9 +87,6 @@ namespace motor
                 virtual motor::graphics::result release( motor::graphics::array_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result release( motor::graphics::streamout_object_mtr_t ) noexcept = 0 ;
 
-                // @obsolete
-                virtual motor::graphics::result connect( motor::graphics::render_object_mtr_t, motor::graphics::variable_set_mtr_t ) noexcept = 0 ;
-
                 virtual motor::graphics::result update( motor::graphics::geometry_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result update( motor::graphics::array_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result update( motor::graphics::streamout_object_mtr_t ) noexcept = 0 ;
@@ -100,6 +100,7 @@ namespace motor
                 virtual motor::graphics::result pop( pop_type const ) noexcept = 0 ;
 
                 virtual motor::graphics::result render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
+                virtual motor::graphics::result render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
 
             public: // engine interface
 

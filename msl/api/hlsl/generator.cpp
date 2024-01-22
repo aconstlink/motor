@@ -591,7 +591,7 @@ motor::string_t generator::replace_buildin_symbols( motor::string_rref_t code ) 
 
 motor::string_t generator::map_variable_type( motor::msl::type_cref_t type ) noexcept
 {
-    typedef std::pair< motor::msl::type_t, motor::string_t > mapping_t ;
+    typedef std::pair< motor::msl::type_t, char const * > mapping_t ;
     static mapping_t const __mappings[] =
     {
         mapping_t( motor::msl::type_t(), "unknown" ),
@@ -648,7 +648,7 @@ motor::string_t generator::replace_types( motor::string_t code ) noexcept
 motor::string_t generator::map_variable_binding( motor::msl::shader_type const st,
     motor::msl::flow_qualifier const fq, motor::msl::binding binding ) noexcept
 {
-    typedef std::pair< motor::msl::binding, motor::string_t > mapping_t ;
+    typedef std::pair< motor::msl::binding, char const * > mapping_t ;
     static mapping_t const __mappings[] =
     {
         mapping_t( motor::msl::binding::normal, "NORMAL" ),

@@ -58,9 +58,11 @@ namespace motor
                 _name = std::move( rhv._name ) ;
                 _geo = std::move( rhv._geo ) ;
                 _shader = std::move( rhv._shader ) ;
-                _vars = std::move( rhv._vars ) ;
                 _states = std::move( rhv._states ) ;
                 _soo = std::move( rhv._soo ) ;
+
+                for( auto * v : _vars ) motor::memory::release_ptr( v ) ;
+                _vars = std::move( rhv._vars ) ;
             }
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
@@ -86,10 +88,12 @@ namespace motor
                 _name = std::move( rhv._name ) ;
                 _geo = std::move( rhv._geo ) ;
                 _shader = std::move( rhv._shader ) ;
-                _vars = std::move( rhv._vars ) ;
                 _states = std::move( rhv._states ) ;
                 _soo = std::move( rhv._soo ) ;
                 
+                for( auto * v : _vars ) motor::memory::release_ptr( v ) ;
+                _vars = std::move( rhv._vars ) ;
+
                 return *this ;
             }
 
@@ -101,7 +105,7 @@ namespace motor
                 return *this ;
             }
 
-            this_ref_t link_geometry( std::initializer_list< motor::string_t > const & names ) noexcept 
+            this_ref_t link_geometry( motor::vector< motor::string_t > const & names ) noexcept 
             {
                 for( auto const & name : names ) _geo.emplace_back( name ) ;
                 return *this ;
@@ -156,6 +160,14 @@ namespace motor
             this_ref_t add_variable_set( motor::graphics::variable_set_mtr_shared_t vs ) noexcept
             {
                 _vars.emplace_back( motor::memory::copy_ptr( vs ) ) ;
+                return *this ;
+            }
+
+            this_ref_t add_variable_sets( motor::vector< motor::graphics::variable_set_mtr_unique_t > && vss ) noexcept
+            {
+                for( auto & utr : vss )
+                    _vars.emplace_back( utr.mtr() ) ;
+
                 return *this ;
             }
 

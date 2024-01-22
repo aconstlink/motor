@@ -3,51 +3,138 @@
 
 #include "../typedefs.h"
 #include "../object/shader_object.h"
-#include <motor/nsl/generator_structs.hpp>
+
+#include <motor/msl/generator_structs.hpp>
+#include <motor/log/global.h>
 
 namespace motor
 {
     namespace graphics
     {
         // generates a shader configuration from generated code
-        class nsl_bridge
+        class msl_bridge
         {
-            motor_this_typedefs( nsl_bridge ) ;
+            motor_this_typedefs( msl_bridge ) ;
 
         public:
 
-            motor::graphics::shader_object_t create( motor::nsl::generated_code_cref_t code ) const noexcept
+            //**************************************************************************************************
+            static motor::graphics::shader_object_t create_unknown_api_type( motor::msl::generated_code_cref_t code ) noexcept
             {
                 motor::graphics::shader_object_t ret ;
 
+                this_t::do_bindings( ret, code ) ;
+                
+                // code
+                {
+                    motor::vector< motor::msl::api_type > const types = 
+                    {
+                        motor::msl::api_type::es3, motor::msl::api_type::gl4,
+                        motor::msl::api_type::d3d11 
+                    } ;
+
+                    for( auto const & t : types )
+                    {
+                        motor::graphics::shader_api_type bt = motor::graphics::shader_api_type::unknown ;
+                        switch( t )
+                        {
+                        case motor::msl::api_type::gl4:
+                            bt = motor::graphics::shader_api_type::glsl_1_4 ;
+                            break ;
+                        case motor::msl::api_type::es3:
+                            bt = motor::graphics::shader_api_type::glsles_3_0 ;
+                            break ;
+                        case motor::msl::api_type::d3d11:
+                            bt = motor::graphics::shader_api_type::hlsl_5_0 ;
+                            break ;
+                        default:
+                            break;
+                        }
+
+                        if( bt == motor::graphics::shader_api_type::unknown )
+                        {
+                            motor::log::global_t::warning( "[nsl_bridge] : unknown/unmappable api type" ) ;
+                            continue ;
+                        }
+
+                        motor::graphics::shader_set_t ss ;
+
+                        code.sorted_by_api_type( t, [&] ( motor::msl::shader_type st, motor::msl::generated_code_t::code_cref_t c )
+                        {
+                            if( st == motor::msl::shader_type::vertex_shader )
+                                ss.set_vertex_shader( c.shader ) ;
+                            else if( st == motor::msl::shader_type::geometry_shader )
+                                ss.set_geometry_shader( c.shader ) ;
+                            else if( st == motor::msl::shader_type::pixel_shader )
+                                ss.set_pixel_shader( c.shader ) ;
+                        } ) ;
+
+                        ret.insert( bt, std::move( ss ) ) ;
+                    }
+                }
+
+                return std::move( ret ) ;
+            }
+
+            //**************************************************************************************************
+            static void_t create_by_api_type( motor::graphics::shader_api_type const bt,
+                motor::msl::generated_code_cref_t code,
+                motor::graphics::shader_object_inout_t ret ) noexcept
+            {
+                this_t::do_bindings( ret, code ) ;
+                
+                // code
+                {
+                    motor::graphics::shader_set_t ss ;
+
+                    code.sorted_by_shader_type( [&] ( motor::msl::shader_type st, motor::msl::generated_code_t::code_cref_t c )
+                    {
+                        if( st == motor::msl::shader_type::vertex_shader )
+                            ss.set_vertex_shader( c.shader ) ;
+                        else if( st == motor::msl::shader_type::geometry_shader )
+                            ss.set_geometry_shader( c.shader ) ;
+                        else if( st == motor::msl::shader_type::pixel_shader )
+                            ss.set_pixel_shader( c.shader ) ;
+                    } ) ;
+
+                    ret.insert( bt, std::move( ss ) ) ;
+                }
+            }
+
+        private:
+
+            //**************************************************************************************************
+            static void_t do_bindings( motor::graphics::shader_object_inout_t ret, 
+                motor::msl::generated_code_cref_t code ) noexcept
+            {
                 // vertex input bindings
                 {
                     for( auto const & v : code.geometry_ins )
                     {
                         // check texcoord
                         {
-                            if( motor::nsl::is_texcoord( v.binding ) )
+                            if( motor::msl::is_texcoord( v.binding ) )
                             {
                                 motor::graphics::vertex_attribute va
                                     = motor::graphics::vertex_attribute::undefined ;
 
                                 switch( v.binding )
                                 {
-                                case motor::nsl::binding::texcoord0: 
+                                case motor::msl::binding::texcoord0: 
                                     va = motor::graphics::vertex_attribute::texcoord0 ; break ;
-                                case motor::nsl::binding::texcoord1: 
+                                case motor::msl::binding::texcoord1: 
                                     va = motor::graphics::vertex_attribute::texcoord1 ; break ;
-                                case motor::nsl::binding::texcoord2: 
+                                case motor::msl::binding::texcoord2: 
                                     va = motor::graphics::vertex_attribute::texcoord2 ; break ;
-                                case motor::nsl::binding::texcoord3: 
+                                case motor::msl::binding::texcoord3: 
                                     va = motor::graphics::vertex_attribute::texcoord3 ; break ;
-                                case motor::nsl::binding::texcoord4: 
+                                case motor::msl::binding::texcoord4: 
                                     va = motor::graphics::vertex_attribute::texcoord4 ; break ;
-                                case motor::nsl::binding::texcoord5: 
+                                case motor::msl::binding::texcoord5: 
                                     va = motor::graphics::vertex_attribute::texcoord5 ; break ;
-                                case motor::nsl::binding::texcoord6: 
+                                case motor::msl::binding::texcoord6: 
                                     va = motor::graphics::vertex_attribute::texcoord6 ; break ;
-                                case motor::nsl::binding::texcoord7: 
+                                case motor::msl::binding::texcoord7: 
                                     va = motor::graphics::vertex_attribute::texcoord7 ; break ;
                                 default: break;
                                 }
@@ -59,24 +146,24 @@ namespace motor
 
                         // check color
                         {
-                            if( motor::nsl::is_color( v.binding ) )
+                            if( motor::msl::is_color( v.binding ) )
                             {
                                 motor::graphics::vertex_attribute va
                                     = motor::graphics::vertex_attribute::undefined ;
 
                                 switch( v.binding )
                                 {
-                                case motor::nsl::binding::color0: 
+                                case motor::msl::binding::color0: 
                                     va = motor::graphics::vertex_attribute::color0 ; break ;
-                                case motor::nsl::binding::color1: 
+                                case motor::msl::binding::color1: 
                                     va = motor::graphics::vertex_attribute::color1 ; break ;
-                                case motor::nsl::binding::color2: 
+                                case motor::msl::binding::color2: 
                                     va = motor::graphics::vertex_attribute::color2 ; break ;
-                                case motor::nsl::binding::color3: 
+                                case motor::msl::binding::color3: 
                                     va = motor::graphics::vertex_attribute::color3 ; break ;
-                                case motor::nsl::binding::color4: 
+                                case motor::msl::binding::color4: 
                                     va = motor::graphics::vertex_attribute::color4 ; break ;
-                                case motor::nsl::binding::color5: 
+                                case motor::msl::binding::color5: 
                                     va = motor::graphics::vertex_attribute::color5 ; break ;
                                 default: break;
                                 }
@@ -85,15 +172,15 @@ namespace motor
                             }
                         }
 
-                        if( v.binding == motor::nsl::binding::position )
+                        if( v.binding == motor::msl::binding::position )
                         {
                             ret.add_vertex_input_binding( motor::graphics::vertex_attribute::position, v.name ) ;
                         }
-                        else if( v.binding == motor::nsl::binding::normal )
+                        else if( v.binding == motor::msl::binding::normal )
                         {
                             ret.add_vertex_input_binding( motor::graphics::vertex_attribute::normal, v.name ) ;
                         }
-                        else if( v.binding == motor::nsl::binding::tangent )
+                        else if( v.binding == motor::msl::binding::tangent )
                         {
                             ret.add_vertex_input_binding( motor::graphics::vertex_attribute::tangent, v.name ) ;
                         }
@@ -106,28 +193,28 @@ namespace motor
                     {
                         // check texcoord
                         {
-                            if( motor::nsl::is_texcoord( v.binding ) )
+                            if( motor::msl::is_texcoord( v.binding ) )
                             {
                                 motor::graphics::vertex_attribute va
                                     = motor::graphics::vertex_attribute::undefined ;
 
                                 switch( v.binding )
                                 {
-                                case motor::nsl::binding::texcoord0: 
+                                case motor::msl::binding::texcoord0: 
                                     va = motor::graphics::vertex_attribute::texcoord0 ; break ;
-                                case motor::nsl::binding::texcoord1: 
+                                case motor::msl::binding::texcoord1: 
                                     va = motor::graphics::vertex_attribute::texcoord1 ; break ;
-                                case motor::nsl::binding::texcoord2: 
+                                case motor::msl::binding::texcoord2: 
                                     va = motor::graphics::vertex_attribute::texcoord2 ; break ;
-                                case motor::nsl::binding::texcoord3: 
+                                case motor::msl::binding::texcoord3: 
                                     va = motor::graphics::vertex_attribute::texcoord3 ; break ;
-                                case motor::nsl::binding::texcoord4: 
+                                case motor::msl::binding::texcoord4: 
                                     va = motor::graphics::vertex_attribute::texcoord4 ; break ;
-                                case motor::nsl::binding::texcoord5: 
+                                case motor::msl::binding::texcoord5: 
                                     va = motor::graphics::vertex_attribute::texcoord5 ; break ;
-                                case motor::nsl::binding::texcoord6: 
+                                case motor::msl::binding::texcoord6: 
                                     va = motor::graphics::vertex_attribute::texcoord6 ; break ;
-                                case motor::nsl::binding::texcoord7: 
+                                case motor::msl::binding::texcoord7: 
                                     va = motor::graphics::vertex_attribute::texcoord7 ; break ;
                                 default: break;
                                 }
@@ -139,24 +226,24 @@ namespace motor
 
                         // check color
                         {
-                            if( motor::nsl::is_color( v.binding ) )
+                            if( motor::msl::is_color( v.binding ) )
                             {
                                 motor::graphics::vertex_attribute va
                                     = motor::graphics::vertex_attribute::undefined ;
 
                                 switch( v.binding )
                                 {
-                                case motor::nsl::binding::color0: 
+                                case motor::msl::binding::color0: 
                                     va = motor::graphics::vertex_attribute::color0 ; break ;
-                                case motor::nsl::binding::color1: 
+                                case motor::msl::binding::color1: 
                                     va = motor::graphics::vertex_attribute::color1 ; break ;
-                                case motor::nsl::binding::color2: 
+                                case motor::msl::binding::color2: 
                                     va = motor::graphics::vertex_attribute::color2 ; break ;
-                                case motor::nsl::binding::color3: 
+                                case motor::msl::binding::color3: 
                                     va = motor::graphics::vertex_attribute::color3 ; break ;
-                                case motor::nsl::binding::color4: 
+                                case motor::msl::binding::color4: 
                                     va = motor::graphics::vertex_attribute::color4 ; break ;
-                                case motor::nsl::binding::color5: 
+                                case motor::msl::binding::color5: 
                                     va = motor::graphics::vertex_attribute::color5 ; break ;
                                 default: break;
                                 }
@@ -165,15 +252,15 @@ namespace motor
                             }
                         }
 
-                        if( v.binding == motor::nsl::binding::position )
+                        if( v.binding == motor::msl::binding::position )
                         {
                             ret.add_vertex_output_binding( motor::graphics::vertex_attribute::position, v.name ) ;
                         }
-                        else if( v.binding == motor::nsl::binding::normal )
+                        else if( v.binding == motor::msl::binding::normal )
                         {
                             ret.add_vertex_output_binding( motor::graphics::vertex_attribute::normal, v.name ) ;
                         }
-                        else if( v.binding == motor::nsl::binding::tangent )
+                        else if( v.binding == motor::msl::binding::tangent )
                         {
                             ret.add_vertex_output_binding( motor::graphics::vertex_attribute::tangent, v.name ) ;
                         }
@@ -181,13 +268,13 @@ namespace motor
                 }
 
                 // streamout type
-                if( code.streamout != motor::nsl::streamout_type::none )
+                if( code.streamout != motor::msl::streamout_type::none )
                 {
                     motor::graphics::streamout_mode sm = motor::graphics::streamout_mode::unknown ;
                     switch( code.streamout )
                     {
-                    case motor::nsl::streamout_type::interleaved: sm = motor::graphics::streamout_mode::interleaved ; break ;
-                    case motor::nsl::streamout_type::separate: sm = motor::graphics::streamout_mode::separate ; break ;
+                    case motor::msl::streamout_type::interleaved: sm = motor::graphics::streamout_mode::interleaved ; break ;
+                    case motor::msl::streamout_type::separate: sm = motor::graphics::streamout_mode::separate ; break ;
                     default: break ;
                     }
 
@@ -204,31 +291,31 @@ namespace motor
                             {
                                 motor::graphics::binding_point bp = motor::graphics::binding_point::undefined ;
                                 
-                                if( v.binding == motor::nsl::binding::object )
+                                if( v.binding == motor::msl::binding::object )
                                 {
                                     bp = motor::graphics::binding_point::object_matrix ;
                                 }
-                                else if( v.binding == motor::nsl::binding::world )
+                                else if( v.binding == motor::msl::binding::world )
                                 {
                                     bp = motor::graphics::binding_point::world_matrix ;
                                 }
-                                else if( v.binding == motor::nsl::binding::view )
+                                else if( v.binding == motor::msl::binding::view )
                                 {
                                     bp = motor::graphics::binding_point::view_matrix ;
                                 }
-                                else if( v.binding == motor::nsl::binding::projection )
+                                else if( v.binding == motor::msl::binding::projection )
                                 {
                                     bp = motor::graphics::binding_point::projection_matrix ;
                                 }
-                                else if( v.binding == motor::nsl::binding::camera )
+                                else if( v.binding == motor::msl::binding::camera )
                                 {
                                     bp = motor::graphics::binding_point::camera_matrix ;
                                 }
-                                else if( v.binding == motor::nsl::binding::camera_position )
+                                else if( v.binding == motor::msl::binding::camera_position )
                                 {
                                     bp = motor::graphics::binding_point::camera_position ;
                                 }
-                                else if( v.binding == motor::nsl::binding::viewport )
+                                else if( v.binding == motor::msl::binding::viewport )
                                 {
                                     bp = motor::graphics::binding_point::viewport_dimension ;
                                 }
@@ -239,60 +326,8 @@ namespace motor
                         }
                     }
                 }
-                
-                // code
-                {
-                    motor::vector< motor::nsl::api_type > const types = 
-                    {
-                        motor::nsl::api_type::es3, motor::nsl::api_type::gl4,
-                        motor::nsl::api_type::d3d11 
-                    } ;
-
-                    for( auto const & t : types )
-                    {
-                        motor::graphics::shader_set_t ss ;
-
-                        motor::graphics::shader_api_type bt = motor::graphics::shader_api_type::unknown ;
-                        switch( t )
-                        {
-                        case motor::nsl::api_type::gl4:
-                            bt = motor::graphics::shader_api_type::glsl_1_4 ;
-                            break ;
-                        case motor::nsl::api_type::es3:
-                            bt = motor::graphics::shader_api_type::glsles_3_0 ;
-                            break ;
-                        case motor::nsl::api_type::d3d11:
-                            bt = motor::graphics::shader_api_type::hlsl_5_0 ;
-                            break ;
-                        default:
-                            break;
-                        }
-
-                        if( bt == motor::graphics::shader_api_type::unknown )
-                        {
-                            motor::log::global_t::warning( "[nsl_bridge] : unknown/unmappable api type" ) ;
-                            continue ;
-                        }
-
-                        code.sorted_by_api_type( t, [&] ( motor::nsl::shader_type st, motor::nsl::generated_code_t::code_cref_t c )
-                        {
-                            if( st == motor::nsl::shader_type::vertex_shader )
-                                ss.set_vertex_shader( c.shader ) ;
-                            else if( st == motor::nsl::shader_type::geometry_shader )
-                                ss.set_geometry_shader( c.shader ) ;
-                            else if( st == motor::nsl::shader_type::pixel_shader )
-                                ss.set_pixel_shader( c.shader ) ;
-                        } ) ;
-
-                        ret.insert( bt, std::move( ss ) ) ;
-                    }
-                }
-
-
-                return std::move( ret ) ;
             }
-
         };
-        motor_typedef( nsl_bridge ) ;
+        motor_typedef( msl_bridge ) ;
     }
 }
