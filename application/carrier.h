@@ -10,6 +10,7 @@
 #include "window/window_info.h"
 
 #include <motor/device/system.h>
+#include <motor/audio/system.h>
 
 #include <thread>
 
@@ -35,6 +36,7 @@ namespace motor
             std::thread _thr ;
 
             motor::device::system_ptr_t _dev_system = nullptr ;
+            motor::audio::system_ptr_t _audio_system = nullptr ;
 
         public:
 
@@ -51,6 +53,8 @@ namespace motor
             motor::device::system_mtr_t device_system( void_t ) noexcept ;
             void_t update_device_system( void_t ) noexcept ;
 
+            motor::audio::system_ptr_t audio_system( void_t ) noexcept ;
+
         public: // window creation interface
 
             virtual motor::application::iwindow_mtr_unique_t create_window( motor::application::window_info_cref_t info ) noexcept = 0 ;
@@ -58,6 +62,7 @@ namespace motor
         protected:
 
             motor::device::system_ptr_t get_dev_system( void_t ) noexcept ;
+            motor::audio::system_ptr_t get_audio_system( void_t ) noexcept ;
 
         private:
 

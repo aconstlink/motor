@@ -126,15 +126,18 @@ list( APPEND subdirs
     "msl"
     
     "graphics"
-
+    "audio"
+    
     "platform"
     "application"    
     
+    
+
     #"system"
     #"gfx"
     
     #"format"
-    #"audio"
+    
     #"geometry"
     #"font"
     "tool"

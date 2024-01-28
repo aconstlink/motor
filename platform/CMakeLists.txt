@@ -92,8 +92,6 @@ if( MOTOR_GRAPHICS_DIRECT3D )
       "application/d3d/dx11_context.cpp" )
 endif()
 
-
-
 if( MOTOR_GRAPHICS_GLX )
 
     list( APPEND sources
@@ -133,6 +131,26 @@ else()
     message( FATAL_ERROR "Window System: No Os specified." )
 endif()
 
+##
+## Audio Section
+##
+
+list( APPEND sources
+  "audio/audio_capture_helper.h"
+  "audio/audio_capture_helper.cpp"
+  # make oal optional
+  "audio/oal/oal.h"
+  "audio/oal/oal.cpp"
+     )
+if( MOTOR_TARGET_OS_WIN )
+  list( APPEND sources
+    "audio/wasapi/wasapi_capture_helper.h"
+    "audio/wasapi/wasapi_capture_helper.cpp"
+    #"audio/xaudio/xaudio2.h"
+    #"audio/xaudio/xaudio2.cpp"
+  )
+endif()
+
 
 motor_vs_src_dir( sources )
 
@@ -149,6 +167,10 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::device
   PUBLIC motor::graphics
   PUBLIC motor::application
+  PUBLIC motor::audio
+
+  # make oal optional
+  PRIVATE OpenAL
 
   # have changed
   PUBLIC ct_motor_graphics_all
@@ -168,7 +190,17 @@ if( TARGET rtmidi )
     PUBLIC rtmidi )
 endif()
 
+if( XAUDIO2_ENABLE )
+  target_link_libraries( ${cur_lib_name}
+    PRIVATE xaudio2 )
+endif()
+
+if( MOTOR_TARGET_ARCH_BIG_ENDIAN )
+  target_compile_options( ${cur_lib_name} PRIVATE -DMOTOR_BIG_ENDIAN )
+endif()
+
 if( MOTOR_COMPILER_GNU )
+  target_compile_options( ${cur_lib_name} PUBLIC -Wno-pessimizing-move )
   target_compile_options( ${cur_lib_name} PRIVATE -Wno-deprecated-declarations )
 endif()
 

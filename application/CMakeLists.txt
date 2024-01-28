@@ -32,6 +32,7 @@ add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 target_compile_options( ${cur_lib_name} PUBLIC ${MOTOR_WINDOW_SYSTEM_DEFINES} )
 
 target_link_libraries( ${cur_lib_name}
+    PUBLIC motor::audio
     PUBLIC motor::concurrent
     PUBLIC motor::log
     PUBLIC motor::memory
