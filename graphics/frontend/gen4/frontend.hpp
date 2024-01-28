@@ -11,7 +11,7 @@ namespace motor
     {
         namespace gen4
         {
-            class MOTOR_GRAPHICS_API frontend : public motor::graphics::ifrontend
+            class frontend : public motor::graphics::ifrontend
             {
                 motor_this_typedefs( frontend ) ;
 
@@ -31,7 +31,8 @@ namespace motor
                     _re = motor::move( rhv._re ) ;
                     _be = motor::move( rhv._be ) ;
                 }
-                virtual ~frontend( void_t ) noexcept ;
+                virtual ~frontend( void_t ) noexcept 
+                {}
 
             public:
 

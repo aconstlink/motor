@@ -8,7 +8,7 @@
 #include <motor/graphics/object/geometry_object.h>
 #include <motor/graphics/object/image_object.h>
 
-#include <motor/graphics/frontend/gen4/frontend.h>
+#include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/device/layouts/three_mouse.hpp>
 #include <motor/device/layouts/ascii_keyboard.hpp>

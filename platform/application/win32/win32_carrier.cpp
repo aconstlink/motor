@@ -1,7 +1,7 @@
 #include "win32_carrier.h"
 
 #include <motor/graphics/render_engine.h>
-#include <motor/graphics/frontend/gen4/frontend.h>
+#include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/log/global.h>
 

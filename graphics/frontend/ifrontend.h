@@ -9,7 +9,7 @@ namespace motor
 {
     namespace graphics
     {
-        class MOTOR_GRAPHICS_API ifrontend
+        class ifrontend
         {
         public:
             

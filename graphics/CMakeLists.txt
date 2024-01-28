@@ -21,8 +21,7 @@ set( sources
     "backend/gen4/null.cpp"
 
     "frontend/ifrontend.h"
-    "frontend/gen4/frontend.h"
-    "frontend/gen4/frontend.cpp"
+    "frontend/gen4/frontend.hpp"
 
     "shader/shader_set.hpp"
     "shader/shader.hpp"
