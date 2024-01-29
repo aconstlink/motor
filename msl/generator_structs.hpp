@@ -90,7 +90,6 @@ namespace motor
                 }
             }
 
-            typedef std::function< void_t ( motor::msl::shader_type, code_cref_t ) > for_each_code_t ;
             void_t sorted_by_shader_type( for_each_code_t funk ) const noexcept
             {
                 for( auto const& s : shaders )
