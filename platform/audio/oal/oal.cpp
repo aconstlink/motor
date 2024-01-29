@@ -150,6 +150,8 @@ struct motor::platform::oal_backend::pimpl
 
     void_t release( void_t ) noexcept
     {
+        this->begin() ;
+
         if( _gc != nullptr )
         {
             _gc->sys_audio->release() ;
@@ -220,6 +222,8 @@ struct motor::platform::oal_backend::pimpl
 
             ddev = nullptr ;
         }
+
+        this->end() ;
     }
 
     void_t create_global_what_u_hear_capture_object( void_t )
