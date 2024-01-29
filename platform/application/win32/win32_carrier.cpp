@@ -13,6 +13,8 @@
 #include "../d3d/dx11_context.h"
 #endif
 
+#include "../../audio/oal/oal.h"
+
 #include <windows.h>
 
 using namespace motor::platform ;
@@ -39,6 +41,7 @@ struct win32_carrier::d3d11_pimpl
 win32_carrier::win32_carrier( void_t ) noexcept
 {
     this_t::create_and_register_device_modules() ;
+    this_t::create_and_register_audio_backend() ;
 }
 
 //***********************************************************************
@@ -409,6 +412,15 @@ void_t win32_carrier::create_and_register_device_modules( void_t ) noexcept
 
     this_t::get_dev_system()->add_module( motor::share( _rawinput ) ) ;
     this_t::get_dev_system()->add_module( motor::share( _xinput ) ) ;
+}
+
+//***********************************************************************
+void_t win32_carrier::create_and_register_audio_backend( void_t ) noexcept 
+{
+    motor::platform::oal_backend_mtr_t bend = motor::memory::global_t::create( motor::platform::oal_backend_t(),
+        "[win32_carrier] : created oal backend and passed to carrier audio system." ) ;
+
+    motor::audio::system::controller( this->get_audio_system() ).start( motor::move( bend ) ) ;
 }
 
 //***********************************************************************

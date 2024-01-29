@@ -56,6 +56,16 @@ namespace motor
                 return *this ;
             }
 
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                _samples = std::move( rhv._samples ) ;
+                _name = std::move( rhv._name ) ;
+                _channels = rhv._channels ;
+                _sample_rate = rhv._sample_rate ;
+                _es = rhv._es ;
+                return *this ;
+            }
+
         public:
 
             motor::string_cref_t name( void_t ) const noexcept

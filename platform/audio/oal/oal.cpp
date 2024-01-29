@@ -90,8 +90,14 @@ struct motor::platform::oal_backend::pimpl
 
                 if( item.size() == 0 ) break ;
 
-                motor::log::global_t::status( item ) ;
+                //motor::log::global_t::status( item ) ;
                 sib += item.size() + 1 ;
+            }
+
+            if( sib == 0 ) 
+            {
+                motor::log::global::error( "[OpenAL Backend] : ALC_DEVICE_SPECIFIER is 0" ) ;
+                return false ;
             }
         }
 
@@ -113,26 +119,47 @@ struct motor::platform::oal_backend::pimpl
             }
         }
 
+        motor::log::global_t::status("[platform::oal_backend] : OpenAL initialized") ;
+        return true ;
+    }
+
+    void_t begin( void_t ) noexcept
+    {
         {
             alcMakeContextCurrent( dctx ) ;
             auto const res = alcGetError( ddev ) ;
             if( res != AL_NO_ERROR )
             {
                 motor::log::global::error( "[OpenAL Backend] : alcMakeContextCurrent for default device context" ) ;
-                return false ;
             }
         }
-
-        return true ;
+        this->update() ;
     }
 
-    void_t release( void_t ) 
+    void_t end( void_t ) noexcept
+    {
+        {
+            alcMakeContextCurrent( NULL ) ;
+            auto const res = alcGetError( ddev ) ;
+            if( res != AL_NO_ERROR )
+            {
+                motor::log::global::error( "[OpenAL Backend] : alcMakeContextCurrent for NULL" ) ;
+            }
+        }
+    }
+
+    void_t release( void_t ) noexcept
     {
         if( _gc != nullptr )
         {
+            _gc->sys_audio->release() ;
+            motor::memory::global_t::dealloc( _gc->sys_audio ) ;
+
             alcCaptureCloseDevice( _gc->dev ) ;
             _gc->dev = nullptr ;
             motor::memory::global_t::dealloc( _gc ) ;
+
+            _gc = nullptr ;
         }
 
         for( auto& b : buffers )
@@ -169,6 +196,7 @@ struct motor::platform::oal_backend::pimpl
             b.samplerate = 0 ;
             b.sib = 0 ;
         }
+        buffers.clear() ;
 
         if( dctx != nullptr )
         {
@@ -181,12 +209,16 @@ struct motor::platform::oal_backend::pimpl
                 auto const res = alcGetError( ddev ) ;
                 motor::log::global::error( res != AL_NO_ERROR, "[OpenAL Backend] : alcDestroyContext" ) ;
             }
+
+            dctx = nullptr ;
         }
 
         if( ddev != nullptr )
         {
             auto const res = alcCloseDevice( ddev ) ;
             motor::log::global::error( res != AL_TRUE, "[OpenAL Backend] : alcCloseDevice" ) ;
+
+            ddev = nullptr ;
         }
     }
 
@@ -270,13 +302,26 @@ struct motor::platform::oal_backend::pimpl
             "[OpenAL Backend] : global_capture" ) ;
     }
 
-    pimpl( void_t )
+    pimpl( void_t ) noexcept
     {
         create_global_what_u_hear_capture_object() ;
     }
 
-    ~pimpl( void_t )
+    pimpl( pimpl && rhv ) noexcept
     {
+        _gc = motor::move( rhv._gc ) ;
+        buffers = std::move( rhv.buffers ) ;
+
+        _captures = rhv._captures ;
+        _do_captures = rhv._do_captures ;
+
+        ddev = motor::move( rhv.ddev ) ;
+        dctx = motor::move( rhv.dctx ) ;
+    }
+
+    ~pimpl( void_t ) noexcept
+    {
+        this_t::release() ;
     }
 
     bool_t control_what_u_hear_capturing( bool_t const do_capture )
@@ -845,7 +890,7 @@ struct motor::platform::oal_backend::pimpl
     }
 
     void_t execute( size_t const oid, motor::audio::buffer_object_ref_t obj, 
-        motor::audio::gen2::backend::execute_detail_cref_t det ) noexcept
+        motor::audio::backend::execute_detail_cref_t det ) noexcept
     {
         auto& bo = buffers[ oid ] ;
 
@@ -1035,7 +1080,7 @@ motor::audio::result oal_backend::update( motor::audio::buffer_object_mtr_t obj 
 }
 
 //***********************************************************************************************
-motor::audio::result oal_backend::execute( motor::audio::buffer_object_mtr_t obj, motor::audio::gen2::backend::execute_detail_cref_t det ) noexcept
+motor::audio::result oal_backend::execute( motor::audio::buffer_object_mtr_t obj, motor::audio::backend::execute_detail_cref_t det ) noexcept
 {
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
     if( oid == size_t( -1 ) )
@@ -1066,13 +1111,14 @@ motor::audio::result oal_backend::release( motor::audio::buffer_object_mtr_t obj
 }
 
 //***********************************************************************************************
-void_t oal_backend::init( void_t ) noexcept 
+bool_t oal_backend::init( void_t ) noexcept 
 {
     if( _pimpl == nullptr )
     {
         _pimpl = motor::memory::global_t::alloc( pimpl(), "[motor::audio::oal_backend::pimpl]" ) ;
-        _pimpl->init() ;
+        return _pimpl->init() ;
     }
+    return true ;
 }
 
 //***********************************************************************************************
@@ -1089,11 +1135,12 @@ void_t oal_backend::release( void_t ) noexcept
 //***********************************************************************************************
 void_t oal_backend::begin( void_t ) noexcept
 {
-    _pimpl->update() ;
+    _pimpl->begin() ;
 }
 
 //***********************************************************************************************
 void_t oal_backend::end( void_t ) noexcept
 {
+    _pimpl->end() ;
     _what_u_hear_count = 0 ;
 }

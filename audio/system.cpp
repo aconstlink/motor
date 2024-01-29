@@ -15,6 +15,7 @@ system::system( this_rref_t rhv ) noexcept
     _bptr = motor::move( rhv._bptr ) ;
     _come = std::move( rhv._come ) ;
     _thr = std::move( rhv._thr ) ;
+    _fptr = motor::move( rhv._fptr ) ;
     _run = rhv._run ; rhv._run = false ;
 }
 
@@ -22,6 +23,8 @@ system::system( this_rref_t rhv ) noexcept
 system::~system( void_t ) noexcept 
 {
     this_t::shutdown_system( true ) ;
+    motor::memory::release_ptr( motor::move( _bptr ) ) ;
+    motor::memory::global_t::dealloc( _fptr ) ;
 }
 
 //********************************************************************
@@ -29,11 +32,9 @@ bool_t system::on_audio( std::function< void_t ( motor::audio::frontend_ptr_t fp
 {
     if( _bptr == nullptr || !_run ) return false ;
 
-    motor::audio::frontend_t fe( &_come, _bptr )  ;
-
     if( _come.enter_frame() )
     {
-        funk( &fe ) ;
+        funk( _fptr ) ;
         _come.leave_frame() ;
         return true ;
     }
@@ -41,23 +42,33 @@ bool_t system::on_audio( std::function< void_t ( motor::audio::frontend_ptr_t fp
 }
 
 //********************************************************************
-void_t system::start_system( motor::audio::backend_ptr_t bptr ) noexcept 
+void_t system::start_system( motor::audio::backend_mtr_unique_t bptr ) noexcept 
 {
     if( _run ) return ;
-
+    
     _bptr = bptr ;
     _thr = std::thread( [&]( void_t )
     {
-        _run = true ;
+        motor::log::global_t::status("[audio::system] : started audio thread") ;
+
+        _fptr = motor::memory::global_t::alloc( motor::audio::frontend_t( &_come, _bptr ),
+            "[audio::system] : frontend" ) ;
+
+        _run = _bptr->init() ;
         while( _run ) 
         {
             std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
-
+            
+            _bptr->begin() ;
             if( _come.can_execute() )
             {
                 _come.execute_frame() ;
             }
+            _bptr->end() ;
         }
+        _bptr->release() ;
+
+        motor::log::global_t::status("[audio::system] : shutdown audio thread") ;
 
     } ) ;
 }

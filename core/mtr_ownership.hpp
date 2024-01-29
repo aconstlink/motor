@@ -370,5 +370,11 @@ namespace motor
     {        
         return core::mtr_unique<T>::make( ptr ) ;
     }
+
+    template< typename T >
+    static core::mtr_unique< T > move( core::mtr_unique< T > & ptr ) noexcept
+    {        
+        return std::move( ptr ) ;
+    }
 }
 

@@ -46,6 +46,7 @@ carrier::~carrier( void_t ) noexcept
 {
     motor::memory::global_t::dealloc( _sd ) ;
     motor::memory::global_t::dealloc( _dev_system ) ;
+    motor::memory::global_t::dealloc( _audio_system ) ;
 }
 
 //******************************************************

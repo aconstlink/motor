@@ -4,13 +4,13 @@
 
 #include "../../api.h"
 #include "../../typedefs.h"
-#include <motor/audio/gen2/backend.h>
+#include <motor/audio/backend.h>
 
 namespace motor
 {
     namespace platform
     {
-        class MOTOR_PLATFORM_API oal_backend : public motor::audio::gen2::backend
+        class MOTOR_PLATFORM_API oal_backend : public motor::audio::backend
         {
             motor_this_typedefs( oal_backend ) ;
 
@@ -40,12 +40,12 @@ namespace motor
 
             virtual motor::audio::result configure( motor::audio::buffer_object_mtr_t ) noexcept ;
             virtual motor::audio::result update( motor::audio::buffer_object_mtr_t ) noexcept ;
-            virtual motor::audio::result execute( motor::audio::buffer_object_mtr_t, motor::audio::gen2::backend::execute_detail_cref_t ) noexcept ;
+            virtual motor::audio::result execute( motor::audio::buffer_object_mtr_t, motor::audio::backend::execute_detail_cref_t ) noexcept ;
             virtual motor::audio::result release( motor::audio::buffer_object_mtr_t ) noexcept ;
 
         public:
 
-            virtual void_t init( void_t ) noexcept ;
+            virtual bool_t init( void_t ) noexcept ;
             virtual void_t release( void_t ) noexcept ;
             virtual void_t begin( void_t ) noexcept ;
             virtual void_t end( void_t ) noexcept ;

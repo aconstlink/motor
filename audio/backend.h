@@ -54,7 +54,7 @@ namespace motor
             virtual motor::audio::result execute( motor::audio::buffer_object_mtr_t, motor::audio::backend::execute_detail_cref_t ) noexcept = 0 ;
             virtual motor::audio::result release( motor::audio::buffer_object_mtr_t ) noexcept = 0 ;
 
-            virtual void_t init( void_t ) noexcept = 0 ;
+            virtual bool_t init( void_t ) noexcept = 0 ;
             virtual void_t release( void_t ) noexcept = 0 ;
             virtual void_t begin( void_t ) noexcept = 0 ;
             virtual void_t end( void_t ) noexcept = 0 ;

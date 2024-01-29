@@ -113,6 +113,7 @@ namespace motor
             private:
 
                 void_t create_and_register_device_modules( void_t ) noexcept ;
+                void_t create_and_register_audio_backend( void_t ) noexcept ;
 
 
             private: // window functions

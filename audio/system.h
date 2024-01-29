@@ -20,7 +20,8 @@ namespace motor
 
         private:
 
-            motor::audio::backend_ptr_t _bptr ;
+            motor::audio::frontend_ptr_t _fptr ;
+            motor::audio::backend_mtr_t _bptr ;
             motor::audio::command_engine_t _come ;
 
             std::thread _thr ;
@@ -43,13 +44,15 @@ namespace motor
 
             struct controller
             {
-                void_t start( this_ptr_t ptr, motor::audio::backend_ptr_t bptr ) noexcept { ptr->start_system(bptr) ;}
-                void_t stop( this_ptr_t ptr, bool_t const wait_for_it ) noexcept { ptr->shutdown_system( wait_for_it ) ; }
+                this_ptr_t _ptr ;
+                controller( this_ptr_t ptr ) noexcept : _ptr(ptr) {}
+                void_t start( motor::audio::backend_mtr_unique_t bptr ) noexcept { _ptr->start_system(motor::move(bptr)) ;}
+                void_t stop( bool_t const wait_for_it ) noexcept { _ptr->shutdown_system( wait_for_it ) ; }
             };
 
         private: // controlling entity
 
-            void_t start_system( motor::audio::backend_ptr_t ) noexcept ;
+            void_t start_system( motor::audio::backend_mtr_unique_t ) noexcept ;
             void_t shutdown_system( bool_t const ) noexcept ;
         };
         motor_typedef( system ) ;

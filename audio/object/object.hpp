@@ -25,7 +25,7 @@ namespace motor
 
         public:
 
-            object( void_t ) noexcept {}
+            object( void_t ) noexcept : _id({size_t(-1), size_t(-1)}) {}
             object( this_cref_t rhv ) noexcept : _id( rhv._id ) {}
             object( this_rref_t rhv ) noexcept : _id( rhv._id )
             { 
@@ -41,6 +41,7 @@ namespace motor
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
+                _id = rhv._id ;
                 rhv._id = {size_t(-1), size_t(-1) } ;
                 return *this ;
             }
@@ -49,6 +50,7 @@ namespace motor
 
             size_t set_oid( size_t const bid, size_t const oid ) noexcept
             {
+                if( _id.bid == size_t(-1) ) _id.bid = bid ;
                 if( _id.bid != bid ) return size_t(-1) ;
 
                 _id.bid = bid ;
