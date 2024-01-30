@@ -58,6 +58,8 @@ namespace motor
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
+                object::operator=( std::move( rhv ) ) ;
+
                 _samples = std::move( rhv._samples ) ;
                 _name = std::move( rhv._name ) ;
                 _channels = rhv._channels ;
@@ -85,6 +87,13 @@ namespace motor
                 _channels = motor::audio::to_number( channels ) ;
                 _sample_rate = sample_rate ;
                 _samples = buffer ;
+            }
+
+            void_t set_samples( motor::audio::channels const channels, size_t const sample_rate, this_t::floats_rref_t buffer ) noexcept
+            {
+                _channels = motor::audio::to_number( channels ) ;
+                _sample_rate = sample_rate ;
+                _samples = std::move( buffer ) ;
             }
 
             void_t set_samples( motor::audio::channels const channels, size_t const sample_rate, motor::audio::buffer_cref_t buffer ) noexcept
