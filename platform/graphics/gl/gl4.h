@@ -70,6 +70,13 @@ namespace motor
                 virtual void_t render_begin( void_t ) noexcept ;
                 virtual void_t render_end( void_t ) noexcept ;
 
+                // if the context is not available anymore and graphics objects
+                // might still exist, this function clears out all objects so there
+                // will be not gl error due to the missing gl context.
+                // this is required if the window is closed and the context can not be
+                // made current...
+                void_t clear_all_objects( void_t ) noexcept ;
+
             private:
 
                 //

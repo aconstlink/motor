@@ -550,10 +550,34 @@ struct gl4_backend::pimpl
             this_t::release_tf_data( i ) ;
         }
 
+        // the particular objects will be released.
+        // the msl object does not hold any gl object.
         for( auto & msl : _msls ) 
         {
         }
 
+        _geometries.clear() ;
+        _shaders.clear() ;
+        _renders.clear() ;
+        _framebuffers.clear() ;
+        _arrays.clear() ;
+        _images.clear() ;
+        _feedbacks.clear() ;
+        _msls.clear() ;
+    }
+
+    // silent clear. No gl release will be done.
+    void_t clear_all_objects( void_t ) noexcept
+    {
+        for( size_t i = 0; i<_renders.size(); ++i )
+        {
+            this_t::release_render_data( i ) ;
+        }
+
+        for( size_t i = 0; i<_shaders.size(); ++i )
+        {
+            this_t::release_shader_data( i, true ) ;
+        }
 
         _geometries.clear() ;
         _shaders.clear() ;
@@ -1249,13 +1273,14 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t release_shader_data( size_t const oid ) noexcept
+    bool_t release_shader_data( size_t const oid, bool_t const silent = false ) noexcept
     {
         auto & shd = _shaders[ oid ] ;
 
         if( !shd.valid ) return true ;
 
         // delete shaders
+        if( !silent )
         {
             glDetachShader( shd.pg_id, shd.vs_id ) ;
             motor::ogl::error::check_and_log( motor_log_fn( "glDetachShader" ) ) ;
@@ -1264,7 +1289,7 @@ struct gl4_backend::pimpl
             motor::ogl::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
         }
 
-        if( shd.gs_id != GLuint(-1) )
+        if( shd.gs_id != GLuint(-1) && !silent )
         {
             glDetachShader( shd.pg_id, shd.gs_id ) ;
             motor::ogl::error::check_and_log( motor_log_fn( "glDetachShader" ) ) ;
@@ -1273,7 +1298,7 @@ struct gl4_backend::pimpl
             motor::ogl::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
         }
 
-        if( shd.ps_id != GLuint(-1) )
+        if( shd.ps_id != GLuint(-1) && !silent )
         {
             glDetachShader( shd.pg_id, shd.ps_id ) ;
             motor::ogl::error::check_and_log( motor_log_fn( "glDetachShader" ) ) ;
@@ -1283,6 +1308,7 @@ struct gl4_backend::pimpl
         }
 
         // delete program
+        if( !silent )
         {
             glDeleteProgram( shd.pg_id ) ;
             motor::ogl::error::check_and_log( motor_log_fn( "glDeleteProgram" ) ) ;
@@ -3900,4 +3926,10 @@ void_t gl4_backend::render_begin( void_t ) noexcept
 void_t gl4_backend::render_end( void_t ) noexcept 
 {
     _pimpl->end_frame() ;
+}
+
+//*************************************************************************************
+void_t gl4_backend::clear_all_objects( void_t ) noexcept 
+{
+    _pimpl->clear_all_objects() ;
 }

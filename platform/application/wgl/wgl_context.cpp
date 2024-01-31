@@ -37,13 +37,21 @@ wgl_context::wgl_context( this_rref_t rhv ) noexcept
 //***********************************************************************
 wgl_context::~wgl_context( void_t ) noexcept
 {
+    if( motor::platform::no_success( this_t::activate() ) )
+    {
+        // clear out all backend object silently
+        // this may happen if the window is already closed but the 
+        // backend is still going on.
+        if( _backend != nullptr ) _backend->clear_all_objects() ;
+    }
+
+    // the backend can not exist without the context.
+    assert( motor::memory::release_ptr( _backend ) == nullptr ) ;
+
     this_t::deactivate() ;
 
     if( _hrc != NULL )
         wglDeleteContext( _hrc ) ;
-
-    // the backend can not exist without the context.
-    assert( motor::memory::release_ptr( _backend ) == nullptr ) ;
 }
 
 //***********************************************************************
@@ -64,9 +72,13 @@ wgl_context::this_ref_t wgl_context::operator = ( this_rref_t rhv ) noexcept
 //***********************************************************************
 motor::platform::result wgl_context::activate( void_t ) noexcept
 {
+    if( _hwnd == NULL ) return motor::platform::result::invalid_win32_handle ;
+
     assert( _hdc == NULL ) ;
 
     _hdc = GetDC( _hwnd ) ;
+
+    if( _hdc == NULL ) return motor::platform::result::invalid_win32_handle ;
 
     if( motor::log::global::error( wglMakeCurrent( _hdc, _hrc ) == FALSE, 
         motor_log_fn( "wglMakeCurrent" ) ) ) 
