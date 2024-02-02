@@ -135,7 +135,7 @@ motor::platform::result wgl_context::swap( void_t ) noexcept
 }
 
 //***********************************************************************
-motor::graphics::gen4::backend_mtr_shared_t wgl_context::backend( void_t ) noexcept 
+motor::graphics::gen4::backend_mtr_safe_t wgl_context::backend( void_t ) noexcept 
 {
     if( _backend != nullptr ) return motor::share( _backend ) ;
 
@@ -154,6 +154,13 @@ motor::graphics::gen4::backend_mtr_shared_t wgl_context::backend( void_t ) noexc
     }
     
     return motor::share( _backend ) ;
+}
+
+//***********************************************************************
+motor::graphics::gen4::backend_borrow_t::mtr_t wgl_context::borrow_backend( void_t ) noexcept 
+{
+    if( _backend != nullptr ) return _backend ;
+    return motor::memory::release_ptr( this_t::backend() ) ;
 }
 
 //***********************************************************************

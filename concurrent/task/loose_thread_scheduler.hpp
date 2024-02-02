@@ -139,7 +139,7 @@ namespace motor
         public:
 
             // the schedule takes over the pointer
-            void_t schedule( task_mtr_unique_t t ) noexcept
+            void_t schedule( task_mtr_safe_t t ) noexcept
             {
                 motor::concurrent::lock_t lk( _mtx ) ;
                 _tasks.emplace_back( std::move( t ) ) ;

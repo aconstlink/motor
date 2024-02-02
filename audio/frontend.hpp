@@ -34,11 +34,11 @@ namespace motor
         public:
 
             template< typename T >
-            this_ref_t release( motor::core::mtr_delay< T > o ) noexcept 
+            this_ref_t release( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept 
             {
                 _re->send_execute( [=]( void_t )
                 {
-                    _be->release( o.mtr() ) ;
+                    _be->release( o ) ;
                 } ) ;
 
                 return *this ;
@@ -47,7 +47,7 @@ namespace motor
             // takes the managed pointer and releases it after
             // the backend function is called.
             template< typename T >
-            this_ref_t release( motor::core::mtr_unique< T > o ) noexcept 
+            this_ref_t release( motor::core::mtr_safe< T > o ) noexcept 
             {
                 _re->send_execute( [=, mtr = o.mtr() ]( void_t )
                 {

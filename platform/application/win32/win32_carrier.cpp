@@ -58,13 +58,7 @@ win32_carrier::win32_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rh
 }
 
 //***********************************************************************
-win32_carrier::win32_carrier( motor::application::iapp_mtr_shared_t app ) noexcept : base_t( std::move( app ) )
-{
-    this_t::create_and_register_device_modules() ;
-}
-
-//***********************************************************************
-win32_carrier::win32_carrier( motor::application::iapp_mtr_unique_t app ) noexcept : base_t( std::move( app ) )
+win32_carrier::win32_carrier( motor::application::iapp_mtr_safe_t app ) noexcept : base_t( std::move( app ) )
 {
     this_t::create_and_register_device_modules() ;
 }
@@ -188,15 +182,15 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                                 RECT rect ;
                                 GetClientRect( d.hwnd, &rect ) ;
 
-                                d.ptr->ctx.backend()->set_window_info( {
+                                d.ptr->ctx.borrow_backend()->set_window_info( {
                                     size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
                             }
 
                             _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
 
-                            d.ptr->ctx.backend()->render_begin() ;
+                            d.ptr->ctx.borrow_backend()->render_begin() ;
                             d.ptr->re.execute_frame() ;
-                            d.ptr->ctx.backend()->render_end() ;
+                            d.ptr->ctx.borrow_backend()->render_end() ;
                             d.ptr->ctx.swap() ;
 
                             d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
@@ -232,15 +226,15 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                                 RECT rect ;
                                 GetClientRect( d.hwnd, &rect ) ;
 
-                                d.ptr->ctx.backend()->set_window_info( {
+                                d.ptr->ctx.borrow_backend()->set_window_info( {
                                     size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
                             }
 
                             _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
 
-                            d.ptr->ctx.backend()->render_begin() ;
+                            d.ptr->ctx.borrow_backend()->render_begin() ;
                             d.ptr->re.execute_frame() ;
-                            d.ptr->ctx.backend()->render_end() ;
+                            d.ptr->ctx.borrow_backend()->render_end() ;
                             d.ptr->ctx.swap() ;
 
                             d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
@@ -324,7 +318,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             this_t::wgl_pimpl * pimpl = motor::memory::global_t::alloc(
                                 this_t::wgl_pimpl( { std::move(ctx) } ), "[win32_carrier] : wgl context") ;
 
-                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
+                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.borrow_backend() ),
                                  "[carrier32] : gen4 frontend") ;
                              
                              _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
@@ -358,7 +352,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             this_t::d3d11_pimpl * pimpl = motor::memory::global_t::alloc(
                                 this_t::d3d11_pimpl( {std::move(ctx) } ), "[win32_carrier] : d3d11 context") ;
 
-                            pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
+                            pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.borrow_backend() ),
                                  "[carrier32] : gen4 frontend") ;
 
                             _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
@@ -424,7 +418,7 @@ void_t win32_carrier::create_and_register_audio_backend( void_t ) noexcept
 }
 
 //***********************************************************************
-motor::application::iwindow_mtr_unique_t win32_carrier::create_window( motor::application::window_info_cref_t info ) noexcept 
+motor::application::iwindow_mtr_safe_t win32_carrier::create_window( motor::application::window_info_cref_t info ) noexcept 
 {
     motor::application::window_mtr_t wnd = motor::memory::create_ptr<motor::application::window_t>(
         "[win32_carrier] : window handle" ) ;

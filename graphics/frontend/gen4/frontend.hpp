@@ -37,18 +37,18 @@ namespace motor
             public:
 
                 template< typename T >
-                this_ref_t configure( motor::core::mtr_delay< T > o ) noexcept 
+                this_ref_t configure( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept 
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->configure( o.mtr() ) ;
+                        _be->configure( o ) ;
                     } ) ;
 
                     return *this ;
                 }
 
                 template< typename T >
-                this_ref_t release( motor::core::mtr_delay< T > o ) noexcept 
+                this_ref_t release( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept 
                 {
                     _re->send_execute( [=]( void_t )
                     {
@@ -61,7 +61,7 @@ namespace motor
                 // takes the managed pointer and releases it after
                 // the backend function is called.
                 template< typename T >
-                this_ref_t release( motor::core::mtr_unique< T > o ) noexcept 
+                this_ref_t release( motor::core::mtr_safe< T > o ) noexcept 
                 {
                     _re->send_execute( [=, mtr = o.mtr() ]( void_t )
                     {
@@ -72,71 +72,71 @@ namespace motor
                     return *this ;
                 }
 
-                this_ref_t update( motor::graphics::geometry_object_mtr_delay_t o ) noexcept
+                this_ref_t update( motor::graphics::geometry_object_borrow_t::mtr_t o ) noexcept
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->update( o.mtr() ) ;
+                        _be->update( o ) ;
                     } ) ;
 
                     return *this ;
                 }
 
-                this_ref_t update( motor::graphics::array_object_mtr_delay_t o ) noexcept
+                this_ref_t update( motor::graphics::array_object_borrow_t::mtr_t o ) noexcept
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->update( o.mtr() ) ;
+                        _be->update( o ) ;
                     } ) ;
 
                     return *this ;
                 }
 
-                this_ref_t update( motor::graphics::streamout_object_mtr_delay_t o ) noexcept
+                this_ref_t update( motor::graphics::streamout_object_borrow_t::mtr_t o ) noexcept
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->update( o.mtr() ) ;
+                        _be->update( o ) ;
                     } ) ;
 
                     return *this ;
                 }
 
-                this_ref_t update( motor::graphics::image_object_mtr_delay_t o ) noexcept
+                this_ref_t update( motor::graphics::image_object_borrow_t::mtr_t o ) noexcept
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->update( o.mtr() ) ;
+                        _be->update( o ) ;
                     } ) ;
 
                     return *this ;
                 }
 
-                this_ref_t update( motor::graphics::render_object_mtr_delay_t o, size_t const varset ) noexcept
+                this_ref_t update( motor::graphics::render_object_borrow_t::mtr_t o, size_t const varset ) noexcept
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->update( o.mtr(), varset ) ;
+                        _be->update( o, varset ) ;
                     } ) ;
 
                     return *this ;
                 }
 
-                this_ref_t use( motor::graphics::framebuffer_object_mtr_delay_t o ) noexcept 
+                this_ref_t use( motor::graphics::framebuffer_object_borrow_t::mtr_t o ) noexcept 
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->use( o.mtr() ) ;
+                        _be->use( o ) ;
                     } ) ;
 
                     return *this ;
                 }
 
-                this_ref_t use( motor::graphics::streamout_object_mtr_delay_t o ) noexcept
+                this_ref_t use( motor::graphics::streamout_object_borrow_t::mtr_t o ) noexcept
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->use( o.mtr() ) ;
+                        _be->use( o ) ;
                     } ) ;
 
                     return *this ;
@@ -152,11 +152,11 @@ namespace motor
                     return *this ;
                 }
 
-                this_ref_t push( motor::graphics::state_object_mtr_delay_t so, size_t const sid = 0, bool_t const push = true ) noexcept 
+                this_ref_t push( motor::graphics::state_object_borrow_t::mtr_t so, size_t const sid = 0, bool_t const push = true ) noexcept 
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->push( so.mtr(), sid, push ) ;
+                        _be->push( so, sid, push ) ;
                     } ) ;
 
                     return *this ;
@@ -172,21 +172,21 @@ namespace motor
                     return *this ;
                 }
 
-                this_ref_t render( motor::graphics::render_object_mtr_delay_t o, motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept 
+                this_ref_t render( motor::graphics::render_object_borrow_t::mtr_t o, motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept 
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->render( o.mtr(), rd ) ;
+                        _be->render( o, rd ) ;
                     } ) ;
 
                     return *this ;
                 }
 
-                this_ref_t render( motor::graphics::msl_object_mtr_delay_t o, motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept 
+                this_ref_t render( motor::graphics::msl_object_borrow_t::mtr_t o, motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept 
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->render( o.mtr(), rd ) ;
+                        _be->render( o, rd ) ;
                     } ) ;
 
                     return *this ;

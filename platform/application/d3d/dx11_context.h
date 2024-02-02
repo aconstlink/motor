@@ -68,7 +68,8 @@ namespace motor
                 virtual motor::platform::result vsync( bool_t const on_off ) noexcept ;
                 virtual motor::platform::result swap( void_t ) noexcept ;
 
-                motor::graphics::gen4::backend_mtr_shared_t backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_mtr_safe_t backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_borrow_t::mtr_t borrow_backend( void_t ) noexcept ;
 
             public:
 

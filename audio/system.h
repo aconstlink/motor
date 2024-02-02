@@ -46,13 +46,13 @@ namespace motor
             {
                 this_ptr_t _ptr ;
                 controller( this_ptr_t ptr ) noexcept : _ptr(ptr) {}
-                void_t start( motor::audio::backend_mtr_unique_t bptr ) noexcept { _ptr->start_system(motor::move(bptr)) ;}
+                void_t start( motor::audio::backend_mtr_safe_t bptr ) noexcept { _ptr->start_system(motor::move(bptr)) ;}
                 void_t stop( bool_t const wait_for_it ) noexcept { _ptr->shutdown_system( wait_for_it ) ; }
             };
 
         private: // controlling entity
 
-            void_t start_system( motor::audio::backend_mtr_unique_t ) noexcept ;
+            void_t start_system( motor::audio::backend_mtr_safe_t ) noexcept ;
             void_t shutdown_system( bool_t const ) noexcept ;
         };
         motor_typedef( system ) ;

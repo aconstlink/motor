@@ -431,7 +431,7 @@ void_t xinput_module::search( motor::device::imodule::search_funk_t funk )  noex
 {
     for( auto & d : _devices )
     {
-        funk( motor::share(d.dev) ) ;
+        funk( d.dev ) ;
     }
 }
 

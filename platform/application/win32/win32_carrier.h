@@ -95,8 +95,7 @@ namespace motor
             public:
 
                 win32_carrier( void_t ) noexcept ;
-                win32_carrier( motor::application::iapp_mtr_shared_t ) noexcept ;
-                win32_carrier( motor::application::iapp_mtr_unique_t ) noexcept ;
+                win32_carrier( motor::application::iapp_mtr_safe_t ) noexcept ;
                 win32_carrier( this_rref_t ) noexcept ;
                 virtual ~win32_carrier( void_t ) noexcept ;
 
@@ -108,7 +107,7 @@ namespace motor
                 virtual motor::application::result on_exec( void_t ) noexcept ;
                 virtual motor::application::result close( void_t ) noexcept ;
 
-                virtual motor::application::iwindow_mtr_unique_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
+                virtual motor::application::iwindow_mtr_safe_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
 
             private:
 

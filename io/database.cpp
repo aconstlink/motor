@@ -715,13 +715,7 @@ void_t database::dump_to_std( void_t ) const noexcept
 }
 
 //******************************************************************
-void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_t mon ) noexcept 
-{
-    this_t::attach( loc, motor::move( motor::memory::copy_ptr( mon ) ) ) ;
-}
-
-//******************************************************************
-void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_unique_t mon ) noexcept 
+void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_safe_t mon ) noexcept 
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
     

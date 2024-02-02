@@ -93,28 +93,14 @@ namespace motor
 
         public: // this is what the user should use only
 
-            this_ptr_t in_between( this_mtr_t other ) noexcept
-            {
-                other->inc_incoming() ;
-                _inbetweens.emplace_back( motor::memory::copy_ptr(other) ) ;
-                return other ;
-            }
-
-            this_mtr_unique_t in_between( this_mtr_unique_t other ) noexcept
+            this_mtr_safe_t in_between( this_mtr_safe_t other ) noexcept
             {
                 other->inc_incoming() ;
                 _inbetweens.emplace_back( other ) ;
                 return other ;
             }
 
-            this_ptr_t then( this_mtr_t other ) noexcept
-            {
-                other->inc_incoming() ;
-                _thens.emplace_back( motor::memory::copy_ptr(other) ) ;
-                return other ;
-            }
-
-            this_mtr_unique_t then( this_mtr_unique_t other ) noexcept
+            this_mtr_safe_t then( this_mtr_safe_t other ) noexcept
             {
                 other->inc_incoming() ;
                 _thens.emplace_back( other ) ;
@@ -158,7 +144,7 @@ namespace motor
                 {
                     for( auto & t : _thens ) 
                     {
-                        c->then( t ) ;
+                        c->then( motor::share(t) ) ;
                     }
                     tasks.emplace_back( motor::memory::copy_ptr(c) ) ;
                 }

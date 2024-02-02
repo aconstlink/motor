@@ -148,9 +148,8 @@ namespace motor
             void_t dump_to_std( void_t ) const noexcept ;
 
         public: // monitor
-
-            void_t attach( motor::io::location_cref_t, motor::io::monitor_mtr_t ) noexcept ;
-            void_t attach( motor::io::location_cref_t, motor::io::monitor_mtr_unique_t ) noexcept ;
+            
+            void_t attach( motor::io::location_cref_t, motor::io::monitor_mtr_safe_t ) noexcept ;
             void_t detach( motor::io::location_cref_t, motor::io::monitor_mtr_t ) noexcept ;
             
             void_t attach( motor::io::monitor_mtr_t ) noexcept ;

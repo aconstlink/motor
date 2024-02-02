@@ -21,9 +21,10 @@
     typedef to_ ## _t * && to_ ## _ptr_rref_t ;                         \
     typedef to_ ## _t * & to_ ## _mtr_ref_t ;                           \
     typedef to_ ## _t * && to_ ## _mtr_rref_t ;                         \
-    typedef motor::core::mtr_delay< to_ ## _t > to_ ## _mtr_delay_t;  \
-    typedef motor::core::mtr_unique< to_ ## _t > to_ ## _mtr_unique_t;  \
-    typedef motor::core::mtr_shared< to_ ## _t > to_ ## _mtr_shared_t
+    typedef motor::core::mtr_safe< to_ ## _t > to_ ## _mtr_safe_t  ;    \
+    typedef motor::core::mtr_safe< to_ ## _t > to_ ## _safe_t ;         \
+    typedef motor::core::mtr_borrow< to_ ## _t > to_ ## _borrow_t 
+    
 
 
 #define motor_typedef_extend( what_ ) motor_typedefs_extend( what_, what_ )
@@ -45,9 +46,9 @@
     typedef this_t const * this_cptr_t ;                                \
     typedef this_t && this_rref_t ;                                     \
     typedef this_t & this_inout_t ;                                     \
-    typedef motor::core::mtr_delay< this_t > this_mtr_delay_t ;       \
-    typedef motor::core::mtr_unique< this_t > this_mtr_unique_t ;       \
-    typedef motor::core::mtr_shared< this_t > this_mtr_shared_t 
+    typedef motor::core::mtr_safe< this_t > this_mtr_safe_t ;           \
+    typedef motor::core::mtr_safe< this_t > this_safe_t ;               \
+    typedef motor::core::mtr_borrow< this_t > this_borrow_t 
 
 #define motor_class_proto_typedefs(x)                                      \
     class x ;                                                           \

@@ -17,11 +17,9 @@ namespace motor
 
         public:
 
-            static motor::application::carrier_mtr_unique_t create_carrier( void_t ) noexcept ;
-            static motor::application::carrier_mtr_unique_t create_carrier( motor::application::iapp_mtr_shared_t ) noexcept ;
-            static motor::application::carrier_mtr_unique_t create_carrier( motor::application::iapp_mtr_unique_t ) noexcept ;
-            static int_t create_and_exec_carrier( motor::application::iapp_mtr_shared_t ) noexcept ;
-            static int_t create_and_exec_carrier( motor::application::iapp_mtr_unique_t ) noexcept ;
+            static motor::application::carrier_mtr_safe_t create_carrier( void_t ) noexcept ;
+            static motor::application::carrier_mtr_safe_t create_carrier( motor::application::iapp_mtr_safe_t ) noexcept ;
+            static int_t create_and_exec_carrier( motor::application::iapp_mtr_safe_t ) noexcept ;
         };
         motor_typedef( global ) ;
     }

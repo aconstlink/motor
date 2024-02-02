@@ -43,8 +43,7 @@ namespace motor
             carrier( void_t ) noexcept ;
             carrier( this_cref_t ) = delete ;
             carrier( this_rref_t ) noexcept ;
-            carrier( motor::application::iapp_mtr_shared_t ) noexcept ;
-            carrier( motor::application::iapp_mtr_unique_t ) noexcept ;
+            carrier( motor::application::iapp_mtr_safe_t ) noexcept ;
             virtual ~carrier( void_t ) noexcept ;
 
         public:
@@ -57,7 +56,7 @@ namespace motor
 
         public: // window creation interface
 
-            virtual motor::application::iwindow_mtr_unique_t create_window( motor::application::window_info_cref_t info ) noexcept = 0 ;
+            virtual motor::application::iwindow_mtr_safe_t create_window( motor::application::window_info_cref_t info ) noexcept = 0 ;
 
         protected:
 
@@ -68,8 +67,7 @@ namespace motor
 
             /// at the moment, the app object must be added by the applications' ctor
             /// this is due to multi-threading issues when creating a window in the app.
-            motor::application::result set( motor::application::iapp_mtr_shared_t ) noexcept ;
-            motor::application::result set( motor::application::iapp_mtr_unique_t ) noexcept ;
+            motor::application::result set( motor::application::iapp_mtr_safe_t ) noexcept ;
 
             motor::application::result start_update_thread( void_t ) noexcept ;
             void_t stop_update_thread( void_t ) noexcept ;

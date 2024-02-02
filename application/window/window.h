@@ -50,8 +50,7 @@ namespace motor
             
         public: // ins
 
-            virtual void_t register_in( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept override;
-            virtual void_t register_in( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept override ;
+            virtual void_t register_in( motor::application::iwindow_message_listener_mtr_safe_t l ) noexcept override;
             virtual void_t unregister_in( motor::application::iwindow_message_listener_mtr_t l ) noexcept override ;
 
             typedef std::function< void ( motor::application::iwindow_message_listener_mtr_t ) > foreach_listener_funk_t ;
@@ -59,8 +58,7 @@ namespace motor
 
         public: // outs
 
-            virtual void_t register_out( motor::application::iwindow_message_listener_mtr_shared_t l ) noexcept override ;
-            virtual void_t register_out( motor::application::iwindow_message_listener_mtr_unique_t l ) noexcept override ;
+            virtual void_t register_out( motor::application::iwindow_message_listener_mtr_safe_t l ) noexcept override ;
             virtual void_t unregister_out( motor::application::iwindow_message_listener_mtr_t l ) noexcept override ;
 
             typedef std::function< void ( motor::application::iwindow_message_listener_mtr_t ) > foreach_out_funk_t ;

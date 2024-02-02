@@ -42,7 +42,7 @@ bool_t system::on_audio( std::function< void_t ( motor::audio::frontend_ptr_t fp
 }
 
 //********************************************************************
-void_t system::start_system( motor::audio::backend_mtr_unique_t bptr ) noexcept 
+void_t system::start_system( motor::audio::backend_mtr_safe_t bptr ) noexcept 
 {
     if( _run ) return ;
     

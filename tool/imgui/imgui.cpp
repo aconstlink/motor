@@ -325,11 +325,11 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 
     if( !_init )
     {
-        fe->configure( motor::delay(_rs) ) ;
-        fe->configure( motor::delay(_gc) ) ;
-        fe->configure( motor::delay(_sc) ) ;
-        fe->configure( motor::delay(_ic) ) ;
-        fe->configure( motor::delay(_rc) ) ;
+        fe->configure<motor::graphics::state_object_t>( _rs ) ;
+        fe->configure<motor::graphics::geometry_object_t>( _gc ) ;
+        fe->configure<motor::graphics::shader_object_t>( _sc ) ;
+        fe->configure<motor::graphics::image_object_t>( _ic ) ;
+        fe->configure<motor::graphics::render_object_t>( _rc ) ;
 
         _init = true ;
     }
@@ -391,7 +391,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                 _rs->set_render_states_set( i, rss ) ;
             }
 
-            fe->configure( motor::delay(_rs) ) ;
+            fe->configure<motor::graphics::state_object_t>( _rs ) ;
         }
     }
 
@@ -441,7 +441,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             pcmd->ElemCount = 6 ;
             #endif
         }
-        fe->update( motor::delay( _gc ) ) ;
+        fe->update( _gc ) ;
     }
     #else // test. Let in until tested extensively
     {
@@ -514,7 +514,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 
             if( _texture_added )
             {
-                fe->configure( motor::delay( _rc ) ) ;
+                fe->configure<motor::graphics::render_object_t>( _rc ) ;
                 _texture_added = false ;
             }
 
@@ -530,7 +530,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                 }
 
                 {
-                    fe->push( motor::delay( _rs), rs_id, false ) ;
+                    fe->push( _rs, rs_id, false ) ;
                 }
 
                 // do rendering
@@ -539,7 +539,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                     rd.num_elems = pcmd->ElemCount ;
                     rd.start = offset ;
                     rd.varset = size_t( pcmd->TextureId ) ;
-                    fe->render( motor::delay( _rc ), rd ) ;
+                    fe->render(_rc, rd ) ;
                 }
 
                 {
@@ -654,7 +654,7 @@ void_t imgui::update( window_data_cref_t data ) noexcept
 }
 
 //****
-void_t imgui::update( motor::device::three_device_mtr_shared_t dev ) noexcept
+void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -739,7 +739,7 @@ void_t imgui::update( motor::device::three_device_mtr_shared_t dev ) noexcept
 }
 
 //****
-void_t imgui::update( motor::device::ascii_device_mtr_shared_t dev ) noexcept
+void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;

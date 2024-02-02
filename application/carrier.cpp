@@ -30,15 +30,9 @@ carrier::carrier( this_rref_t rhv ) noexcept
 }
 
 //******************************************************
-carrier::carrier( motor::application::iapp_mtr_shared_t app ) noexcept : this_t()
+carrier::carrier( motor::application::iapp_mtr_safe_t app ) noexcept : this_t()
 {
-    this_t::set( std::move( app ) ) ;
-}
-
-//******************************************************
-carrier::carrier( motor::application::iapp_mtr_unique_t app ) noexcept : this_t()
-{
-    this_t::set( std::move( app ) ) ;
+    this_t::set( motor::move( app ) ) ;
 }
 
 //******************************************************
@@ -50,18 +44,7 @@ carrier::~carrier( void_t ) noexcept
 }
 
 //******************************************************
-motor::application::result carrier::set( motor::application::iapp_mtr_shared_t app ) noexcept
-{
-    if( _app != nullptr )
-        return motor::application::result::failed ;
-
-    _app = app ;
-
-    return motor::application::result::ok ;
-}
-
-//******************************************************
-motor::application::result carrier::set( motor::application::iapp_mtr_unique_t app ) noexcept
+motor::application::result carrier::set( motor::application::iapp_mtr_safe_t app ) noexcept
 {
     if( _app != nullptr )
         return motor::application::result::failed ;

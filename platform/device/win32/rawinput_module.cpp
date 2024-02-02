@@ -205,8 +205,8 @@ rawinput_module::~rawinput_module( void_t ) noexcept
 //***
 void_t rawinput_module::search( motor::device::imodule::search_funk_t funk ) noexcept
 {
-    funk( motor::share(_three_device) ) ;
-    funk( motor::share(_ascii_device) ) ;
+    funk( _three_device ) ;
+    funk( _ascii_device ) ;
 }
 
 //***

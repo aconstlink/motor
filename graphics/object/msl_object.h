@@ -110,25 +110,24 @@ namespace motor
 
         public: // variable sets
 
-            this_ref_t add_variable_set( motor::graphics::variable_set_mtr_unique_t vs ) noexcept
+            this_ref_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
             {
                 _vars.emplace_back( vs ) ;
                 return *this ;
             }
 
-            this_ref_t add_variable_set( motor::graphics::variable_set_mtr_shared_t vs ) noexcept
+            motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets( void_t ) const noexcept
             {
-                _vars.emplace_back( motor::memory::copy_ptr( vs ) ) ;
-                return *this ;
-            }
+                motor::vector< motor::graphics::variable_set_mtr_safe_t > ret( _vars.size() ) ;
 
-            motor::vector< motor::graphics::variable_set_mtr_unique_t > get_varibale_sets( void_t ) const noexcept
-            {
-                motor::vector< motor::graphics::variable_set_mtr_unique_t > ret ;
-
-                for( auto * mtr : _vars ) ret.emplace_back( motor::unique( motor::memory::copy_ptr( mtr ) ) ) ;
+                for( auto * mtr : _vars ) ret.emplace_back( motor::share( mtr ) ) ;
 
                 return ret ;
+            }
+
+            motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > borrow_varibale_sets( void_t ) const noexcept
+            {
+                return _vars ;
             }
         };
         motor_typedef( msl_object ) ;

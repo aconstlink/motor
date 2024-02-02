@@ -151,22 +151,16 @@ namespace motor
 
         public: // variable sets
 
-            this_ref_t add_variable_set( motor::graphics::variable_set_mtr_unique_t vs ) noexcept
+            this_ref_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
             {
                 _vars.emplace_back( vs ) ;
                 return *this ;
             }
 
-            this_ref_t add_variable_set( motor::graphics::variable_set_mtr_shared_t vs ) noexcept
-            {
-                _vars.emplace_back( motor::memory::copy_ptr( vs ) ) ;
-                return *this ;
-            }
-
-            this_ref_t add_variable_sets( motor::vector< motor::graphics::variable_set_mtr_unique_t > && vss ) noexcept
+            this_ref_t add_variable_sets( motor::vector< motor::graphics::variable_set_mtr_safe_t > && vss ) noexcept
             {
                 for( auto & utr : vss )
-                    _vars.emplace_back( utr.mtr() ) ;
+                    _vars.emplace_back( motor::move(utr) ) ;
 
                 return *this ;
             }
@@ -190,10 +184,17 @@ namespace motor
             }
 
             size_t get_num_variable_sets( void_t ) const noexcept { return _vars.size() ; }
-            motor::graphics::variable_set_mtr_shared_t get_variable_set( size_t const i ) noexcept 
+
+            motor::graphics::variable_set_mtr_safe_t get_variable_set( size_t const i ) noexcept 
             {
-                if( _vars.size() <= i ) return motor::graphics::variable_set_mtr_shared_t::make() ;
-                return motor::graphics::variable_set_mtr_shared_t( _vars[i] ) ;
+                if( _vars.size() <= i ) return motor::graphics::variable_set_mtr_safe_t::make() ;
+                return motor::share( _vars[i] ) ;
+            }
+
+            // fast version for quick access without ref counting
+            motor::graphics::variable_set_borrow_t::mtr_t borrow_variable_set( size_t const i ) noexcept 
+            {
+                return _vars.size() <= i ? nullptr : _vars[i] ;
             }
 
         public: // render state sets

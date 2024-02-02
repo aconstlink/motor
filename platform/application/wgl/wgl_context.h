@@ -67,7 +67,8 @@ namespace motor
 
             public: // which interface ?
 
-                motor::graphics::gen4::backend_mtr_shared_t backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_mtr_safe_t backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_borrow_t::mtr_t borrow_backend( void_t ) noexcept ;
 
             public:
 

@@ -192,13 +192,21 @@ motor::platform::result dx11_context::swap( void_t ) noexcept
 }
 
 //***********************************************************************
-motor::graphics::gen4::backend_mtr_shared_t dx11_context::backend( void_t ) noexcept 
+motor::graphics::gen4::backend_mtr_safe_t dx11_context::backend( void_t ) noexcept 
 {
     if( _backend != nullptr ) return motor::share( _backend ) ;
 
     _backend = motor::memory::create_ptr( motor::platform::gen4::d3d11_backend_t( this ) ) ;
     
     return motor::share( _backend ) ;
+}
+
+//***********************************************************************
+motor::graphics::gen4::backend_borrow_t::mtr_t dx11_context::borrow_backend( void_t ) noexcept 
+{
+    if( _backend != nullptr ) return _backend ;
+    _backend = motor::memory::create_ptr( motor::platform::gen4::d3d11_backend_t( this ) ) ;
+    return _backend ;
 }
 
 #if 0

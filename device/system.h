@@ -30,8 +30,7 @@ namespace motor
 
         public:
 
-            void_t add_module( motor::device::imodule_mtr_shared_t ) noexcept ;
-            void_t add_module( motor::device::imodule_mtr_unique_t ) noexcept ;
+            void_t add_module( motor::device::imodule_mtr_safe_t ) noexcept ;
 
             void_t search( motor::device::imodule::search_funk_t ) ;
             void_t update( void_t ) ;
