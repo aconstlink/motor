@@ -44,9 +44,11 @@ wgl_context::~wgl_context( void_t ) noexcept
         // backend is still going on.
         if( _backend != nullptr ) _backend->clear_all_objects() ;
     }
+    
+    _backend = motor::memory::release_ptr( _backend ) ;
 
     // the backend can not exist without the context.
-    assert( motor::memory::release_ptr( _backend ) == nullptr ) ;
+    assert( _backend == nullptr ) ;
 
     this_t::deactivate() ;
 
