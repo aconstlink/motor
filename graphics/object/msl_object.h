@@ -118,7 +118,7 @@ namespace motor
 
             motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets( void_t ) const noexcept
             {
-                motor::vector< motor::graphics::variable_set_mtr_safe_t > ret( _vars.size() ) ;
+                motor::vector< motor::graphics::variable_set_mtr_safe_t > ret ;
 
                 for( auto * mtr : _vars ) ret.emplace_back( motor::share( mtr ) ) ;
 
