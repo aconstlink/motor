@@ -3,6 +3,8 @@
 #include "api.h"
 #include "typedefs.h"
 
+#include "manager/manager.h"
+
 #include <mutex>
 #include <functional>
 
@@ -14,19 +16,12 @@ namespace motor
         {
             motor_this_typedefs( global ) ;
 
-        private:
-
-            motor::memory::imanager_ptr_t _manager ;
+            using manager_t = motor::memory::default_manager_t ;
 
         private: // singleton
 
             static std::mutex _mtx ;
-            static this_ptr_t _ptr ;
-
-        private:
-
-            using get_manager_funk_t = std::function< motor::memory::imanager_ptr_t ( void_t ) > ;
-            static get_manager_funk_t get_mgr ;
+            static manager_t _manager ;
 
         public:
 
@@ -37,10 +32,6 @@ namespace motor
 
         public: // singleton functions
 
-            static this_ptr_t init( void_t ) noexcept ;
-            static void_t deinit( void_t ) noexcept ;
-
-            static this_ptr_t get( void_t ) noexcept ;
 
         public: // managed interface
 

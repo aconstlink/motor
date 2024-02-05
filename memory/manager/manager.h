@@ -11,7 +11,7 @@ namespace motor
 {
     namespace memory
     {
-        class MOTOR_MEMORY_API manager : public motor::memory::imanager
+        class manager
         {
             motor_this_typedefs( manager ) ;
 
@@ -38,42 +38,38 @@ namespace motor
         public:
 
             manager( void_t ) noexcept ;
-            virtual ~manager( void_t ) noexcept ;
+            manager( this_cref_t ) = delete ;
+            manager( this_rref_t ) noexcept ;
+            ~manager( void_t ) noexcept ;
 
-        public:
-
-            static this_ptr_t create( void_t ) noexcept ;
-            static void_t destroy( this_ptr_t ) noexcept ;
-
+            this_ref_t operator = ( this_rref_t  ) noexcept ;
 
         public: // managed interface
 
-            virtual void_ptr_t create( size_t const sib, char_cptr_t purpose ) noexcept ;
-            virtual void_ptr_t create( size_t const sib ) noexcept ;
+            void_ptr_t create( size_t const sib, char_cptr_t purpose ) noexcept ;
+            void_ptr_t create( size_t const sib ) noexcept ;
 
             // duplicates a managed pointer.
-            virtual void_ptr_t create( void_ptr_t ) noexcept ;
+            void_ptr_t create( void_ptr_t ) noexcept ;
 
             // returns same pointer if ref count is not 0
             // otherwise nullptr is returned
-            virtual void_ptr_t release( void_ptr_t, motor::memory::void_funk_t ) noexcept ;
+            void_ptr_t release( void_ptr_t, motor::memory::void_funk_t ) noexcept ;
 
         public: // raw interface
             
-            virtual void_ptr_t alloc( size_t const sib, char_cptr_t purpose ) noexcept ;
-            virtual void_ptr_t alloc( size_t const sib ) noexcept ;
-            virtual void_t dealloc( void_ptr_t ) noexcept ;
-            virtual size_t get_sib( void_t ) const noexcept ;
-            virtual bool_t get_purpose( void_ptr_t, char_cptr_t & ) const noexcept ;
+            void_ptr_t alloc( size_t const sib, char_cptr_t purpose ) noexcept ;
+            void_ptr_t alloc( size_t const sib ) noexcept ;
+            void_t dealloc( void_ptr_t ) noexcept ;
+            size_t get_sib( void_t ) const noexcept ;
+            bool_t get_purpose( void_ptr_t, char_cptr_t & ) const noexcept ;
 
-            virtual void_t dump_to_std( void_t ) const noexcept ;
-
-            virtual void_t destroy( void_t ) noexcept ;
+            void_t dump_to_std( void_t ) const noexcept ;
 
         private:
 
             void_ptr_t alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept ;
         };
-        motor_typedef( manager ) ;
+        motor_typedefs( manager, default_manager ) ;
     }
 }

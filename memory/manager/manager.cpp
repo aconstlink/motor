@@ -6,31 +6,40 @@
 #include <cassert>
 #include <iostream>
 #include <string>
+#include <atomic>
 
 using namespace motor::memory ;
+
+static std::atomic< size_t > count = 0 ;
 
 //*************************************************************************************
 manager::manager( void_t ) noexcept 
 {
+    ++count ;
+}
 
+//*************************************************************************************
+manager::manager( this_rref_t rhv ) noexcept 
+{
+    _allocated_sib = rhv._allocated_sib ;
+    rhv._allocated_sib = 0 ;
+    _ptr_to_info = std::move( rhv._ptr_to_info ) ;
 }
 
 //*************************************************************************************
 manager::~manager( void_t ) noexcept
 {
-
+    --count ;
 }
 
 //*************************************************************************************
-manager::this_ptr_t manager::create( void_t ) noexcept
+manager::this_ref_t manager::operator = ( this_rref_t rhv ) noexcept 
 {
-    return new this_t() ;
-}
+    _allocated_sib = rhv._allocated_sib ;
+    rhv._allocated_sib = 0 ;
+    _ptr_to_info = std::move( rhv._ptr_to_info ) ;
 
-//*************************************************************************************
-void_t manager::destroy( this_ptr_t ptr ) noexcept
-{
-    delete ptr ;
+    return *this ;
 }
 
 //*************************************************************************************
@@ -194,10 +203,4 @@ void_t manager::dump_to_std( void_t ) const noexcept
     {
         std::cout << "* Memory manager has no entries." << std::endl ;
     }
-}
-
-//*************************************************************************************
-void_t manager::destroy( void_t ) noexcept
-{
-    this_t::destroy( this ) ;
 }
