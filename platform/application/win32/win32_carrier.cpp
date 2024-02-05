@@ -16,6 +16,7 @@
 #include "../../audio/oal/oal.h"
 
 #include <windows.h>
+#include <strsafe.h>
 
 using namespace motor::platform ;
 using namespace motor::platform::win32 ;
