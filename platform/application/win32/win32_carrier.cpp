@@ -255,8 +255,29 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         {
                             size_t const milli = d.micro_rnd/1000 ;
                             size_t const fps = d.micro_rnd == 0 ? 0 : size_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
-                            SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
-                                motor::to_string(fps) + " fps]").c_str() ) ;
+
+                            char buffer[100] ;
+                            buffer[0] = '\0' ;
+                            StringCchCatA( buffer, 100, wd.window_text.c_str() ) ;
+                            StringCchCatA( buffer, 100, "[ " ) ;
+                            // add milli
+                            {
+                                char nbuf[50] ;
+                                _ltoa_s( (long)milli, nbuf, 50, 10 ) ;
+                                StringCchCatA( buffer, 100, nbuf ) ;
+                            }
+                            StringCchCatA( buffer, 100, " ms; " ) ;
+                            // add fps
+                            {
+                                char nbuf[50] ;
+                                _ltoa_s( (long)fps, nbuf, 50, 10 ) ;
+                                StringCchCatA( buffer, 100, nbuf ) ;
+                            }
+                            StringCchCatA( buffer, 100, " fps ]\0" ) ;
+                            //SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
+                              //  motor::to_string(fps) + " fps]").c_str() ) ;
+
+                            SetWindowText( wd.hwnd, buffer ) ;
                         }
 
                         // set vsync
