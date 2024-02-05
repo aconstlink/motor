@@ -245,7 +245,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         }
                         else
                         {
-                            std::this_thread::sleep_for( std::chrono::microseconds(50) ) ;
+                            //std::this_thread::sleep_for( std::chrono::microseconds(50) ) ;
                         }
 
                     }
