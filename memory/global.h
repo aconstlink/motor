@@ -56,8 +56,6 @@ namespace motor
 
             static void_t dump_to_std( void_t ) noexcept ;
 
-
-
         public: // managed interface
 
             // creates managed pointer with ref count == 1

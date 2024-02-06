@@ -7,7 +7,6 @@ set( sources
     "global.h"
     "global.cpp"
 
-    "imanager.h"
     "manager/manager.h"
     "manager/manager.cpp"
     

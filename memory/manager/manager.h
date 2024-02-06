@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../imanager.h"
+#include "../api.h"
+#include "../typedefs.h"
 
 #include <motor/std/map>
 

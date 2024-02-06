@@ -12,9 +12,6 @@ namespace motor
     namespace memory
     {
         using namespace motor::core::types ;
-        
-        motor_class_proto_typedefs( imanager ) ;
-
         using void_funk_t = std::function< void_t ( void_t ) > ;
     }
 }
