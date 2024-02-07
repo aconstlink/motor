@@ -4,7 +4,7 @@
 #include "continuity.h"
 #include "../interpolation/interpolate.hpp"
 
-#include <motor/vector.hpp>
+#include <motor/std/vector>
 
 namespace motor
 {

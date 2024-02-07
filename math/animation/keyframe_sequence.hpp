@@ -5,7 +5,7 @@
 #include "../spline/cubic_hermit_spline.hpp"
 #include "../spline/linear_bezier_spline.hpp"
 
-#include <motor/vector.hpp>
+#include <motor/std/vector>
 #include <functional>
 
 namespace motor
