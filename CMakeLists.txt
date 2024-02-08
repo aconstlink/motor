@@ -139,7 +139,7 @@ list( APPEND subdirs
     #"format"
     
     #"geometry"
-    #"font"
+    "font"
     "tool"
     #"physics"
     #"profile"
