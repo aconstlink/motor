@@ -235,6 +235,10 @@ namespace motor
         };
         motor_typedef( global ) ;
 
+    }
+
+    namespace memory
+    {
         template< typename T >
         static motor::core::mtr_safe<T> create_ptr( void_t ) noexcept
         {
@@ -316,4 +320,10 @@ namespace motor
             return motor::memory::global_t::release( std::move( mvt ) );
         }
     }
+
+    template< typename T >
+    static core::mtr_safe< T > share( T * ptr ) noexcept
+    {
+        return core::mtr_safe<T>::make( motor::memory::copy_ptr( ptr ) ) ;
+    }   
 }

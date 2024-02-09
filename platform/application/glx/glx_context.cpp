@@ -111,8 +111,10 @@ context::~context( void_t ) noexcept
 {
     this_t::deactivate() ;
 
+    _backend = motor::memory::release_ptr( _backend ) ;
+
     // the backend can not exist without the context.
-    assert( motor::memory::release_ptr( _backend ) == nullptr ) ;
+    assert( _backend == nullptr ) ;
 
     motor::memory::global_t::dealloc( _pimpl ) ;
 }
@@ -170,7 +172,7 @@ motor::platform::result context::swap( void_t ) noexcept
 }
 
 //**************************************************************
-motor::graphics::gen4::backend_mtr_shared_t context::backend( void_t ) noexcept 
+motor::graphics::gen4::backend_mtr_safe_t context::backend( void_t ) noexcept 
 {
     if( _backend != nullptr ) return motor::share( _backend ) ;
 
@@ -189,6 +191,13 @@ motor::graphics::gen4::backend_mtr_shared_t context::backend( void_t ) noexcept
     }
     
     return motor::share( _backend ) ;
+}
+
+//***********************************************************************
+motor::graphics::gen4::backend_borrow_t::mtr_t context::borrow_backend( void_t ) noexcept 
+{
+    if( _backend != nullptr ) return _backend ;
+    return motor::memory::release_ptr( this_t::backend() ) ;
 }
 
 //***************************************************************

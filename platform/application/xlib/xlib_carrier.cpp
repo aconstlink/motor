@@ -1,7 +1,7 @@
 #include "xlib_carrier.h"
 
 #include <motor/graphics/render_engine.h>
-#include <motor/graphics/frontend/gen4/frontend.h>
+#include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include "../glx/glx_context.h"
 
@@ -122,12 +122,7 @@ xlib_carrier::xlib_carrier( void_t ) noexcept
 }
 
 //***********************************************************************
-xlib_carrier::xlib_carrier( motor::application::iapp_mtr_shared_t /*app*/ ) noexcept : xlib_carrier()
-{
-}
-
-//***********************************************************************
-xlib_carrier::xlib_carrier( motor::application::iapp_mtr_unique_t /*app*/ ) noexcept : xlib_carrier()
+xlib_carrier::xlib_carrier( motor::application::iapp_mtr_safe_t /*app*/ ) noexcept : xlib_carrier()
 {
 }
 
@@ -258,14 +253,14 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                                 return wd.hwnd == d.hwnd ;
                             } ) ;
 
-                            d.ptr->ctx.backend()->set_window_info( {
+                            d.ptr->ctx.borrow_backend()->set_window_info( {
                                 size_t(iter->width), size_t(iter->height) } ) ;
                         }
 
                         d.ptr->ctx.activate() ;
-                        d.ptr->ctx.backend()->render_begin() ;
+                        d.ptr->ctx.borrow_backend()->render_begin() ;
                         d.ptr->re.execute_frame() ;
-                        d.ptr->ctx.backend()->render_end() ;
+                        d.ptr->ctx.borrow_backend()->render_end() ;
                         d.ptr->ctx.swap() ;
                         d.ptr->ctx.deactivate() ;
                     }
@@ -396,7 +391,7 @@ motor::application::result xlib_carrier::close( void_t ) noexcept
 }
 
 //********************************************************************
-motor::application::iwindow_mtr_unique_t xlib_carrier::create_window( motor::application::window_info_cref_t info ) noexcept  
+motor::application::iwindow_mtr_safe_t xlib_carrier::create_window( motor::application::window_info_cref_t info ) noexcept  
 {
     motor::application::window_mtr_t wnd = motor::memory::create_ptr<motor::application::window_t>(
         "[xlib_carrier] : window handle" ) ;
@@ -411,7 +406,7 @@ motor::application::iwindow_mtr_unique_t xlib_carrier::create_window( motor::app
         _queue.emplace_back( this_t::window_queue_msg_t{info, wnd, lsn} ) ;
     }
 
-    return motor::unique( motor::memory::copy_ptr(wnd) )  ;
+    return motor::share( wnd )  ;
 }
 
 //********************************************************************
