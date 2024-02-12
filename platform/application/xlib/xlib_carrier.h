@@ -30,8 +30,8 @@ namespace motor
                 /// I would like to manage all windows and dispatch
                 /// all window messaged centralized in this 
                 /// application.
-                Display * _display ;
-                size_t _display_use_count ;
+                Display * _display = nullptr ;
+                size_t _display_use_count = 0 ;
 
                 Display * connect_display( void_t ) noexcept ;
                 void_t disconnect_display( void_t ) noexcept ;
@@ -97,8 +97,7 @@ namespace motor
 
                 xlib_carrier( void_t ) noexcept ;
                 xlib_carrier( this_rref_t ) noexcept ;
-                xlib_carrier( motor::application::iapp_mtr_shared_t ) noexcept ;
-                xlib_carrier( motor::application::iapp_mtr_unique_t ) noexcept ;
+                xlib_carrier( motor::application::iapp_mtr_safe_t ) noexcept ;
                 virtual ~xlib_carrier( void_t ) noexcept ;
 
             public:
@@ -106,7 +105,7 @@ namespace motor
                 virtual motor::application::result on_exec( void_t ) noexcept override ;
                 virtual motor::application::result close( void_t ) noexcept override ;
 
-                virtual motor::application::iwindow_mtr_unique_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
+                virtual motor::application::iwindow_mtr_safe_t create_window( motor::application::window_info_cref_t info ) noexcept override ;
 
             private:
 

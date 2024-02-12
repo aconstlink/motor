@@ -2,6 +2,7 @@
 #pragma once
 
 #include <cassert>
+#include <utility>
 
 namespace motor
 {
@@ -129,12 +130,6 @@ namespace motor
             
             //mtr_safe( type_mtr_t ptr ) noexcept : _ptr ( ptr ){}
         };
-    }
-
-    template< typename T >
-    static core::mtr_safe< T > share( T * ptr ) noexcept
-    {
-        return core::mtr_safe<T>::make( motor::memory::copy_ptr( ptr ) ) ;
     }
     
     template< typename T >

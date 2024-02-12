@@ -4,6 +4,7 @@
 
 #include <motor/std/vector>
 #include <algorithm>
+#include <cstring>
 
 namespace motor
 {
