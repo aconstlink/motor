@@ -101,7 +101,7 @@ namespace motor
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 
-                auto fac = this_t::get_import_factory( loc ) ;
+                auto fac = this_t::borrow_import_factory( loc ) ;
                 if( fac == nullptr )
                 {
                     return std::async( std::launch::deferred, [&] ( void_t ) -> item_mtr_t
