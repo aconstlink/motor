@@ -97,7 +97,7 @@ namespace motor
 
         public:
 
-            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_safe_t db ) noexcept
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_safe_t::mtr_t db ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 
@@ -114,8 +114,8 @@ namespace motor
                 return fac->create_module( loc.extension() )->import_from( loc, std::move(db) ) ;
             }
 
-            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_safe_t db, 
-                motor::property::property_sheet_mtr_safe_t ps ) noexcept
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_safe_t::mtr_t db, 
+                motor::property::property_sheet_safe_t::mtr_t ps ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 
@@ -132,8 +132,8 @@ namespace motor
                 return fac->create_module( loc.extension() )->import_from( loc, std::move( db ), std::move( ps ) ) ;
             }
 
-            motor::format::future_item_t export_to( motor::io::location_cref_t loc, motor::io::database_mtr_safe_t db, 
-                motor::format::item_mtr_safe_t what ) noexcept
+            motor::format::future_item_t export_to( motor::io::location_cref_t loc, motor::io::database_safe_t::mtr_t db, 
+                motor::format::item_safe_t::mtr_t what ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 

@@ -13,7 +13,7 @@ namespace motor
         {
         public:
 
-            virtual imodule_mtr_safe_t create_module( motor::string_cref_t ) noexcept = 0 ;
+            virtual imodule_safe_t::mtr_t create_module( motor::string_cref_t ) noexcept = 0 ;
         };
         motor_typedef( imodule_factory ) ;
 
@@ -22,8 +22,7 @@ namespace motor
         {
         public:
 
-
-            virtual imodule_mtr_safe_t create_module( motor::string_cref_t ) noexcept 
+            virtual imodule_safe_t::mtr_t create_module( motor::string_cref_t ) noexcept 
             {
                 return motor::shared< T >( T() ) ;
             }

@@ -130,17 +130,13 @@ list( APPEND subdirs
     
     "platform"
     "application"    
-    
-    
+    "tool"
+    "font"
+    "format"
 
     #"system"
     #"gfx"
-    
-    "format"
-    
     #"geometry"
-    "font"
-    "tool"
     #"physics"
     #"profile"
     #${subdirs_header_only}

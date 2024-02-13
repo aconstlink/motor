@@ -14,7 +14,7 @@ namespace motor
     {
         struct image_item : public item
         {
-            image_item( motor::graphics::image_mtr_safe_t img_ ) : img( img_ ) {}
+            image_item( motor::graphics::image_safe_t::mtr_t img_ ) : img( img_ ) {}
             virtual ~image_item( void_t ) {}
 
             motor::graphics::image_mtr_t img ;
@@ -23,7 +23,7 @@ namespace motor
 
         struct audio_item : public item
         {
-            audio_item( motor::audio::buffer_mtr_safe_t obj_ ) : obj( obj_ ) {}
+            audio_item( motor::audio::buffer_safe_t::mtr_t obj_ ) : obj( obj_ ) {}
             virtual ~audio_item( void_t ) {}
 
             motor::audio::buffer_mtr_t obj ;
@@ -32,7 +32,7 @@ namespace motor
 
         struct glyph_atlas_item : public item
         {
-            glyph_atlas_item( motor::font::glyph_atlas_mtr_safe_t obj_ ) : obj( obj_ ) {}
+            glyph_atlas_item( motor::font::glyph_atlas_safe_t::mtr_t obj_ ) : obj( obj_ ) {}
             virtual ~glyph_atlas_item( void_t ) {}
             
             motor::font::glyph_atlas_mtr_t obj ;
