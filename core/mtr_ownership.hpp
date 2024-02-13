@@ -35,6 +35,7 @@ namespace motor
             using type_ref_t = type_t & ;
             using type_cref_t = type_t const & ;
             using type_mtr_t = type_t * ;
+            using mtr_t = type_t * ;
             using type_mtr_rref_t = type_t * && ;
 
             type_mtr_t _ptr = nullptr ;
@@ -42,12 +43,8 @@ namespace motor
         public:
 
             mtr_safe( void ) noexcept {} ;
-            mtr_safe( this_cref_t rhv ) = delete ;
-
-            mtr_safe( this_rref_t rhv ) noexcept : _ptr(rhv._ptr) 
-            {
-                rhv._ptr = nullptr ;
-            }
+            mtr_safe( this_cref_t rhv ) noexcept : _ptr( rhv._ptr ) {}
+            mtr_safe( this_rref_t rhv ) noexcept : _ptr( motor::move( rhv._ptr ) ) {}
 
             mtr_safe( std::nullptr_t ) noexcept {}
             explicit mtr_safe( type_mtr_t ptr ) noexcept : _ptr( ptr ) {}
@@ -61,6 +58,11 @@ namespace motor
             }
 
             operator type_mtr_t() noexcept
+            {
+                return _ptr ;
+            }
+
+            type_mtr_t operator -> ( void ) const noexcept
             {
                 return _ptr ;
             }
@@ -113,6 +115,18 @@ namespace motor
             type_mtr_t mtr( void ) const noexcept
             {
                 return _ptr ;
+            }
+
+            this_ref_t operator = ( this_cref_t rhv ) noexcept 
+            {
+                _ptr = rhv._ptr ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept 
+            {
+                _ptr = motor::move( rhv._ptr ) ;
+                return *this ;
             }
 
             this_ref_t operator = ( type_mtr_t ptr ) noexcept 

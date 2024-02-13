@@ -322,8 +322,38 @@ namespace motor
     }
 
     template< typename T >
+    static core::mtr_safe< T > release( core::mtr_safe< T > & v ) noexcept
+    {
+        return core::mtr_safe< T >( motor::memory::release_ptr( v.mtr() ) ) ;
+    }
+
+    template< typename T >
+    static core::mtr_safe< T > release( core::mtr_safe< T > && v ) noexcept
+    {
+        return core::mtr_safe< T >( motor::memory::release_ptr( v.move() ) ) ;
+    }
+
+    template< typename T >
+    static core::mtr_safe< T > shared( T const & v ) noexcept
+    {
+        return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( v ) ) ;
+    }
+
+    template< typename T >
+    static core::mtr_safe< T > shared( T && v ) noexcept
+    {
+        return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( std::move( v ) ) ) ;
+    }
+
+    template< typename T >
     static core::mtr_safe< T > share( T * ptr ) noexcept
     {
         return core::mtr_safe<T>::make( motor::memory::copy_ptr( ptr ) ) ;
+    }   
+
+    template< typename T >
+    static core::mtr_safe< T > share( motor::core::mtr_safe<T> mtr ) noexcept
+    {
+        return motor::share( mtr.mtr() ) ;
     }   
 }

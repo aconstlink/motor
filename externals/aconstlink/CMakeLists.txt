@@ -2,9 +2,9 @@
 #add_subdirectory( rapidxml )
 
 add_library( rapidxml INTERFACE )
-target_include_directories( rapidxml INTERFACE "rapidxml" )
+target_include_directories( rapidxml INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rapidxml> )
 
-#export( TARGETS rapidxml NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/snakeoil-targets.cmake )
+export( TARGETS rapidxml NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
 
 
 #
