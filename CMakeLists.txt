@@ -145,9 +145,6 @@ list( APPEND subdirs
 add_library( complete INTERFACE )
 add_library( ${PROJECT_NAME}::complete ALIAS complete )
 
-if( TARGET property )
-message( "hello")
-endif()
 #
 # header-only
 #
