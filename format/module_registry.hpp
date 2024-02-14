@@ -104,7 +104,7 @@ namespace motor
                 auto fac = this_t::borrow_import_factory( loc ) ;
                 if( fac == nullptr )
                 {
-                    return std::async( std::launch::deferred, [&] ( void_t ) -> item_mtr_t
+                    return std::async( std::launch::deferred, [=] ( void_t ) -> item_mtr_t
                     {
                         motor::log::global_t::warning( "Can not create factory for extension : " + loc.extension() ) ;
                         return motor::shared( motor::format::status_item_t( "Can not create factory for extension : " + loc.extension() ) ) ;

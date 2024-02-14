@@ -10,6 +10,10 @@ namespace motor
 {
     namespace format
     {
-        MOTOR_FORMAT_API_C void_t register_default_registries( motor::format::module_registry_mtr_t ) ;
+        struct MOTOR_FORMAT_API global
+        {
+            static motor::format::module_registry_mtr_t register_default_modules( motor::format::module_registry_mtr_t ) ;
+        };
+        
     }
 }

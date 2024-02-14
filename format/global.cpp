@@ -10,10 +10,12 @@
 using namespace motor::format ;
 
 //***
-void_t register_default_registries( motor::format::module_registry_mtr_t ) 
+motor::format::module_registry_mtr_t global::register_default_modules( motor::format::module_registry_mtr_t mr ) 
 {
-    //motor::format::stb_module_register::register_module( _mr ) ;
-    //motor::format::msl_module_register::register_module( _mr ) ;
-    //motor::format::wav_module_register::register_module( _mr ) ;
-    //motor::format::motor_module_register::register_module( _mr ) ;
+    motor::format::stb_module_register::register_module( mr ) ;
+    motor::format::msl_module_register::register_module( mr ) ;
+    motor::format::wav_module_register::register_module( mr ) ;
+    motor::format::motor_module_register::register_module( mr ) ;
+
+    return mr ;
 }
