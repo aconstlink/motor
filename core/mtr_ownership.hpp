@@ -125,7 +125,7 @@ namespace motor
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept 
             {
-                _ptr = motor::move( rhv._ptr ) ;
+                _ptr = rhv._ptr ; rhv._ptr = nullptr ;
                 return *this ;
             }
 
