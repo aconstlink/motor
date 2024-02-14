@@ -44,7 +44,7 @@ namespace motor
 
             mtr_safe( void ) noexcept {} ;
             mtr_safe( this_cref_t rhv ) noexcept : _ptr( rhv._ptr ) {}
-            mtr_safe( this_rref_t rhv ) noexcept : _ptr( motor::move( rhv._ptr ) ) {}
+            mtr_safe( this_rref_t rhv ) noexcept : _ptr( rhv._ptr ) { rhv._ptr = nullptr ; }
 
             mtr_safe( std::nullptr_t ) noexcept {}
             explicit mtr_safe( type_mtr_t ptr ) noexcept : _ptr( ptr ) {}
