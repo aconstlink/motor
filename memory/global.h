@@ -330,19 +330,19 @@ namespace motor
     template< typename T >
     static core::mtr_safe< T > release( core::mtr_safe< T > && v ) noexcept
     {
-        return core::mtr_safe< T >( motor::memory::release_ptr( v.move() ) ) ;
+        return core::mtr_safe< T >( motor::memory::release_ptr( v.move(), purpose ) ) ;
     }
 
     template< typename T >
-    static core::mtr_safe< T > shared( T const & v ) noexcept
+    static core::mtr_safe< T > shared( T const & v, char_cptr_t purpose="" ) noexcept
     {
         return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( v ) ) ;
     }
 
     template< typename T >
-    static core::mtr_safe< T > shared( T && v ) noexcept
+    static core::mtr_safe< T > shared( T && v, char_cptr_t purpose = "" ) noexcept
     {
-        return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( std::move( v ) ) ) ;
+        return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( std::move( v ), purpose ) ) ;
     }
 
     template< typename T >
@@ -356,4 +356,28 @@ namespace motor
     {
         return motor::share( mtr.mtr() ) ;
     }   
+
+    template< typename T >
+    class mtr_release_guard
+    {
+        motor_this_typedefs( mtr_release_guard< T > ) ;
+
+    private:
+
+        T * _mtr = nullptr ;
+
+    public:
+
+        mtr_release_guard( motor::core::mtr_safe<T> & mtr ) noexcept : _mtr( mtr ) {}
+        mtr_release_guard( motor::core::mtr_safe<T> && mtr ) noexcept : _mtr( mtr.move() ) {}
+        ~mtr_release_guard( void_t ) noexcept { motor::memory::release_ptr( _mtr ) ; }
+
+        bool_t is_valid( void_t ) const noexcept { return _mtr != nullptr ; }
+
+        T * operator ->( void_t ) noexcept { return _mtr ; }
+        T const * operator ->( void_t ) const noexcept { return _mtr ; }
+
+        T & operator * ( void_t ) noexcept { return *_mtr ; }
+        T const & operator * ( void_t ) const noexcept { return *_mtr ; }
+    };
 }

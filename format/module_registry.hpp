@@ -61,7 +61,7 @@ namespace motor
 
         public:
 
-            bool_t register_import_factory( motor::vector< motor::string_t > const & exts, motor::format::imodule_factory_mtr_t fac ) noexcept
+            bool_t register_import_factory( motor::vector< motor::string_t > const & exts, motor::format::imodule_factory_mtr_safe_t fac ) noexcept
             {
                 for( auto const & ext : exts )
                 {
@@ -69,16 +69,18 @@ namespace motor
 
                     this_t::data_t d ;
                     d.ext = ext ;
-                    d.fac = motor::share( fac );
+                    d.fac = motor::share( fac ) ;
 
                     // add to the front so newer modules will be preferred.
                     _imports.insert( _imports.begin(), std::move( d ) ) ;
                 }
 
+                motor::release( fac ) ;
+
                 return true ;
             }
 
-            bool_t register_export_factory( motor::vector< motor::string_t > const& exts, motor::format::imodule_factory_mtr_t fac ) noexcept
+            bool_t register_export_factory( motor::vector< motor::string_t > const& exts, motor::format::imodule_factory_mtr_safe_t fac ) noexcept
             {
                 for( auto const& ext : exts )
                 {
@@ -86,18 +88,20 @@ namespace motor
                     
                     this_t::data_t d ;
                     d.ext = ext ;
-                    d.fac = fac ;
+                    d.fac = motor::share( fac ) ;
 
                     // add to the front so newer modules will be preferred.
                     _exports.insert( _exports.begin(), std::move( d ) ) ;
                 }
+
+                motor::release( fac ) ;
 
                 return true ;
             }
 
         public:
 
-            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_safe_t::mtr_t db ) noexcept
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 
@@ -111,11 +115,11 @@ namespace motor
                     } ) ;
                 }
                 
-                return fac->create_module( loc.extension() )->import_from( loc, std::move(db) ) ;
+                return fac->borrow_module( loc.extension() )->import_from( loc, db ) ;
             }
 
-            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_safe_t::mtr_t db, 
-                motor::property::property_sheet_safe_t::mtr_t ps ) noexcept
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db, 
+                motor::property::property_sheet_mtr_safe_t ps ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 
@@ -129,11 +133,11 @@ namespace motor
                     } ) ;
                 }
                 
-                return fac->create_module( loc.extension() )->import_from( loc, std::move( db ), std::move( ps ) ) ;
+                return fac->borrow_module( loc.extension() )->import_from( loc, std::move( db ), std::move( ps ) ) ;
             }
 
-            motor::format::future_item_t export_to( motor::io::location_cref_t loc, motor::io::database_safe_t::mtr_t db, 
-                motor::format::item_safe_t::mtr_t what ) noexcept
+            motor::format::future_item_t export_to( motor::io::location_cref_t loc, motor::io::database_mtr_t db, 
+                motor::format::item_mtr_safe_t what ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 
@@ -147,7 +151,7 @@ namespace motor
                     } ) ;
                 }
                 
-                return fac->create_module( loc.extension() )->export_to( loc, std::move( db ), std::move(what) ) ;
+                return fac->borrow_module( loc.extension() )->export_to( loc, std::move( db ), std::move(what) ) ;
             }
 
         private:

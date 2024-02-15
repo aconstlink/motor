@@ -9,6 +9,8 @@
 
 namespace motor
 {
+    using namespace motor::core::types ;
+
     namespace memory
     {
         using namespace motor::core::types ;

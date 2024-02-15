@@ -39,7 +39,7 @@ namespace this_file
 }
 
 // ***
-void_t motor_module_register::register_module( motor::format::module_registry_safe_t::mtr_t reg )
+void_t motor_module_register::register_module( motor::format::module_registry_mtr_t reg ) noexcept
 {
     reg->register_import_factory( { "motor" }, motor::shared( motor_factory_t() ) ) ;
     reg->register_export_factory( { "motor" }, motor::shared( motor_factory_t() ) ) ;
@@ -47,23 +47,24 @@ void_t motor_module_register::register_module( motor::format::module_registry_sa
 
 // ***
 motor::format::future_item_t motor_module::import_from( motor::io::location_cref_t loc, 
-    motor::io::database_safe_t::mtr_t db ) noexcept
+    motor::io::database_mtr_t db ) noexcept
 {
     return this_t::import_from( loc, db, motor::shared( motor::property::property_sheet_t() ) ) ;
 }
 
 // ***
 motor::format::future_item_t motor_module::import_from( motor::io::location_cref_t loc, 
-                motor::io::database_safe_t::mtr_t db, motor::property::property_sheet_safe_t::mtr_t ps ) noexcept 
+                motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps ) noexcept 
 {
-    return std::async( std::launch::async, [=] ( void_t ) -> item_mtr_t
+    return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
+        motor::mtr_release_guard< motor::property::property_sheet_t > psr( ps ) ;
+
         motor_document_t nd ;
 
         motor::memory::malloc_guard<char> content ;
         motor::io::database_t::cache_access_t ca = db->load( loc ) ;
         {
-            
             auto const res = ca.wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const )
             {
                 motor::string_t file = motor::string_t( data, sib ) ;
@@ -327,20 +328,19 @@ motor::format::future_item_t motor_module::import_from( motor::io::location_cref
             }
         }
 
-        motor::memory::release_ptr( db ) ;
-        motor::memory::release_ptr( ps ) ;
-
         return motor::shared( motor::format::motor_item_t( std::move( nd ) ) ) ;
     } ) ;
 }
 
 motor::format::future_item_t motor_module::export_to( motor::io::location_cref_t loc, 
-                motor::io::database_safe_t::mtr_t db, motor::format::item_safe_t::mtr_t what ) noexcept 
+                motor::io::database_mtr_t db, motor::format::item_mtr_safe_t what ) noexcept 
 {
-    return std::async( std::launch::async, [=] ( void_t ) -> item_mtr_t
+    return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
-        motor::format::motor_item_safe_t::mtr_t ntm = 
-            dynamic_cast<motor::format::motor_item_safe_t::mtr_t>( what ) ;
+        motor::mtr_release_guard< motor::format::item_t > releaser( what ) ;
+
+        motor::format::motor_item_mtr_t ntm = 
+            dynamic_cast<motor::format::motor_item_mtr_t>( what.mtr() ) ;
 
         if( ntm == nullptr )
         {
@@ -479,9 +479,6 @@ motor::format::future_item_t motor_module::export_to( motor::io::location_cref_t
                 o = a ;
             }
         }
-
-        motor::memory::release_ptr( db ) ;
-        motor::memory::release_ptr( what ) ;
 
         motor::io::result res = motor::io::result::invalid ;
         

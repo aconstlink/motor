@@ -19,13 +19,13 @@ namespace motor
             virtual ~imodule( void_t ) {}
 
             virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, 
-                motor::io::database_safe_t::mtr_t ) noexcept = 0 ;
+                motor::io::database_mtr_t ) noexcept = 0 ;
 
             virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, 
-                motor::io::database_safe_t::mtr_t, motor::property::property_sheet_safe_t::mtr_t ) noexcept = 0 ;
+                motor::io::database_mtr_t, motor::property::property_sheet_mtr_safe_t ) noexcept = 0 ;
 
             virtual motor::format::future_item_t export_to( motor::io::location_cref_t loc, 
-                motor::io::database_safe_t::mtr_t, motor::format::item_safe_t::mtr_t ) noexcept = 0 ;
+                motor::io::database_mtr_t, motor::format::item_mtr_safe_t ) noexcept = 0 ;
         };
         motor_typedef( imodule ) ;
     }
