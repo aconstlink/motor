@@ -135,7 +135,7 @@ list( APPEND subdirs
     "format"
 
     #"system"
-    #"gfx"
+    "gfx"
     "geometry"
     #"physics"
     #"profile"
