@@ -197,11 +197,6 @@ namespace motor
                     return *this ;
                 }
 
-                void_t force_clear_color( motor::math::vec4f_cref_t color ) noexcept 
-                {
-                    _re->send_execute( [=]( void_t ){} ) ;
-                }
-
                 void_t force_context_swap( void_t ) noexcept
                 {
                     _re->send_execute( [=]( void_t ){} ) ;
