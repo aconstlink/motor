@@ -108,8 +108,7 @@ namespace motor
                 /// scale in all dimensions from left
                 this_ref_t scale_fl( type_t scaling ) noexcept
                 {
-                    mat4_t trafo = mat4_t( motor::math::with_identity() ).
-                        scale_by( scaling ) ;
+                    mat4_t trafo = mat4_t::make_identity().scale_by( scaling ) ;
 
                     trafo[ 15 ] = 1.0f ;
 
@@ -160,9 +159,9 @@ namespace motor
                 /// rotate by angle(euler angles) from left
                 this_ref_t rotate_by_angle_fl( vec3_cref_t per_axis_angle ) noexcept
                 {
-                    vec3_t const x_axis = vec3_t( motor::math::x_axis() ) ;
-                    vec3_t const y_axis = vec3_t( motor::math::y_axis() ) ;
-                    vec3_t const z_axis = vec3_t( motor::math::z_axis() ) ;
+                    vec3_t const x_axis = vec3_t( 1.0f, 0.0f, 0.0f ) ;
+                    vec3_t const y_axis = vec3_t( 0.0f, 1.0f, 0.0f ) ;
+                    vec3_t const z_axis = vec3_t( 0.0f, 0.0f, 1.0f ) ;
 
                     quat4_t const x = quat4_t::rotatate_norm_axis( x_axis, per_axis_angle.x() ) ;
                     quat4_t const y = quat4_t::rotatate_norm_axis( y_axis, per_axis_angle.y() ) ;

@@ -55,6 +55,24 @@ generic_camera::generic_camera( this_rref_t rhv ) noexcept
 //*********************************************
 generic_camera::~generic_camera( void_t ) noexcept {}
 
+generic_camera::this_ref_t generic_camera::operator = ( this_rref_t rhv ) noexcept 
+{
+    _trafo = std::move( rhv._trafo ) ;
+    _cam_matrix = rhv._cam_matrix ;
+    _view_matrix = rhv._view_matrix ;
+    _proj_matrix = rhv._proj_matrix ;
+    _projection_mode = rhv._projection_mode ;
+
+    _fov = rhv._fov ;
+    _aspect = rhv._aspect ;
+    _near_far = rhv._near_far ;
+    _sensor_dims = rhv._sensor_dims ;
+
+    _frustum = rhv._frustum ;
+
+    return *this ;
+}
+
 //*********************************************
 void_t generic_camera::transform_by( motor::math::m3d::trafof_cref_t trafo ) noexcept
 {

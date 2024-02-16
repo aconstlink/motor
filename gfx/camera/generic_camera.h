@@ -68,6 +68,8 @@ namespace motor
             
             virtual ~generic_camera( void_t ) noexcept ;
 
+            this_ref_t operator = ( this_rref_t ) noexcept ;
+
         public:
 
             this_ref_t make_orthographic( float_t const w, float_t const h,
