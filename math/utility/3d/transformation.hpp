@@ -37,39 +37,34 @@ namespace motor
             private:
 
                 // contains scale, rotation and position
-                mat4_t _trafo ;
+                mat4_t _trafo = mat4_t::make_identity() ;
 
             public:
 
-                transformation( void_t ) : _trafo( motor::math::with_identity() )
+                transformation( void_t ) noexcept
                 {}
 
-                transformation( motor::math::xzyw ) : _trafo( motor::math::xzyw() )
-                {}
-
-                transformation( this_cref_t rhv )
+                transformation( this_cref_t rhv ) noexcept
                 {
                     *this = rhv ;
                 }
 
-                transformation( mat4_cref_t trafo ) : _trafo( trafo )
+                transformation( mat4_cref_t trafo ) noexcept : _trafo( trafo )
                 {}
 
-                transformation( vec2_cref_t pos ) : _trafo( motor::math::with_identity() )
+                transformation( vec2_cref_t pos ) noexcept
                 {
                     this_t::translate_by( pos ) ;
                 }
 
-                transformation( vec3f_cref_t scale, euler_angle_cref_t axis, vec3f_cref_t translation ) :
-                    _trafo( motor::math::with_identity() )
+                transformation( vec3f_cref_t scale, euler_angle_cref_t axis, vec3f_cref_t translation ) noexcept
                 {
                     this_t::scale_fl( scale ) ;
                     this_t::rotate_by_angle_fl( axis ) ;
                     this_t::translate_fl( translation ) ;
                 }
 
-                transformation( vec3f_cref_t scale, axis_angle_cref_t axis, vec3f_cref_t translation ) :
-                    _trafo( motor::math::with_identity() )
+                transformation( vec3f_cref_t scale, axis_angle_cref_t axis, vec3f_cref_t translation ) noexcept
                 {
                     this_t::scale_fl( scale ) ;
                     this_t::rotate_by_angle_fl( axis.xyz(), axis.w() ) ;
@@ -79,39 +74,39 @@ namespace motor
 
             public:
 
-                void_t set_transformation( mat4f_cref_t mat )
+                void_t set_transformation( mat4f_cref_t mat ) noexcept
                 {
                     _trafo = mat ;
                 }
 
-                mat4_cref_t get_transformation( void_t ) const { return _trafo ; }
+                mat4_cref_t get_transformation( void_t ) const noexcept { return _trafo ; }
 
-                vec3_t get_translation( void_t ) const
+                vec3_t get_translation( void_t ) const noexcept
                 {
                     return _trafo.get_column( 3 ) ;
                 }
 
             public:
 
-                this_ref_t set_scale( type_t scaling )
+                this_ref_t set_scale( type_t scaling ) noexcept
                 {
                     _trafo.set_main_diagonal( vec4_t( vec3_t( scaling ), type_t( 1 ) ) ) ;
                     return *this ;
                 }
 
-                this_ref_t set_scale( vec3_cref_t scaling )
+                this_ref_t set_scale( vec3_cref_t scaling ) noexcept
                 {
                     _trafo.set_main_diagonal( vec4_t( scaling, type_t( 1 ) ) ) ;
                     return *this ;
                 }
 
-                vec3_t get_scale( void_t ) const
+                vec3_t get_scale( void_t ) const noexcept
                 {
                     return _trafo.get_vec3_diagonal() ;
                 }
 
                 /// scale in all dimensions from left
-                this_ref_t scale_fl( type_t scaling )
+                this_ref_t scale_fl( type_t scaling ) noexcept
                 {
                     mat4_t trafo = mat4_t( motor::math::with_identity() ).
                         scale_by( scaling ) ;
@@ -124,9 +119,9 @@ namespace motor
                 }
 
                 /// scale in all dimensions from right
-                this_ref_t scale_fr( type_t scaling )
+                this_ref_t scale_fr( type_t scaling ) noexcept
                 {
-                    mat4_t trafo = mat4_t( motor::math::with_identity() ).
+                    mat4_t trafo = mat4_t::make_identity().
                         scale_by( scaling ) ;
 
                     trafo[ 15 ] = 1.0f ;
@@ -137,9 +132,9 @@ namespace motor
                 }
 
                 /// scale from left
-                this_ref_t scale_fl( vec3_cref_t scaling )
+                this_ref_t scale_fl( vec3_cref_t scaling ) noexcept
                 {
-                    mat4_t trafo = mat4_t( motor::math::with_identity() ).
+                    mat4_t trafo = mat4_t::make_identity().
                         scale_by( scaling ) ;
 
                     trafo[ 15 ] = 1.0f ;
@@ -150,9 +145,9 @@ namespace motor
                 }
 
                 /// scale from right
-                this_ref_t scale_fr( vec3_cref_t scaling )
+                this_ref_t scale_fr( vec3_cref_t scaling ) noexcept
                 {
-                    mat4_t trafo = mat4_t( motor::math::with_identity() ).
+                    mat4_t trafo = mat4_t::make_identity().
                         scale_by( scaling ) ;
 
                     trafo[ 15 ] = 1.0f ;
@@ -163,20 +158,15 @@ namespace motor
                 }
 
                 /// rotate by angle(euler angles) from left
-                this_ref_t rotate_by_angle_fl( vec3_cref_t per_axis_angle )
+                this_ref_t rotate_by_angle_fl( vec3_cref_t per_axis_angle ) noexcept
                 {
                     vec3_t const x_axis = vec3_t( motor::math::x_axis() ) ;
                     vec3_t const y_axis = vec3_t( motor::math::y_axis() ) ;
                     vec3_t const z_axis = vec3_t( motor::math::z_axis() ) ;
 
-                    quat4_t const x( per_axis_angle.x(), x_axis,
-                        motor::math::axis_normalized() ) ;
-
-                    quat4_t const y( per_axis_angle.y(), y_axis,
-                        motor::math::axis_normalized() ) ;
-
-                    quat4_t const z( per_axis_angle.z(), z_axis,
-                        motor::math::axis_normalized() ) ;
+                    quat4_t const x = quat4_t::rotatate_norm_axis( x_axis, per_axis_angle.x() ) ;
+                    quat4_t const y = quat4_t::rotatate_norm_axis( y_axis, per_axis_angle.y() ) ;
+                    quat4_t const z = quat4_t::rotatate_norm_axis( z_axis, per_axis_angle.z() ) ;
 
                     // rotation matrix
                     mat4_t rot( quat4_t( z * y * x ).to_matrix() ) ;
@@ -190,20 +180,15 @@ namespace motor
 
                 /// rotate by angle(euler angles) from right
                 /// => this * rot(euler angles)
-                this_ref_t rotate_by_angle_fr( vec3_cref_t per_axis_angle )
+                this_ref_t rotate_by_angle_fr( vec3_cref_t per_axis_angle ) noexcept
                 {
                     vec3_t const x_axis = vec3_t( motor::math::x_axis() ) ;
                     vec3_t const y_axis = vec3_t( motor::math::y_axis() ) ;
                     vec3_t const z_axis = vec3_t( motor::math::z_axis() ) ;
 
-                    quat4_t const x( per_axis_angle.x(), x_axis,
-                        motor::math::axis_normalized() ) ;
-
-                    quat4_t const y( per_axis_angle.y(), y_axis,
-                        motor::math::axis_normalized() ) ;
-
-                    quat4_t const z( per_axis_angle.z(), z_axis,
-                        motor::math::axis_normalized() ) ;
+                    quat4_t const x = quat4_t::rotatate_norm_axis( x_axis, per_axis_angle.x() ) ;
+                    quat4_t const y = quat4_t::rotatate_norm_axis( y_axis, per_axis_angle.y() ) ;
+                    quat4_t const z = quat4_t::rotatate_norm_axis( z_axis, per_axis_angle.z() ) ;
 
                     // rotation matrix
                     mat4_t rot( quat4_t( x * y * z ).to_matrix() ) ;
@@ -217,10 +202,9 @@ namespace motor
 
                 /// rotation by axis from left
                 /// => rot(axis, angle) * this
-                this_ref_t rotate_by_axis_fl( vec3_cref_t axis, type_t angle )
+                this_ref_t rotate_by_axis_fl( vec3_cref_t axis, type_t angle ) noexcept
                 {
-                    auto m = mat4_t( motor::math::quat4f_t(
-                        angle, axis, motor::math::axis_normalized() ).to_matrix() ) ;
+                    auto m = mat4_t( quat4_t::rotatate_norm_axis( axis, angle ).to_matrix() ) ;
                     m[ 15 ] = type_t( 1 ) ;
 
                     _trafo = m * _trafo ;
@@ -229,10 +213,9 @@ namespace motor
 
                 /// rotation by axis from right
                 /// => this * rot(axis, angle)
-                this_ref_t rotate_by_axis_fr( vec3_cref_t axis, type_t angle )
+                this_ref_t rotate_by_axis_fr( vec3_cref_t axis, type_t angle ) noexcept
                 {
-                    auto m = mat4_t( motor::math::quat4f_t(
-                        angle, axis, motor::math::axis_normalized() ).to_matrix() ) ;
+                    auto m = mat4_t( quat4_t::rotatate_norm_axis( axis, angle ).to_matrix() ) ;
                     m[ 15 ] = type_t( 1 ) ;
 
                     _trafo = _trafo * m ;
@@ -241,9 +224,9 @@ namespace motor
 
                 /// rotate by a rotation matrix from left
                 /// => rot_mat * this
-                this_ref_t rotate_by_matrix_fl( mat3_cref_t rot_mat )
+                this_ref_t rotate_by_matrix_fl( mat3_cref_t rot_mat ) noexcept
                 {
-                    mat4f_t trafo( rot_mat ) ;
+                    mat4_t trafo( rot_mat ) ;
                     trafo[ 15 ] = 1.0f ;
 
                     _trafo = trafo * _trafo ;
@@ -253,9 +236,9 @@ namespace motor
 
                 /// rotate by a rotation matrix from right
                 /// => this * rot_mat
-                this_ref_t rotate_by_matrix_fr( mat3_cref_t rot_mat )
+                this_ref_t rotate_by_matrix_fr( mat3_cref_t rot_mat ) noexcept
                 {
-                    mat4f_t trafo( rot_mat ) ;
+                    mat4_t trafo( rot_mat ) ;
                     trafo[ 15 ] = 1.0f ;
 
                     _trafo = _trafo * trafo ;
@@ -263,14 +246,14 @@ namespace motor
                     return *this ;
                 }
 
-                mat3_t get_rotation_matrix( void_t ) const
+                mat3_t get_rotation_matrix( void_t ) const noexcept
                 {
                     return mat3_t( _trafo ) ;
                 }
 
                 /// sets the translation to the specified position
                 /// => cur_pos = to
-                this_ref_t set_translation( vec3_cref_t to )
+                this_ref_t set_translation( vec3_cref_t to ) noexcept
                 {
                     _trafo.set_column( 3, vec4_t( to, type_t( 1 ) ) ) ;
                     return *this ;
@@ -278,9 +261,9 @@ namespace motor
 
                 /// translate from left(fl)
                 /// => T(by) * this
-                this_ref_t translate_fl( vec3_cref_t by )
+                this_ref_t translate_fl( vec3_cref_t by ) noexcept
                 {
-                    auto const trans = mat4_t( motor::math::with_identity() )
+                    auto const trans = mat4_t::make_identity()
                         .set_column( 3, vec4_t( by, type_t( 1 ) ) ) ;
 
                     _trafo = trans * _trafo ;
@@ -290,9 +273,9 @@ namespace motor
 
                 /// translate from right(fr)
                 /// => this * T(by)
-                this_ref_t translate_fr( vec3_cref_t by )
+                this_ref_t translate_fr( vec3_cref_t by ) noexcept
                 {
-                    auto const trans = mat4_t( motor::math::with_identity() )
+                    auto const trans = mat4_t::make_identity()
                         .set_column( 3, vec4_t( by, type_t( 1 ) ) ) ;
 
                     _trafo = _trafo * trans ;
@@ -302,7 +285,7 @@ namespace motor
 
                 /// transform from left(fl)
                 /// => by * this
-                this_ref_t transform_fl( this_cref_t by )
+                this_ref_t transform_fl( this_cref_t by ) noexcept
                 {
                     _trafo = by._trafo * _trafo ;
                     return *this ;
@@ -310,7 +293,7 @@ namespace motor
 
                 /// transform from right(fr)
                 /// => this * by
-                this_ref_t transform_fr( this_cref_t by )
+                this_ref_t transform_fr( this_cref_t by ) noexcept
                 {
                     _trafo = _trafo * by._trafo ;
                     return *this ;
@@ -318,52 +301,46 @@ namespace motor
 
             public:
 
-                static this_t scaling( type_t scale )
+                static this_t scaling( type_t scale ) noexcept
                 {
-                    return this_t( motor::math::with_identity() ).
-                        set_scale( scale ) ;
+                    return this_t().set_scale( scale ) ;
                 }
 
-                static this_t scaling( vec3_cref_t scale )
+                static this_t scaling( vec3_cref_t scale ) noexcept
                 {
-                    return this_t( motor::math::with_identity() ).
-                        set_scale( scale ) ;
+                    return this_t().set_scale( scale ) ;
                 }
 
-                static this_t translation( vec3_cref_t t )
+                static this_t translation( vec3_cref_t t ) noexcept
                 {
-                    return this_t( motor::math::with_identity { } ).
-                        set_translation( t ) ;
+                    return this_t().set_translation( t ) ;
                 }
 
-                static this_t rotation_by_euler( vec3_cref_t angles )
+                static this_t rotation_by_euler( vec3_cref_t angles ) noexcept
                 {
-                    return this_t( motor::math::with_identity { } ).
-                        rotate_by_angle_fr( angles ) ;
+                    return this_t().rotate_by_angle_fr( angles ) ;
                 }
 
-                static this_t rotation_by_axis( vec3_cref_t axis, float_t angle )
+                static this_t rotation_by_axis( vec3_cref_t axis, float_t angle ) noexcept
                 {
-                    return this_t( motor::math::with_identity { } ).
-                        rotate_by_axis_fr( axis, angle ) ;
+                    return this_t().rotate_by_axis_fr( axis, angle ) ;
                 }
 
-                static this_t rotation_by_matrix( mat3_cref_t m )
+                static this_t rotation_by_matrix( mat3_cref_t m ) noexcept
                 {
-                    return this_t( motor::math::with_identity { } ).
-                        rotate_by_matrix_fr( m ) ;
+                    return this_t().rotate_by_matrix_fr( m ) ;
                 }
 
             public:
 
 
-                this_ref_t operator = ( this_cref_t rhv )
+                this_ref_t operator = ( this_cref_t rhv ) noexcept
                 {
                     _trafo = rhv._trafo ;
                     return *this ;
                 }
 
-                this_ref_t operator = ( this_rref_t rhv )
+                this_ref_t operator = ( this_rref_t rhv ) noexcept
                 {
                     _trafo = rhv._trafo ;
                     return *this ;
@@ -371,7 +348,7 @@ namespace motor
 
                 /// transform from right!
                 /// this * rhv 
-                this_t operator * ( this_cref_t rhv ) const
+                this_t operator * ( this_cref_t rhv ) const noexcept
                 {
                     return this_t( _trafo * rhv._trafo ) ;
                 }
@@ -383,7 +360,7 @@ namespace motor
 
                 /// transform from right!
                 /// this = this * rhv 
-                this_ref_t operator *= ( this_cref_t rhv )
+                this_ref_t operator *= ( this_cref_t rhv ) noexcept
                 {
                     _trafo = _trafo * rhv._trafo ;
                     return *this ;

@@ -42,12 +42,6 @@ namespace motor
             }
 
             //************************************************************************************
-            quaternion4( type_t angle, vec3_cref_t axis, motor::math::axis_normalized )
-            {
-                this_t::rotatate_norm_axis( axis, angle ) ;
-            }
-
-            //************************************************************************************
             quaternion4( this_cref_t rhv )
             {
                 _elem[0] = rhv.real() ;
@@ -304,12 +298,15 @@ namespace motor
             }
 
             //************************************************************************************
-            this_ref_t rotatate_norm_axis( vec3_cref_t axis, type_t angle )
+            static this_t rotatate_norm_axis( vec3_cref_t axis, type_t angle ) noexcept
             {
+                this_t ret ;
+
                 angle = angle * type_t(0.5) ;
-                _elem[0] = motor::math::fn<type_t>::cos( angle ) ;
-                this->vec( axis * motor::math::fn<type_t>::sin( angle ) ) ;
-                return *this ;
+                ret._elem[0] = motor::math::fn<type_t>::cos( angle ) ;
+                ret.vec( axis * motor::math::fn<type_t>::sin( angle ) ) ;
+
+                return ret ;
             }
 
         private: // variables
