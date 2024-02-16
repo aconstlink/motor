@@ -63,6 +63,12 @@ namespace motor
                     if( frontend_t * fe = dynamic_cast<frontend_t *>(ife); fe!= nullptr )
                     {
                         funk( fe ) ;
+
+                        if( !fe->has_commands() )
+                        {
+                            // holds back render loop 
+                            fe->fence( [=]( void_t ){for( size_t i=0; i<10000; ++i ) ;} ) ;
+                        }
                     }
                 } ) ;
             }
