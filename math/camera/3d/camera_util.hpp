@@ -196,7 +196,7 @@ namespace motor
             {
                 typedef motor::math::vector3< type_t > vec3_t ;
                 create_lookat_rh( 
-                    vcPos, vec3_t(motor::math::y_axis()), 
+                    vcPos, vec3_t(0.0f, 1.0f, 0.0f), 
                     vcAt, inout ) ;
             }
 
