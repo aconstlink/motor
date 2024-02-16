@@ -51,7 +51,7 @@ namespace motor
 
                 plane_cref_t get_plane( size_t i ) const
                 {
-                    motor_assert( i < 6 ) ;
+                    assert( i < 6 ) ;
                     return _planes[ i ] ;
                 }
             };
