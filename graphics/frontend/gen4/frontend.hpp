@@ -34,6 +34,11 @@ namespace motor
                 virtual ~frontend( void_t ) noexcept 
                 {}
 
+                bool_t has_commands( void_t ) const noexcept
+                {
+                    return _re->can_execute() ;
+                }
+
             public:
 
                 template< typename T >
