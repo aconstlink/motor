@@ -5,6 +5,8 @@ set( sources
     result.h
     typedefs.h
 
+    app.h
+    app.cpp
     gl_info.h
     d3d_info.h
 
@@ -18,8 +20,6 @@ set( sources
     window/window_message_listener.h
     window/window_message_listener.cpp
     
-    
-    iapp.h
     gfx_context.h
     carrier.h
     carrier.cpp

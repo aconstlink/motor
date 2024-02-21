@@ -22,7 +22,8 @@ carrier::carrier( void_t ) noexcept
 carrier::carrier( this_rref_t rhv ) noexcept
 {
     _thr = std::move( rhv._thr ) ;
-    motor_move_member_ptr( _sd, rhv ) ;
+    _sd = motor::move( rhv._sd ) ;
+    assert( _sd->update_running == false ) ;
     _app = motor::move( rhv._app ) ;
 
     _dev_system = motor::move( rhv._dev_system ) ;
@@ -30,7 +31,7 @@ carrier::carrier( this_rref_t rhv ) noexcept
 }
 
 //******************************************************
-carrier::carrier( motor::application::iapp_mtr_safe_t app ) noexcept : this_t()
+carrier::carrier( motor::application::app_mtr_safe_t app ) noexcept : this_t()
 {
     this_t::set( motor::move( app ) ) ;
 }
@@ -41,10 +42,12 @@ carrier::~carrier( void_t ) noexcept
     motor::memory::global_t::dealloc( _sd ) ;
     motor::memory::global_t::dealloc( _dev_system ) ;
     motor::memory::global_t::dealloc( _audio_system ) ;
+
+    motor::memory::release_ptr( _app ) ;
 }
 
 //******************************************************
-motor::application::result carrier::set( motor::application::iapp_mtr_safe_t app ) noexcept
+motor::application::result carrier::set( motor::application::app_mtr_safe_t app ) noexcept
 {
     if( _app != nullptr )
         return motor::application::result::failed ;
@@ -67,17 +70,23 @@ motor::application::result carrier::start_update_thread( void_t ) noexcept
     
     _thr = std::thread( [=]( void_t )
     {
-            #if 0
-        _app->platform_init() ;
+        motor::application::app_t::carrier_accessor ca( _app ) ;
+        ca.init( this ) ;
 
         while( _sd->update_running )
         {
-            _app->platform_update() ;
+            ca.update() ;
+
+            // check user closed app
+            if( ca.has_closed() )
+            {
+                _sd->update_running = false ;
+            }
         }
         
-        _app->on_shutdown() ;
-        #endif
+        ca.shutdown() ;
         
+        this->close() ;
     } ) ;
 
     return motor::application::result::ok ;
@@ -86,7 +95,7 @@ motor::application::result carrier::start_update_thread( void_t ) noexcept
 //******************************************************
 void_t carrier::stop_update_thread( void_t ) noexcept
 {
-    if( !_sd->update_running ) return ;
+    if( !_thr.joinable() ) return ;
 
     _sd->update_running = false ;
     _thr.join() ;

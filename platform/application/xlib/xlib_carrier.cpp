@@ -6,6 +6,7 @@
 #include "../glx/glx_context.h"
 
 #include <motor/log/global.h>
+#include <motor/concurrent/global.h>
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -158,6 +159,10 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 
     while( !_done )
     {
+        // should be called in the main carrier!
+        // but that requires a different handling of the while loop.
+        motor::concurrent::global_t::update() ;
+        
         _clock_t::duration const dur = _clock_t::now() - tp_begin ;
         tp_begin = _clock_t::now() ;
 

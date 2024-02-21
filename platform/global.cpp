@@ -43,7 +43,7 @@ motor::application::carrier_mtr_safe_t global::create_carrier( void_t ) noexcept
 }
 
 //********************************************************************************
-motor::application::carrier_mtr_safe_t global::create_carrier( motor::application::iapp_mtr_safe_t app ) noexcept 
+motor::application::carrier_mtr_safe_t global::create_carrier( motor::application::app_mtr_safe_t app ) noexcept 
 {
     #if defined( MOTOR_GRAPHICS_WGL )
 
@@ -64,7 +64,7 @@ motor::application::carrier_mtr_safe_t global::create_carrier( motor::applicatio
 }
 
 //********************************************************************************
-int_t global::create_and_exec_carrier( motor::application::iapp_mtr_safe_t app ) noexcept 
+int_t global::create_and_exec_carrier( motor::application::app_mtr_safe_t app ) noexcept 
 {
     auto r = this_t::create_carrier( std::move( app ) )->exec() ;
 

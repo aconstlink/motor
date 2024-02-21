@@ -11,6 +11,7 @@ namespace motor
             ok,
             failed,
             invalid_argument,
+            close,
             terminate,
             no_app,
             failed_wgl,

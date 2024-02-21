@@ -46,7 +46,6 @@ namespace motor
 
                 motor::vector< win32_window_data_t > _win32_windows ;
 
-
             private: // wgl window data
 
                 struct wgl_pimpl ;
@@ -70,6 +69,7 @@ namespace motor
                     HWND hwnd ;
                     d3d11_pimpl * ptr ;
                     size_t micro_rnd ;
+                    size_t frame_miss ;
                 };
                 motor_typedef( d3d11_window_data ) ;
 
@@ -95,12 +95,11 @@ namespace motor
             public:
 
                 win32_carrier( void_t ) noexcept ;
-                win32_carrier( motor::application::iapp_mtr_safe_t ) noexcept ;
+                win32_carrier( motor::application::app_mtr_safe_t ) noexcept ;
                 win32_carrier( this_rref_t ) noexcept ;
                 virtual ~win32_carrier( void_t ) noexcept ;
 
                 win32_carrier( this_cref_t ) = delete ;
-
 
             private: // interface
 

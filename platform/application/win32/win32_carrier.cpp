@@ -15,6 +15,8 @@
 
 #include "../../audio/oal/oal.h"
 
+#include <motor/concurrent/global.h>
+
 #include <windows.h>
 #include <strsafe.h>
 
@@ -59,7 +61,7 @@ win32_carrier::win32_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rh
 }
 
 //***********************************************************************
-win32_carrier::win32_carrier( motor::application::iapp_mtr_safe_t app ) noexcept : base_t( std::move( app ) )
+win32_carrier::win32_carrier( motor::application::app_mtr_safe_t app ) noexcept : base_t( std::move( app ) )
 {
     this_t::create_and_register_device_modules() ;
 }
@@ -79,6 +81,10 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
     while( !_done )
     {
+        // should be called in the main carrier!
+        // but that requires a different handling of the while loop.
+        motor::concurrent::global_t::update() ;
+
         {
             _clock_t::duration const dur = _clock_t::now() - tp_begin ;
             tp_begin = _clock_t::now() ;
@@ -242,10 +248,16 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                                 _clock_t::now() - rnd_beg_tp ).count() ;
 
                             d.ptr->ctx.deactivate() ;
+
+                            d.frame_miss = 0 ;
                         }
-                        else
+                        // if this is not done, it will completely halt the whole computer!
+                        // at some frame misses, e.g. user did not do any rendering, the loop 
+                        // needs to go to sleep for a while.
+                        else if( ++d.frame_miss > 5 )
                         {
-                            //std::this_thread::sleep_for( std::chrono::microseconds(50) ) ;
+                            std::this_thread::sleep_for( std::chrono::microseconds(50) ) ;
+                            d.frame_miss = 0 ;
                         }
 
                     }
@@ -384,7 +396,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
-                            _d3d11_windows.emplace_back( d3d11_window_data({ hwnd, pimpl }) )  ;
+                            _d3d11_windows.emplace_back( d3d11_window_data({ hwnd, pimpl, 0, 0 }) )  ;
                         }
                         else
                         {
