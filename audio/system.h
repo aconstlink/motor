@@ -20,8 +20,8 @@ namespace motor
 
         private:
 
-            motor::audio::frontend_ptr_t _fptr ;
-            motor::audio::backend_mtr_t _bptr ;
+            motor::audio::frontend_ptr_t _fptr = nullptr ;
+            motor::audio::backend_mtr_t _bptr = nullptr ;
             motor::audio::command_engine_t _come ;
 
             std::thread _thr ;
