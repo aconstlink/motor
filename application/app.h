@@ -136,10 +136,10 @@ namespace motor
 
         public:
 
-            virtual void_t on_init( void_t ) noexcept = 0 ;
-            virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept = 0 ;
-            virtual void_t on_graphics( motor::application::app::graphics_data_in_t ) noexcept = 0 ;
-            virtual void_t on_shutdown( void_t ) noexcept = 0 ;
+            virtual void_t on_init( void_t ) noexcept {} ;
+            virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept {} ;
+            virtual void_t on_graphics( motor::application::app::graphics_data_in_t ) noexcept {} ;
+            virtual void_t on_shutdown( void_t ) noexcept {} ;
             
             virtual void_t on_audio( audio_data_in_t ) noexcept { }
             virtual void_t on_device( device_data_in_t ) noexcept { }
