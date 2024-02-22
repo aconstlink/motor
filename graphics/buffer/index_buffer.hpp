@@ -51,6 +51,7 @@ namespace motor
             {
                 _type = rhv._type ;
                 _num_elems = rhv._num_elems ;
+                motor::memory::global_t::dealloc( _data ) ;
                 motor_move_member_ptr( _data, rhv ) ;
                 return *this ;
             }

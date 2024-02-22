@@ -68,6 +68,7 @@ namespace motor
             {
                 _vertex_layout = std::move( rhv._vertex_layout ) ;
                 _num_elems = rhv._num_elems ;
+                motor::memory::global_t::dealloc( _data ) ;
                 motor_move_member_ptr( _data, rhv ) ;
                 return *this ;
             }
