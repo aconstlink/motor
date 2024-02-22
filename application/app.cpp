@@ -38,7 +38,8 @@ app::window_id_t app::create_window( motor::application::window_info_cref_t wi )
     size_t ret = size_t(-1) ;
     {
         std::lock_guard< std::mutex > lk( _mtx_windows ) ;
-        _windows.emplace_back( this_t::window_data{ static_cast<motor::application::window_ptr_t>(wnd), msgl, nullptr } ) ;
+        _windows.emplace_back( this_t::window_data
+            { static_cast<motor::application::window_ptr_t>(wnd), msgl, nullptr, motor::shared(motor::tool::imgui_t()) } ) ;
         ret = _windows.size()-1 ;
     }
 
@@ -105,8 +106,14 @@ bool_t app::carrier_update( void_t ) noexcept
                     d.fe = nullptr ;
                     motor::memory::release_ptr( d.lst ) ;
                     motor::memory::release_ptr( d.wnd ) ;
+                    motor::memory::release_ptr( d.imgui ) ;
                     iter = _windows2.erase( iter ) ;
                     continue ;
+                }
+
+                if( sv.resize_changed )
+                {
+                    d.imgui->update( {(int_t)sv.resize_msg.w,(int_t)sv.resize_msg.h} ) ;
                 }
                 
             }
@@ -114,6 +121,20 @@ bool_t app::carrier_update( void_t ) noexcept
         }
         
         this_t::pop_windows() ;
+    }
+
+    if( this_t::before_device( dt_micro ) )
+    {
+        {
+            this_t::device_data_in_t dat = 
+            {
+                _dev_mouse,
+                _dev_ascii
+            } ;
+            this->on_device( dat ) ;
+        }
+
+        this_t::after_device(0) ;
     }
 
     if( this_t::before_update( dt_micro ) )
@@ -161,10 +182,33 @@ bool_t app::carrier_update( void_t ) noexcept
                     if( auto * fe = dynamic_cast<motor::graphics::gen4::frontend_ptr_t>(d.fe); fe != nullptr ) 
                     {
                         this->on_render( i, fe, dat ) ;
+
+                        if( this_t::before_tool( dt_micro ) )
+                        {
+                            d.imgui->execute( [&] ( void_t )
+                            {
+                                //this_t::tool_data_t td = { motor::tool::imgui_view_t( d.imgui ) } ;
+                                    this_t::tool_data_t td ;
+                                if( this->on_tool( i, td ) )
+                                {
+                                    d.imgui->render( fe ) ;
+                                }
+                            } ) ;
+
+                            this_t::after_tool(0) ;
+                        }
                     }
                     re->leave_frame() ;
                 }
                 ++i ;
+            }
+        }
+
+        {
+            for( auto & d : _windows2 )
+            {
+                d.imgui->update( _dev_ascii ) ;
+                d.imgui->update( _dev_mouse ) ;
             }
         }
 
@@ -185,6 +229,7 @@ bool_t app::carrier_shutdown( void_t ) noexcept
         d.fe = nullptr ;
         motor::memory::release_ptr( d.lst ) ;
         motor::memory::release_ptr( d.wnd ) ;
+        motor::memory::release_ptr( d.imgui ) ;
     }
     _windows.clear() ;
 
@@ -213,19 +258,6 @@ void_t app::pop_windows( void_t ) noexcept
 //**************************************************************************************************************
 bool_t app::before_tool( std::chrono::microseconds const & ) noexcept
 {
-    // looking for device. It is managed, so pointer must be copied.
-    _carrier->device_system()->search( [&] ( motor::device::idevice_borrow_t::mtr_t dev_in )
-    {
-        if( auto * ptr1 = dynamic_cast<motor::device::three_device_mtr_t>(dev_in); ptr1 != nullptr )
-        {
-            _dev_mouse = ptr1 ;
-        }
-        else if( auto * ptr2 = dynamic_cast<motor::device::ascii_device_mtr_t>(dev_in); ptr2 != nullptr )
-        {
-            _dev_ascii = ptr2 ;
-        }
-    } ) ;
-
     if( _dev_mouse == nullptr )
     {
         return false ;
@@ -242,24 +274,32 @@ bool_t app::before_tool( std::chrono::microseconds const & ) noexcept
 //**************************************************************************************************************
 bool_t app::after_tool( size_t const iter ) noexcept
 {
-    _dev_mouse = nullptr ;
-    _dev_ascii = nullptr ;
-
     return true ;
 }
 
 //**************************************************************************************************************
 bool_t app::before_device( std::chrono::microseconds const & dt ) noexcept 
 {
-    #if 0
     _device_residual += dt ;
 
     if( _device_residual >= _device_interval )
     {
-        motor::device::global_t::system()->update() ;
+        // looking for device. It is managed, so pointer must be copied.
+        _carrier->device_system()->search( [&] ( motor::device::idevice_borrow_t::mtr_t dev_in )
+        {
+            if( auto * ptr1 = dynamic_cast<motor::device::three_device_mtr_t>(dev_in); ptr1 != nullptr )
+            {
+                _dev_mouse = ptr1 ;
+            }
+            else if( auto * ptr2 = dynamic_cast<motor::device::ascii_device_mtr_t>(dev_in); ptr2 != nullptr )
+            {
+                _dev_ascii = ptr2 ;
+            }
+        } ) ;
+
+        _carrier->device_system()->update() ;
         return true ;
     }
-    #endif
     return false ;
 }
 
@@ -293,42 +333,6 @@ bool_t app::before_update( std::chrono::microseconds const & dt ) noexcept
     {
         //*_access = false ;
 
-        #if 0
-        size_t id = 0 ;
-        for( auto & pwi : _windows )
-        {
-            // check messages from the window
-            {
-                motor::application::window_message_receiver_t::state_vector sv ;
-                if( pwi.msg_recv->swap_and_reset( sv ) )
-                {
-
-                    motor::graphics::backend_t::window_info_t wi ;
-                    if( sv.resize_changed )
-                    {
-                        wi.width = sv.resize_msg.w ;
-                        wi.height = sv.resize_msg.h ;
-
-                        motor::tool::imgui_t::window_data_t wd ;
-                        wd.width = int_t( wi.width ) ;
-                        wd.height = int_t( wi.height ) ;
-                        pwi.imgui->update( wd ) ;
-                    }
-
-                    this_t::window_event_info_t wei ;
-                    wei.w = uint_t( wi.width ) ;
-                    wei.h = uint_t( wi.height ) ;
-                    this->on_event( id++, wei ) ;
-                }
-            }
-
-            // check and send message to the window
-            if( pwi.msg_send->has_any_change() )
-            {
-                pwi.wnd->check_for_messages() ;
-            }
-        }
-        #endif
 
         return true ;
     }

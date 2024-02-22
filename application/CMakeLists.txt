@@ -38,6 +38,7 @@ target_link_libraries( ${cur_lib_name}
     PUBLIC motor::memory
     PUBLIC motor::graphics
     PUBLIC motor::device
+    PUBLIC motor::tool
 ) 
 
 

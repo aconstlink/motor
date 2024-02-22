@@ -16,7 +16,7 @@
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
-//#include <motor/tool/imgui/imgui.h>
+#include <motor/tool/imgui/imgui.h>
 #include <motor/concurrent/typedefs.h>
 
 namespace motor
@@ -62,6 +62,7 @@ namespace motor
                 motor::application::window_mtr_t wnd = nullptr ;
                 motor::application::window_message_listener_mtr_t lst = nullptr ;
                 motor::graphics::ifrontend_ptr_t fe = nullptr ;
+                motor::tool::imgui_mtr_t imgui ;
             };
 
             std::mutex _mtx_windows ;
@@ -114,7 +115,8 @@ namespace motor
 
             struct device_data 
             {
-                motor::device::system_mtr_t sys = nullptr ;
+                motor::device::three_device_mtr_t mouse ;
+                motor::device::ascii_device_mtr_t ascii ;
             };
             motor_typedef( device_data ) ;
 
@@ -142,13 +144,15 @@ namespace motor
             virtual void_t on_audio( audio_data_in_t ) noexcept { }
             virtual void_t on_device( device_data_in_t ) noexcept { }
             virtual void_t on_logic( logic_data_in_t ) noexcept { }
-            virtual void_t on_tool( tool_data_ref_t ) noexcept { }
+            
             virtual void_t on_physics( physics_data_in_t ) noexcept { }
 
         public:
 
             virtual void_t on_render( this_t::window_id_t const, motor::graphics::gen4::frontend_ptr_t, 
                 motor::application::app::render_data_in_t ) noexcept {}
+
+            virtual bool_t on_tool( this_t::window_id_t const, motor::application::app::tool_data_ref_t ) noexcept { return false ; }
 
         public: // window specific
 
