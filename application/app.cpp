@@ -158,11 +158,10 @@ bool_t app::carrier_update( void_t ) noexcept
                 auto * re = d.fe->borrow_render_engine() ;
                 if( re->enter_frame() )
                 {
-                    dat.fe = d.fe ;
-                    dat.wid = i ;
-
-                    this->on_render( dat ) ;
-
+                    if( auto * fe = dynamic_cast<motor::graphics::gen4::frontend_ptr_t>(d.fe); fe != nullptr ) 
+                    {
+                        this->on_render( i, fe, dat ) ;
+                    }
                     re->leave_frame() ;
                 }
                 ++i ;

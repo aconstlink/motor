@@ -14,6 +14,8 @@
 #include <motor/device/layouts/ascii_keyboard.hpp>
 #include <motor/device/layouts/three_mouse.hpp>
 
+#include <motor/graphics/frontend/gen4/frontend.hpp>
+
 //#include <motor/tool/imgui/imgui.h>
 #include <motor/concurrent/typedefs.h>
 
@@ -104,9 +106,6 @@ namespace motor
                 float_t sec_dt ;
                 size_t micro_dt ;
                 size_t milli_dt ;
-
-                this_t::window_id_t wid ;
-                motor::graphics::ifrontend_ptr_t fe ;
             };
             motor_typedef( render_data ) ;
 
@@ -138,7 +137,6 @@ namespace motor
             virtual void_t on_init( void_t ) noexcept = 0 ;
             virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept = 0 ;
             virtual void_t on_graphics( motor::application::app::graphics_data_in_t ) noexcept = 0 ;
-            virtual void_t on_render( motor::application::app::render_data_in_t ) noexcept = 0 ;
             virtual void_t on_shutdown( void_t ) noexcept = 0 ;
             
             virtual void_t on_audio( audio_data_in_t ) noexcept { }
@@ -146,6 +144,11 @@ namespace motor
             virtual void_t on_logic( logic_data_in_t ) noexcept { }
             virtual void_t on_tool( tool_data_ref_t ) noexcept { }
             virtual void_t on_physics( physics_data_in_t ) noexcept { }
+
+        public:
+
+            virtual void_t on_render( this_t::window_id_t const, motor::graphics::gen4::frontend_ptr_t, 
+                motor::application::app::render_data_in_t ) noexcept {}
 
         public: // window specific
 
