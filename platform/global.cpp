@@ -52,7 +52,7 @@ motor::application::carrier_mtr_safe_t global::create_carrier( motor::applicatio
 
     #elif defined( MOTOR_GRAPHICS_GLX )
 
-    return motor::memory::create_ptr( motor::platform::xlib::xlib_carrier_t( std::move(app) ),
+    return motor::memory::create_ptr( motor::platform::xlib::xlib_carrier_t( motor::move(app) ),
         "[platform::global] : xlib carrier" ) ;
 
     #elif defined( MOTOR_GRAPHICS_EGL )
