@@ -180,38 +180,40 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                     // could be threaded
                     {
-                        d.ptr->ctx.activate() ;
-
-                        if( need_vsync_change )
+                        // may fail if window is already closed! So need to ask.
+                        if( d.ptr->ctx.activate() == motor::platform::result::ok )
                         {
-                            d.ptr->ctx.vsync( do_vsync ) ;
-                        }
-
-                        if( d.ptr->re.can_execute() )
-                        {
+                            if( need_vsync_change )
                             {
-                                RECT rect ;
-                                GetClientRect( d.hwnd, &rect ) ;
-
-                                d.ptr->ctx.borrow_backend()->set_window_info( {
-                                    size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
+                                d.ptr->ctx.vsync( do_vsync ) ;
                             }
 
-                            _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
+                            if( d.ptr->re.can_execute() )
+                            {
+                                {
+                                    RECT rect ;
+                                    GetClientRect( d.hwnd, &rect ) ;
 
-                            d.ptr->ctx.borrow_backend()->render_begin() ;
-                            d.ptr->re.execute_frame() ;
-                            d.ptr->ctx.borrow_backend()->render_end() ;
-                            d.ptr->ctx.swap() ;
+                                    d.ptr->ctx.borrow_backend()->set_window_info( {
+                                        size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
+                                }
 
-                            d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
-                                _clock_t::now() - rnd_beg_tp ).count() ;
+                                _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
+
+                                d.ptr->ctx.borrow_backend()->render_begin() ;
+                                d.ptr->re.execute_frame() ;
+                                d.ptr->ctx.borrow_backend()->render_end() ;
+                                d.ptr->ctx.swap() ;
+
+                                d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
+                                    _clock_t::now() - rnd_beg_tp ).count() ;
+                            }
+                            else
+                            {
+                                //d.ptr->ctx.swap() ;
+                            }
+                            d.ptr->ctx.deactivate() ;
                         }
-                        else
-                        {
-                            //d.ptr->ctx.swap() ;
-                        }
-                        d.ptr->ctx.deactivate() ;
                     }
                 }
             }
