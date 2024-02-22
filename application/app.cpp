@@ -126,6 +126,14 @@ bool_t app::carrier_update( void_t ) noexcept
     if( this_t::before_device( dt_micro ) )
     {
         {
+            for( auto & d : _windows )
+            {
+                d.imgui->update( _dev_ascii ) ;
+                d.imgui->update( _dev_mouse ) ;
+            }
+        }
+
+        {
             this_t::device_data_in_t dat = 
             {
                 _dev_mouse,
@@ -201,14 +209,6 @@ bool_t app::carrier_update( void_t ) noexcept
                     re->leave_frame() ;
                 }
                 ++i ;
-            }
-        }
-
-        {
-            for( auto & d : _windows2 )
-            {
-                d.imgui->update( _dev_ascii ) ;
-                d.imgui->update( _dev_mouse ) ;
             }
         }
 
