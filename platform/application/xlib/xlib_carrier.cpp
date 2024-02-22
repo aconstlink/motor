@@ -162,7 +162,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
         // should be called in the main carrier!
         // but that requires a different handling of the while loop.
         motor::concurrent::global_t::update() ;
-        
+
         _clock_t::duration const dur = _clock_t::now() - tp_begin ;
         tp_begin = _clock_t::now() ;
 
@@ -232,11 +232,15 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
         // also do 
         // -> wgl context destruction
         {
-            for( Window hwnd : _destroy_queue )
+            for( auto iter=_destroy_queue.begin(); iter != _destroy_queue.end(); )
             {
-                this_t::handle_destroyed_hwnd( hwnd ) ;
+                // have to wait until all users of the window are ready. 
+                if( this_t::handle_destroyed_hwnd( *iter ) )
+                {
+                    iter = _destroy_queue.erase( iter ) ; continue ;
+                }
+                ++iter ;
             }
-            _destroy_queue.clear() ;
         }
 
         #if MOTOR_GRAPHICS_GLX
@@ -488,7 +492,7 @@ Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t 
 }
 
 //*******************************************************************************************
-void_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept 
+bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept 
 {
     auto iter = std::find_if( _xlib_windows.begin(), _xlib_windows.end(), [&]( xlib_window_data_cref_t d )
     {
@@ -497,7 +501,10 @@ void_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
 
     if( iter == _xlib_windows.end() ) return ;
 
-    iter->wnd->set_renderable( nullptr, nullptr ) ;
+    this_t::send_destroy( *iter ) ;
+
+    size_t const borrowed = iter->wnd->set_renderable( nullptr, nullptr ) ;
+    if( borrowed != 0 ) return false ;
     
     #if MOTOR_GRAPHICS_GLX
     // look for glx windows/context connection
@@ -516,8 +523,6 @@ void_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
         }
     }
     #endif 
-
-    this_t::send_destroy( *iter ) ;
 
     XDestroyWindow( _display, iter->hwnd ) ;
 

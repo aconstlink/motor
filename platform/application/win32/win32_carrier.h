@@ -137,7 +137,7 @@ namespace motor
 
             private:
 
-                void_t handle_destroyed_hwnd( HWND ) noexcept ;
+                bool_t handle_destroyed_hwnd( HWND ) noexcept ;
 
             private:
 

@@ -46,33 +46,6 @@ namespace motor
             virtual void_t send_message( motor::application::vsync_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept = 0 ;
-
-
-        protected:
-
-            using render_frame_funk_t = std::function< void_t ( motor::graphics::ifrontend* ) > ;
-            virtual bool_t render_frame_virt( render_frame_funk_t ) noexcept = 0 ;
-
-        public:
-
-            template< typename frontend_t >
-            bool_t render_frame( std::function< void_t ( frontend_t * ) > funk ) noexcept
-            {
-                return this->render_frame_virt( [&]( motor::graphics::ifrontend* ife )
-                {
-                    if( frontend_t * fe = dynamic_cast<frontend_t *>(ife); fe!= nullptr )
-                    {
-                        funk( fe ) ;
-
-                        if( !fe->has_commands() )
-                        {
-                            // holds back render loop 
-                            fe->fence( [=]( void_t ){for( size_t i=0; i<10000; ++i ) ;} ) ;
-                        }
-                    }
-                } ) ;
-            }
-            
         } ;
         motor_typedef( iwindow ) ;
     }

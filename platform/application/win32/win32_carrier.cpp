@@ -134,11 +134,15 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             // also do 
             // -> wgl context destruction
             {
-                for( HWND hwnd : _destroy_queue )
+                for( auto iter=_destroy_queue.begin(); iter != _destroy_queue.end(); )
                 {
-                    this_t::handle_destroyed_hwnd( hwnd ) ;
+                    // have to wait until all users of the window are ready. 
+                    if( this_t::handle_destroyed_hwnd( *iter ) )
+                    {
+                        iter = _destroy_queue.erase( iter ) ; continue ;
+                    }
+                    ++iter ;
                 }
-                _destroy_queue.clear() ;
             }
 
             #if MOTOR_GRAPHICS_WGL
@@ -834,16 +838,19 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::appli
 }
 
 //*******************************************************************************************
-void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept 
+bool_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept 
 {
     auto iter = std::find_if( _win32_windows.begin(), _win32_windows.end(), [&]( win32_window_data_cref_t d )
     {
         return d.hwnd == hwnd ;
     } ) ;
 
-    if( iter == _win32_windows.end() ) return ;
+    assert( iter != _win32_windows.end() ) ;
 
-    iter->wnd->set_renderable( nullptr, nullptr ) ;
+    this_t::send_destroy( *iter ) ;
+
+    size_t const borrowed = iter->wnd->set_renderable( nullptr, nullptr ) ;
+    if( borrowed != 0 ) return false ;
 
     #if MOTOR_GRAPHICS_WGL
     // look for wgl windows/context connection
@@ -881,11 +888,11 @@ void_t win32_carrier::handle_destroyed_hwnd( HWND hwnd ) noexcept
     }
     #endif
     
-    this_t::send_destroy( *iter ) ;
-    
     motor::memory::release_ptr( iter->wnd ) ;
     motor::memory::release_ptr( iter->lsn ) ;
     _win32_windows.erase( iter ) ;
+
+    return true ;
 }
 
 //*******************************************************************************************

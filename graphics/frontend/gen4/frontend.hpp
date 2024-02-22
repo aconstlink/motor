@@ -39,6 +39,18 @@ namespace motor
                     return _re->can_execute() ;
                 }
 
+                motor::graphics::render_engine_ptr_t get_render_engine( void_t ) noexcept { return _re ; }
+
+                virtual bool_t can_enter_frame( void_t ) const noexcept 
+                {
+                    return _re->can_enter_frame() ;
+                }
+
+                virtual motor::graphics::render_engine_ptr_t borrow_render_engine( void_t ) noexcept 
+                {
+                    return _re ;
+                }
+
             public:
 
                 template< typename T >

@@ -10,6 +10,7 @@
 #include "window/window_message_listener.h"
 
 #include <motor/device/device.hpp>
+#include <motor/device/system.h>
 #include <motor/device/layouts/ascii_keyboard.hpp>
 #include <motor/device/layouts/three_mouse.hpp>
 
@@ -27,6 +28,10 @@ namespace motor
         class MOTOR_APPLICATION_API app
         {
             motor_this_typedefs( app ) ;
+
+        public:
+
+            using window_id_t = size_t ;
 
         private:
 
@@ -52,12 +57,14 @@ namespace motor
 
             struct window_data
             {
-                motor::application::iwindow_mtr_t wnd = nullptr ;
+                motor::application::window_mtr_t wnd = nullptr ;
                 motor::application::window_message_listener_mtr_t lst = nullptr ;
+                motor::graphics::ifrontend_ptr_t fe = nullptr ;
             };
 
             std::mutex _mtx_windows ;
             motor::vector< window_data > _windows ;
+            motor::vector< window_data > _windows2 ;
 
             bool_t _closed = false ;
 
@@ -97,13 +104,19 @@ namespace motor
                 float_t sec_dt ;
                 size_t micro_dt ;
                 size_t milli_dt ;
+
+                this_t::window_id_t wid ;
+                motor::graphics::ifrontend_ptr_t fe ;
             };
             motor_typedef( render_data ) ;
 
             struct audio_data {} ;
             motor_typedef( audio_data ) ;
 
-            struct device_data {};
+            struct device_data 
+            {
+                motor::device::system_mtr_t sys = nullptr ;
+            };
             motor_typedef( device_data ) ;
 
             struct logic_data 
@@ -122,29 +135,46 @@ namespace motor
 
         public:
 
-            virtual motor::application::result on_init( void_t ) noexcept = 0 ;
-            virtual motor::application::result on_update( motor::application::app::update_data_in_t ) noexcept = 0 ;
-            virtual motor::application::result on_graphics( motor::application::app::graphics_data_in_t ) noexcept = 0 ;
-            virtual motor::application::result on_render( motor::application::app::render_data_in_t ) noexcept = 0 ;
-            virtual motor::application::result on_shutdown( void_t ) noexcept = 0 ;
+            virtual void_t on_init( void_t ) noexcept = 0 ;
+            virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept = 0 ;
+            virtual void_t on_graphics( motor::application::app::graphics_data_in_t ) noexcept = 0 ;
+            virtual void_t on_render( motor::application::app::render_data_in_t ) noexcept = 0 ;
+            virtual void_t on_shutdown( void_t ) noexcept = 0 ;
             
-            virtual motor::application::result on_audio( audio_data_in_t ) noexcept { return motor::application::result::ok ; }
-            virtual motor::application::result on_device( device_data_in_t ) noexcept { return motor::application::result::ok ; }
-            virtual motor::application::result on_logic( logic_data_in_t ) noexcept { return motor::application::result::ok ; }
-            virtual motor::application::result on_tool( tool_data_ref_t ) noexcept { return motor::application::result::no_tool ;  }
-            virtual motor::application::result on_physics( physics_data_in_t ) noexcept { return motor::application::result::ok ; }
+            virtual void_t on_audio( audio_data_in_t ) noexcept { }
+            virtual void_t on_device( device_data_in_t ) noexcept { }
+            virtual void_t on_logic( logic_data_in_t ) noexcept { }
+            virtual void_t on_tool( tool_data_ref_t ) noexcept { }
+            virtual void_t on_physics( physics_data_in_t ) noexcept { }
 
-        public:
+        public: // window specific
 
-            using window_id_t = size_t ;
-
-            virtual motor::application::result on_event( window_id_t const, 
-                motor::application::window_message_listener::state_vector_cref_t ) noexcept
-            { return motor::application::result::ok ; }
+            virtual void_t on_event( window_id_t const, 
+                motor::application::window_message_listener::state_vector_cref_t ) noexcept{}
 
             window_id_t create_window( motor::application::window_info_cref_t ) noexcept ;
 
-            void_t close( void_t ) noexcept { _closed = true ; }
+            class window_view
+            {
+            private:
+                motor::application::iwindow_mtr_t _wnd ;
+
+            public:
+                window_view( motor::application::iwindow_mtr_t wnd ) noexcept : _wnd(wnd) {}
+
+            public:
+                void_t send_message( motor::application::show_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::resize_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::create_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::close_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::screen_dpi_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::screen_size_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::vsync_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::fullscreen_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+                void_t send_message( motor::application::cursor_message_cref_t msg ) noexcept {_wnd->send_message(msg) ;}
+            };
+            void_t send_window_message( this_t::window_id_t const, 
+                std::function< void_t ( this_t::window_view & ) > ) ;
 
         public:
 
@@ -152,6 +182,8 @@ namespace motor
             app( this_cref_t ) = delete ;
             app( this_rref_t ) noexcept ;
             virtual ~app( void_t ) noexcept ;
+
+            void_t close( void_t ) noexcept { _closed = true ; }
 
         public: // platform application interface
 
@@ -170,6 +202,9 @@ namespace motor
             bool_t carrier_init( motor::application::carrier_ptr_t ) noexcept ;
             bool_t carrier_update( void_t ) noexcept ;
             bool_t carrier_shutdown( void_t ) noexcept ;
+
+            size_t push_windows( void_t ) noexcept ;
+            void_t pop_windows( void_t ) noexcept ;
 
         private: // system specific update code
 

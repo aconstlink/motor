@@ -35,7 +35,9 @@ namespace motor
             motor::graphics::render_engine_ptr_t _re = nullptr ;
             motor::graphics::ifrontend_ptr_t _fe = nullptr ;
 
+
             std::mutex _mtx_rnd ;
+            size_t _borrow = 0 ;
 
         public:
 
@@ -46,7 +48,7 @@ namespace motor
 
         public:
 
-            void_t set_renderable( motor::graphics::render_engine_ptr_t, motor::graphics::ifrontend_ptr_t ) noexcept ;
+            size_t set_renderable( motor::graphics::render_engine_ptr_t, motor::graphics::ifrontend_ptr_t ) noexcept ;
             
         public: // ins
 
@@ -76,9 +78,10 @@ namespace motor
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept ;
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept ;
 
-        protected:
+        public:
 
-            virtual bool_t render_frame_virt( motor::application::iwindow_t::render_frame_funk_t ) noexcept ;
+            virtual motor::graphics::ifrontend_ptr_t borrow_frontend( void_t ) noexcept ;
+            virtual void_t return_borrowed( motor::graphics::ifrontend_ptr_t ptr ) noexcept ;
         };
         motor_typedef( window ) ;
     }

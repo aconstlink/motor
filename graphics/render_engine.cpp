@@ -42,6 +42,12 @@ bool_t render_engine::execute_frame( void_t ) noexcept
     return true ;
 }
 
+bool_t render_engine::can_enter_frame( void_t ) const noexcept
+{
+    std::lock_guard< std::mutex > lk( _mtx_has_commands ) ;
+    return !_has_commands ;
+}
+
 bool_t render_engine::enter_frame( void_t ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx_has_commands ) ;

@@ -50,6 +50,8 @@ namespace motor
 
         public: // interface for external entity
 
+            bool_t can_enter_frame( void_t ) const noexcept ;
+
             // only enters if no commands are in the back buffer
             bool_t enter_frame( void_t ) noexcept;
 
