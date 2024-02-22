@@ -2943,6 +2943,7 @@ public: // functions
                         }
                         b.ptr = guard<ID3D11Buffer>() ;
                     }
+                    motor::memory::release_ptr( vsd.first );
                     vsd.second.clear() ;
                 }
                 datum.clear() ;
