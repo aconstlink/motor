@@ -676,6 +676,12 @@ motor::gfx::result text_render_2d::draw_text( size_t const group, size_t const f
 
 motor::gfx::result text_render_2d::prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) 
 {
+    if( !_init_done )
+    {
+        this_t::on_frame_init( fe ) ;
+        _init_done = true ;
+    }
+
     struct the_data
     {
         // v1: ( pos.xy, offset, scale )

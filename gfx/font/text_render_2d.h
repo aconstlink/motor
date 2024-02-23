@@ -66,6 +66,9 @@ namespace motor
 
             size_t num_quads = 1000 ;
 
+            // are all graphics objects initialized
+            bool_t _init_done = false ;
+
         private:
 
             struct render_info
@@ -149,8 +152,6 @@ namespace motor
             void_t init( motor::string_cref_t, motor::font::glyph_atlas_mtr_safe_t, size_t const = 10 ) noexcept ;
             void_t init( motor::string_cref_t, size_t const = 10 ) noexcept ;
 
-            void_t on_frame_init( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
-
             void_t set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) ;
             void_t set_view_proj( size_t const, motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) ;
 
@@ -166,6 +167,7 @@ namespace motor
 
         private:
 
+            void_t on_frame_init( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
             bool_t need_to_render( size_t const ) const noexcept ;
 
         public:
