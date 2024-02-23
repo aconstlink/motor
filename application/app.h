@@ -75,8 +75,8 @@ namespace motor
 
         private: // device
 
-            motor::device::three_device_mtr_t _dev_mouse ;
-            motor::device::ascii_device_mtr_t _dev_ascii ;
+            motor::device::three_device_mtr_t _dev_mouse = nullptr ;
+            motor::device::ascii_device_mtr_t _dev_ascii = nullptr ;
 
         public:
 

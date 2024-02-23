@@ -97,7 +97,7 @@ namespace motor
 
                 xlib_carrier( void_t ) noexcept ;
                 xlib_carrier( this_rref_t ) noexcept ;
-                xlib_carrier( motor::application::iapp_mtr_safe_t ) noexcept ;
+                xlib_carrier( motor::application::app_mtr_safe_t ) noexcept ;
                 virtual ~xlib_carrier( void_t ) noexcept ;
 
             public:

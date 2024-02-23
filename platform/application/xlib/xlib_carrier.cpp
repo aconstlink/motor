@@ -123,12 +123,13 @@ xlib_carrier::xlib_carrier( void_t ) noexcept
 }
 
 //***********************************************************************
-xlib_carrier::xlib_carrier( motor::application::iapp_mtr_safe_t /*app*/ ) noexcept : xlib_carrier()
+xlib_carrier::xlib_carrier( motor::application::app_mtr_safe_t app ) noexcept : base_t( std::move( app ) )
 {
+    connect_display() ;
 }
 
 //**********************************************************************
-xlib_carrier::xlib_carrier( this_rref_t rhv ) noexcept
+xlib_carrier::xlib_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) )
 {
     this_t::move_display() ;
     //_device_module = std::move( rhv._device_module ) ;
@@ -136,6 +137,7 @@ xlib_carrier::xlib_carrier( this_rref_t rhv ) noexcept
     _destroy_queue = std::move( rhv._destroy_queue ) ;
     _display = motor::move( rhv._display ) ;
     _display_use_count = rhv._display_use_count ;
+    rhv._display_use_count = 0 ;
 }
 
 //**********************************************************************
@@ -499,7 +501,7 @@ bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
         return d.hwnd == hwnd ;
     } ) ;
 
-    if( iter == _xlib_windows.end() ) return ;
+    assert( iter != _xlib_windows.end() ) ;
 
     this_t::send_destroy( *iter ) ;
 
