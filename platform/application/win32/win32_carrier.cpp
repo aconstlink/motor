@@ -64,6 +64,7 @@ win32_carrier::win32_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rh
 win32_carrier::win32_carrier( motor::application::app_mtr_safe_t app ) noexcept : base_t( std::move( app ) )
 {
     this_t::create_and_register_device_modules() ;
+    this_t::create_and_register_audio_backend() ;
 }
 
 //***********************************************************************

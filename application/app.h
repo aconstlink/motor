@@ -14,6 +14,7 @@
 #include <motor/device/layouts/ascii_keyboard.hpp>
 #include <motor/device/layouts/three_mouse.hpp>
 
+#include <motor/audio/frontend.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/tool/imgui/imgui.h>
@@ -46,6 +47,7 @@ namespace motor
             
             std::chrono::microseconds _render_residual = std::chrono::microseconds( 0 ) ;
             std::chrono::microseconds _audio_residual = std::chrono::microseconds( 0 ) ;
+            std::chrono::microseconds _audio_interval = std::chrono::microseconds( 8000 ) ;
             std::chrono::microseconds _update_interval = std::chrono::microseconds( 8000 ) ;
             std::chrono::microseconds _update_residual = std::chrono::microseconds( 0 ) ;
             std::chrono::microseconds _physics_interval = std::chrono::microseconds( 8000 ) ;
@@ -141,7 +143,7 @@ namespace motor
             virtual void_t on_graphics( motor::application::app::graphics_data_in_t ) noexcept {} ;
             virtual void_t on_shutdown( void_t ) noexcept {} ;
             
-            virtual void_t on_audio( audio_data_in_t ) noexcept { }
+            virtual void_t on_audio( motor::audio::frontend_ptr_t, audio_data_in_t ) noexcept { }
             virtual void_t on_device( device_data_in_t ) noexcept { }
             virtual void_t on_logic( logic_data_in_t ) noexcept { }
             
@@ -220,9 +222,9 @@ namespace motor
             bool_t before_physics( std::chrono::microseconds const & ) noexcept ;
             bool_t after_physics( size_t const iter ) ;
             bool_t before_render( std::chrono::microseconds const & ) noexcept ;
-            bool_t after_render( size_t const iter ) ;
+            bool_t after_render( size_t const iter ) noexcept ;
             bool_t before_audio( std::chrono::microseconds const & ) noexcept ;
-            bool_t after_audio( size_t const iter ) ;
+            void_t after_audio( size_t const iter ) noexcept ;
             bool_t before_tool( std::chrono::microseconds const & ) noexcept ;
             bool_t after_tool( size_t const iter ) noexcept ;
             bool_t before_device( std::chrono::microseconds const & ) noexcept ;

@@ -160,6 +160,17 @@ bool_t app::carrier_update( void_t ) noexcept
         this_t::after_update( num_iter ) ;
     }
 
+    if( this_t::before_audio( dt_micro ) )
+    {
+        bool_t const exec = _carrier->audio_system()->on_audio( [&]( motor::audio::frontend_ptr_t fptr )
+        {
+            this_t::audio_data ad ;
+            this->on_audio( fptr, ad ) ;
+        } )  ;
+
+        this_t::after_audio(0) ;
+    }
+
     // @todo on_graphics could be called already if 
     // only the shared user/engine data has been send upstream
     if( this_t::before_render(dt_micro) )
@@ -384,7 +395,7 @@ bool_t app::before_render( std::chrono::microseconds const & dt ) noexcept
 }
 
 //***
-bool_t app::after_render( size_t const )
+bool_t app::after_render( size_t const ) noexcept
 {
     //++_render_count ;
     _render_residual = decltype(_render_residual)(0) ;
@@ -397,35 +408,12 @@ bool_t app::after_render( size_t const )
 //***
 bool_t app::before_audio( std::chrono::microseconds const & dt ) noexcept
 {
-    #if 0
     _audio_residual += dt ;
-
-    size_t audio = _audios.size() ;
-
-    // check if async system is ready
-    for( auto& pwi : _audios )
-    {
-        if( pwi.async->enter_frame() )
-            --audio ;
-    }
-
-    return audio == 0 ;
-    #else
-    return false ;
-    #endif
+    return _audio_residual >= _audio_interval ;
 }
 
 //***
-bool_t app::after_audio( size_t const ) 
+void_t app::after_audio( size_t const ) noexcept
 {
-    #if 0
-    ++_audio_count ;
-    for( auto& pwi : _audios )
-    {
-        pwi.async->leave_frame() ;
-    }
-
-    _audio_residual = decltype(_audio_residual)(0) ;
-    #endif
-    return true ;
+    _physics_residual = std::chrono::microseconds( 0 ) ;
 }
