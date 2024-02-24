@@ -110,8 +110,8 @@ xlib_module::~xlib_module( void_t )
 //************************************************************
 void_t xlib_module::search( motor::device::imodule::search_funk_t funk ) noexcept
 {
-    funk( motor::share( _three_device ) ) ;
-    funk( motor::share( _ascii_device ) ) ;
+    funk( ( _three_device ) ) ;
+    funk( ( _ascii_device ) ) ;
 }
 
 //************************************************************

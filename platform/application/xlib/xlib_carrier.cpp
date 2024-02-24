@@ -118,21 +118,21 @@ xlib_carrier::xlib_carrier( void_t ) noexcept
 {
     connect_display() ;
 
-    //_device_module = motor::device::xlib::xlib_module_t() ;
-    //motor::device::global_t::system()->add_module( _device_module ) ;
+    this_t::create_and_register_device_modules() ;    
 }
 
 //***********************************************************************
 xlib_carrier::xlib_carrier( motor::application::app_mtr_safe_t app ) noexcept : base_t( std::move( app ) )
 {
     connect_display() ;
+    this_t::create_and_register_device_modules() ;
 }
 
 //**********************************************************************
 xlib_carrier::xlib_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) )
 {
     this_t::move_display() ;
-    //_device_module = std::move( rhv._device_module ) ;
+    _device_module = motor::move( rhv._device_module ) ;
     _xlib_windows = std::move( rhv._xlib_windows ) ;
     _destroy_queue = std::move( rhv._destroy_queue ) ;
     _display = motor::move( rhv._display ) ;
@@ -144,6 +144,7 @@ xlib_carrier::xlib_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rhv 
 xlib_carrier::~xlib_carrier( void_t ) noexcept
 {
     this_t::disconnect_display() ;
+    motor::memory::release_ptr( _device_module ) ;
 }
 
 //********************************************************************
@@ -177,7 +178,8 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
             for( auto & wd : _xlib_windows )
             {
                 XEvent event ;
-                if( XCheckWindowEvent( _display, wd.hwnd, ExposureMask | VisibilityChangeMask | StructureNotifyMask | 
+                if( XCheckWindowEvent( _display, wd.hwnd, KeyPressMask | KeyReleaseMask | 
+                  PointerMotionMask | ButtonPressMask | ButtonReleaseMask | ExposureMask | VisibilityChangeMask | StructureNotifyMask | 
                     SubstructureRedirectMask | ResizeRedirectMask , &event ) )
                 {
                     motor::log::global_t::status( "[message]" ) ;
@@ -225,7 +227,8 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     }
                 }
                 break ;
-                }
+                } 
+                _device_module->handle_input_event( event ) ;
             }
             //XSync( _display, True ) ;
         }
@@ -466,11 +469,8 @@ Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t 
     }
 
     XSelectInput( _display, wnd, 
-        ExposureMask | StructureNotifyMask | ResizeRedirectMask | SubstructureRedirectMask /*| KeyPressMask | KeyReleaseMask | 
-        PointerMotionMask | ButtonPressMask | ButtonReleaseMask | 
-        | VisibilityChangeMask*/
-        //| ResizeRedirectMask 
-        ) ;
+        ExposureMask | StructureNotifyMask | ResizeRedirectMask | SubstructureRedirectMask | KeyPressMask | KeyReleaseMask | 
+        PointerMotionMask | ButtonPressMask | ButtonReleaseMask | VisibilityChangeMask ) ;
 
     // prepare per window data
     //this_t::store_this_ptr_in_atom( display, wnd ) ;
@@ -583,4 +583,11 @@ bool_t xlib_carrier::find_window_info( Window hwnd, xlib_carrier::find_window_in
     funk( *iter ) ;
 
     return true ;
+}
+
+//***********************************************************************
+void_t xlib_carrier::create_and_register_device_modules( void_t ) noexcept 
+{
+    _device_module = motor::shared( motor::device::xlib::xlib_module_t(), "[xlib] : device module" ) ;
+    this_t::get_dev_system()->add_module( motor::share( _device_module ) ) ;
 }

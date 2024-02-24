@@ -37,7 +37,7 @@ namespace motor
                 void_t disconnect_display( void_t ) noexcept ;
                 Display * move_display( void_t ) noexcept ;
 
-                //motor::device::xlib::xlib_module_res_t _device_module ;
+                motor::device::xlib::xlib_module_mtr_t _device_module ;
             
                 bool_t _done = false ;
 
@@ -117,6 +117,8 @@ namespace motor
 
                 using find_window_info_funk_t = std::function< void_t ( this_t::xlib_window_data_ref_t ) > ;
                 bool_t find_window_info( Window hwnd, find_window_info_funk_t ) noexcept ;
+
+                void_t create_and_register_device_modules( void_t ) noexcept ;
             };
             motor_typedef( xlib_carrier ) ;
         }
