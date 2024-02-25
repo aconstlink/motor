@@ -236,12 +236,18 @@ bool_t app::carrier_shutdown( void_t ) noexcept
 
     for( auto & d : _windows ) 
     {
+        // have to wait until the render engine 
+        // is free of any more commands.
+        auto * re = d.fe->borrow_render_engine() ;
+        while( !re->can_enter_frame() ) ;
+
         d.wnd->return_borrowed( d.fe ) ;
         d.fe = nullptr ;
         motor::memory::release_ptr( d.lst ) ;
         motor::memory::release_ptr( d.wnd ) ;
         motor::memory::release_ptr( d.imgui ) ;
     }
+
     _windows.clear() ;
 
     return true ;

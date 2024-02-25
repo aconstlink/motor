@@ -428,7 +428,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
     for( auto const & d : _win32_windows )
     {
         CloseWindow( d.hwnd ) ;
-        this_t::handle_destroyed_hwnd( d.hwnd ) ;
+        while( !this_t::handle_destroyed_hwnd( d.hwnd ) ) ;
     }
 
     return motor::application::result::ok ;
