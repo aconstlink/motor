@@ -129,6 +129,17 @@ namespace motor
             {
                 return _vars ;
             }
+
+            typedef std::function< void_t ( size_t const i, motor::graphics::variable_set_mtr_t ) > for_each_var_funk_t ;
+
+            void_t for_each( for_each_var_funk_t funk ) noexcept
+            {
+                size_t i = 0 ;
+                for( auto const & v : _vars )
+                {
+                    funk( i++, v ) ;
+                }
+            }
         };
         motor_typedef( msl_object ) ;
     }
