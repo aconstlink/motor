@@ -1072,7 +1072,7 @@ motor::string_t parser::insert_spaces( motor::string_rref_t s ) const noexcept
     {
         if( *iter == '+' || *iter == '-' || *iter == '*' || *iter == '/' || 
             *iter == '<' || *iter == '>' || *iter == '/' || *iter == '!' || 
-            *iter == '=' )
+            *iter == '=' || *iter == '\'' )
         {
             auto iter_next = iter + 1 ;
             auto iter_last = iter - 1 ;
