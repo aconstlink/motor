@@ -49,6 +49,7 @@ namespace motor
                 _name = std::move( rhv._name ) ;
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
+                _soo = std::move( rhv._soo ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
@@ -59,6 +60,7 @@ namespace motor
                 _name = std::move( rhv._name ) ;
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
+                _soo = std::move( rhv._soo ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
