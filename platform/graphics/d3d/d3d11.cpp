@@ -3571,7 +3571,7 @@ public: // functions
         }
 
         // feed from streamout path
-        if( use_streamout_count && rnd.so_ids.size() != 0 )
+        if( ( feed_from_so || use_streamout_count ) && rnd.so_ids.size() != 0 )
         {
             D3D11_QUERY_DATA_SO_STATISTICS so_stats = { 0 };
 
