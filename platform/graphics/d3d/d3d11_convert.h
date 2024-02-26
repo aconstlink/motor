@@ -94,9 +94,9 @@ namespace motor
                 return _semantics[ 0 ] ;
             }
 
-            static motor::string_t vertex_output_binding_to_semantic( motor::graphics::vertex_attribute const va ) noexcept
+            static char const * vertex_output_binding_to_semantic( motor::graphics::vertex_attribute const va ) noexcept
             {
-                static char const * const _semantics[] = {
+                static char const * _semantics[] = {
                     "INVALID", "SV_POSITION", "NORMAL", "TANGENT",
                     "COLOR", "COLOR", "COLOR", "COLOR", "COLOR", "COLOR",
                     "TEXCOORD", "TEXCOORD", "TEXCOORD", "TEXCOORD",

@@ -2573,7 +2573,7 @@ public: // functions
                 D3D11_SO_DECLARATION_ENTRY e 
                 {
                     0,
-                    motor::platform::d3d11::vertex_output_binding_to_semantic( va ).c_str(),
+                    motor::platform::d3d11::vertex_output_binding_to_semantic( va ),
                     motor::platform::d3d11::vertex_output_binding_to_semantic_index( va ),
                     0,
                     (BYTE)motor::graphics::num_components_of( ct.ts ),
