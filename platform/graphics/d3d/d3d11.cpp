@@ -2067,7 +2067,17 @@ public: // functions
                 motor::graphics::msl_bridge::create_by_api_type( motor::graphics::shader_api_type::hlsl_5_0, code, so ) ;
             }
 
-            ro.link_geometry( obj.get_geometry() ) ;
+            {
+                if( obj.get_streamout().size() != 0 && obj.get_geometry().size() != 0)
+                {
+                    ro.link_geometry( obj.get_geometry()[0], obj.get_streamout()[0] ) ; 
+                }
+                else
+                {
+                    ro.link_geometry( obj.get_geometry() ) ;
+                }
+            }
+            
             ro.link_shader( c.expand() ) ;
 
             ro.add_variable_sets( obj.get_varibale_sets() ) ;

@@ -29,6 +29,7 @@ namespace motor
             motor::string_t _name ;
 
             motor::vector< motor::string_t > _geo ;
+            motor::vector< motor::string_t > _soo ;
 
             struct data
             {
@@ -106,7 +107,17 @@ namespace motor
                 return *this ;
             }
 
+            // link to stream out object so geometry can be fed from there.
+            // the geometry is then mainly used for geometry layout.
+            this_ref_t link_geometry( motor::string_cref_t name, motor::string_cref_t soo_name ) noexcept 
+            {
+                _geo.emplace_back( name ) ;
+                _soo.emplace_back( soo_name ) ;
+                return *this ;
+            }
+
             motor::vector< motor::string_t > const & get_geometry( void_t ) const noexcept{ return _geo ; }
+            motor::vector< motor::string_t > const & get_streamout( void_t ) const noexcept{ return _soo ; }
 
         public: // variable sets
 
