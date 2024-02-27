@@ -115,7 +115,6 @@ struct gl4_backend::pimpl
 
         GLuint vb_id = GLuint( -1 ) ;
         GLuint ib_id = GLuint( -1 ) ;
-        GLuint va_id = GLuint( -1 ) ;
 
         size_t num_elements_vb = 0 ;
         size_t num_elements_ib = 0 ;
@@ -275,6 +274,13 @@ struct gl4_backend::pimpl
         motor::vector< size_t > geo_ids ;
         motor::vector< size_t > tf_ids ; // feed from for geometry
         size_t shd_id = size_t( -1 ) ;
+
+        struct geo_to_vao
+        {
+            size_t gid ;
+            GLuint vao ;
+        } ;
+        motor::vector< geo_to_vao > geo_to_vaos ;
 
         struct uniform_variable_link
         {
@@ -522,7 +528,7 @@ struct gl4_backend::pimpl
 
         for( size_t i = 0; i<_renders.size(); ++i )
         {
-            this_t::release_render_data( i ) ;
+            this_t::release_render_data( i, false ) ;
         }
 
         for( size_t i = 0; i<_shaders.size(); ++i )
@@ -571,7 +577,7 @@ struct gl4_backend::pimpl
     {
         for( size_t i = 0; i<_renders.size(); ++i )
         {
-            this_t::release_render_data( i ) ;
+            this_t::release_render_data( i, false ) ;
         }
 
         for( size_t i = 0; i<_shaders.size(); ++i )
@@ -1522,14 +1528,6 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t bind_attributes( this_t::shader_data & sconfig, this_t::geo_data & gconfig ) noexcept
     {
-        // bind vertex array object
-        {
-            glBindVertexArray( gconfig.va_id ) ;
-            if( motor::ogl::error::check_and_log(
-                motor_log_fn( "glBindVertexArray" ) ) )
-                return false ;
-        }
-
         // bind vertex buffer
         {
             glBindBuffer( GL_ARRAY_BUFFER, gconfig.vb_id ) ;
@@ -1968,16 +1966,18 @@ struct gl4_backend::pimpl
     {
         oid = determine_oid( obj.name(), _renders ) ;
 
+        auto & rd = _renders[ oid ] ;
+
         {
-            _renders[ oid ].name = obj.name() ;
+            rd.name = obj.name() ;
             
             
-            _renders[ oid ].geo_ids.clear();
-            _renders[ oid ].tf_ids.clear() ;
-            _renders[ oid ].shd_id = size_t( -1 ) ;
+            rd.geo_ids.clear();
+            rd.tf_ids.clear() ;
+            rd.shd_id = size_t( -1 ) ;
 
             motor::memory::global_t::dealloc( _renders[ oid ].mem_block ) ;
-            _renders[ oid ].mem_block = nullptr ;
+            rd.mem_block = nullptr ;
         }
 
         if( !this_t::update( oid, obj ) )
@@ -1989,7 +1989,7 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t release_render_data( size_t const oid ) noexcept
+    bool_t release_render_data( size_t const oid, bool_t const do_gl_release ) noexcept
     {
         auto & rd = _renders[ oid ] ;
 
@@ -2018,6 +2018,16 @@ struct gl4_backend::pimpl
 
         motor::memory::global_t::dealloc( rd.mem_block ) ;
         rd.mem_block = nullptr ;
+
+        if( do_gl_release )
+        {
+            for( auto & d : rd.geo_to_vaos ) 
+            {
+                glDeleteVertexArrays( 1, &d.vao ) ;
+                motor::ogl::error::check_and_log( motor_log_fn( "glDeleteVertexArrays" ) ) ;
+            }
+        }
+        rd.geo_to_vaos.clear() ;
 
         return true ;
     }
@@ -2100,30 +2110,6 @@ struct gl4_backend::pimpl
         }
 
         {
-            this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
-
-            // for binding attributes, the shader and the geometry is required.
-            for( size_t i=0; i<config.geo_ids.size(); ++i )
-            {
-                this_t::geo_data_ref_t geo = _geometries[ config.geo_ids[i] ] ;
-                this_t::bind_attributes( shd, geo ) ;
-            }
-
-            // do for feedback objects
-            // for binding attributes, the shader and the geometry is required.
-            for( size_t i=0; i<config.tf_ids.size(); ++i )
-            {
-                auto & tfd = _feedbacks[ config.tf_ids[i] ] ;
-                for( size_t j=0; j<tf_data::buffer::max_buffers; ++j )
-                {
-                    if( tfd._buffers[0].gids[j] == size_t(-1) ) break ;
-                    this_t::bind_attributes( shd, _geometries[ tfd._buffers[0].gids[j] ] ) ;
-                    this_t::bind_attributes( shd, _geometries[ tfd._buffers[1].gids[j] ] ) ;
-                }
-            }
-        }
-
-        {
             auto vars = std::move( config.var_sets ) ;
             config.var_sets_data.clear() ;
             config.var_sets_texture.clear() ;
@@ -2143,6 +2129,20 @@ struct gl4_backend::pimpl
         this_t::render_object_variable_memory( config, _shaders[ config.shd_id ] ) ;
 
         return true ;
+    }
+
+    bool_t bind_attributes( GLuint const vao, size_t const sid, size_t const gid ) noexcept
+    {
+        auto & sd = _shaders[sid] ;
+        auto & gd = _geometries[ gid ] ;
+
+        {
+            glBindVertexArray( vao ) ;
+            if( motor::ogl::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) )
+                return false ;
+        }
+
+        return this_t::bind_attributes( sd, gd ) ;
     }
 
     //****************************************************************************************
@@ -2254,17 +2254,6 @@ struct gl4_backend::pimpl
         bool_t error = false ;
         auto& config = _geometries[ oid ] ;
 
-        // vertex array object
-        if( config.va_id == GLuint( -1 ) )
-        {
-            GLuint id = GLuint( -1 ) ;
-            glGenVertexArrays( 1, &id ) ;
-            motor::ogl::error::check_and_log(
-                motor_log_fn( "Vertex Array creation" ) ) ;
-
-            config.va_id = id ;
-        }
-
         // vertex buffer
         if( config.vb_id == GLuint(-1) )
         {
@@ -2340,13 +2329,6 @@ struct gl4_backend::pimpl
             geo.ib_id = GLuint( -1 ) ;
         }
 
-        if( geo.va_id != GLuint( -1 ) )
-        {
-            glDeleteVertexArrays( 1, &geo.va_id ) ;
-            motor::ogl::error::check_and_log( motor_log_fn( "glDeleteVertexArrays" ) ) ;
-            geo.va_id = GLuint( -1 ) ;
-        }
-
         geo.ib_elem_sib = 0 ;
 
         for( auto const & rd_id : geo.rd_ids )
@@ -2364,12 +2346,6 @@ struct gl4_backend::pimpl
     bool_t update( size_t const id, motor::graphics::geometry_object_mtr_t geo, bool_t const is_config = false )
     {
         auto& config = _geometries[ id ] ;
-
-        // enable vertex array
-        {
-            glBindVertexArray( config.va_id ) ;
-            motor::ogl::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) ;
-        }
 
         {
             config.num_elements_ib = geo->index_buffer().get_num_elements() ;
@@ -2435,22 +2411,28 @@ struct gl4_backend::pimpl
             }
         }
 
-        if( is_config )
+        if( is_config ) 
         {
+            // force rebind of vertex attributes. Layout may have changed.
             for( auto const & rid : config.rd_ids )
             {
                 if( rid == size_t( -1 ) ) continue ;
                 if( _renders[ rid ].shd_id == size_t( -1 ) ) continue ;
-                // @todo it should be required to rebind vertex data to attributes
-                // if the vertex layout changes.
-                //this_t::bind_attributes( shaders[ _renders[ rid ].shd_id ], config ) ;
-            }
-        }
+                
+                auto iter = std::find_if( _renders[ rid ].geo_to_vaos.begin(), _renders[ rid ].geo_to_vaos.end(), 
+                    [&]( this_t::render_data::geo_to_vao const & d )
+                    {
+                        return d.gid == id ;
+                    } ) ;
+                assert( iter != _renders[ rid ].geo_to_vaos.end() ) ;
 
-        // disable vertex array so the buffer ids do not get overwritten
-        {
-            glBindVertexArray( 0 ) ;
-            motor::ogl::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) ;
+                {
+                    glDeleteVertexArrays( 1, &(iter->vao) ) ;
+                    motor::ogl::error::check_and_log( motor_log_fn( "glDeleteVertexArrays" ) ) ;
+                }
+
+                _renders[ rid ].geo_to_vaos.erase( iter ) ;
+            }
         }
 
         return true ;
@@ -3187,13 +3169,40 @@ struct gl4_backend::pimpl
 
         this_t::geo_data & gconfig = _geometries[ gid ] ;
 
-        if( !sconfig.is_compilation_ok ) return false ;
-
+        // find vao
         {
-            glBindVertexArray( gconfig.va_id ) ;
-            if( motor::ogl::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) )
-                return false ;
+            GLuint vao_id = GLuint(0) ;
+
+            {
+                auto iter = std::find_if( config.geo_to_vaos.begin(), config.geo_to_vaos.end(), 
+                    [&]( this_t::render_data::geo_to_vao const & d )
+                    {
+                        return d.gid == gid ;
+                    } ) ;
+            
+                if( iter == config.geo_to_vaos.end() )
+                {                    
+                    {
+                        glGenVertexArrays( 1, &vao_id ) ;
+                        if( motor::ogl::error::check_and_log( motor_log_fn( "Vertex Array creation" ) ) )
+                            return false ;
+                    }
+
+                    // bind vertex attributes to shader locations for vao
+                    if( this_t::bind_attributes( vao_id, config.shd_id, gid ) )
+                        config.geo_to_vaos.emplace_back( this_t::render_data::geo_to_vao{ gid, vao_id } ) ;
+                }
+                else vao_id = iter->vao ;
+            }
+
+            {
+                glBindVertexArray( vao_id ) ;
+                if( motor::ogl::error::check_and_log( motor_log_fn( "glBindVertexArray" ) ) )
+                    return false ;
+            }
         }
+
+        if( !sconfig.is_compilation_ok ) return false ;
 
         {
             glUseProgram( sconfig.pg_id ) ;
@@ -3615,7 +3624,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::render_object_mtr
     }
 
     {
-        _pimpl->release_render_data( obj->get_oid( this_t::get_bid() ) ) ;
+        _pimpl->release_render_data( obj->get_oid( this_t::get_bid() ), true ) ;
         obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
