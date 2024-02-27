@@ -1507,6 +1507,16 @@ struct gl4_backend::pimpl
             }
             config.attributes[i] = vd ;
         }
+
+        for( auto iter = config.attributes.begin(); iter != config.attributes.end(); )
+        {
+            if( iter->va == motor::graphics::vertex_attribute::undefined )
+            {
+                iter = config.attributes.erase( iter ) ;
+                continue ;
+            }
+            ++iter ;
+        }
     }
 
     //****************************************************************************************
