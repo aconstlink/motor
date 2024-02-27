@@ -55,12 +55,12 @@ namespace motor
 
         public:
 
-            imgui( void_t ) noexcept ;
+            imgui( motor::string_cref_t ) noexcept ;
             imgui( this_cref_t ) = delete ;
             imgui( this_rref_t ) noexcept ;
             ~imgui( void_t ) noexcept ;
 
-            void_t init( void_t ) noexcept ;
+            void_t init( motor::string_cref_t ) noexcept ;
             
             
             void_t render( motor::graphics::gen4::frontend_mtr_t ) noexcept ;

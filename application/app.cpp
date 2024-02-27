@@ -38,9 +38,12 @@ app::window_id_t app::create_window( motor::application::window_info_cref_t wi )
     size_t ret = size_t(-1) ;
     {
         std::lock_guard< std::mutex > lk( _mtx_windows ) ;
+
+        ret = _windows.size() ;
+
         _windows.emplace_back( this_t::window_data
-            { static_cast<motor::application::window_ptr_t>(wnd), msgl, nullptr, motor::shared(motor::tool::imgui_t()) } ) ;
-        ret = _windows.size()-1 ;
+            { static_cast<motor::application::window_ptr_t>(wnd), msgl, nullptr, 
+                motor::shared( motor::tool::imgui_t( motor::to_string(ret) ) ) } ) ;
     }
 
     return ret ;

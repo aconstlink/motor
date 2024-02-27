@@ -5,13 +5,13 @@
 using namespace motor::tool ;
 
 //***
-imgui::imgui( void_t ) noexcept
+imgui::imgui( motor::string_cref_t name ) noexcept
 {
     _vars.emplace_back( motor::memory::create_ptr( 
         motor::graphics::variable_set_t(), "imgui variable set" ) ) ;
 
     _ctx = ImGui::CreateContext() ;
-    this_t::init() ;
+    this_t::init( name ) ;
 }
 
 //***
@@ -58,7 +58,7 @@ void_t imgui::execute( exec_funk_t funk ) noexcept
 }
 
 //***
-void_t imgui::init( void_t ) noexcept 
+void_t imgui::init( motor::string_cref_t name ) noexcept 
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -80,19 +80,19 @@ void_t imgui::init( void_t ) noexcept
             set_layout_element( motor::graphics::type::tuint ) ;
 
         _gc = motor::memory::create_ptr( 
-            motor::graphics::geometry_object_t( "motor.system.imgui",
+            motor::graphics::geometry_object_t( "motor.system.imgui." + name,
             motor::graphics::primitive_type::triangles,
             std::move( vb ), std::move( ib ) ), "[imgui] : geometry object" ) ;
     }
 
     {
         _rs = motor::memory::create_ptr( 
-            motor::graphics::state_object_t("motor.system.imgui"), "[imgui] : render states" ) ;
+            motor::graphics::state_object_t("motor.system.imgui." + name), "[imgui] : render states" ) ;
     }
 
     // shader config
     {
-        motor::graphics::shader_object_t sc( "motor.system.imgui" ) ;
+        motor::graphics::shader_object_t sc( "motor.system.imgui." + name ) ;
 
         // shaders : ogl 3.0
         {
@@ -262,7 +262,7 @@ void_t imgui::init( void_t ) noexcept
             }
         } ) ;
 
-        auto ic = motor::graphics::image_object_t( "motor.system.imgui.font", std::move( img ) )
+        auto ic = motor::graphics::image_object_t( "motor.system.imgui."+name+".font", std::move( img ) )
             .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::clamp )
             .set_wrap( motor::graphics::texture_wrap_mode::wrap_t, motor::graphics::texture_wrap_type::clamp )
             .set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::linear )
@@ -274,16 +274,16 @@ void_t imgui::init( void_t ) noexcept
 
     // render configuration
     {
-        motor::graphics::render_object_t rc( "motor.system.imgui" ) ;
+        motor::graphics::render_object_t rc( "motor.system.imgui." + name ) ;
 
-        rc.link_geometry( "motor.system.imgui" ) ;
-        rc.link_shader( "motor.system.imgui" ) ;
+        rc.link_geometry( "motor.system.imgui." + name ) ;
+        rc.link_shader( "motor.system.imgui." + name ) ;
         
         // the variable set with id == 0 is the default
         // imgui variable set for rendering default widgets
         {
             auto* var = _vars[ 0 ]->texture_variable( "u_tex" ) ;
-            var->set( "motor.system.imgui.font" ) ;
+            var->set( "motor.system.imgui." + name + ".font" ) ;
         }
 
         rc.add_variable_set( motor::share( _vars[0] ) ) ;
