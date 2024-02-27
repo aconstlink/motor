@@ -2265,6 +2265,11 @@ public: // functions
         auto& config = geo_datas[ id ] ;
         if( !config.valid ) return false ;
 
+        if( geo->index_buffer().get_num_elements() != 0 && config.ib == nullptr )
+        {
+            this_t::construct_geo( id, *geo ) ;
+        }
+
         // vb: check memory space
         {
             D3D11_BUFFER_DESC bd ;
