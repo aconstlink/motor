@@ -32,7 +32,15 @@ I regularly test on a Fedora 30+ machine with OpenGL 4. OpenGL ES is currently n
 
 ## Clone and Build
 
-**Linux Make:**  
+This project onyl supports CMake.
+
+**Windows Visual Studio:**  
+1. Open CMake Gui
+2. Choose 64 bit Visual Studio 2019(or higher)
+3. Generate (out of source)
+4. Open Visual Studio Solution
+   
+**Linux CMake:**  
 ```
 cd repos
 git clone https://github.com/aconstlink/motor.git
@@ -41,8 +49,4 @@ cd _build/motor.platform
 cmake ../../motor
 ```
 
-**Windows Visual Studio:**  
-1. Open CMake Gui
-2. Choose 64 bit Visual Studio 2019(or higher)
-3. Generate (out of source)
-4. Open Visual Studio Solution
+
