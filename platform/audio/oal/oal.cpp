@@ -155,7 +155,7 @@ struct motor::platform::oal_backend::pimpl
         if( _gc != nullptr )
         {
             _gc->sys_audio->release() ;
-            motor::memory::global_t::dealloc( _gc->sys_audio ) ;
+            motor::memory::release_ptr( _gc->sys_audio ) ;
 
             alcCaptureCloseDevice( _gc->dev ) ;
             _gc->dev = nullptr ;
