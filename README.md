@@ -9,19 +9,20 @@ Sample code using the engine can be found in the [sample suites](https://github.
 
 ## Platform Prerequisites
 
-**Windows prerequisites:**
+### Windows:
  - Windows 10 SDK
  - Visual Studio 2019 (Community) or later
  - CMake
  
  The engine should compile for Windows 8 and Windows 7 still. There are some differences in the Windows SDKs which I might not support anymore.
 
-**Linux prerequisites:**
-For development:
+### Linux:
+
+*For development:*
 ```bash
 libX11-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel alsa-lib-devel make cmake gcc gcc-c++
 ```
-For execution only
+*For execution only*
 ```bash
 libX11 mesa-libGLES mesa-libGL mesa-libEGL alsa-lib
 ```
