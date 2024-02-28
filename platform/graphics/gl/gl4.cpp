@@ -2511,14 +2511,17 @@ struct gl4_backend::pimpl
                     {
                         return d.gid == id ;
                     } ) ;
-                assert( iter != _renders[ rid ].geo_to_vaos.end() ) ;
 
+                // this may happen if the geometry is configured a second time
+                // after the render object is configured but the render object
+                // is not rendered yet.
+                if( iter != _renders[ rid ].geo_to_vaos.end() )
                 {
                     glDeleteVertexArrays( 1, &(iter->vao) ) ;
                     motor::ogl::error::check_and_log( motor_log_fn( "glDeleteVertexArrays" ) ) ;
-                }
 
-                _renders[ rid ].geo_to_vaos.erase( iter ) ;
+                    _renders[ rid ].geo_to_vaos.erase( iter ) ;
+                }
             }
         }
 
