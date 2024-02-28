@@ -49,10 +49,19 @@ namespace motor
             capture_object( this_cref_t ) = delete ;
             capture_object( this_rref_t rhv ) noexcept : object( std::move( rhv ) )
             {
+                *this = std::move( rhv ) ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                object::operator=( std::move( rhv ) ) ;
+
                 _ch = rhv._ch ;
                 _samples = std::move( rhv._samples ) ;
                 _frequencies = std::move( rhv._frequencies ) ;
                 _band_width = rhv._band_width ;
+
+                return *this ;
             }
 
             virtual ~capture_object( void_t ) noexcept {}
