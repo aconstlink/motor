@@ -66,9 +66,6 @@ namespace motor
 
             size_t num_quads = 1000 ;
 
-            // are all graphics objects initialized
-            bool_t _init_done = false ;
-
         private:
 
             struct render_info
@@ -136,6 +133,15 @@ namespace motor
             motor_typedefs( motor::vector< size_t >, render_group_ids ) ;
             render_group_ids_t _render_groups ;
 
+            struct prepare_update
+            {
+                bool_t vertex_realloc = false ;
+                bool_t data_realloc = false ;
+                bool_t reconfig_ro = false ;
+            };
+
+            prepare_update _pe ;
+
         public:
 
             text_render_2d( void_t ) noexcept ;
@@ -155,19 +161,20 @@ namespace motor
             void_t set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) ;
             void_t set_view_proj( size_t const, motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) ;
 
-            motor::gfx::result draw_text( size_t const group, size_t const font_id, size_t const point_size,
+            void_t draw_text( size_t const group, size_t const font_id, size_t const point_size,
                 motor::math::vec2f_cref_t pos, motor::math::vec4f_cref_t color, motor::string_cref_t ) ;
 
-            //so_gfx::result set_canvas_info( canvas_info_cref_t ) ;
-            motor::gfx::result prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t ) ;
-            
-            motor::gfx::result render( motor::graphics::gen4::frontend_mtr_t, size_t const ) ;
+            void_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
 
-            motor::gfx::result release( void_t ) ;
+            void_t prepare_for_rendering( void_t ) noexcept ;
+            void_t prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t ) ;
+            
+            void_t render( motor::graphics::gen4::frontend_mtr_t, size_t const ) ;
+
+            void_t release( void_t ) ;
 
         private:
 
-            void_t on_frame_init( motor::graphics::gen4::frontend_mtr_t ) noexcept ;
             bool_t need_to_render( size_t const ) const noexcept ;
 
         public:

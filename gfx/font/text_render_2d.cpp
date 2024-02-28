@@ -3,13 +3,13 @@
 
 using namespace motor::gfx ;
 
-//*************************************************************************
+//**********************************************************************************************************
 text_render_2d::text_render_2d( void_t ) noexcept
 {
     
 }
 
-//*************************************************************************
+//**********************************************************************************************************
 text_render_2d::text_render_2d( this_rref_t rhv ) noexcept
 {
     _rc = motor::move( rhv._rc ) ;
@@ -26,7 +26,7 @@ text_render_2d::text_render_2d( this_rref_t rhv ) noexcept
     _name = std::move( rhv._name ) ;
 }
 
-//*************************************************************************
+//**********************************************************************************************************
 text_render_2d::~text_render_2d( void_t ) noexcept
 {
     motor::memory::release_ptr( _rc ) ;
@@ -41,13 +41,13 @@ text_render_2d::~text_render_2d( void_t ) noexcept
     for( auto * v : _vars ) motor::memory::release_ptr( v ) ;
 }
 
-//*************************************************************************
+//**********************************************************************************************************
 void_t text_render_2d::init( motor::string_cref_t name, size_t const ng ) noexcept 
 {
     this_t::init( name, motor::font::glyph_atlas_mtr_safe_t(_ga), ng ) ;
 }
 
-//*************************************************************************
+//**********************************************************************************************************
 void_t text_render_2d::init( motor::string_cref_t name, motor::font::glyph_atlas_mtr_safe_t ga_, size_t const ng ) noexcept
 {
     _name = "natus.gfx.text_render_2d." + name ;
@@ -557,17 +557,7 @@ void_t text_render_2d::init( motor::string_cref_t name, motor::font::glyph_atlas
     }
 }
 
-void_t text_render_2d::on_frame_init( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
-{
-    fe->configure<motor::graphics::geometry_object_t>( _gc ) ;
-    fe->configure<motor::graphics::shader_object_t>( _sc ) ;
-    fe->configure<motor::graphics::image_object_t>( _ic ) ;
-    fe->configure<motor::graphics::array_object_t>( _glyph_infos ) ;
-    fe->configure<motor::graphics::array_object_t>( _text_infos ) ;
-    fe->configure<motor::graphics::render_object_t>( _rc ) ;
-    fe->configure<motor::graphics::state_object_t>( _sto ) ;
-}
-
+//**********************************************************************************************************
 void_t text_render_2d::set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) 
 {
     for( auto & g : _gis )
@@ -589,6 +579,7 @@ void_t text_render_2d::set_view_proj( motor::math::mat4f_cref_t view, motor::mat
     }
 }
 
+//**********************************************************************************************************
 void_t text_render_2d::set_view_proj( size_t const i, motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) 
 {
     if( i >= _gis.size() ) return ;
@@ -609,10 +600,10 @@ void_t text_render_2d::set_view_proj( size_t const i, motor::math::mat4f_cref_t 
     }
 }
 
-motor::gfx::result text_render_2d::draw_text( size_t const group, size_t const font_id, size_t const point_size, motor::math::vec2f_cref_t pos, motor::math::vec4f_cref_t color, motor::string_cref_t text ) 
+//**********************************************************************************************************
+void_t text_render_2d::draw_text( size_t const group, size_t const font_id, size_t const point_size, motor::math::vec2f_cref_t pos, motor::math::vec4f_cref_t color, motor::string_cref_t text ) 
 {
-    if( group >= _gis.size() )
-        return motor::gfx::result::invalid_argument ;
+    if( group >= _gis.size() ) return ;
 
     motor::math::vec2f_t const aspect( float_t( _ga->get_width() ) / float_t( _ga->get_height() ), 1.0f ) ;
 
@@ -670,18 +661,23 @@ motor::gfx::result text_render_2d::draw_text( size_t const group, size_t const f
             _gis[group].glyph_infos.emplace_back( tgi ) ;
         }
     }
-
-    return motor::gfx::result::ok ;
 }
 
-motor::gfx::result text_render_2d::prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) 
+//**********************************************************************************************************
+void_t text_render_2d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
 {
-    if( !_init_done )
-    {
-        this_t::on_frame_init( fe ) ;
-        _init_done = true ;
-    }
+    fe->configure<motor::graphics::geometry_object_t>( _gc ) ;
+    fe->configure<motor::graphics::shader_object_t>( _sc ) ;
+    fe->configure<motor::graphics::image_object_t>( _ic ) ;
+    fe->configure<motor::graphics::array_object_t>( _glyph_infos ) ;
+    fe->configure<motor::graphics::array_object_t>( _text_infos ) ;
+    fe->configure<motor::graphics::render_object_t>( _rc ) ;
+    fe->configure<motor::graphics::state_object_t>( _sto ) ;
+}
 
+//**********************************************************************************************************
+void_t text_render_2d::prepare_for_rendering( void_t ) noexcept 
+{
     struct the_data
     {
         // v1: ( pos.xy, offset, scale )
@@ -729,21 +725,19 @@ motor::gfx::result text_render_2d::prepare_for_rendering( motor::graphics::gen4:
             _gis[i].glyph_infos.clear() ;
         }
     }
+}
 
+//**********************************************************************************************************
+void_t text_render_2d::prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) 
+{
     fe->update( _text_infos ) ;
-
-    return motor::gfx::result::ok ;
 }
 
-bool_t text_render_2d::need_to_render( size_t const i ) const noexcept
+//**********************************************************************************************************
+void_t text_render_2d::render( motor::graphics::gen4::frontend_mtr_t fe, size_t const i ) 
 {
-    return _gis[i].ri.num_elems != 0 ;
-}
-
-motor::gfx::result text_render_2d::render( motor::graphics::gen4::frontend_mtr_t fe, size_t const i ) 
-{
-    if( i >= _gis.size() ) return motor::gfx::result::invalid_argument ;
-    if( !this_t::need_to_render(i) ) return motor::gfx::result::ok ;
+    if( i >= _gis.size() ) return ;
+    if( !this_t::need_to_render(i) ) return  ;
 
     fe->push( _sto ) ;
 
@@ -762,12 +756,18 @@ motor::gfx::result text_render_2d::render( motor::graphics::gen4::frontend_mtr_t
         
     fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
 
-    return motor::gfx::result::ok ;
+    return ;
 }
 
-motor::gfx::result text_render_2d::release( void_t ) 
+//**********************************************************************************************************
+void_t text_render_2d::release( void_t ) 
 {
-    return motor::gfx::result::ok ;
+}
+
+//**********************************************************************************************************
+bool_t text_render_2d::need_to_render( size_t const i ) const noexcept
+{
+    return _gis[i].ri.num_elems != 0 ;
 }
 
 
