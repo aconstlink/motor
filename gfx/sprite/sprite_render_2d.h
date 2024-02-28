@@ -3,12 +3,12 @@
 #include "../api.h"
 #include "../typedefs.h"
 
-#include <motor/graphics/async.h>
 #include <motor/graphics/object/state_object.h>
 #include <motor/graphics/object/array_object.h>
 #include <motor/graphics/object/render_object.h>
 #include <motor/graphics/object/geometry_object.h>
 #include <motor/graphics/variable/variable_set.hpp>
+#include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/std/vector>
 
@@ -91,12 +91,11 @@ namespace motor
             };
 
             motor::string_t _name ;
-            motor::graphics::async_views_t _asyncs ;
-            motor::graphics::state_object_res_t _rs ;
-            motor::graphics::array_object_res_t _ao ;
-            motor::graphics::shader_object_res_t _so ;
-            motor::graphics::render_object_res_t _ro ;
-            motor::graphics::geometry_object_res_t _go ;
+            motor::graphics::state_object_t _rs ;
+            motor::graphics::array_object_t _ao ;
+            motor::graphics::shader_object_t _so ;
+            motor::graphics::render_object_t _ro ;
+            motor::graphics::geometry_object_t _go ;
             
             size_t _max_quads = 2000 ;
 
@@ -108,6 +107,15 @@ namespace motor
             bool_t _reset_view_proj = false ;
             motor::math::mat4f_t _view ;
             motor::math::mat4f_t _proj ;
+
+            struct prepare_update
+            {
+                bool_t vertex_realloc = false ;
+                bool_t data_realloc = false ;
+                bool_t reconfig_ro = false ;
+            };
+
+            prepare_update _pe ;
 
         public:
 
@@ -142,12 +150,12 @@ namespace motor
 
         public:
 
-            sprite_render_2d( void_t ) ;
+            sprite_render_2d( void_t ) noexcept;
             sprite_render_2d( this_cref_t ) = delete ;
-            sprite_render_2d( this_rref_t ) ;
-            ~sprite_render_2d( void_t ) ;
+            sprite_render_2d( this_rref_t ) noexcept;
+            ~sprite_render_2d( void_t ) noexcept;
 
-            void_t init( motor::string_cref_t, motor::string_cref_t, motor::graphics::async_views_t ) noexcept ;
+            void_t init( motor::string_cref_t, motor::string_cref_t ) noexcept ;
             void_t release( void_t ) noexcept ;
 
         public:
@@ -155,17 +163,22 @@ namespace motor
             void_t set_texture( motor::string_cref_t name ) noexcept ;
 
             // draw a sprite/uv rect from a texture of the screen
-            void_t draw( size_t const l, motor::math::vec2f_cref_t pos, motor::math::mat2f_cref_t frame, motor::math::vec2f_cref_t scale, motor::math::vec4f_cref_t uv_rect, size_t const slot, motor::math::vec2f_cref_t pivot = motor::math::vec2f_t(0.0f), motor::math::vec4f_cref_t color = motor::math::vec4f_t(1.0f) ) noexcept ;
+            void_t draw( size_t const l, motor::math::vec2f_cref_t pos, motor::math::mat2f_cref_t frame, 
+                motor::math::vec2f_cref_t scale, motor::math::vec4f_cref_t uv_rect, size_t const slot, 
+                motor::math::vec2f_cref_t pivot = motor::math::vec2f_t(0.0f), motor::math::vec4f_cref_t color = motor::math::vec4f_t(1.0f) ) noexcept ;
 
             void_t set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) noexcept ;
 
         public:
 
+            void_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
+
             // copy all data to the gpu buffer and transmit the data
             void_t prepare_for_rendering( void_t ) noexcept ;
-            void_t render( size_t const ) noexcept ;
+            void_t prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
+            void_t render( motor::graphics::gen4::frontend_mtr_t fe, size_t const ) noexcept ;
         };
-        motor_res_typedef( sprite_render_2d ) ;
+        motor_typedef( sprite_render_2d ) ;
 
         struct sprite_sheet
         {
@@ -211,6 +224,5 @@ namespace motor
             }
         };
         motor_typedef( sprite_sheet ) ;
-        motor_res_typedefs( motor::vector< sprite_sheet_t >, sprite_sheets ) ;
     }
 }

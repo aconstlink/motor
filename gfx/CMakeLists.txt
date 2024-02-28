@@ -24,8 +24,8 @@ set( sources
     #"primitive/primitive_render_3d.h"
     #"primitive/primitive_render_3d.cpp"
     
-    #"sprite/sprite_render_2d.h"
-    #"sprite/sprite_render_2d.cpp"
+    "sprite/sprite_render_2d.h"
+    "sprite/sprite_render_2d.cpp"
 
     "util/quad.h"
     "util/quad.cpp"

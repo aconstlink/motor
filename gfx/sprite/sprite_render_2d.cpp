@@ -5,7 +5,8 @@
 
 using namespace motor::gfx ;
 
-sprite_render_2d::sprite_render_2d( void_t ) 
+//**********************************************************************************************************
+sprite_render_2d::sprite_render_2d( void_t ) noexcept
 {
     _rs = motor::graphics::state_object_t() ;
     _ao = motor::graphics::array_object_t() ;
@@ -14,7 +15,8 @@ sprite_render_2d::sprite_render_2d( void_t )
     _so = motor::graphics::shader_object_t() ;
 }
 
-sprite_render_2d::sprite_render_2d( this_rref_t rhv ) 
+//**********************************************************************************************************
+sprite_render_2d::sprite_render_2d( this_rref_t rhv ) noexcept
 {
     _rs = std::move( rhv._rs ) ;
     _ao = std::move( rhv._ao ) ;
@@ -22,19 +24,19 @@ sprite_render_2d::sprite_render_2d( this_rref_t rhv )
     _go = std::move( rhv._go ) ;
     _so = std::move( rhv._so ) ;
 
-    _asyncs = std::move( rhv._asyncs ) ;
     _name = std::move( rhv._name ) ;
     _image_name = std::move( rhv._image_name ) ;
 }
-            
-sprite_render_2d::~sprite_render_2d( void_t ) 
+
+//**********************************************************************************************************
+sprite_render_2d::~sprite_render_2d( void_t ) noexcept
 {
 }
 
-void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t image_name, motor::graphics::async_views_t asyncs ) noexcept 
+//**********************************************************************************************************
+void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t image_name ) noexcept 
 {
     _name = name ;
-    _asyncs = asyncs ;
     _image_name = image_name ;
 
     // root render states
@@ -64,10 +66,6 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
         }
 
         _rs = std::move( so ) ;
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( _rs ) ;
-        } ) ;
     }
 
     // geometry configuration
@@ -91,10 +89,10 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
             set_layout_element( motor::graphics::type::tuint ).resize( _max_quads * 6 ).
             update<uint_t>( [&] ( uint_t* array, size_t const ne )
         {
-            for( size_t i=0; i<_max_quads; ++i )
+            for( uint_t i=0; i<uint_t(_max_quads); ++i )
             {
-                size_t const bi = i * 6 ;
-                size_t const bv = i * 4 ;
+                uint_t const bi = i * 6 ;
+                uint_t const bv = i * 4 ;
 
                 array[ bi + 0 ] = bv + 0 ;
                 array[ bi + 1 ] = bv + 1 ;
@@ -108,14 +106,8 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
             
         } ) ;
 
-        motor::graphics::geometry_object_res_t geo = motor::graphics::geometry_object_t( name + ".geometry",
+        _go = motor::graphics::geometry_object_t( name + ".geometry",
             motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ;
-
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( geo ) ;
-        } ) ;                
-        _go = std::move( geo ) ;
     }
 
     // array
@@ -125,10 +117,6 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
             .resize( 5 ) ;
 
         _ao = motor::graphics::array_object_t( name + ".per_sprite_data", std::move( db ) ) ;
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( _ao ) ;
-        } ) ;
     }
 
     // shader configuration
@@ -192,7 +180,7 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
                         out_color = texture( u_tex, var_uv ) * var_col ;
                     } )" ) ) ;
 
-            sc.insert( motor::graphics::shader_api_type::glsl_1_4, std::move( ss ) ) ;
+            sc.insert( motor::graphics::shader_api_type::glsl_4_0, std::move( ss ) ) ;
         }
 
         // shaders : es 3.0
@@ -351,11 +339,6 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
                 .add_input_binding( motor::graphics::binding_point::projection_matrix, "u_proj" ) ;
         }
 
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( sc ) ;
-        } ) ;
-
         _so = std::move( sc ) ;
     }
 
@@ -372,25 +355,26 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
         {
             this_t::add_variable_set( rc ) ;
         }
-                
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( rc ) ;
-        } ) ;
+        
         _ro = std::move( rc ) ;
     }
 }
 
+//**********************************************************************************************************
 void_t sprite_render_2d::release( void_t ) noexcept 
 {
 }
 
+//**********************************************************************************************************
 void_t sprite_render_2d::set_texture( motor::string_cref_t name ) noexcept 
 {
     _image_name = name ;
 }
 
-void_t sprite_render_2d::draw( size_t const l, motor::math::vec2f_cref_t pos, motor::math::mat2f_cref_t frame, motor::math::vec2f_cref_t scale, motor::math::vec4f_cref_t uv_rect, size_t const slot, motor::math::vec2f_cref_t pivot, motor::math::vec4f_cref_t color ) noexcept 
+//**********************************************************************************************************
+void_t sprite_render_2d::draw( size_t const l, motor::math::vec2f_cref_t pos, motor::math::mat2f_cref_t frame, 
+    motor::math::vec2f_cref_t scale, motor::math::vec4f_cref_t uv_rect, 
+    size_t const slot, motor::math::vec2f_cref_t pivot, motor::math::vec4f_cref_t color ) noexcept 
 {
     if( _layers.size() < l+1 ) 
     {
@@ -409,12 +393,21 @@ void_t sprite_render_2d::draw( size_t const l, motor::math::vec2f_cref_t pos, mo
     _layers[l].sprites.emplace_back( std::move( d ) ) ;
     ++_num_sprites ;
 }
-            
+
+//**********************************************************************************************************
+void_t sprite_render_2d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+{
+    fe->configure<motor::graphics::geometry_object_t>( &_go ) ;
+    fe->configure<motor::graphics::shader_object_t>( &_so ) ;
+    fe->configure<motor::graphics::array_object_t>( &_ao) ;
+    fe->configure<motor::graphics::render_object_t>( &_ro ) ;
+    fe->configure<motor::graphics::state_object_t>( &_rs ) ;
+}
+
+//**********************************************************************************************************
 void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept 
 {
-    bool_t vertex_realloc = false ;
-    bool_t data_realloc = false ;
-    bool_t reconfig_ro = false ;
+    this_t::prepare_update pe ;
 
     if( _num_sprites == 0 ) return ;
 
@@ -459,24 +452,24 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
     // 2. prepare variable sets 
     // one var set per render pass per layer
     {
-        for( size_t i=_ro->get_num_variable_sets(); i<_render_data.size(); ++i )
+        for( size_t i=_ro.get_num_variable_sets(); i<_render_data.size(); ++i )
         {
-            this_t::add_variable_set( *_ro ) ;
-            reconfig_ro = true ;
+            this_t::add_variable_set( _ro ) ;
+            pe.reconfig_ro = true ;
         }
 
         int_t offset = 0 ;
         for( size_t i=0; i<_render_data.size(); ++i )
         {
-            _ro->get_variable_set(i)->data_variable<int32_t>( "u_offset" )->set( offset ) ;
+            _ro.borrow_variable_set(i)->data_variable<int32_t>( "u_offset" )->set( offset ) ;
             offset += int32_t( _render_data[i].num_quads ) ;
         }
 
-        if( _image_name_changed || reconfig_ro )
+        if( _image_name_changed || pe.reconfig_ro )
         {
             for( size_t i=0; i<_render_data.size(); ++i )
             {
-                _ro->get_variable_set(i)->texture_variable( "u_tex" )->set( _image_name ) ;
+                _ro.borrow_variable_set(i)->texture_variable( "u_tex" )->set( _image_name ) ;
             }
             _image_name_changed = false ;
         }
@@ -487,11 +480,11 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
             for( size_t i=0; i<_render_data.size(); ++i )
             {
                 {
-                    auto* var = _ro->get_variable_set(i)->data_variable<motor::math::mat4f_t>( "u_view" ) ;
+                    auto* var = _ro.borrow_variable_set(i)->data_variable<motor::math::mat4f_t>( "u_view" ) ;
                     var->set( _view ) ;
                 }
                 {
-                    auto* var = _ro->get_variable_set(i)->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
+                    auto* var = _ro.borrow_variable_set(i)->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
                     var->set( _proj ) ;
                 }
             }
@@ -500,11 +493,11 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
 
     // 3. copy data
     {
-        size_t const bsib = _ao->data_buffer().get_sib() ;
+        size_t const bsib = _ao.data_buffer().get_sib() ;
 
         size_t const sizeof_data = sizeof(this_t::the_data) / sizeof( motor::math::vec4f_t ) ;
-        if( _ao->data_buffer().get_num_elements() < (_num_sprites * sizeof_data) )
-            _ao->data_buffer().resize( _num_sprites * sizeof_data ) ;
+        if( _ao.data_buffer().get_num_elements() < (_num_sprites * sizeof_data) )
+            _ao.data_buffer().resize( _num_sprites * sizeof_data ) ;
 
         size_t lstart = 0 ;
 
@@ -515,30 +508,30 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
             for( size_t i=0; i<sprites.size(); ++i )
             {
                 size_t const idx = lstart + i * sizeof_data ;
-                _ao->data_buffer().update< motor::math::vec4f_t >( idx + 0, 
+                _ao.data_buffer().update< motor::math::vec4f_t >( idx + 0, 
                     motor::math::vec4f_t( sprites[i].pos, sprites[i].scale ) ) ;
 
-                _ao->data_buffer().update< motor::math::vec4f_t >( idx + 1, 
+                _ao.data_buffer().update< motor::math::vec4f_t >( idx + 1, 
                     motor::math::vec4f_t( sprites[i].frame.column(0), sprites[i].frame.column(1) ) ) ;
 
-                _ao->data_buffer().update< motor::math::vec4f_t >( idx + 2, 
+                _ao.data_buffer().update< motor::math::vec4f_t >( idx + 2, 
                     sprites[i].uv_rect ) ;
 
                 // additional infos
-                _ao->data_buffer().update< motor::math::vec4f_t >( idx + 3, 
+                _ao.data_buffer().update< motor::math::vec4f_t >( idx + 3, 
                     motor::math::vec4f_t( sprites[i].pivot.x(), sprites[i].pivot.y(), 0.0f, float_t( sprites[i].slot ) ) ) ;
 
                 // uv animation
-                _ao->data_buffer().update< motor::math::vec4f_t >( idx + 4, 
+                _ao.data_buffer().update< motor::math::vec4f_t >( idx + 4, 
                     motor::math::vec4f_t(1.0f) ) ;
 
                 // color
-                _ao->data_buffer().update< motor::math::vec4f_t >( idx + 5, 
+                _ao.data_buffer().update< motor::math::vec4f_t >( idx + 5, 
                     sprites[i].color ) ;
 
                 
 
-                //_ao->data_buffer().update< motor::math::vec4f_t >( idx + 3, 
+                //_ao.data_buffer().update< motor::math::vec4f_t >( idx + 3, 
                     //  motor::math::vec4f_t( sprites[i].pos, sprites[i].scale ) ) ;
             }
             lstart += sprites.size() * sizeof_data ;
@@ -546,79 +539,78 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
             _layers[l].sprites.clear() ;
         }
         
-        data_realloc = _ao->data_buffer().get_sib() > bsib ;
-    }
-
-    // 4. tell the graphics api
-    {
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        { 
-            if( data_realloc ) a.configure( _ao ) ;
-            else a.update( _ao ) ;
-
-            if( reconfig_ro ) a.configure( _ro ) ;
-        } ) ;
+        pe.data_realloc = _ao.data_buffer().get_sib() > bsib ;
     }
 
     _num_sprites = 0 ;
+    _pe = pe ;
 }
 
-void_t sprite_render_2d::render( size_t const l ) noexcept 
+//**********************************************************************************************************
+void_t sprite_render_2d::prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
 {
-    _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-    {         
-        a.push( _rs ) ;
-        if( _render_layer_infos.size() > l ) 
-        {
-            auto const & rli = _render_layer_infos[l] ;
+    if( _pe.data_realloc ) fe->configure<motor::graphics::array_object_t>( &_ao ) ;
+    else fe->update( &_ao ) ;
 
-            for( size_t idx= rli.start; idx < rli.end; ++idx )
-            {
-                auto const & plrd = _render_data[idx] ;
-
-                motor::graphics::backend::render_detail rd ;
-                rd.start = 0 ;
-                rd.num_elems = plrd.num_elems ;
-                rd.varset = idx ;
-
-                a.render( _ro, rd ) ;
-            }
-        }
-        a.pop( motor::graphics::backend::pop_type::render_state ) ;
-    } ) ;
+    if( _pe.reconfig_ro ) fe->configure<motor::graphics::render_object_t>( &_ro ) ;
 }
 
+//**********************************************************************************************************
+void_t sprite_render_2d::render( motor::graphics::gen4::frontend_mtr_t fe, size_t const l ) noexcept 
+{
+    fe->push( &_rs ) ;
+    if( _render_layer_infos.size() > l ) 
+    {
+        auto const & rli = _render_layer_infos[l] ;
+
+        for( size_t idx= rli.start; idx < rli.end; ++idx )
+        {
+            auto const & plrd = _render_data[idx] ;
+
+            motor::graphics::gen4::backend::render_detail rd ;
+            rd.start = 0 ;
+            rd.num_elems = plrd.num_elems ;
+            rd.varset = idx ;
+
+            fe->render( &_ro, rd ) ;
+        }
+    }
+    fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+}
+
+//**********************************************************************************************************
 void_t sprite_render_2d::add_variable_set( motor::graphics::render_object_ref_t rc ) noexcept 
 {
-    motor::graphics::variable_set_res_t vars = motor::graphics::variable_set_t() ;
+    motor::graphics::variable_set_t vars ;
             
     {
-        auto* var = vars->array_variable( "u_data" ) ;
+        auto* var = vars.array_variable( "u_data" ) ;
         var->set( _name + ".per_sprite_data" ) ;
     }
     {
-        auto* var = vars->data_variable<int32_t>( "u_offset" ) ;
+        auto* var = vars.data_variable<int32_t>( "u_offset" ) ;
         var->set( 0 ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_world" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_world" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_view" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_proj" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
     {
-        auto* var = vars->texture_variable( "u_tex" ) ;
+        auto* var = vars.texture_variable( "u_tex" ) ;
         var->set( _image_name ) ;
     }
-    rc.add_variable_set( std::move( vars ) ) ;
+    rc.add_variable_set( motor::shared( std::move( vars ) ) ) ;
 }
 
+//**********************************************************************************************************
 void_t sprite_render_2d::set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) noexcept 
 {
     _view = view ;
