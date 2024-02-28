@@ -6,7 +6,8 @@
 
 using namespace motor::gfx ;
 
-tri_render_2d::tri_render_2d( void_t ) 
+//**********************************************************************************************************
+tri_render_2d::tri_render_2d( void_t ) noexcept
 {
     _rs = motor::graphics::state_object_t() ;
     _ao = motor::graphics::array_object_t() ;
@@ -20,7 +21,14 @@ tri_render_2d::tri_render_2d( void_t )
     }
 }
 
-tri_render_2d::tri_render_2d( this_rref_t rhv ) 
+//**********************************************************************************************************
+tri_render_2d::tri_render_2d( this_rref_t rhv ) noexcept
+{
+    *this = std::move( rhv ) ;
+}
+
+//**********************************************************************************************************
+tri_render_2d::this_ref_t tri_render_2d::operator = ( this_rref_t rhv ) noexcept 
 {
     _rs = std::move( rhv._rs ) ;
     _ao = std::move( rhv._ao ) ;
@@ -32,18 +40,19 @@ tri_render_2d::tri_render_2d( this_rref_t rhv )
 
     _proj = std::move( rhv._proj ) ;
     _view = std::move( rhv._view ) ;
+
+    return *this ;
 }
-            
-tri_render_2d::~tri_render_2d( void_t ) 
+
+//**********************************************************************************************************
+tri_render_2d::~tri_render_2d( void_t ) noexcept
 {
 }
 
-void_t tri_render_2d::init( motor::string_cref_t name, motor::graphics::async_views_t asyncs ) noexcept 
+//**********************************************************************************************************
+void_t tri_render_2d::init( motor::string_cref_t name ) noexcept 
 {
     _name = name ;
-    _asyncs = asyncs ;
-
-    
 
     // root render states
     {
@@ -72,10 +81,6 @@ void_t tri_render_2d::init( motor::string_cref_t name, motor::graphics::async_vi
         }
 
         _rs = std::move( so ) ;
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( _rs ) ;
-        } ) ;
     }
 
     // geometry configuration
@@ -85,14 +90,8 @@ void_t tri_render_2d::init( motor::string_cref_t name, motor::graphics::async_vi
 
         auto ib = motor::graphics::index_buffer_t() ;
 
-        motor::graphics::geometry_object_res_t geo = motor::graphics::geometry_object_t( name + ".geometry",
+        _go = motor::graphics::geometry_object_t( name + ".geometry",
             motor::graphics::primitive_type::triangles, std::move( vb ), std::move( ib ) ) ;
-
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( geo ) ;
-        } ) ;                
-        _go = std::move( geo ) ;
     }
 
     // array
@@ -108,10 +107,6 @@ void_t tri_render_2d::init( motor::string_cref_t name, motor::graphics::async_vi
             });
 
         _ao = motor::graphics::array_object_t( name + ".per_tri_data", std::move( db ) ) ;
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( _ao ) ;
-        } ) ;
     }
 
     // shader configuration
@@ -156,7 +151,7 @@ void_t tri_render_2d::init( motor::string_cref_t name, motor::graphics::async_vi
                         out_color = var_col ;
                     } )" ) ) ;
 
-            sc.insert( motor::graphics::shader_api_type::glsl_1_4, std::move( ss ) ) ;
+            sc.insert( motor::graphics::shader_api_type::glsl_4_0, std::move( ss ) ) ;
         }
 
         // shaders : es 3.0
@@ -264,11 +259,6 @@ void_t tri_render_2d::init( motor::string_cref_t name, motor::graphics::async_vi
                 .add_input_binding( motor::graphics::binding_point::projection_matrix, "u_proj" ) ;
         }
 
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( sc ) ;
-        } ) ;
-
         _so = std::move( sc ) ;
     }
 
@@ -285,19 +275,16 @@ void_t tri_render_2d::init( motor::string_cref_t name, motor::graphics::async_vi
             this_t::add_variable_set( rc ) ;
             //this_t::add_variable_set( rc ) ;
         }
-                
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( rc ) ;
-        } ) ;
         _ro = std::move( rc ) ;
     }
 }
 
+//**********************************************************************************************************
 void_t tri_render_2d::release( void_t ) noexcept 
 {
 }
 
+//**********************************************************************************************************
 void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1,
     motor::math::vec2f_cref_t p2, motor::math::vec4f_cref_t color ) noexcept
 {
@@ -327,6 +314,7 @@ void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor:
     }
 }
 
+//**********************************************************************************************************
 void_t tri_render_2d::draw_rect( size_t const l, 
     motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
     motor::math::vec2f_cref_t p2, motor::math::vec2f_cref_t p3, motor::math::vec4f_cref_t color ) noexcept 
@@ -335,6 +323,7 @@ void_t tri_render_2d::draw_rect( size_t const l,
     this_t::draw( l, p0, p2, p3, color ) ;
 }
 
+//**********************************************************************************************************
 void_t tri_render_2d::draw_circle( size_t const l, size_t const s, motor::math::vec2f_cref_t p0, float_t const r, motor::math::vec4f_cref_t color ) noexcept 
 {
     auto const & points = this_t::lookup_circle_cache( s ) ;
@@ -345,20 +334,29 @@ void_t tri_render_2d::draw_circle( size_t const l, size_t const s, motor::math::
     }
     this_t::draw( l, p0, p0+points.back()*r, p0+points[0]*r, color ) ;
 }
-            
+
+//**********************************************************************************************************
+void_t tri_render_2d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+{
+    fe->configure<motor::graphics::geometry_object_t>( &_go ) ;
+    fe->configure<motor::graphics::shader_object_t>( &_so ) ;
+    fe->configure<motor::graphics::array_object_t>( &_ao) ;
+    fe->configure<motor::graphics::render_object_t>( &_ro ) ;
+    fe->configure<motor::graphics::state_object_t>( &_rs ) ;
+}
+
+//**********************************************************************************************************
 void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept 
 {
-    bool_t vertex_realloc = false ;
-    bool_t data_realloc = false ;
-    bool_t reconfig_ro = false ;
+    prepare_update pe = { false, false, false } ;
 
     // 1. copy data
     {
-        size_t const vsib = _go->vertex_buffer().get_sib() ;
-        size_t const bsib = _ao->data_buffer().get_sib() ;
+        size_t const vsib = _go.vertex_buffer().get_sib() ;
+        size_t const bsib = _ao.data_buffer().get_sib() ;
 
-        _go->vertex_buffer().resize( _num_tris * 3 ) ;
-        _ao->data_buffer().resize( _num_tris ) ;
+        _go.vertex_buffer().resize( _num_tris * 3 ) ;
+        _ao.data_buffer().resize( _num_tris ) ;
 
         size_t start = 0 ;
         size_t lstart = 0 ;
@@ -374,7 +372,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
             {
                 size_t tmp = sizeof( this_t::vertex) ;
                 size_t const num_verts = tris.size() * 3 ;
-                _go->vertex_buffer().update<this_t::vertex>( start, start+num_verts, 
+                _go.vertex_buffer().update<this_t::vertex>( start, start+num_verts, 
                     [&]( this_t::vertex * array, size_t const ne )
                 {
                     #if 1
@@ -407,14 +405,14 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
                     for( size_t l=r.begin(); l<r.end(); ++l )
                     {
                         size_t const idx = lstart + l ;
-                        _ao->data_buffer().update< motor::math::vec4f_t >( idx, tris[l].color ) ;
+                        _ao.data_buffer().update< motor::math::vec4f_t >( idx, tris[l].color ) ;
                     }
                 } ) ;
                 #else
                 for( size_t i=0; i<tris.size();++i)
                 {
                     size_t const idx = lstart + i ;
-                    _ao->data_buffer().update< motor::math::vec4f_t >( idx, tris[i].color ) ;
+                    _ao.data_buffer().update< motor::math::vec4f_t >( idx, tris[i].color ) ;
                 }
                 #endif
                 
@@ -424,27 +422,27 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
         }
         _num_tris = 0 ;
 
-        vertex_realloc = _go->vertex_buffer().get_sib() > vsib ;
-        data_realloc = _ao->data_buffer().get_sib() > bsib ;
+        pe.vertex_realloc = _go.vertex_buffer().get_sib() > vsib ;
+        pe.data_realloc = _ao.data_buffer().get_sib() > bsib ;
     }
 
     // 2. prepare variable sets 
     // one var set per layer
     {
-        for( size_t i=_ro->get_num_variable_sets(); i<_render_data.size(); ++i )
+        for( size_t i=_ro.get_num_variable_sets(); i<_render_data.size(); ++i )
         {
-            this_t::add_variable_set( *_ro ) ;
-            reconfig_ro = true ;
+            this_t::add_variable_set( _ro ) ;
+            pe.reconfig_ro = true ;
         }
 
         int_t offset = 0 ;
         for( size_t i=0; i<_render_data.size(); ++i )
         {
-            _ro->get_variable_set(i)->data_variable<int32_t>( "u_offset" )->set( offset ) ;
+            _ro.borrow_variable_set(i)->data_variable<int32_t>( "u_offset" )->set( offset ) ;
             offset += int32_t( _render_data[i].num_elems ) ;
         }
 
-        _ro->for_each( [&]( size_t const i, motor::graphics::variable_set_res_t const & vars )
+        _ro.for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vars )
         {
             {
                 auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
@@ -457,44 +455,41 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
         } ) ;
     }
 
-    // 3. tell the graphics api
-    {
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        { 
-            
-
-            if( vertex_realloc ) a.configure( _go ) ;
-            else a.update( _go ) ;
-
-            if( data_realloc ) a.configure( _ao ) ;
-            else a.update( _ao ) ;
-
-            if( reconfig_ro ) a.configure( _ro ) ;
-        } ) ;
-    }
+    _pe = pe ;
 }
 
-void_t tri_render_2d::render( size_t const l ) noexcept 
+//**********************************************************************************************************
+void_t tri_render_2d::prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+{
+    if( _pe.vertex_realloc ) fe->configure<motor::graphics::geometry_object_t>( &_go ) ;
+    else fe->update( &_go ) ;
+
+    if( _pe.data_realloc ) fe->configure<motor::graphics::array_object_t>( &_ao ) ;
+    else fe->update( &_ao ) ;
+
+    if( _pe.reconfig_ro ) fe->configure<motor::graphics::render_object_t>( &_ro ) ;
+}
+
+
+//**********************************************************************************************************
+void_t tri_render_2d::render( motor::graphics::gen4::frontend_mtr_t fe, size_t const l ) noexcept 
 {
     if( this_t::has_data_for_layer( l ) )
     {
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        { 
-            a.push( _rs ) ;
-            {
-                auto const & plrd = _render_data[l] ;
-                motor::graphics::backend::render_detail rd ;
-                rd.num_elems = plrd.num_elems ;
-                rd.start = plrd.start ;
-                rd.varset = l ;
-                a.render( _ro, rd ) ;
-            }
-            a.pop( motor::graphics::backend::pop_type::render_state ) ;
-        } ) ;
+        fe->push( &_rs ) ;
+        {
+            auto const & plrd = _render_data[l] ;
+            motor::graphics::gen4::backend::render_detail rd ;
+            rd.num_elems = plrd.num_elems ;
+            rd.start = plrd.start ;
+            rd.varset = l ;
+            fe->render( &_ro, rd ) ;
+        }
+        fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
 }
 
-            
+//**********************************************************************************************************            
 tri_render_2d::circle_cref_t tri_render_2d::lookup_circle_cache( size_t const s ) noexcept 
 {
     auto iter = std::find_if( _circle_cache.begin(), _circle_cache.end(), [&]( circle_cref_t c )
@@ -518,39 +513,42 @@ tri_render_2d::circle_cref_t tri_render_2d::lookup_circle_cache( size_t const s 
     return *iter ;
 }
 
+//**********************************************************************************************************
 void_t tri_render_2d::add_variable_set( motor::graphics::render_object_ref_t rc ) noexcept 
 {
-    motor::graphics::variable_set_res_t vars = motor::graphics::variable_set_t() ;
+    motor::graphics::variable_set_t vars = motor::graphics::variable_set_t() ;
             
     {
-        auto* var = vars->array_variable( "u_data" ) ;
+        auto* var = vars.array_variable( "u_data" ) ;
         var->set( _name + ".per_tri_data" ) ;
     }
     {
-        auto* var = vars->data_variable<int32_t>( "u_offset" ) ;
+        auto* var = vars.data_variable<int32_t>( "u_offset" ) ;
         var->set( 0 ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_world" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_world" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_view" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_proj" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
 
-    rc.add_variable_set( std::move( vars ) ) ;
+    rc.add_variable_set( motor::shared( std::move( vars ) ) ) ;
 }
 
+//**********************************************************************************************************
 bool_t tri_render_2d::has_data_for_layer( size_t const l ) const noexcept 
 {
     return l < _render_data.size() && _render_data[l].num_elems > 0 ;
 }
 
+//**********************************************************************************************************
 void_t tri_render_2d::set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) noexcept 
 {
     _view = view ;

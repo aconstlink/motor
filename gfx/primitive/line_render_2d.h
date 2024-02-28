@@ -8,7 +8,7 @@
 #include <motor/graphics/object/render_object.h>
 #include <motor/graphics/object/geometry_object.h>
 #include <motor/graphics/variable/variable_set.hpp>
-
+#include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/std/vector>
 
@@ -38,8 +38,8 @@ namespace motor
                 };
                 motor::math::vec4f_t color ;
 
-                line( void_t ) {}
-                line( line const & rhv ) 
+                line( void_t ) noexcept {}
+                line( line const & rhv ) noexcept 
                 {
                     v4 = rhv.v4 ;
                     color = rhv.color ;
@@ -103,25 +103,35 @@ namespace motor
             };
 
             motor::string_t _name ;
-            motor::graphics::async_views_t _asyncs ;
-            motor::graphics::state_object_res_t _rs ;
-            motor::graphics::array_object_res_t _ao ;
-            motor::graphics::shader_object_res_t _so ;
-            motor::graphics::render_object_res_t _ro ;
-            motor::graphics::geometry_object_res_t _go ;
+            motor::graphics::state_object_t _rs ;
+            motor::graphics::array_object_t _ao ;
+            motor::graphics::shader_object_t _so ;
+            motor::graphics::render_object_t _ro ;
+            motor::graphics::geometry_object_t _go ;
 
             motor::math::mat4f_t _proj ;
             motor::math::mat4f_t _view ;
 
+            struct prepare_update
+            {
+                bool_t vertex_realloc = false ;
+                bool_t data_realloc = false ;
+                bool_t reconfig_ro = false ;
+            };
+
+            prepare_update _pe ;
+
         public:
 
-            line_render_2d( void_t ) ;
+            line_render_2d( void_t ) noexcept ;
             line_render_2d( this_cref_t ) = delete ;
-            line_render_2d( this_rref_t ) ;
-            ~line_render_2d( void_t ) ;
+            line_render_2d( this_rref_t ) noexcept ;
+            ~line_render_2d( void_t ) noexcept ;
 
-            void_t init( motor::string_cref_t, motor::graphics::async_views_t ) noexcept ;
+            void_t init( motor::string_cref_t ) noexcept ;
             void_t release( void_t ) noexcept ;
+
+            this_ref_t operator = ( this_rref_t ) noexcept ;
 
         public:
 
@@ -134,9 +144,12 @@ namespace motor
 
         public:
 
+            void_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
             // copy all data to the gpu buffer and transmit the data
             void_t prepare_for_rendering( void_t ) noexcept ;
-            void_t render( size_t const ) noexcept ;
+
+            void_t prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
+            void_t render( motor::graphics::gen4::frontend_mtr_t fe, size_t const ) noexcept ;
 
             void_t set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t ) noexcept ;
 
@@ -150,6 +163,6 @@ namespace motor
 
             bool_t has_data_for_layer( size_t const l ) const noexcept ;
         };
-        motor_res_typedef( line_render_2d ) ;
+        motor_typedef( line_render_2d ) ;
     }
 }
