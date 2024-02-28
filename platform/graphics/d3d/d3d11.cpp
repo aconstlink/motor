@@ -2429,6 +2429,7 @@ public: // functions
 
                         return oid ;
                     }
+
                 }
 
                 // find shader variables in constant buffer
@@ -2651,6 +2652,8 @@ public: // functions
                     { va, name } ) ;
             } ) ;
         }
+
+        motor::log::global_t::status( "[D3D11] : Compilation Successful : [" + shd.name + "]" ) ;
 
         return oid ;
     }

@@ -88,6 +88,12 @@ namespace motor
                 return *this ;
             }
 
+            this_ref_t clear_shaders( void_t ) noexcept 
+            {
+                _datas.clear() ;
+                return *this ;
+            }
+
             typedef std::function< void_t ( motor::string_in_t ) > foreach_funk_t ;
             void_t for_each_msl( motor::graphics::msl_api_type const t, foreach_funk_t funk ) const noexcept 
             {

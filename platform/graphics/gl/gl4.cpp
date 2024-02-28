@@ -171,7 +171,7 @@ struct gl4_backend::pimpl
         GLuint ps_id = GLuint( -1 ) ;
         GLuint pg_id = GLuint( -1 ) ;
 
-        bool_t is_compilation_ok = false ;
+        bool_t is_linkage_ok = false ;
 
         struct vertex_input_binding
         {
@@ -1147,37 +1147,8 @@ struct gl4_backend::pimpl
         oid = determine_oid( obj.name(), _shaders ) ;
 
         //
-        // Do Configuration
+        // SECTION: Pre-Compilation
         //
-
-        // program
-        if( _shaders[ oid ].pg_id == GLuint( -1 ) )
-        {
-            GLuint const id = glCreateProgram() ;
-            motor::ogl::error::check_and_log(
-                motor_log_fn( "Shader Program creation" ) ) ;
-
-            _shaders[ oid ].pg_id = id ;
-        }
-        {
-            this_t::detach_shaders( _shaders[ oid ].pg_id ) ;
-            this_t::delete_all_variables( _shaders[ oid ] ) ;
-        }
-
-        // vertex shader
-        if( _shaders[oid].vs_id == GLuint(-1) )
-        {
-            GLuint const id = glCreateShader( GL_VERTEX_SHADER ) ;
-            motor::ogl::error::check_and_log(
-                motor_log_fn( "Vertex Shader creation" ) ) ;
-
-            _shaders[ oid ].vs_id = id ;
-        }
-        {
-            glAttachShader( _shaders[ oid ].pg_id, _shaders[oid].vs_id ) ;
-            motor::ogl::error::check_and_log(
-                motor_log_fn( "Attaching vertex shader" ) ) ;
-        }
 
         motor::graphics::shader_set_t ss ;
         {
@@ -1191,23 +1162,140 @@ struct gl4_backend::pimpl
             }
         }
 
-        // geometry shader
-        if( ss.has_geometry_shader() )
+        struct shader_compilation
         {
-            GLuint id = _shaders[ oid ].gs_id ;
+            GLuint vs_id = GLuint(-1) ;
+            GLuint gs_id = GLuint(-1) ;
+            GLuint ps_id = GLuint(-1) ;
+        } ;
 
-            if( id == GLuint(-1) )
+        shader_compilation scomp ;
+
+        // pre-compile all the shaders
+        {
+            // Compile Vertex Shader
             {
-                id = glCreateShader( GL_GEOMETRY_SHADER ) ;
+                GLuint const id = glCreateShader( GL_VERTEX_SHADER ) ;
+                motor::ogl::error::check_and_log( 
+                    motor_log_fn( "Vertex Shader creation" ) ) ;
+
+                if( !this_t::compile_shader( id, ss.vertex_shader().code() ) )
+                {
+                    glDeleteShader( id ) ;
+                    motor::ogl::error::check_and_log( 
+                        motor_log_fn( "glDeleteShader : Vertex Shader" ) ) ;
+                    return size_t(-1) ;
+                }
+
+                scomp.vs_id = id ;
+            }
+
+            // Compile Geometry Shader
+            if( ss.has_geometry_shader() )
+            {
+                GLuint const id = glCreateShader( GL_GEOMETRY_SHADER ) ;
                 motor::ogl::error::check_and_log(
                     motor_log_fn( "Geometry Shader creation" ) ) ;
 
-                _shaders[ oid ].gs_id = id ;
+                if( !this_t::compile_shader( id, ss.geometry_shader().code() ) )
+                {
+                    glDeleteShader( scomp.vs_id ) ;
+                    motor::ogl::error::check_and_log( 
+                        motor_log_fn( "glDeleteShader Vertex Shader" ) ) ;
+                    glDeleteShader( id ) ;
+                    motor::ogl::error::check_and_log( 
+                        motor_log_fn( "glDeleteShader Geometry Shader" ) ) ;
+                    return size_t(-1) ;
+                }
+
+                scomp.gs_id = id ;
+            }
+            
+            // Compile Pixel Shader
+            if( ss.has_pixel_shader() )
+            {
+                GLuint const id = glCreateShader( GL_FRAGMENT_SHADER ) ;
+                motor::ogl::error::check_and_log(
+                    motor_log_fn( "Fragment Shader creation" ) ) ;
+
+                if( !this_t::compile_shader( id, ss.pixel_shader().code() ) )
+                {
+                    glDeleteShader( scomp.vs_id ) ;
+                    motor::ogl::error::check_and_log( 
+                        motor_log_fn( "glDeleteShader Vertex Shader" ) ) ;
+                    if( ss.has_geometry_shader() )
+                    {
+                        glDeleteShader( scomp.gs_id ) ;
+                        motor::ogl::error::check_and_log( 
+                            motor_log_fn( "glDeleteShader Geometry Shader" ) ) ;
+                    }
+                    glDeleteShader( id ) ;
+                    motor::ogl::error::check_and_log( 
+                        motor_log_fn( "glDeleteShader Pixel Shader" ) ) ;
+                    return size_t(-1) ;
+                }
+
+                scomp.ps_id = id ;
+            }
+        }
+
+        //
+        // SECTION : Shader/Program setup
+        //
+
+        auto & sd = _shaders[ oid ] ;
+
+        // program
+        if( sd.pg_id == GLuint( -1 ) )
+        {
+            GLuint const id = glCreateProgram() ;
+            motor::ogl::error::check_and_log(
+                motor_log_fn( "Shader Program creation" ) ) ;
+
+            sd.pg_id = id ;
+        }
+        {
+            this_t::detach_shaders( sd.pg_id ) ;
+            this_t::delete_all_variables( sd ) ;
+        }
+
+        GLuint const pid = sd.pg_id ;
+
+        // vertex shader
+        {
+            if( _shaders[oid].vs_id != GLuint(-1) )
+            {
+                glDeleteShader( _shaders[oid].vs_id ) ;
+                motor::ogl::error::check_and_log( 
+                    motor_log_fn( "glDeleteShader Vertex Shader" ) ) ;
             }
 
-            GLuint const pid = _shaders[ oid ].pg_id ;
+            sd.vs_id = scomp.vs_id ;
 
-            glAttachShader( pid, id ) ;
+            {
+                glAttachShader( pid, _shaders[oid].vs_id ) ;
+                motor::ogl::error::check_and_log(
+                    motor_log_fn( "Attaching vertex shader" ) ) ;
+            }
+        }
+
+        // geometry shader
+        {
+            GLuint const id = sd.gs_id ;
+
+            if( id != GLuint(-1) )
+            {
+                glDeleteShader( id ) ;
+                motor::ogl::error::check_and_log( 
+                    motor_log_fn( "glDeleteShader Geometry Shader" ) ) ;
+            }
+
+            sd.gs_id = scomp.gs_id ;
+        }
+
+        if( ss.has_geometry_shader() )
+        {
+            glAttachShader( pid, sd.gs_id ) ;
             motor::ogl::error::check_and_log(
                 motor_log_fn( "Attaching geometry shader" ) ) ;
 
@@ -1240,39 +1328,117 @@ struct gl4_backend::pimpl
                     */
             }
         }
-        else if( _shaders[ oid ].gs_id != GLuint(-1) )
-        {
-            glDeleteShader( _shaders[ oid ].gs_id ) ;
-            motor::ogl::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
-            _shaders[ oid ].gs_id = GLuint( -1 ) ;
-        }
 
         // pixel shader
-        if( ss.has_pixel_shader() )
         {
-            GLuint id = _shaders[ oid ].ps_id ;
-            if( id == GLuint(-1) )
+            GLuint const id = sd.ps_id ;
+
+            if( id != GLuint(-1) )
             {
-                id = glCreateShader( GL_FRAGMENT_SHADER ) ;
-                motor::ogl::error::check_and_log(
-                    motor_log_fn( "Fragment Shader creation" ) ) ;
+                glDeleteShader( id ) ;
+                motor::ogl::error::check_and_log( 
+                    motor_log_fn( "glDeleteShader Pixel Shader" ) ) ;
             }
 
-            glAttachShader( _shaders[ oid ].pg_id, id ) ;
+            sd.ps_id = scomp.ps_id ;
+        }
+
+        if( ss.has_pixel_shader() )
+        {
+            glAttachShader( pid, scomp.ps_id ) ;
             motor::ogl::error::check_and_log( motor_log_fn( "Attaching pixel shader" ) ) ;
-
-            _shaders[ oid ].ps_id = id ;
-        }
-        else if( _shaders[ oid ].ps_id != GLuint( -1 ) )
-        {
-            glDeleteShader( _shaders[ oid ].ps_id ) ;
-            motor::ogl::error::check_and_log( motor_log_fn( "glDeleteShader" ) ) ;
-            _shaders[ oid ].ps_id = GLuint( -1 ) ;
         }
 
-        if( !this_t::update( oid, obj ) )
+        //
+        // SECTION : Further construction
+        //
+
         {
-            motor::log::global_t::error("[gl4] : construct_shader_data, update failed.") ;
+            obj.for_each_vertex_input_binding( [&]( size_t const,
+                motor::graphics::vertex_attribute const va, motor::string_cref_t name )
+            {
+                sd.vertex_inputs.emplace_back( 
+                    this_t::shader_data::vertex_input_binding { va, name } ) ;
+            } ) ;
+        }
+
+        // !!! must be done pre-link !!!
+        // set transform feedback varyings
+        if( (obj.get_num_output_bindings() != 0) && 
+            (obj.get_streamout_mode() != motor::graphics::streamout_mode::unknown) )
+        {
+            sd.output_names = (char const **)motor::memory::global_t::
+                alloc_raw<char *>( obj.get_num_output_bindings() ) ;
+
+            obj.for_each_vertex_output_binding( [&]( size_t const i,
+                motor::graphics::vertex_attribute const va, 
+                motor::graphics::ctype const, motor::string_cref_t name )
+            {
+                sd.vertex_outputs.emplace_back( 
+                    this_t::shader_data::vertex_output_binding { va, name } ) ;
+                sd.output_names[i] = name.c_str() ;
+            } ) ;
+
+            // the mode interleaved or separate depends on the number of 
+            // buffers in the streamout object. So if a streamout
+            // object is used, the engine needs to relink this shader 
+            // based on the number of buffers attached to the streamout
+            // object.
+            GLenum const mode = motor::platform::gl3::convert( obj.get_streamout_mode() ) ;
+            glTransformFeedbackVaryings( sd.pg_id, GLsizei( obj.get_num_output_bindings() ), 
+                                         sd.output_names, mode ) ;
+
+            motor::ogl::error::check_and_log( motor_log_fn( "glTransformFeedbackVaryings" ) ) ;
+            motor::log::global_t::status( mode == GL_NONE, 
+                            "Did you miss to set the streamout mode in the shader object?" ) ;
+
+            motor::memory::global_t::dealloc( sd.output_names ) ;
+            sd.output_names = nullptr ;
+        }
+
+        // link
+        {
+            auto const r4 = this_t::link( sd.pg_id ) ;
+            if( !r4 )
+            {
+                sd.is_linkage_ok = false ;
+                return false ;
+            }
+            sd.is_linkage_ok = true ;
+            motor::log::global_t::status( "[GL4] : Compilation Successful : [" + sd.name + "]" ) ;
+        }
+
+        {
+            this_t::post_link_attributes( sd ) ;
+            this_t::post_link_uniforms( sd ) ;
+        }
+
+        // if the shader is redone, all render objects using
+        // the shader need to be updated
+        {
+            for( size_t i=0; i<_renders.size(); ++i )
+            {
+                auto & rd = _renders[i] ;
+
+                if( rd.shd_id != oid ) continue ;
+                
+                rd.var_sets_data.clear() ;
+                rd.var_sets_texture.clear() ;
+                rd.var_sets_array.clear() ;
+                rd.var_sets_streamout.clear() ;
+
+                auto vs = std::move( rd.var_sets ) ;
+                for( auto * item : vs )
+                {
+                    this_t::connect( rd, item ) ;
+                }
+
+                this_t::render_object_variable_memory( rd, _shaders[ rd.shd_id ] ) ;
+                for( size_t vs_id=0; vs_id<rd.var_sets.size(); ++vs_id )
+                {
+                    this_t::update_variables( i, vs_id ) ;
+                }
+            }
         }
 
         return oid ;
@@ -1332,7 +1498,7 @@ struct gl4_backend::pimpl
         shd.ps_id = GLuint( -1 ) ;
         shd.name = "released shader" ;
         
-        shd.is_compilation_ok = false ;
+        shd.is_linkage_ok = false ;
         shd.uniforms.clear() ;
         shd.attributes.clear() ;
 
@@ -1371,7 +1537,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t compile_shader( GLuint const id, motor::string_cref_t code )
     {
-        if( code.empty() ) return true ;
+        if( code.empty() ) return false ;
 
         GLchar const* source_string = ( GLchar const* ) ( code.c_str() ) ;
 
@@ -1416,7 +1582,14 @@ struct gl4_backend::pimpl
                 motor::log::global::error( msg ) ;
             }
         }
-        return true ;
+        return false ;
+    }
+
+    //****************************************************************************************
+    bool_t check_link_status( size_t const rid ) noexcept
+    {
+        auto & rd = _renders[ rid ] ;
+        return _shaders[ rd.shd_id ].is_linkage_ok ;
     }
 
     //****************************************************************************************
@@ -1756,112 +1929,6 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t update( size_t const id, motor::graphics::shader_object_cref_t sc )
-    {
-        auto& sconfig = _shaders[ id ] ;
-
-        {
-            sc.for_each_vertex_input_binding( [&]( size_t const,
-                motor::graphics::vertex_attribute const va, motor::string_cref_t name )
-            {
-                sconfig.vertex_inputs.emplace_back( 
-                    this_t::shader_data::vertex_input_binding { va, name } ) ;
-            } ) ;
-        }
-
-        // !!! must be done pre-link !!!
-        // set transform feedback varyings
-        if( (sc.get_num_output_bindings() != 0) && 
-            (sc.get_streamout_mode() != motor::graphics::streamout_mode::unknown) )
-        {
-            sconfig.output_names = (char const **)motor::memory::global_t::
-                alloc_raw<char *>( sc.get_num_output_bindings() ) ;
-
-            sc.for_each_vertex_output_binding( [&]( size_t const i,
-                motor::graphics::vertex_attribute const va, 
-                motor::graphics::ctype const, motor::string_cref_t name )
-            {
-                sconfig.vertex_outputs.emplace_back( 
-                    this_t::shader_data::vertex_output_binding { va, name } ) ;
-                sconfig.output_names[i] = name.c_str() ;
-            } ) ;
-
-            // the mode interleaved or separate depends on the number of 
-            // buffers in the streamout object. So if a streamout
-            // object is used, the engine needs to relink this shader 
-            // based on the number of buffers attached to the streamout
-            // object.
-            GLenum const mode = motor::platform::gl3::convert( sc.get_streamout_mode() ) ;
-            glTransformFeedbackVaryings( sconfig.pg_id, GLsizei( sc.get_num_output_bindings() ), 
-                                         sconfig.output_names, mode ) ;
-
-            motor::ogl::error::check_and_log( motor_log_fn( "glTransformFeedbackVaryings" ) ) ;
-            motor::log::global_t::status( mode == GL_NONE, 
-                            "Did you miss to set the streamout mode in the shader object?" ) ;
-
-            motor::memory::global_t::dealloc( sconfig.output_names ) ;
-            sconfig.output_names = nullptr ;
-        }
-
-        // compile
-        {
-            motor::graphics::shader_set_t ss ;
-            {
-                auto const res = sc.shader_set( this_t::sapi, ss ) ;
-                if( res )
-                {
-                    auto const r1 = this_t::compile_shader( sconfig.vs_id, ss.vertex_shader().code() ) ;
-                    auto const r2 = this_t::compile_shader( sconfig.gs_id, ss.geometry_shader().code() ) ;
-                    auto const r3 = this_t::compile_shader( sconfig.ps_id, ss.pixel_shader().code() ) ;
-                    auto const r4 = this_t::link( sconfig.pg_id ) ;
-                    if( !(r1 && r2 && r3 && r4) )
-                    {
-                        sconfig.is_compilation_ok = false ;
-                        return false ;
-                    }
-                    sconfig.is_compilation_ok = true ;
-                    motor::log::global_t::status( "[GL3] : Compilation Successful : [" + sconfig.name + "]" ) ;
-                }
-            }
-        }
-
-        {
-            this_t::post_link_attributes( sconfig ) ;
-            this_t::post_link_uniforms( sconfig ) ;
-        }
-
-        // if the shader is redone, all render objects using
-        // the shader need to be updated
-        {
-            for( size_t i=0; i<_renders.size(); ++i )
-            {
-                auto & rd = _renders[i] ;
-
-                if( rd.shd_id != id ) continue ;
-                
-                rd.var_sets_data.clear() ;
-                rd.var_sets_texture.clear() ;
-                rd.var_sets_array.clear() ;
-                rd.var_sets_streamout.clear() ;
-
-                auto vs = std::move( rd.var_sets ) ;
-                for( auto * item : vs )
-                {
-                    this_t::connect( rd, item ) ;
-                }
-
-                this_t::render_object_variable_memory( rd, _shaders[ rd.shd_id ] ) ;
-                for( size_t vs_id=0; vs_id<rd.var_sets.size(); ++vs_id )
-                {
-                    this_t::update_variables( i, vs_id ) ;
-                }
-            }
-        }
-
-        return true ;
-    }
-
-    //****************************************************************************************
     size_t construct_msl_data( size_t oid, motor::graphics::msl_object_ref_t obj ) noexcept
     {
         // if the incoming msl shader is a library shader for example,
@@ -1902,6 +1969,15 @@ struct gl4_backend::pimpl
             }
 
             {
+                size_t const sid = this_t::construct_shader_data( so.get_oid( _bid ), so ) ;
+                if( sid == size_t(-1) )
+                {
+                    return oid ;
+                }
+                so.set_oid( _bid, sid ) ;
+            }
+
+            {
                 if( obj.get_streamout().size() != 0 && obj.get_geometry().size() != 0)
                 {
                     ro.link_geometry( obj.get_geometry()[0], obj.get_streamout()[0] ) ; 
@@ -1913,10 +1989,7 @@ struct gl4_backend::pimpl
             }
 
             ro.link_shader( c.expand() ) ;
-
             ro.add_variable_sets( obj.get_varibale_sets() ) ;
-
-            so.set_oid( _bid, this_t::construct_shader_data( so.get_oid( _bid ), so ) ) ;
             ro.set_oid( _bid, this_t::construct_render_data( ro.get_oid( _bid ), ro ) ) ;
 
             if( oid != size_t(-1) )
@@ -1971,16 +2044,29 @@ struct gl4_backend::pimpl
         {
             rd.name = obj.name() ;
             
-            
+            for( auto id : rd.geo_ids ) _geometries[id].remove_render_data_id( oid ) ;
             rd.geo_ids.clear();
+
+            for( auto id : rd.tf_ids )
+            {
+                _feedbacks[id].remove_render_data_id( oid ) ;
+            }
             rd.tf_ids.clear() ;
+
             rd.shd_id = size_t( -1 ) ;
 
             motor::memory::global_t::dealloc( _renders[ oid ].mem_block ) ;
             rd.mem_block = nullptr ;
+
+            for( auto & d : rd.geo_to_vaos ) 
+            {
+                glDeleteVertexArrays( 1, &d.vao ) ;
+                motor::ogl::error::check_and_log( motor_log_fn( "glDeleteVertexArrays" ) ) ;
+            }
+            rd.geo_to_vaos.clear() ;
         }
 
-        if( !this_t::update( oid, obj ) )
+        if( !this_t::construct_render_data_ext( oid, obj ) )
         {
             motor::log::global_t::error("[gl4] : construct_render_data update failed") ;
         }
@@ -2033,16 +2119,12 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t update( size_t const id, motor::graphics::render_object_ref_t rc ) noexcept
+    bool_t construct_render_data_ext( size_t const id, motor::graphics::render_object_ref_t rc ) noexcept
     {
         auto& config = _renders[ id ] ;
 
         // handle geometry links
         {
-            // remove this render data id from the old geometry
-            for( auto gid : config.geo_ids ) _geometries[ gid ].remove_render_data_id( id ) ;
-            config.geo_ids.clear() ;
-
             // find geometry
             for( size_t i=0; i<rc.get_num_geometry(); ++i )
             {
@@ -2107,6 +2189,11 @@ struct gl4_backend::pimpl
             }
 
             config.shd_id = std::distance( _shaders.begin(), iter ) ;
+        }
+
+        if( !_shaders[config.shd_id].is_linkage_ok )
+        {
+            int bp = 0 ;
         }
 
         {
@@ -3202,7 +3289,7 @@ struct gl4_backend::pimpl
             }
         }
 
-        if( !sconfig.is_compilation_ok ) return false ;
+        if( !sconfig.is_linkage_ok ) return false ;
 
         {
             glUseProgram( sconfig.pg_id ) ;
@@ -3907,6 +3994,12 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
     if( oid == size_t(-1)  )
     {
         motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
+        return motor::graphics::result::failed ;
+    }
+
+    if( !_pimpl->check_link_status( oid ) )
+    {
+        motor::log::global_t::error( motor_log_fn( "shader did not compile. Abort render." ) ) ;
         return motor::graphics::result::failed ;
     }
 
