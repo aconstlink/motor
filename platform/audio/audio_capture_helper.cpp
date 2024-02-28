@@ -10,10 +10,10 @@
 
 using namespace motor::platform ;
 
-audio_capture_helper_t::this_ptr_t motor::platform::audio_capture_helper_t::create( void_t ) noexcept 
+audio_capture_helper_t::this_mtr_safe_t motor::platform::audio_capture_helper_t::create( void_t ) noexcept 
 {
     #if defined( MOTOR_TARGET_OS_WIN )
-    return motor::memory::global_t::alloc( motor::platform::wasapi_capture_helper(), "[audio_capture_helper_t] : create" ) ; 
+    return motor::memory::create_ptr( motor::platform::wasapi_capture_helper(), "[audio_capture_helper_t] : create" ) ; 
     motor::log::global_t::status( "Creating wasapi audio capture helper" ) ;
     #else
     motor::log::global_t::status( "No defaul system audio capture available." ) ;

@@ -27,7 +27,7 @@ namespace motor
         public:
 
             // create system specific system audio capture object
-            static this_ptr_t create( void_t ) noexcept ;
+            static this_mtr_safe_t create( void_t ) noexcept ;
             
         };
         motor_typedef( audio_capture_helper ) ;
