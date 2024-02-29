@@ -289,7 +289,7 @@ struct motor::platform::oal_backend::pimpl
 
         {
             // frequency window
-            size_t const size = 1 << 12 ;
+            size_t const size = 1 << 11 ;
 
             gc.samples.resize( size ) ;
             gc.frequencies.resize( size >> 1 ) ;
