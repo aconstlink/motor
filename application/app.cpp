@@ -167,7 +167,7 @@ bool_t app::carrier_update( void_t ) noexcept
     {
         bool_t const exec = _carrier->audio_system()->on_audio( [&]( motor::audio::frontend_ptr_t fptr )
         {
-            this_t::audio_data ad ;
+            this_t::audio_data ad {_first_audio};
             this->on_audio( fptr, ad ) ;
         } )  ;
 
@@ -434,4 +434,5 @@ bool_t app::before_audio( std::chrono::microseconds const & dt ) noexcept
 void_t app::after_audio( size_t const ) noexcept
 {
     _physics_residual = std::chrono::microseconds( 0 ) ;
+    _first_audio = false ;
 }

@@ -74,6 +74,7 @@ namespace motor
             motor::vector< window_data > _windows2 ;
 
             bool_t _closed = false ;
+            bool_t _first_audio = true ;
 
         private: // device
 
@@ -116,7 +117,10 @@ namespace motor
             };
             motor_typedef( render_data ) ;
 
-            struct audio_data {} ;
+            struct audio_data 
+            {
+                bool_t first_frame ;
+            } ;
             motor_typedef( audio_data ) ;
 
             struct device_data 
