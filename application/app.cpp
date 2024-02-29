@@ -189,6 +189,7 @@ bool_t app::carrier_update( void_t ) noexcept
             this->on_graphics( dat ) ;
         }
 
+        // render all the present windows
         {
             this_t::render_data_t dat ;
             dat.micro_dt = _render_residual.count() ;
@@ -198,6 +199,9 @@ bool_t app::carrier_update( void_t ) noexcept
             size_t i = 0 ;
             for( auto & d : _windows2 )
             {
+                dat.first_frame = d.first_frame ;
+                d.first_frame = false ;
+
                 auto * re = d.fe->borrow_render_engine() ;
                 if( re->enter_frame() )
                 {
@@ -224,6 +228,11 @@ bool_t app::carrier_update( void_t ) noexcept
                 }
                 ++i ;
             }
+        }
+
+        // call it for the frame
+        {
+            this->on_frame_done() ;
         }
 
         this_t::after_render(0) ;

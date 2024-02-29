@@ -65,6 +65,8 @@ namespace motor
                 motor::application::window_message_listener_mtr_t lst = nullptr ;
                 motor::graphics::ifrontend_ptr_t fe = nullptr ;
                 motor::tool::imgui_mtr_t imgui ;
+
+                bool_t first_frame = true ;
             };
 
             std::mutex _mtx_windows ;
@@ -109,6 +111,8 @@ namespace motor
                 float_t sec_dt ;
                 size_t micro_dt ;
                 size_t milli_dt ;
+
+                bool_t first_frame ;
             };
             motor_typedef( render_data ) ;
 
@@ -141,6 +145,7 @@ namespace motor
             virtual void_t on_init( void_t ) noexcept {} ;
             virtual void_t on_update( motor::application::app::update_data_in_t ) noexcept {} ;
             virtual void_t on_graphics( motor::application::app::graphics_data_in_t ) noexcept {} ;
+            virtual void_t on_frame_done( void_t ) noexcept {} ;
             virtual void_t on_shutdown( void_t ) noexcept {} ;
             
             virtual void_t on_audio( motor::audio::frontend_ptr_t, audio_data_in_t ) noexcept { }
