@@ -2096,6 +2096,7 @@ struct gl4_backend::pimpl
         for( auto & v : rd.var_sets_texture ) motor::memory::release_ptr( v.first ) ;
         #endif
 
+        // remember that rd.var_sets hold the ref cound reminder!
         rd.var_sets.clear() ;
         rd.var_sets_array.clear() ;
         rd.var_sets_streamout.clear() ;
@@ -2197,6 +2198,8 @@ struct gl4_backend::pimpl
         }
 
         {
+            // remember that rd.var_sets hold the ref count reminder!
+            // no need to release any managed pointer!
             auto vars = std::move( config.var_sets ) ;
             config.var_sets_data.clear() ;
             config.var_sets_texture.clear() ;
