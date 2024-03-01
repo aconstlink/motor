@@ -50,8 +50,8 @@ void_t line_render_3d::init( motor::string_cref_t name ) noexcept
             motor::graphics::render_state_sets_t rss ;
 
             rss.depth_s.do_change = true ;
-            rss.depth_s.ss.do_activate = false ;
-            rss.depth_s.ss.do_depth_write = false ;
+            rss.depth_s.ss.do_activate = true ;
+            rss.depth_s.ss.do_depth_write = true ;
 
             rss.polygon_s.do_change = true ;
             rss.polygon_s.ss.do_activate = false ;
