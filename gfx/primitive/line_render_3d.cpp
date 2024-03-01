@@ -11,20 +11,35 @@ line_render_3d::line_render_3d( void_t ) noexcept
 }
             
 //**********************************************************
-line_render_3d::line_render_3d( this_rref_t ) noexcept 
+line_render_3d::line_render_3d( this_rref_t rhv ) noexcept 
 {
+    *this = std::move( rhv ) ;
 }
-            
+
+//**********************************************************
+line_render_3d::this_ref_t line_render_3d::operator = ( this_rref_t rhv ) noexcept 
+{
+    _rs = std::move( rhv._rs ) ;
+    _ao = std::move( rhv._ao ) ;
+    _so = std::move( rhv._so ) ;
+    _ro = std::move( rhv._ro ) ;
+    _go = std::move( rhv._go ) ;
+
+    _lines = std::move( rhv._lines ) ;
+    _num_lines = rhv._num_lines ;
+
+    return *this ;
+}
+
 //**********************************************************
 line_render_3d::~line_render_3d( void_t ) noexcept 
 {
 }
             
 //**********************************************************
-void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_views_t asyncs ) noexcept 
+void_t line_render_3d::init( motor::string_cref_t name ) noexcept 
 {
     _name = name ;
-    _asyncs = asyncs ;
 
     // root render states
     {
@@ -53,10 +68,6 @@ void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_v
         }
 
         _rs = std::move( so ) ;
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( _rs ) ;
-        } ) ;
     }
 
     // geometry configuration
@@ -73,14 +84,8 @@ void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_v
 
         auto ib = motor::graphics::index_buffer_t() ;
 
-        motor::graphics::geometry_object_res_t geo = motor::graphics::geometry_object_t( name + ".lines",
+        _go = motor::graphics::geometry_object_t( name + ".lines",
             motor::graphics::primitive_type::lines, std::move( vb ), std::move( ib ) ) ;
-
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( geo ) ;
-        } ) ;                
-        _go = std::move( geo ) ;
     }
 
     // array
@@ -96,10 +101,6 @@ void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_v
             });
 
         _ao = motor::graphics::array_object_t( name + ".per_line_data", std::move( db ) ) ;
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( _ao ) ;
-        } ) ;
     }
 
     // shader configuration
@@ -143,7 +144,7 @@ void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_v
                         out_color = var_col ;
                     } )" ) ) ;
 
-            sc.insert( motor::graphics::shader_api_type::glsl_1_4, std::move( ss ) ) ;
+            sc.insert( motor::graphics::shader_api_type::glsl_4_0, std::move( ss ) ) ;
         }
 
         // shaders : es 3.0
@@ -246,12 +247,6 @@ void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_v
                 .add_input_binding( motor::graphics::binding_point::view_matrix, "u_view" )
                 .add_input_binding( motor::graphics::binding_point::projection_matrix, "u_proj" ) ;
         }
-
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( sc ) ;
-        } ) ;
-
         _so = std::move( sc ) ;
     }
 
@@ -268,11 +263,7 @@ void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_v
         {
            this_t::add_variable_set( rc ) ;
         }
-                
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        {
-            a.configure( rc ) ;
-        } ) ;
+
         _ro = std::move( rc ) ;
     }
 }
@@ -280,14 +271,6 @@ void_t line_render_3d::init( motor::string_cref_t name, motor::graphics::async_v
 //**********************************************************
 void_t line_render_3d::release( void_t ) noexcept 
 {
-    _asyncs.for_each( [&]( motor::graphics::async_view_t a ) 
-    {
-        a.release( _go ) ;
-        a.release( _rs ) ;
-        a.release( _ao ) ;
-        a.release( _so ) ;
-        a.release( _ro ) ;
-    }) ;
 }
 
 //**********************************************************
@@ -308,24 +291,32 @@ void_t line_render_3d::draw( motor::math::vec3f_cref_t p0, motor::math::vec3f_cr
 }
 
 //**********************************************************
+void_t line_render_3d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+{
+    fe->configure<motor::graphics::geometry_object_t>( &_go ) ;
+    fe->configure<motor::graphics::shader_object_t>( &_so ) ;
+    fe->configure<motor::graphics::array_object_t>( &_ao) ;
+    fe->configure<motor::graphics::render_object_t>( &_ro ) ;
+    fe->configure<motor::graphics::state_object_t>( &_rs ) ;
+}
+
+//**********************************************************
 void_t line_render_3d::prepare_for_rendering( void_t ) noexcept 
 {
-    bool_t vertex_realloc = false ;
-    bool_t data_realloc = false ;
-    bool_t reconfig_ro = false ;
+    prepare_update pe = { false, false } ;
 
     // 1. copy data
     {
-        size_t const vsib = _go->vertex_buffer().get_sib() ;
-        size_t const bsib = _ao->data_buffer().get_sib() ;
+        size_t const vsib = _go.vertex_buffer().get_sib() ;
+        size_t const bsib = _ao.data_buffer().get_sib() ;
 
-        _go->vertex_buffer().resize( _lines.size() << 1 ) ;
-        _ao->data_buffer().resize( _lines.size() ) ;
+        _go.vertex_buffer().resize( _lines.size() << 1 ) ;
+        _ao.data_buffer().resize( _lines.size() ) ;
 
         // copy vertices
         {
             size_t const num_verts = _lines.size() << 1 ;
-            _go->vertex_buffer().update<this_t::vertex>( 0, num_verts, 
+            _go.vertex_buffer().update<this_t::vertex>( 0, num_verts, 
                 [&]( this_t::vertex * array, size_t const ne )
             {
                 motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>(0, ne>>1),
@@ -349,13 +340,13 @@ void_t line_render_3d::prepare_for_rendering( void_t ) noexcept
                 for( size_t l=r.begin(); l<r.end(); ++l )
                 {
                     size_t const idx = l ;
-                    _ao->data_buffer().update< motor::math::vec4f_t >( idx, _lines[l].color ) ;
+                    _ao.data_buffer().update< motor::math::vec4f_t >( idx, _lines[l].color ) ;
                 }
             } ) ;
         }
 
-        vertex_realloc = _go->vertex_buffer().get_sib() > vsib ;
-        data_realloc = _ao->data_buffer().get_sib() > bsib ;
+        pe.vertex_realloc = _go.vertex_buffer().get_sib() > vsib ;
+        pe.data_realloc = _ao.data_buffer().get_sib() > bsib ;
 
         _num_lines = _lines.size() ;
         _lines.clear() ;
@@ -363,7 +354,7 @@ void_t line_render_3d::prepare_for_rendering( void_t ) noexcept
 
     // 2. prepare variable set
     {
-        _ro->for_each( [&]( size_t const i, motor::graphics::variable_set_res_t const & vars )
+        _ro.for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vars )
         {
             {
                 auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
@@ -375,67 +366,59 @@ void_t line_render_3d::prepare_for_rendering( void_t ) noexcept
             }
         } ) ;
     }
-
-    // 3. tell the graphics api
-    {
-        _asyncs.for_each( [&]( motor::graphics::async_view_t a )
-        { 
-            if( reconfig_ro ) a.configure( _ro ) ;
-
-            if( vertex_realloc ) a.configure( _go ) ;
-            else a.update( _go ) ;
-
-            if( data_realloc ) a.configure( _ao ) ;
-            else a.update( _ao ) ;
-        } ) ;
-    }
 }
 
 //**********************************************************
-void_t line_render_3d::render( void_t ) noexcept 
+void_t line_render_3d::prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
 {
-    _asyncs.for_each( [&]( motor::graphics::async_view_t a )
+    if( _pe.vertex_realloc ) fe->configure<motor::graphics::geometry_object_t>( &_go ) ;
+    else fe->update( &_go ) ;
+
+    if( _pe.data_realloc ) fe->configure<motor::graphics::array_object_t>( &_ao ) ;
+    else fe->update( &_ao ) ;
+}
+
+//**********************************************************
+void_t line_render_3d::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+{
+    fe->push( &_rs ) ;
     {
-        a.push( _rs ) ;
-        {
-            motor::graphics::backend::render_detail rd ;
-            rd.num_elems = _num_lines << 1 ;
-            rd.start = 0 ;
-            rd.varset = 0 ;
-            a.render( _ro, rd ) ;
-        }
-        a.pop( motor::graphics::backend::pop_type::render_state ) ;
-        
-    } ) ;
+        motor::graphics::gen4::backend::render_detail rd ;
+        rd.num_elems = _num_lines << 1 ;
+        rd.start = 0 ;
+        rd.varset = 0 ;
+        fe->render( &_ro, rd ) ;
+    }
+    fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
 }
             
 //**********************************************************
 void_t line_render_3d::add_variable_set( motor::graphics::render_object_ref_t rc ) noexcept 
 {
-    motor::graphics::variable_set_res_t vars = motor::graphics::variable_set_t() ;
+    motor::graphics::variable_set_t vars ;
             
     {
-        auto* var = vars->array_variable( "u_data" ) ;
+        auto* var = vars.array_variable( "u_data" ) ;
         var->set( _name + ".per_line_data" ) ;
     }
     {
-        auto* var = vars->data_variable<int32_t>( "u_offset" ) ;
+        auto* var = vars.data_variable<int32_t>( "u_offset" ) ;
         var->set( 0 ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_world" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_world" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_view" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
     {
-        auto* var = vars->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
+        auto* var = vars.data_variable<motor::math::mat4f_t>( "u_proj" ) ;
         var->set( motor::math::mat4f_t().identity() ) ;
     }
 
-    rc.add_variable_set( std::move( vars ) ) ;
+    rc.add_variable_set( motor::shared( std::move( vars ) ) ) ;
 }
 
 //**********************************************************
