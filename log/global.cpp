@@ -49,6 +49,8 @@ void_t global::deinit( void_t ) noexcept
 {
     if( global_t::_ptr == nullptr ) return ;
 
+    std::lock_guard<std::mutex> lk( this_t::_mtx ) ;
+
     delete global_t::_ptr ;
     this_t::_ptr = nullptr ;
 }
