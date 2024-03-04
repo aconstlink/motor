@@ -697,22 +697,24 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
                 
             }
 
-            if( mouse.is_pressing( layout_t::button::left ) )
+            if( mouse.is_pressed( layout_t::button::left ) )
             {
-                //io.MouseDown[ 0 ] = true ;
                 io.AddMouseButtonEvent( 0, true ) ;
             }
             else if( mouse.is_released( layout_t::button::left ) )
             {
-                //io.MouseDown[ 0 ] = true ;
                 io.AddMouseButtonEvent( 0, false ) ;
             }
 
             if( mouse.is_pressing( layout_t::button::right ) )
             {
-                //io.MouseDown[ 1 ] = true ;
                 io.AddMouseButtonEvent( 1, true ) ;
             }
+            else if( mouse.is_released( layout_t::button::right ) )
+            {
+                io.AddMouseButtonEvent( 1, false ) ;
+            }
+
             if( mouse.is_pressing( layout_t::button::middle ) )
             {
                 //io.MouseDown[ 2 ] = true ;
