@@ -127,13 +127,12 @@ namespace motor
             {
                 return _camera.is_orthographic() ;
             }
-
-            #if 0
-            motor::gfx::generic_camera_res_t get_camera( void_t ) noexcept
+            
+            motor::gfx::generic_camera_cref_t get_camera( void_t ) const noexcept 
             {
                 return _camera ;
             }
-            #endif
+            
         public:
 
             motor::math::mat4f_t mat_proj( void_t ) const noexcept
