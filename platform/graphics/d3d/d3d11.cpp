@@ -2030,10 +2030,10 @@ public: // functions
         oid = !obj.name().empty() ? this_t::determine_oid( obj.name(), _msl_datas ) : size_t(-1) ;
 
         // @todo list
-        // get msl shader from object
-        // insert in database
-        // resolve dependencies
-        // update dependencies
+        // [r] get msl shader from object
+        // [r] insert in database
+        // [r] resolve dependencies
+        // [ ] update dependencies
 
         motor::vector< motor::msl::symbol_t > config_symbols ;
 
