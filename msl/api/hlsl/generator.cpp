@@ -71,6 +71,62 @@ namespace this_file
             return true ;
         }
 
+        else if( bit == motor::msl::buildin_type::rand1 ) 
+        {
+            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_float(), "x" } ;
+
+            motor::msl::signature_t sig = motor::msl::signature_t
+            { 
+                motor::msl::type_t::as_float(), "__d3d11_rand_1__", { a } 
+            } ;
+
+            motor::vector< motor::string_t > lines 
+            { 
+                "return frac ( sin(n) * 43758.5453123 );"
+            } ;
+
+            motor::msl::post_parse::library_t::fragment_t frg ;
+            frg.sym_long = motor::msl::symbol_t("__d3d11_rand_1__") ;
+            frg.sig = std::move( sig ) ;
+            frg.fragments = std::move( lines ) ;
+
+            ret = std::move( frg ) ;
+
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::noise1 ) 
+        {
+            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_float(), "x" } ;
+
+            motor::msl::signature_t sig = motor::msl::signature_t
+            { 
+                motor::msl::type_t::as_float(), "__d3d11_noise_1__", { a } 
+            } ;
+
+            motor::vector< motor::string_t > lines 
+            { 
+                "float f1 = floor ( x ) ;",
+                "float fc = frac ( x ) ;",
+                "return lerp ( rand1 ( f1 ) , rand1 ( f1 + 1.0 ) , fc ) ;"
+            } ;
+
+            motor::msl::post_parse::library_t::fragment_t frg ;
+            frg.sym_long = motor::msl::symbol_t("__d3d11_noise_1__") ;
+            frg.sig = std::move( sig ) ;
+            frg.fragments = std::move( lines ) ;
+            
+            motor::msl::post_parse::used_buildin_t ubi = 
+            {
+                0, 0, motor::msl::get_build_in( motor::msl::buildin_type::rand1 )
+            } ;
+            frg.buildins.emplace_back( ubi ) ;
+
+            ret = std::move( frg ) ;
+
+            return true ;
+        }
+
         return false ;
     }
 
@@ -583,6 +639,26 @@ motor::string_t generator::replace_buildin_symbols( motor::string_rref_t code ) 
                 if( args.size() != 0 ) return "end_primitive( INVALID_ARGS ) " ;
                 return "prim_stream.RestartStrip() ; " ;
             }
+        },
+        {
+            motor::string_t( ":rand_1:" ),
+            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+            {
+                if( args.size() == 1 ) return "__d3d11_rand_1__( " + args[ 0 ] + " ) " ;
+                if( args.size() == 2 ) return "__d3d11_rand_1__( " + args[ 0 ] + " ) " ;
+
+                return "texture_dims ( INVALID_ARGS ) " ;
+            }
+        },
+        {
+            motor::string_t( ":noise_1:" ),
+            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+            {
+                if( args.size() == 1 ) return "__d3d11_noise_1__( " + args[ 0 ] + " ) " ;
+                if( args.size() == 2 ) return "__d3d11_noise_1__( " + args[ 0 ] + " ) " ;
+
+                return "texture_dims ( INVALID_ARGS ) " ;
+            }
         }
     } ;
 
@@ -780,44 +856,85 @@ motor::msl::generated_code_t::shaders_t generator::generate( motor::msl::generat
 
     // inject composite buildins
     {
-        auto test_configs = [&]( motor::msl::buildin_type const test_bi )
         {
-            for( auto& s : genable.config.shaders )
+            size_t accum = 0 ;
+
+            // accumulate number of entries
             {
-                for( auto& c : s.codes )
+                for( auto& s : genable.config.shaders )
                 {
-                    for( auto& ubi : c.buildins)
+                    for( auto& c : s.codes )
                     {
-                        if( test_bi == ubi.bi.t ) return true ;
+                        accum += c.buildins.size() ;
+                    }
+                }
+                for( auto& frg : genable.frags )
+                {
+                    accum += frg.buildins.size() ;
+                }
+            }
+
+            motor::msl::post_parse::used_buildins_t tmp ;
+            tmp.reserve( accum + 10 ) ;
+
+            // fill build-ins that need to be processed
+            // in the 1st pass.
+            {
+                size_t offset = 0 ;
+                for( auto& s : genable.config.shaders )
+                {
+                    for( auto& c : s.codes )
+                    {
+                        for( auto & ubi : c.buildins ) 
+                        {
+                            if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(ubi) const & d )
+                            {
+                                return d.bi.t == ubi.bi.t ;
+                            } ) != tmp.end() ) continue ;
+
+                            tmp.emplace_back( ubi ) ;
+                        }
+                    }
+                }
+
+                for( auto& frg : genable.frags )
+                {
+                    for( auto & ubi : frg.buildins ) 
+                    {
+                        if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(ubi) const & d )
+                        {
+                            return d.bi.t == ubi.bi.t ;
+                        } ) != tmp.end() ) continue ;
+
+                        tmp.emplace_back( ubi ) ;
                     }
                 }
             }
-            return false ;
-        } ;
 
-        auto test_fragments = [&]( motor::msl::buildin_type const test_bi )
-        {
-            for( auto& frg : genable.frags )
+            for( auto iter = tmp.begin(); iter != tmp.end(); ++iter )
             {
-                for( auto const & ubi : frg.buildins )
-                {
-                    if( test_bi == ubi.bi.t ) return true ;
-                }
-            }
-            return false ;
-        } ;
+                auto & ubi = *iter ;
 
-        for( size_t i=0; i<size_t(motor::msl::buildin_type::num_build_ins); ++i )
-        {
-            motor::msl::buildin_type test_bi = motor::msl::buildin_type(i) ;
-            if( test_configs( test_bi ) || test_fragments( test_bi ) )
-            {
-                motor::msl::post_parse::library_t::fragment_t new_frg ;
-                if( this_file::fragment_by_opcode( test_bi, new_frg ) ) 
+                motor::msl::buildin_type test_bi = ubi.bi.t ;
                 {
-                    genable.frags.emplace_back( std::move( new_frg ) ) ;
+                    motor::msl::post_parse::library_t::fragment_t new_frg ;
+                    if( this_file::fragment_by_opcode( test_bi, new_frg ) ) 
+                    {
+                        // need further testing for build-ins using build-ins!
+                        for( auto & new_ubi : new_frg.buildins )
+                        {
+                            if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(new_ubi) const & d )
+                            {
+                                return d.bi.t == new_ubi.bi.t ;
+                            } ) != tmp.end() ) continue ;
+
+                            tmp.emplace_back( new_ubi ) ;
+                        }
+
+                        genable.frags.emplace_back( std::move( new_frg ) ) ;
+                    }
+                    continue ;
                 }
-                continue ;
             }
         }
     }

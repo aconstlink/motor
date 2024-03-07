@@ -549,6 +549,8 @@ namespace motor
             texture_dims,
             emit_vertex,        // geometry shader only
             end_primitive,      // geometry shader only
+            rand1,
+            noise1,
             num_build_ins
         };
 
@@ -566,15 +568,11 @@ namespace motor
 
             build_in( this_cref_t rhv ) noexcept : 
                 t(rhv.t), _fname(rhv._fname), _opcode(rhv._opcode)
-            {
-                
-            }
+            {}
 
             build_in( this_rref_t rhv ) noexcept : 
                 t(rhv.t), _fname(rhv._fname), _opcode(rhv._opcode)
-            {
-                
-            }
+            {}
 
             motor::string_t fname( void_t ) const noexcept
             {
@@ -635,7 +633,10 @@ namespace motor
             { buildin_type::texture_dims, "texture_dims", ":texture_dims:" },
 
             { buildin_type::emit_vertex, "emit_vertex", ":emit_vertex:" },
-            { buildin_type::end_primitive, "end_primitive", ":end_primitive:" }
+            { buildin_type::end_primitive, "end_primitive", ":end_primitive:" },
+            { buildin_type::rand1, "rand1", ":rand_1:" },
+            { buildin_type::noise1, "noise1", ":noise_1:" }
+
 
         } ;
 
