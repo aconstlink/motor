@@ -486,38 +486,16 @@ motor::string_t glsl4_generator::replace_buildin_symbols( motor::msl::api_type c
                 if( args.size() != 0 ) return "end_primitive( INVALID_ARGS ) " ;
                 return "EndPrimitive ( ) " ;
             }
+        },
+        {
+            motor::string_t( ":fetch_data:" ),
+            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+            {
+                if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
+                return "texelFetch ( " + args[ 0 ] + ", " + args[ 1 ] + " ) " ;
+            }
         }
     } ;
-
-    //if( t == motor::msl::api_type::gl4 )
-    {
-        repls.emplace_back( repl_sym ( 
-            {
-                motor::string_t( ":fetch_data:" ),
-                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
-                {
-                    if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
-                    return "texelFetch ( " + args[ 0 ] + ", " + args[ 1 ] + " ) " ;
-                }
-            } ) ) ;
-    }
-#if 0    
-else if( t == motor::msl::api_type::es3 )
-    {
-        repls.emplace_back( repl_sym ( 
-            {
-                motor::string_t( ":fetch_data:" ),
-                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
-                {
-                    if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
-                    return "texelFetch ( " + args[ 0 ] + ", ivec2 ( " 
-                        + "( ( " + args[ 1 ] + " ) % textureSize( " + args[0] + ", 0 ).x ) , " 
-                        + "( ( " + args[ 1 ] + " ) / textureSize( " + args[0] + ", 0 ).x ) "
-                        + ") , 0 ) " ;
-                }
-            } ) ) ;
-    }
-#endif
 
     return motor::msl::perform_repl( std::move( code ), repls ) ;
 }
@@ -544,38 +522,6 @@ namespace this_file
                 mapping_t( motor::msl::type_t::as_vec2(motor::msl::type_base::tint), "uvec2" ),
                 mapping_t( motor::msl::type_t::as_vec3(motor::msl::type_base::tint), "uvec3" ),
                 mapping_t( motor::msl::type_t::as_vec4(motor::msl::type_base::tint), "uvec4" ),
-                mapping_t( motor::msl::type_t::as_float(), "float" ),
-                mapping_t( motor::msl::type_t::as_vec2(), "vec2" ),
-                mapping_t( motor::msl::type_t::as_vec3(), "vec3" ),
-                mapping_t( motor::msl::type_t::as_vec4(), "vec4" ),
-                mapping_t( motor::msl::type_t::as_mat2(), "mat2" ),
-                mapping_t( motor::msl::type_t::as_mat3(), "mat3" ),
-                mapping_t( motor::msl::type_t::as_mat4(), "mat4" ),
-                mapping_t( motor::msl::type_t::as_tex1d(), "sampler1D" ),
-                mapping_t( motor::msl::type_t::as_tex2d(), "sampler2D" ),
-                mapping_t( motor::msl::type_t::as_tex2d_array(), "sampler2DArray" ),
-                mapping_t( motor::msl::type_t::as_data_buffer(), "samplerBuffer" )
-            } ;
-
-            for( auto const& m : __mappings ) if( m.first == type ) return m ;
-
-            return __mappings[ 0 ] ;
-        }
-        else if( apit == motor::msl::api_type::es3 )
-        {
-            static mapping_t const __mappings[] =
-            {
-                mapping_t( motor::msl::type_t(), "unknown" ),
-                mapping_t( motor::msl::type_t::as_bool(), "bool" ),
-                mapping_t( motor::msl::type_t::as_void(), "void" ),
-                mapping_t( motor::msl::type_t::as_int(), "int" ),
-                mapping_t( motor::msl::type_t::as_vec2(motor::msl::type_base::tint), "ivec2" ),
-                mapping_t( motor::msl::type_t::as_vec3(motor::msl::type_base::tint), "ivec3" ),
-                mapping_t( motor::msl::type_t::as_vec4(motor::msl::type_base::tint), "ivec4" ),
-                mapping_t( motor::msl::type_t::as_uint(), "uint" ),
-                mapping_t( motor::msl::type_t::as_vec2(motor::msl::type_base::tuint), "uivec2" ),
-                mapping_t( motor::msl::type_t::as_vec3(motor::msl::type_base::tuint), "uivec3" ),
-                mapping_t( motor::msl::type_t::as_vec4(motor::msl::type_base::tuint), "uivec4" ),
                 mapping_t( motor::msl::type_t::as_float(), "float" ),
                 mapping_t( motor::msl::type_t::as_vec2(), "vec2" ),
                 mapping_t( motor::msl::type_t::as_vec3(), "vec3" ),
@@ -763,7 +709,6 @@ motor::msl::generated_code_t::shaders_t glsl4_generator::generate( motor::msl::g
             }
             shd.type = s_type ;
 
-            shd.codes.emplace_back( this_t::generate( genable, s, var_map, motor::msl::api_type::es3 ) ) ;
             shd.codes.emplace_back( this_t::generate( genable, s, var_map, motor::msl::api_type::gl4 ) ) ;
         }
 
@@ -809,33 +754,6 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
         {
         case motor::msl::api_type::gl4:
             text << "#version 400 core" << " // " << genable.config.name << std::endl << std::endl ;
-            break ;
-        case motor::msl::api_type::es3:
-            text << "#version 320 es" << std::endl ;
-            text << "precision mediump int ;" << std::endl;
-            text << "precision mediump float ;" << std::endl ;
-
-            // print down all precision declarations 
-            {
-                motor::msl::type_t const table[] = { 
-                    motor::msl::type_t::as_tex2d_array() 
-                } ;
-
-                for( auto const & e : table )
-                {
-                    for( auto const& v : shd_.variables )
-                    {
-                        auto const t = this_file::map_variable_type( type, v.type ) ;
-                        if( t.first == e )
-                        {
-                            text << "precision mediump " << t.second << " ;" << std::endl ;
-                            break ;
-                        }
-                    }
-                }
-            }
-            text << std::endl ;
-
             break ;
         default:
             text << "#version " << "glsl_type case missing" << std::endl << std::endl ;

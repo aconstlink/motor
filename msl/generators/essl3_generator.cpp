@@ -486,38 +486,16 @@ motor::string_t essl3_generator::replace_buildin_symbols( motor::msl::api_type c
                 if( args.size() != 0 ) return "end_primitive( INVALID_ARGS ) " ;
                 return "EndPrimitive ( ) " ;
             }
+        },
+        {
+            motor::string_t( ":fetch_data:" ),
+            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+            {
+                if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
+                return "texelFetch ( " + args[ 0 ] + ", " + args[ 1 ] + " ) " ;
+            }
         }
     } ;
-
-    //if( t == motor::msl::api_type::gl4 )
-    {
-        repls.emplace_back( repl_sym ( 
-            {
-                motor::string_t( ":fetch_data:" ),
-                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
-                {
-                    if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
-                    return "texelFetch ( " + args[ 0 ] + ", " + args[ 1 ] + " ) " ;
-                }
-            } ) ) ;
-    }
-#if 0    
-else if( t == motor::msl::api_type::es3 )
-    {
-        repls.emplace_back( repl_sym ( 
-            {
-                motor::string_t( ":fetch_data:" ),
-                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
-                {
-                    if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
-                    return "texelFetch ( " + args[ 0 ] + ", ivec2 ( " 
-                        + "( ( " + args[ 1 ] + " ) % textureSize( " + args[0] + ", 0 ).x ) , " 
-                        + "( ( " + args[ 1 ] + " ) / textureSize( " + args[0] + ", 0 ).x ) "
-                        + ") , 0 ) " ;
-                }
-            } ) ) ;
-    }
-#endif
 
     return motor::msl::perform_repl( std::move( code ), repls ) ;
 }
@@ -764,7 +742,6 @@ motor::msl::generated_code_t::shaders_t essl3_generator::generate( motor::msl::g
             shd.type = s_type ;
 
             shd.codes.emplace_back( this_t::generate( genable, s, var_map, motor::msl::api_type::es3 ) ) ;
-            shd.codes.emplace_back( this_t::generate( genable, s, var_map, motor::msl::api_type::gl4 ) ) ;
         }
 
         ret.emplace_back( std::move( shd ) ) ;
@@ -807,9 +784,6 @@ motor::msl::generated_code_t::code_t essl3_generator::generate( motor::msl::gene
     {
         switch( type )
         {
-        case motor::msl::api_type::gl4:
-            text << "#version 400 core" << " // " << genable.config.name << std::endl << std::endl ;
-            break ;
         case motor::msl::api_type::es3:
             text << "#version 320 es" << std::endl ;
             text << "precision mediump int ;" << std::endl;
@@ -850,14 +824,6 @@ motor::msl::generated_code_t::code_t essl3_generator::generate( motor::msl::gene
         for( auto const& var : shd_.variables )
         {
             num_color += motor::msl::is_color( var.binding ) ? 1 : 0 ;
-        }
-
-        // mrt requires extensions for glsl 130
-        if( num_color > 1 && type == motor::msl::api_type::gl4 )
-        {
-            text <<
-                "#extension GL_ARB_separate_shader_objects : enable" << std::endl <<
-                "#extension GL_ARB_explicit_attrib_location : enable" << std::endl << std::endl ;
         }
     }
 
