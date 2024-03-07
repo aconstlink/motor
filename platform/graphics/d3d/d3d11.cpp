@@ -1073,6 +1073,10 @@ struct d3d11_backend::pimpl
         // empty names indicate free configs
         motor::string_t name ;
 
+        // purpose: keep track of the data within the msl object
+        // if recompilation is triggered.
+        motor::graphics::msl_object_t msl_obj ;
+
         motor::vector< motor::graphics::render_object_t > ros ; 
         motor::vector< motor::graphics::shader_object_t > sos ; 
     } ;
@@ -2023,11 +2027,11 @@ public: // functions
     }
 
     //******************************************************************************************************************************
-    size_t construct_msl( size_t oid, motor::graphics::msl_object_ref_t obj )
+    size_t construct_msl( size_t oid, motor::graphics::msl_object_ref_t obj_ )
     {
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
-        oid = !obj.name().empty() ? this_t::determine_oid( obj.name(), _msl_datas ) : size_t(-1) ;
+        oid = !obj_.name().empty() ? this_t::determine_oid( obj_.name(), _msl_datas ) : size_t(-1) ;
 
         // @todo list
         // [r] get msl shader from object
@@ -2037,7 +2041,7 @@ public: // functions
 
         motor::vector< motor::msl::symbol_t > config_symbols ;
 
-        obj.for_each_msl( motor::graphics::msl_api_type::msl_4_0, [&]( motor::string_in_t code )
+        obj_.for_each_msl( motor::graphics::msl_api_type::msl_4_0, [&]( motor::string_in_t code )
         {
             motor::msl::post_parse::document_t doc = 
                 motor::msl::parser_t( "d3d11" ).process( code ) ;
@@ -2045,19 +2049,58 @@ public: // functions
             _mdb.insert( std::move( doc ), config_symbols ) ;
         } ) ; 
 
+        motor::graphics::msl_object_t obj = obj_ ;
+
         for( auto const & c : config_symbols )
         {
+            if( oid == size_t(-1) )
+            {
+                // this most likely came from a library dependency.
+                // need to figure out the msl object associated
+                // with this render configuration/object.
+                // the msl object is required in order to reconstruct
+                // the render_object and the shader_object.
+
+                // 1. find the msl object associated to c
+                // 2. use the found oid for further processing
+
+                for( size_t i=0; i<_msl_datas.size(); ++i )
+                {
+                    auto & d = _msl_datas[i] ;
+
+                    auto iter = std::find_if( d.ros.begin(), d.ros.end(), [&]( motor::graphics::render_object_cref_t di )
+                    {
+                        return di.name() == c.expand() ;
+                    } ) ;
+                    
+                    if( iter == d.ros.end() ) continue ;
+                    
+                    oid = i ;
+                    obj = _msl_datas[oid].msl_obj ;
+                    break ;
+                }
+            }
+
+            // msl database contains render configuration 
+            // which has not been configured by the user...
+            if( oid == size_t(-1) ) 
+            {
+                motor::log::global_t::warning( "[gl4::construct_msl_data] : render configuration not found : " + c.expand() ) ;
+                continue ;
+            }
+
             motor::graphics::render_object_t ro( c.expand() ) ;
             motor::graphics::shader_object_t so( c.expand() ) ;
 
             motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &_mdb, c ) ;
             if( res.missing.size() != 0 )
             {
-                motor::log::global_t::warning( "We have missing symbols." ) ;
+                motor::log::global_t::warning( "We have missing symbols for " + c.expand() + " :" ) ;
                 for( auto const& s : res.missing )
                 {
                     motor::log::global_t::status( s.expand() ) ;
                 }
+                continue ;
             }
 
             motor::msl::generator_t gen( std::move( res ) ) ;
@@ -2085,44 +2128,44 @@ public: // functions
             so.set_oid( _bid, this_t::construct_shader_config( so.get_oid( _bid ), so ) ) ;
             ro.set_oid( _bid, this_t::construct_render_config( ro.get_oid( _bid ), ro ) ) ;
 
-            if( oid != size_t(-1) )
+            
+            auto & msl = _msl_datas[oid] ;
+
+            // render object
             {
-                auto & msl = _msl_datas[oid] ;
-
-                // render object
+                auto iter = std::find_if( msl.ros.begin(), msl.ros.end(), [&]( motor::graphics::render_object_cref_t rol )
                 {
-                    auto iter = std::find_if( msl.ros.begin(), msl.ros.end(), [&]( motor::graphics::render_object_cref_t rol )
-                    {
-                        return rol.name() == c.expand() ;
-                    } ) ;
+                    return rol.name() == c.expand() ;
+                } ) ;
 
-                    if( iter != msl.ros.end() )
-                    {
-                        *iter = std::move( ro ) ;
-                    }
-                    else
-                    {
-                        msl.ros.emplace_back( std::move( ro ) ) ;
-                    }
+                if( iter != msl.ros.end() )
+                {
+                    *iter = std::move( ro ) ;
                 }
-
-                // shader object
+                else
                 {
-                    auto iter = std::find_if( msl.sos.begin(), msl.sos.end(), [&]( motor::graphics::shader_object_cref_t rol )
-                    {
-                        return rol.name() == c.expand() ;
-                    } ) ;
-
-                    if( iter != msl.sos.end() )
-                    {
-                        *iter = std::move( so ) ;
-                    }
-                    else
-                    {
-                        msl.sos.emplace_back( std::move( so ) ) ;
-                    }
+                    msl.ros.emplace_back( std::move( ro ) ) ;
                 }
             }
+
+            // shader object
+            {
+                auto iter = std::find_if( msl.sos.begin(), msl.sos.end(), [&]( motor::graphics::shader_object_cref_t rol )
+                {
+                    return rol.name() == c.expand() ;
+                } ) ;
+
+                if( iter != msl.sos.end() )
+                {
+                    *iter = std::move( so ) ;
+                }
+                else
+                {
+                    msl.sos.emplace_back( std::move( so ) ) ;
+                }
+            }
+            
+            msl.msl_obj = obj ;
         }
         return oid ;
     }

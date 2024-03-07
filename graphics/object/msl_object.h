@@ -44,6 +44,7 @@ namespace motor
 
             msl_object( void_t ) noexcept {}
             msl_object( motor::string_in_t name ) noexcept : _name( name ) {}
+
             msl_object( this_rref_t rhv ) noexcept : object( std::move( rhv ) )
             {
                 _name = std::move( rhv._name ) ;
@@ -55,8 +56,11 @@ namespace motor
                     motor::memory::release_ptr( vs ) ;
                 _vars = std::move( rhv._vars ) ;
             }
+
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
+                object::operator = ( std::move( rhv ) ) ;
+
                 _name = std::move( rhv._name ) ;
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
@@ -69,7 +73,33 @@ namespace motor
                 return *this ;
             }
 
-            msl_object( this_cref_t ) = delete ;
+            msl_object( this_cref_t rhv ) noexcept : object( rhv )
+            {
+                _name = rhv._name ;
+                _datas = rhv._datas ;
+                _geo = rhv._geo ;
+                _soo = rhv._soo ;
+
+                _vars.resize( rhv._vars.size() ) ;
+                for( size_t i=0; i<rhv._vars.size(); ++i )
+                    _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
+            }
+
+            this_ref_t operator = ( this_cref_t rhv ) noexcept
+            {
+                object::operator = ( rhv ) ;
+
+                _name = rhv._name ;
+                _datas = rhv._datas ;
+                _geo = rhv._geo ;
+                _soo = rhv._soo ;
+
+                _vars.resize( rhv._vars.size() ) ;
+                for( size_t i=0; i<rhv._vars.size(); ++i )
+                    _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
+
+                return *this ;
+            }
 
             virtual ~msl_object( void_t ) noexcept 
             {
