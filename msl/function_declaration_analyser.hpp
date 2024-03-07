@@ -1,7 +1,7 @@
 
 #include "typedefs.h"
 #include "parser_structs.hpp"
-#include "generator_structs.hpp"
+#include "generators/generator_structs.hpp"
 #include "dependency_resolver.hpp"
 
 #include <motor/log/global.h>

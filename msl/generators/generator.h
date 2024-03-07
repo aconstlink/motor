@@ -1,8 +1,8 @@
 
 #pragma once
 
-#include "api/glsl/generator.h"
-#include "api/hlsl/generator.h"
+#include "generator_structs.hpp"
+#include "../parser_structs.hpp"
 
 #include <motor/std/vector>
 
@@ -33,9 +33,6 @@ namespace motor
             motor::msl::variable_mappings_t generate_mappings( void_t ) const noexcept ;
 
         public: 
-
-            //@obsolete
-            motor::msl::generated_code_t generate_old( void_t ) noexcept ;
 
             motor::msl::variable_mappings_t generate( motor::msl::generated_code_inout_t ) noexcept ;
 

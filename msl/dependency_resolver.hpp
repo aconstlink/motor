@@ -1,9 +1,8 @@
 #pragma once
 
 #include "database.hpp"
-#include "generator.h"
+#include "generators/generator.h"
 #include "parser_structs.hpp"
-#include "generator_structs.hpp"
 
 namespace motor
 {

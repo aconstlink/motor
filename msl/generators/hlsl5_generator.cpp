@@ -1,6 +1,6 @@
 
 
-#include "generator.h"
+#include "hlsl5_generator.h"
 
 #include <motor/log/global.h>
 #include <motor/std/sstream>
@@ -155,7 +155,7 @@ namespace this_file
 }
 
 
-motor::string_t generator::replace_buildin_symbols( motor::string_rref_t code ) noexcept
+motor::string_t hlsl5_generator::replace_buildin_symbols( motor::string_rref_t code ) noexcept
 {
     motor::msl::repl_syms_t repls =
     {
@@ -665,7 +665,7 @@ motor::string_t generator::replace_buildin_symbols( motor::string_rref_t code ) 
     return motor::msl::perform_repl( std::move( code ), repls ) ;
 }
 
-motor::string_t generator::map_variable_type( motor::msl::type_cref_t type ) noexcept
+motor::string_t hlsl5_generator::map_variable_type( motor::msl::type_cref_t type ) noexcept
 {
     typedef std::pair< motor::msl::type_t, char const * > mapping_t ;
     static mapping_t const __mappings[] =
@@ -700,7 +700,7 @@ motor::string_t generator::map_variable_type( motor::msl::type_cref_t type ) noe
     return __mappings[ 0 ].second ;
 }
 
-motor::string_t generator::replace_types( motor::string_t code ) noexcept
+motor::string_t hlsl5_generator::replace_types( motor::string_t code ) noexcept
 {
     size_t p0 = 0 ;
     size_t p1 = code.find_first_of( ' ' ) ;
@@ -721,7 +721,7 @@ motor::string_t generator::replace_types( motor::string_t code ) noexcept
     return std::move( code ) ;
 }
 
-motor::string_t generator::map_variable_binding( motor::msl::shader_type const st,
+motor::string_t hlsl5_generator::map_variable_binding( motor::msl::shader_type const st,
     motor::msl::flow_qualifier const fq, motor::msl::binding binding ) noexcept
 {
     typedef std::pair< motor::msl::binding, char const * > mapping_t ;
@@ -790,7 +790,7 @@ motor::string_t generator::map_variable_binding( motor::msl::shader_type const s
     return "NO_BINDING_SPECIFIED" ;
 }
 
-motor::msl::generated_code_t::shaders_t generator::generate( motor::msl::generatable_cref_t genable_, 
+motor::msl::generated_code_t::shaders_t hlsl5_generator::generate( motor::msl::generatable_cref_t genable_, 
     motor::msl::variable_mappings_cref_t var_map_ ) noexcept
 {
     motor::msl::variable_mappings_t var_map = var_map_ ;
@@ -977,7 +977,7 @@ motor::msl::generated_code_t::shaders_t generator::generate( motor::msl::generat
 
 }
 
-motor::msl::generated_code_t::code_t generator::generate( motor::msl::generatable_cref_t genable, motor::msl::post_parse::config_t::shader_cref_t s, 
+motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::generatable_cref_t genable, motor::msl::post_parse::config_t::shader_cref_t s, 
     motor::msl::variable_mappings_cref_t var_mappings, motor::msl::api_type const type ) noexcept
 {
     motor::msl::generated_code_t::code code ;

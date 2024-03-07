@@ -3,9 +3,10 @@
 
 #pragma once
 
-#include "../../typedefs.h"
-#include "../../parser_structs.hpp"
-#include "../../generator_structs.hpp"
+#include "../typedefs.h"
+#include "../parser_structs.hpp"
+
+#include "generator_structs.hpp"
 
 #include <motor/std/vector>
 #include <motor/std/map>
@@ -17,17 +18,17 @@ namespace motor
         namespace hlsl
         {
             // the hlsl backend code generator
-            class MOTOR_MSL_API generator
+            class MOTOR_MSL_API hlsl5_generator
             {
-                motor_this_typedefs( generator ) ;
+                motor_this_typedefs( hlsl5_generator ) ;
 
             public:
 
-                generator( void_t ) noexcept {}
-                generator( motor::msl::generatable_rref_t ) noexcept {}
-                generator( this_cref_t ) noexcept {}
-                generator( this_rref_t ) noexcept {}
-                ~generator( void_t ) {}
+                hlsl5_generator( void_t ) noexcept {}
+                hlsl5_generator( motor::msl::generatable_rref_t ) noexcept {}
+                hlsl5_generator( this_cref_t ) noexcept {}
+                hlsl5_generator( this_rref_t ) noexcept {}
+                ~hlsl5_generator( void_t ) {}
 
             public:
                 
@@ -45,7 +46,7 @@ namespace motor
                 motor::msl::generated_code_t::code_t generate( motor::msl::generatable_cref_t genable, 
                     motor::msl::post_parse::config_t::shader_cref_t s, motor::msl::variable_mappings_cref_t var_mappings, motor::msl::api_type const type ) noexcept ;
             };
-            motor_typedef( generator ) ;
+            motor_typedef( hlsl5_generator ) ;
         }
     }
 }

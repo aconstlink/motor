@@ -1,9 +1,9 @@
 #pragma once
 
-#include "typedefs.h"
-#include "enums.hpp"
-#include "symbol.hpp"
-#include "parser_structs.hpp"
+#include "../typedefs.h"
+#include "../enums.hpp"
+#include "../symbol.hpp"
+#include "../parser_structs.hpp"
 
 namespace motor
 {

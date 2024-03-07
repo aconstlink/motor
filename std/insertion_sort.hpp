@@ -2,6 +2,7 @@
 #pragma once
 
 #include <motor/core/types.hpp>
+#include <motor/std/vector>
 
 #include <functional>
 #include <array>

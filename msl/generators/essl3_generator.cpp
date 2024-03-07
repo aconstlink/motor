@@ -1,15 +1,15 @@
-#include "generator.h"
+#include "essl3_generator.h"
 
 #include <motor/log/global.h>
 
 #include <motor/std/sstream>
 #include <regex>
 
-using namespace motor::msl::glsl ;
+using namespace motor::msl::essl ;
 
 
 //*******************************************************************************************************
-motor::string_t generator::replace_buildin_symbols( motor::msl::api_type const /*t*/, 
+motor::string_t essl3_generator::replace_buildin_symbols( motor::msl::api_type const /*t*/, 
                             motor::string_t code ) noexcept
 {
     motor::msl::repl_syms_t repls =
@@ -629,7 +629,7 @@ namespace this_file
 }
 
 //******************************************************************************************************************************************
-motor::string_t generator::to_texture_type( motor::msl::type_cref_t t ) noexcept
+motor::string_t essl3_generator::to_texture_type( motor::msl::type_cref_t t ) noexcept
 {
     typedef std::pair< motor::msl::type_ext, char const * const > __mapping_t ;
 
@@ -644,7 +644,7 @@ motor::string_t generator::to_texture_type( motor::msl::type_cref_t t ) noexcept
 }
 
 //******************************************************************************************************************************************
-motor::string_t generator::replace_types( motor::msl::api_type const apit, motor::string_t code ) noexcept
+motor::string_t essl3_generator::replace_types( motor::msl::api_type const apit, motor::string_t code ) noexcept
 {
     size_t p0 = 0 ;
     size_t p1 = code.find_first_of( ' ' ) ;
@@ -666,7 +666,7 @@ motor::string_t generator::replace_types( motor::msl::api_type const apit, motor
 }
 
 //******************************************************************************************************************************************
-motor::string_t generator::determine_input_interface_block_name( motor::msl::shader_type const cur, motor::msl::shader_type const before ) noexcept 
+motor::string_t essl3_generator::determine_input_interface_block_name( motor::msl::shader_type const cur, motor::msl::shader_type const before ) noexcept 
 {
     // input assembler to vertex shader -> not possible in glsl
     if( cur == motor::msl::shader_type::vertex_shader )
@@ -676,7 +676,7 @@ motor::string_t generator::determine_input_interface_block_name( motor::msl::sha
 }
 
 //******************************************************************************************************************************************
-motor::string_t generator::determine_output_interface_block_name( motor::msl::shader_type const cur, motor::msl::shader_type const after ) noexcept 
+motor::string_t essl3_generator::determine_output_interface_block_name( motor::msl::shader_type const cur, motor::msl::shader_type const after ) noexcept 
 {
     // -> not possible in glsl
     if( cur == motor::msl::shader_type::pixel_shader )
@@ -690,7 +690,7 @@ motor::string_t generator::determine_output_interface_block_name( motor::msl::sh
 }
 
 //******************************************************************************************************************************************
-motor::msl::generated_code_t::shaders_t generator::generate( motor::msl::generatable_cref_t genable, motor::msl::variable_mappings_cref_t var_map_ ) noexcept
+motor::msl::generated_code_t::shaders_t essl3_generator::generate( motor::msl::generatable_cref_t genable, motor::msl::variable_mappings_cref_t var_map_ ) noexcept
 {
     motor::msl::variable_mappings_t var_map = var_map_ ;
 
@@ -774,7 +774,7 @@ motor::msl::generated_code_t::shaders_t generator::generate( motor::msl::generat
 }
 
 //******************************************************************************************************************************************
-motor::msl::generated_code_t::code_t generator::generate( motor::msl::generatable_cref_t genable, motor::msl::post_parse::config_t::shader_cref_t shd_, 
+motor::msl::generated_code_t::code_t essl3_generator::generate( motor::msl::generatable_cref_t genable, motor::msl::post_parse::config_t::shader_cref_t shd_, 
     motor::msl::variable_mappings_cref_t var_mappings, motor::msl::api_type const type ) noexcept
 {
     motor::msl::generated_code_t::code code ;

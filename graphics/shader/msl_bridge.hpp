@@ -4,7 +4,7 @@
 #include "../typedefs.h"
 #include "../object/shader_object.h"
 
-#include <motor/msl/generator_structs.hpp>
+#include <motor/msl/generators/generator_structs.hpp>
 #include <motor/log/global.h>
 
 namespace motor

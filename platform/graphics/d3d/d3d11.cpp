@@ -5,9 +5,10 @@
 
 #include <motor/msl/symbol.hpp>
 #include <motor/msl/database.hpp>
-#include <motor/msl/generator.h>
 #include <motor/msl/parser.h>
 #include <motor/msl/dependency_resolver.hpp>
+#include <motor/msl/generators/generator.h>
+#include <motor/msl/generators/hlsl5_generator.h>
 
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
@@ -2115,7 +2116,7 @@ public: // functions
             motor::msl::generator_t gen( std::move( res ) ) ;
 
             {
-                auto const code = gen.generate<motor::msl::hlsl::generator_t>() ;
+                auto const code = gen.generate<motor::msl::hlsl::hlsl5_generator_t>() ;
                 motor::graphics::msl_bridge::create_by_api_type( motor::graphics::shader_api_type::hlsl_5_0, code, so ) ;
             }
 
