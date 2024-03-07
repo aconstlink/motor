@@ -601,10 +601,19 @@ struct gl4_backend::pimpl
 
     //****************************************************************************************
     template< typename T >
-    static size_t determine_oid( motor::string_cref_t name, motor::vector< T >& v ) noexcept
+    static size_t determine_oid( size_t oid, motor::string_cref_t name, motor::vector< T >& v ) noexcept
     {
-        size_t oid = size_t( -1 ) ;
+        // just reuse the same object
+        if( v.size() > oid && v[oid].name == name )
+        {
+            v[ oid ].valid = true ;
+            return oid ;
+        }
 
+        oid = size_t(-1) ;
+        
+        // this code is required if we only know the name
+        // but do not have any oid.
         {
             auto iter = std::find_if( v.begin(), v.end(), [&] ( T const& c )
             {
@@ -658,7 +667,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     size_t construct_state( size_t oid, motor::graphics::state_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( obj.name(), _states ) ;
+        oid = determine_oid( obj.get_oid(_bid), obj.name(), _states ) ;
 
         auto& states = _states[ oid ] ;
 
@@ -835,7 +844,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     size_t construct_framebuffer( size_t oid, motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( obj.name(), _framebuffers ) ;
+        oid = determine_oid( obj.get_oid(_bid), obj.name(), _framebuffers ) ;
 
         framebuffer_data_ref_t fb = _framebuffers[ oid ] ;
 
@@ -1148,7 +1157,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     size_t construct_shader_data( size_t oid, motor::graphics::shader_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( obj.name(), _shaders ) ;
+        oid = determine_oid( obj.get_oid(_bid), obj.name(), _shaders ) ;
 
         //
         // SECTION: Pre-Compilation
@@ -1937,7 +1946,7 @@ struct gl4_backend::pimpl
     {
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
-        oid = !obj_.name().empty() ? this_t::determine_oid( obj_.name(), _msls ) : size_t(-1) ;
+        oid = !obj_.name().empty() ? this_t::determine_oid( obj_.get_oid(_bid), obj_.name(), _msls ) : size_t(-1) ;
 
         motor::vector< motor::msl::symbol_t > config_symbols ;
 
@@ -2079,7 +2088,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     size_t construct_render_data( size_t oid, motor::graphics::render_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( obj.name(), _renders ) ;
+        oid = determine_oid( obj.get_oid(_bid), obj.name(), _renders ) ;
 
         auto & rd = _renders[ oid ] ;
 
@@ -2381,7 +2390,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     size_t construct_geo( size_t oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
-        oid = determine_oid( name, _geometries ) ;
+        oid = determine_oid( oid, name, _geometries ) ;
 
         bool_t error = false ;
         auto& config = _geometries[ oid ] ;
@@ -2793,7 +2802,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     size_t construct_array_data( size_t oid, motor::graphics::array_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( obj.name(), _arrays ) ;
+        oid = determine_oid( oid, obj.name(), _arrays ) ;
 
         auto & data = _arrays[ oid ] ;
 
@@ -2900,15 +2909,13 @@ struct gl4_backend::pimpl
                 return false ;
         }
 
-        
-
         return true ;
     }
 
     //****************************************************************************************
-    size_t construct_feedback( size_t /*oid_*/, motor::graphics::streamout_object_ref_t obj ) noexcept
+    size_t construct_feedback( size_t oid, motor::graphics::streamout_object_ref_t obj ) noexcept
     {
-        size_t const oid = determine_oid( obj.name(), _feedbacks ) ;
+        oid = determine_oid( oid, obj.name(), _feedbacks ) ;
 
         //bool_t error = false ;
         auto & data = _feedbacks[ oid ] ;

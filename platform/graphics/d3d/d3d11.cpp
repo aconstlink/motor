@@ -1127,10 +1127,19 @@ public: // variables
     size_t _bid = size_t(-1) ;
 
     template< typename T >
-    static size_t determine_oid( motor::string_cref_t name, motor::vector< T >& v ) noexcept
+    static size_t determine_oid( size_t oid, motor::string_cref_t name, motor::vector< T >& v ) noexcept
     {
-        size_t oid = size_t( -1 ) ;
+        // just reuse the same object
+        if( v.size() > oid && v[oid].name == name )
+        {
+            v[ oid ].valid = true ;
+            return oid ;
+        }
 
+        oid = size_t(-1) ;
+        
+        // this code is required if we only know the name
+        // but do not have any oid.
         {
             auto iter = std::find_if( v.begin(), v.end(), [&] ( T const& c )
             {
@@ -1266,7 +1275,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_state( size_t oid, motor::graphics::state_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( obj.name(), state_sets ) ;
+        oid = determine_oid( obj.get_oid(_bid), obj.name(), state_sets ) ;
 
         auto& states = state_sets[ oid ] ;
 
@@ -1515,7 +1524,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_framebuffer( size_t oid, motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( obj.name(), framebuffers ) ;
+        oid = determine_oid( obj.get_oid(_bid), obj.name(), framebuffers ) ;
         auto & fb = framebuffers[ oid ] ;
 
         ID3D11Device * dev = _ctx->dev() ;
@@ -1640,7 +1649,7 @@ public: // functions
                 // store data
                 {
                     size_t const iid = fb.image_ids[ i ] == size_t( -1 ) ?
-                        determine_oid( obj.name() + "." + motor::to_string( i ), images ) : fb.image_ids[ i ] ;
+                        determine_oid( obj.get_oid(_bid), obj.name() + "." + motor::to_string( i ), images ) : fb.image_ids[ i ] ;
 
                     // fill the image so shader variable
                     // lookup can find the render target
@@ -1782,7 +1791,7 @@ public: // functions
                 {
                     size_t const i = obj.get_num_color_targets() ;
                     size_t const iid = fb.image_ids[ i ] == size_t( -1 ) ?
-                        determine_oid( obj.name() + ".depth", images ) : fb.image_ids[ i ] ;
+                        determine_oid( obj.get_oid(_bid), obj.name() + ".depth", images ) : fb.image_ids[ i ] ;
 
                     // fill the image so shader variable
                     // lookup can find the render target
@@ -1855,7 +1864,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_streamout( size_t oid, motor::graphics::streamout_object_ref_t obj ) noexcept
     {
-        oid = this_t::determine_oid( obj.name(), _streamouts ) ;
+        oid = this_t::determine_oid( oid, obj.name(), _streamouts ) ;
 
         auto & config = _streamouts[ oid ] ;
         config.valid = true ;
@@ -2031,7 +2040,7 @@ public: // functions
     {
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
-        oid = !obj_.name().empty() ? this_t::determine_oid( obj_.name(), _msl_datas ) : size_t(-1) ;
+        oid = !obj_.name().empty() ? this_t::determine_oid( oid, obj_.name(), _msl_datas ) : size_t(-1) ;
 
         // @todo list
         // [r] get msl shader from object
@@ -2173,7 +2182,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj )
     {
-        oid = this_t::determine_oid( obj.name(), geo_datas ) ;
+        oid = this_t::determine_oid( oid, obj.name(), geo_datas ) ;
 
         auto & config = geo_datas[ oid ] ;
         config.valid = true ;
@@ -2409,7 +2418,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_shader_config( size_t oid, motor::graphics::shader_object_ref_t obj )
     {
-        oid = this_t::determine_oid( obj.name(), shaders ) ;
+        oid = this_t::determine_oid( oid, obj.name(), shaders ) ;
 
         //
         // Do Configuration
@@ -2716,7 +2725,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_render_config( size_t oid, motor::graphics::render_object_ref_t obj )
     {
-        oid = this_t::determine_oid( obj.name(), renders ) ;
+        oid = this_t::determine_oid( oid, obj.name(), renders ) ;
         
         this_t::render_data_ref_t rd = renders[ oid ] ;
         rd.name = obj.name() ;
@@ -3236,7 +3245,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_image_config( size_t oid, motor::graphics::image_object_ref_t obj )
     {
-        oid = this_t::determine_oid( obj.name(), images ) ;
+        oid = this_t::determine_oid( oid, obj.name(), images ) ;
 
         this_t::image_data_ref_t img = images[ oid ] ;
         img.name = obj.name() ;
@@ -3368,7 +3377,7 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_array_data( size_t oid, motor::graphics::array_object_ref_t obj ) noexcept
     {
-        oid = this_t::determine_oid( obj.name(), arrays ) ;
+        oid = this_t::determine_oid( oid, obj.name(), arrays ) ;
 
         // only vec4 float allowed
         {
