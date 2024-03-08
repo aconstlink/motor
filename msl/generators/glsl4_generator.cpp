@@ -7,10 +7,72 @@
 
 using namespace motor::msl::glsl ;
 
+namespace this_file_glsl4
+{
+    motor::core::types::bool_t fragment_by_opcode( motor::msl::buildin_type bit, motor::msl::post_parse::library_t::fragment_out_t ret ) noexcept
+    {
+        if( bit == motor::msl::buildin_type::rand1 ) 
+        {
+            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_float(), "x" } ;
+
+            motor::msl::signature_t sig = motor::msl::signature_t
+            { 
+                motor::msl::type_t::as_float(), "__glsl4_rand_1__", { a } 
+            } ;
+
+            motor::vector< motor::string_t > lines 
+            { 
+                "return fract ( sin(n) * 43758.5453123 );"
+            } ;
+
+            motor::msl::post_parse::library_t::fragment_t frg ;
+            frg.sym_long = motor::msl::symbol_t("__glsl4_rand_1__") ;
+            frg.sig = std::move( sig ) ;
+            frg.fragments = std::move( lines ) ;
+
+            ret = std::move( frg ) ;
+
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::noise1 ) 
+        {
+            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_float(), "x" } ;
+
+            motor::msl::signature_t sig = motor::msl::signature_t
+            { 
+                motor::msl::type_t::as_float(), "__glsl4_noise_1__", { a } 
+            } ;
+
+            motor::vector< motor::string_t > lines 
+            { 
+                "float f1 = floor ( x ) ;",
+                "float fc = fract ( x ) ;",
+                "return lerp ( rand1 ( f1 ) , rand1 ( f1 + 1.0 ) , fc ) ;"
+            } ;
+
+            motor::msl::post_parse::library_t::fragment_t frg ;
+            frg.sym_long = motor::msl::symbol_t("__glsl4_noise_1__") ;
+            frg.sig = std::move( sig ) ;
+            frg.fragments = std::move( lines ) ;
+            
+            motor::msl::post_parse::used_buildin_t ubi = 
+            {
+                0, 0, motor::msl::get_build_in( motor::msl::buildin_type::rand1 )
+            } ;
+            frg.buildins.emplace_back( ubi ) ;
+
+            ret = std::move( frg ) ;
+
+            return true ;
+        }
+
+        return false ;
+    }
+}
 
 //*******************************************************************************************************
-motor::string_t glsl4_generator::replace_buildin_symbols( motor::msl::api_type const /*t*/, 
-                            motor::string_t code ) noexcept
+motor::string_t glsl4_generator::replace_buildin_symbols( motor::string_rref_t code ) noexcept
 {
     motor::msl::repl_syms_t repls =
     {
@@ -494,6 +556,26 @@ motor::string_t glsl4_generator::replace_buildin_symbols( motor::msl::api_type c
                 if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
                 return "texelFetch ( " + args[ 0 ] + ", " + args[ 1 ] + " ) " ;
             }
+        },
+        {
+            motor::string_t( ":rand_1:" ),
+            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+            {
+                if( args.size() == 1 ) return "__glsl4_rand_1__( " + args[ 0 ] + " ) " ;
+                if( args.size() == 2 ) return "__glsl4_rand_1__( " + args[ 0 ] + " ) " ;
+
+                return "rand_1 ( INVALID_ARGS ) " ;
+            }
+        },
+        {
+            motor::string_t( ":noise_1:" ),
+            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+            {
+                if( args.size() == 1 ) return "__glsl4_noise_1__( " + args[ 0 ] + " ) " ;
+                if( args.size() == 2 ) return "__glsl4_noise_1__( " + args[ 0 ] + " ) " ;
+
+                return "texture_dims ( INVALID_ARGS ) " ;
+            }
         }
     } ;
 
@@ -636,9 +718,11 @@ motor::string_t glsl4_generator::determine_output_interface_block_name( motor::m
 }
 
 //******************************************************************************************************************************************
-motor::msl::generated_code_t::shaders_t glsl4_generator::generate( motor::msl::generatable_cref_t genable, motor::msl::variable_mappings_cref_t var_map_ ) noexcept
+motor::msl::generated_code_t::shaders_t glsl4_generator::generate( motor::msl::generatable_cref_t genable_, 
+    motor::msl::variable_mappings_cref_t var_map_ ) noexcept
 {
     motor::msl::variable_mappings_t var_map = var_map_ ;
+    motor::msl::generatable_t genable = genable_ ;
 
     // start renaming internal variables
     {
@@ -678,6 +762,116 @@ motor::msl::generated_code_t::shaders_t glsl4_generator::generate( motor::msl::g
                 }
             }
             ++iter ;
+        }
+    }
+
+    // replace buildins
+    {
+        for( auto& s : genable.config.shaders )
+        {
+            for( auto& c : s.codes )
+            {
+                for( auto& l : c.lines )
+                {
+                    l = this_t::replace_buildin_symbols( std::move( l ) ) ;
+                }
+            }
+        }
+
+        for( auto& frg : genable.frags )
+        {
+            for( auto& f : frg.fragments )
+            {
+                //for( auto& l : c.lines )
+                {
+                    f = this_t::replace_buildin_symbols( std::move( f ) ) ;
+                }
+            }
+        }
+    }
+
+    // inject composite buildins
+    {
+        {
+            size_t accum = 0 ;
+
+            // accumulate number of entries
+            {
+                for( auto& s : genable.config.shaders )
+                {
+                    for( auto& c : s.codes )
+                    {
+                        accum += c.buildins.size() ;
+                    }
+                }
+                for( auto& frg : genable.frags )
+                {
+                    accum += frg.buildins.size() ;
+                }
+            }
+
+            motor::msl::post_parse::used_buildins_t tmp ;
+            tmp.reserve( accum + 10 ) ;
+
+            // fill build-ins that need to be processed
+            // in the 1st pass.
+            {
+                size_t offset = 0 ;
+                for( auto& s : genable.config.shaders )
+                {
+                    for( auto& c : s.codes )
+                    {
+                        for( auto & ubi : c.buildins ) 
+                        {
+                            if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(ubi) const & d )
+                            {
+                                return d.bi.t == ubi.bi.t ;
+                            } ) != tmp.end() ) continue ;
+
+                            tmp.emplace_back( ubi ) ;
+                        }
+                    }
+                }
+
+                for( auto& frg : genable.frags )
+                {
+                    for( auto & ubi : frg.buildins ) 
+                    {
+                        if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(ubi) const & d )
+                        {
+                            return d.bi.t == ubi.bi.t ;
+                        } ) != tmp.end() ) continue ;
+
+                        tmp.emplace_back( ubi ) ;
+                    }
+                }
+            }
+
+            for( auto iter = tmp.begin(); iter != tmp.end(); ++iter )
+            {
+                auto & ubi = *iter ;
+
+                motor::msl::buildin_type test_bi = ubi.bi.t ;
+                {
+                    motor::msl::post_parse::library_t::fragment_t new_frg ;
+                    if( this_file_glsl4::fragment_by_opcode( test_bi, new_frg ) ) 
+                    {
+                        // need further testing for build-ins using build-ins!
+                        for( auto & new_ubi : new_frg.buildins )
+                        {
+                            if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(new_ubi) const & d )
+                            {
+                                return d.bi.t == new_ubi.bi.t ;
+                            } ) != tmp.end() ) continue ;
+
+                            tmp.emplace_back( new_ubi ) ;
+                        }
+
+                        genable.frags.emplace_back( std::move( new_frg ) ) ;
+                    }
+                    continue ;
+                }
+            }
         }
     }
 
@@ -839,7 +1033,7 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
                 text << "{" << std::endl ;
                 for( auto l : f.fragments )
                 {
-                    l = this_t::replace_buildin_symbols( type, std::move( l ) ) ;
+                    //l = this_t::replace_buildin_symbols( std::move( l ) ) ;
                     text << this_t::replace_types( type, l ) << std::endl ;
                 }
                 text << "}" << std::endl ;
@@ -996,7 +1190,7 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
         {
             for( auto l : c.lines )
             {
-                l = this_t::replace_buildin_symbols(  type, std::move( l ) ) ;
+                l = this_t::replace_buildin_symbols( std::move( l ) ) ;
                 text << this_t::replace_types( type, l ) << std::endl ;
             }
         }
@@ -1153,7 +1347,7 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
         }
 
         {
-            shd = this_t::replace_buildin_symbols( type, std::move( shd ) ) ;
+            shd = this_t::replace_buildin_symbols( std::move( shd ) ) ;
         }
 
         code.shader = shd ;
