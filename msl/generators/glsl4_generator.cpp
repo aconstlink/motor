@@ -512,7 +512,17 @@ namespace this_file_glsl4
                     if( args.size() == 1 ) return "__buildin_noise_1__( " + args[ 0 ] + " ) " ;
                     if( args.size() == 2 ) return "__buildin_noise_1__( " + args[ 0 ] + " ) " ;
 
-                    return "texture_dims ( INVALID_ARGS ) " ;
+                    return "noise_1d ( INVALID_ARGS ) " ;
+                }
+            },
+            {
+                motor::string_t( ":perlin_1:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__buildin_perlin_1_2__( " + args[ 0 ] + " , 50 ) " ;
+                    if( args.size() == 2 ) return "__buildin_perlin_1_2__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+
+                    return "perlin_1d ( INVALID_ARGS ) " ;
                 }
             }
         } ;
@@ -528,7 +538,9 @@ namespace this_file_glsl4
         noise_1d_2,
         noise_1d_3,
         int_mod_289_4d_4,
-        int_perm_4d_4
+        int_perm_4d_4,
+        int_pnoise_1d_2_1, // used for perlin_noise_1d
+        perlin_1d_2_1
     } ;
 
     static size_t as_number( api_build_in_types const i ) noexcept
@@ -671,6 +683,63 @@ namespace this_file_glsl4
                 {
                     "return __internal_mod_289_4__(((x * 34.0) + 1.0) * x);"
                 },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__internal_perlin_1d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "p" },
+                        { motor::msl::type_t::as_float(), "freq" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float pi = 3.14159265358979323846 ;"
+                    "vec2 ij = floor(p/freq);"
+                    "vec2 xy = mod(p,freq)/freq;"
+                    "xy = .5*(1.-cos(pi*xy));"
+                    "float a = __buildin_rand_1__ ( (ij+vec2(0.,0.)) ) ;"
+                    "float b = __buildin_rand_1__ ( (ij+vec2(1.,0.)) ) ;"
+                    "float c = __buildin_rand_1__ ( (ij+vec2(0.,1.)) ) ;"
+                    "float d = __buildin_rand_1__ ( (ij+vec2(1.,1.)) ) ;"
+                    "float x1 = mix(a, b, xy.x);"
+                    "float x2 = mix(c, d, xy.x);"
+                    "return mix(x1, x2, xy.y);"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__buildin_perlin_1_2__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "p" },
+                        { motor::msl::type_t::as_int(), "iter" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float persistance = .5;"
+                    "float n = 0.;"
+                    "float normK = 0.;"
+                    "float f = 4.;"
+                    "float amp = 1.;"
+                    //"int iCount = 0;"
+                    "for (int i = 0; i<iter; i++){"
+                    "n+=amp*__internal_perlin_1d__(p, f);"
+                    "f*=2.;"
+                    "normK+=amp;"
+                    "amp*=persistance;"
+                    //"if (iCount == res) break;"
+                    //    "iCount++;"
+                    "}"
+                    "float nf = n/normK;"
+                    "return nf*nf*nf*nf;"
+                },
             }
 
         } ;
@@ -693,6 +762,16 @@ namespace this_file_glsl4
             ret.emplace_back( api_buildins[as_number(api_build_in_types::int_mod_289_4d_4)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_4d_4)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_3)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::perlin_1d ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_2)] ) ;
+
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_pnoise_1d_2_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::perlin_1d_2_1)] ) ;
             return true ;
         }
 

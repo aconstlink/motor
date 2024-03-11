@@ -551,6 +551,7 @@ namespace motor
             end_primitive,      // geometry shader only
             rand_1d,
             noise_1d,
+            perlin_1d,
             num_build_ins
         };
 
@@ -586,6 +587,7 @@ namespace motor
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept 
             {
+                t = rhv.t ;
                 _fname = rhv._fname ;
                 _opcode = rhv._opcode ;
                 return *this ;
@@ -635,7 +637,8 @@ namespace motor
             { buildin_type::emit_vertex, "emit_vertex", ":emit_vertex:" },
             { buildin_type::end_primitive, "end_primitive", ":end_primitive:" },
             { buildin_type::rand_1d, "rand_1d", ":rand_1:" },
-            { buildin_type::noise_1d, "noise_1d", ":noise_1:" }
+            { buildin_type::noise_1d, "noise_1d", ":noise_1:" },
+            { buildin_type::perlin_1d, "perlin_1d", ":perlin_1:" }
 
 
         } ;
