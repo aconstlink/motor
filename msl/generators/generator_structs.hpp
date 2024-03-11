@@ -154,4 +154,27 @@ namespace motor
             return std::move( s ) ;
         }
     }
+    
+    namespace msl
+    {
+        struct api_specific_buildin
+        {
+            motor_this_typedefs( api_specific_buildin ) ;
+
+            motor::msl::signature_t sig ;
+            motor::vector< motor::string_t > fragments ;
+
+            bool_t operator == ( this_cref_t rhv ) const noexcept
+            {
+                return sig == rhv.sig ;
+            }
+
+            bool_t operator != ( this_cref_t rhv ) const noexcept
+            {
+                return sig != rhv.sig ;
+            }
+        };
+        motor_typedef( api_specific_buildin ) ;
+        using api_specific_buildins_t = motor::vector< api_specific_buildin_t > ;
+    }
 }

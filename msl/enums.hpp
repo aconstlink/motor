@@ -549,8 +549,8 @@ namespace motor
             texture_dims,
             emit_vertex,        // geometry shader only
             end_primitive,      // geometry shader only
-            rand1,
-            noise1,
+            rand_1d,
+            noise_1d,
             num_build_ins
         };
 
@@ -634,8 +634,8 @@ namespace motor
 
             { buildin_type::emit_vertex, "emit_vertex", ":emit_vertex:" },
             { buildin_type::end_primitive, "end_primitive", ":end_primitive:" },
-            { buildin_type::rand1, "rand1", ":rand_1:" },
-            { buildin_type::noise1, "noise1", ":noise_1:" }
+            { buildin_type::rand_1d, "rand_1d", ":rand_1:" },
+            { buildin_type::noise_1d, "noise_1d", ":noise_1:" }
 
 
         } ;

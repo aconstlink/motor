@@ -20,7 +20,6 @@ namespace motor
 
             private:
 
-                static motor::string_t replace_buildin_symbols( motor::msl::api_type const t, motor::string_t code ) noexcept ;                
                 static motor::string_t to_texture_type( motor::msl::type_cref_t t ) noexcept ;
                 static motor::string_t replace_types( motor::msl::api_type const apit, motor::string_t code ) noexcept ;
                 static motor::string_t determine_input_interface_block_name( motor::msl::shader_type const cur, motor::msl::shader_type const before ) noexcept ;

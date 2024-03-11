@@ -8,130 +8,12 @@
 
 using namespace motor::msl::hlsl ;
 
-namespace this_file
+namespace this_file_hlsl5
 {
-    motor::core::types::bool_t fragment_by_opcode( motor::msl::buildin_type bit, motor::msl::post_parse::library_t::fragment_out_t ret ) noexcept
-    {
-        #if 0
-        // texture offset is available in hlsl but kept this as an example.
-        if( bit == motor::msl::buildin_type::texture_offset )
-        {
-            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_tex2d(), "tex" } ;
-            motor::msl::signature_t::arg_t b { motor::msl::type_t::as_vec2(motor::msl::type_base::tfloat), "uv" } ;
-            motor::msl::signature_t::arg_t c { motor::msl::type_t::as_vec2(motor::msl::type_base::tint), "off" } ;
 
-            motor::msl::signature_t sig = motor::msl::signature_t
-            { 
-                motor::msl::type_t::as_vec4(), "__d3d11_texture_offset__", { a, b, c } 
-            } ;
-
-            motor::vector< motor::string_t > lines 
-            {                 
-                "return :texture_( tex, uv + uvr ) ;"
-            } ;
-
-            motor::msl::post_parse::library_t::fragment_t frg ;
-            frg.sym_long = motor::msl::symbol_t("__d3d11_texture_offset__") ;
-            frg.sig = std::move( sig ) ;
-            frg.fragments = std::move( lines ) ;
-            frg.buildins.emplace_back( motor::msl::post_parse::used_buildin{ 0, 0, 
-                motor::msl::get_build_in( motor::msl::buildin_type::texture_dims ) }) ;
-
-            ret = std::move( frg ) ;
-
-            return true ;
-        }
-        else 
-        #endif
-
-        if( bit == motor::msl::buildin_type::texture_dims )
-        {
-            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_tex2d(), "tex" } ;
-            motor::msl::signature_t::arg_t b { motor::msl::type_t::as_int(), "lod" } ;
-
-            motor::msl::signature_t sig = motor::msl::signature_t
-            { 
-                motor::msl::type_t::as_vec2(motor::msl::type_base::tuint), "__d3d11_texture_dims__", { a, b } 
-            } ;
-
-            motor::vector< motor::string_t > lines 
-            { 
-                "uint width = 0 ; uint height = 0 ; int elements = 0 ; int depth = 0 ; int num_levels = 0 ; int num_samples = 0 ;",
-                "tex.GetDimensions( lod, width, height, num_levels ) ;",
-                "return uint2( width, height ) ;"
-            } ;
-
-            motor::msl::post_parse::library_t::fragment_t frg ;
-            frg.sym_long = motor::msl::symbol_t("__d3d11_texture_dims__") ;
-            frg.sig = std::move( sig ) ;
-            frg.fragments = std::move( lines ) ;
-
-            ret = std::move( frg ) ;
-
-            return true ;
-        }
-
-        else if( bit == motor::msl::buildin_type::rand1 ) 
-        {
-            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_float(), "x" } ;
-
-            motor::msl::signature_t sig = motor::msl::signature_t
-            { 
-                motor::msl::type_t::as_float(), "__d3d11_rand_1__", { a } 
-            } ;
-
-            motor::vector< motor::string_t > lines 
-            { 
-                "return frac ( sin(n) * 43758.5453123 );"
-            } ;
-
-            motor::msl::post_parse::library_t::fragment_t frg ;
-            frg.sym_long = motor::msl::symbol_t("__d3d11_rand_1__") ;
-            frg.sig = std::move( sig ) ;
-            frg.fragments = std::move( lines ) ;
-
-            ret = std::move( frg ) ;
-
-            return true ;
-        }
-
-        else if( bit == motor::msl::buildin_type::noise1 ) 
-        {
-            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_float(), "x" } ;
-
-            motor::msl::signature_t sig = motor::msl::signature_t
-            { 
-                motor::msl::type_t::as_float(), "__d3d11_noise_1__", { a } 
-            } ;
-
-            motor::vector< motor::string_t > lines 
-            { 
-                "float f1 = floor ( x ) ;",
-                "float fc = frac ( x ) ;",
-                "return lerp ( rand1 ( f1 ) , rand1 ( f1 + 1.0 ) , fc ) ;"
-            } ;
-
-            motor::msl::post_parse::library_t::fragment_t frg ;
-            frg.sym_long = motor::msl::symbol_t("__d3d11_noise_1__") ;
-            frg.sig = std::move( sig ) ;
-            frg.fragments = std::move( lines ) ;
-            
-            motor::msl::post_parse::used_buildin_t ubi = 
-            {
-                0, 0, motor::msl::get_build_in( motor::msl::buildin_type::rand1 )
-            } ;
-            frg.buildins.emplace_back( ubi ) ;
-
-            ret = std::move( frg ) ;
-
-            return true ;
-        }
-
-        return false ;
-    }
-
-    //******************************************************************************************************************************************
-    static motor::string_t determine_input_structure_name( motor::msl::shader_type const cur, motor::msl::shader_type const before ) noexcept 
+    //******************************************************************************************************************
+    static motor::string_t determine_input_structure_name( 
+        motor::msl::shader_type const cur, motor::msl::shader_type const before ) noexcept 
     {
         // input assembler to vertex shader
         if( cur == motor::msl::shader_type::vertex_shader )
@@ -140,8 +22,9 @@ namespace this_file
         return motor::msl::short_name( before ) + "_to_" + motor::msl::short_name( cur ) ;
     }
 
-    //******************************************************************************************************************************************
-    static motor::string_t determine_output_structure_name( motor::msl::shader_type const cur, motor::msl::shader_type const after ) noexcept 
+    //******************************************************************************************************************
+    static motor::string_t determine_output_structure_name( 
+        motor::msl::shader_type const cur, motor::msl::shader_type const after ) noexcept 
     {
         if( cur == motor::msl::shader_type::pixel_shader )
             return "into_the_pixel_pot" ;
@@ -152,519 +35,747 @@ namespace this_file
 
         return motor::msl::short_name( cur ) + "_to_" + motor::msl::short_name( after ) ;
     }
-}
 
-
-motor::string_t hlsl5_generator::replace_buildin_symbols( motor::string_rref_t code ) noexcept
-{
-    motor::msl::repl_syms_t repls =
+    //******************************************************************************************************************
+    motor::string_t replace_buildin_symbols( motor::string_rref_t code ) noexcept
     {
+        motor::msl::repl_syms_t repls =
         {
-            motor::string_t( ":cmul:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
             {
-                if( args.size() != 2 ) return "mul ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " * " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":mmul:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":cmul:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "mul ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " * " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "mmul ( INVALID_ARGS ) " ;
-                return "mul( " + args[ 1 ] + " , " + args[ 0 ] + " )" ;
-            }
-        },
-        {
-            motor::string_t( ":add_asg:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":mmul:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "mmul ( INVALID_ARGS ) " ;
+                    return "mul( " + args[ 1 ] + " , " + args[ 0 ] + " )" ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "add_asg ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " += " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":sub_asg:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":add_asg:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "add_asg ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " += " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "sub_asg ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " -= " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":mul_asg:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":sub_asg:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "sub_asg ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " -= " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "mul_asg ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " *= " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":lor:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":mul_asg:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "mul_asg ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " *= " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "lor ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " || " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":land:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":lor:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "lor ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " || " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "land ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " && " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":add:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":land:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "land ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " && " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() == 0 || args.size() > 2 ) return "add ( INVALID_ARGS ) " ;
-                return args.size() == 1 ? " + " + args[ 0 ] : args[ 0 ] + " + " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":sub:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":add:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 0 || args.size() > 2 ) return "add ( INVALID_ARGS ) " ;
+                    return args.size() == 1 ? " + " + args[ 0 ] : args[ 0 ] + " + " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() == 0 || args.size() > 2 ) return "sub ( INVALID_ARGS ) " ;
-                return args.size() == 1 ? " - " + args[ 0 ] : args[ 0 ] + " - " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":plus:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":sub:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 0 || args.size() > 2 ) return "sub ( INVALID_ARGS ) " ;
+                    return args.size() == 1 ? " - " + args[ 0 ] : args[ 0 ] + " - " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "plus ( INVALID_ARGS ) " ;
-                return " + " + args[ 0 ] ;
-            }
-        },
-        {
-            motor::string_t( ":minus:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":plus:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "plus ( INVALID_ARGS ) " ;
+                    return " + " + args[ 0 ] ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "minus ( INVALID_ARGS ) " ;
-                return " - " + args[ 0 ] ;
-            }
-        },
-        {
-            motor::string_t( ":div:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":minus:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "minus ( INVALID_ARGS ) " ;
+                    return " - " + args[ 0 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "div ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " / " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":pulse:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":div:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "div ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " / " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 3 ) return "pulse ( INVALID_ARGS ) " ;
-                return  "( step ( " + args[ 0 ] + " , " + args[ 2 ] + " ) - " +
-                    "step ( " + args[ 1 ] + " , " + args[ 2 ] + " ) )" ;
-            }
-        },
-        {
-            motor::string_t( ":smoothstep:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":pulse:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 3 ) return "pulse ( INVALID_ARGS ) " ;
+                    return  "( step ( " + args[ 0 ] + " , " + args[ 2 ] + " ) - " +
+                        "step ( " + args[ 1 ] + " , " + args[ 2 ] + " ) )" ;
+                }
+            },
             {
-                if( args.size() != 3 ) return "smoothstep ( INVALID_ARGS ) " ;
-                return  "smoothstep ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " )" ;
-            }
-        },
-        {
-            motor::string_t( ":smoothpulse:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":smoothstep:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 3 ) return "smoothstep ( INVALID_ARGS ) " ;
+                    return  "smoothstep ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " )" ;
+                }
+            },
             {
-                if( args.size() != 3 ) return "smoothpulse ( INVALID_ARGS ) " ;
-                return  "( smoothstep ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 4 ] + " ) - " +
-                    "smoothstep ( " + args[ 2 ] + " , " + args[ 3 ] + " , " + args[ 4 ] + " ) )" ;
-            }
-        },
-        {
-            motor::string_t( ":clamp:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":smoothpulse:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 3 ) return "smoothpulse ( INVALID_ARGS ) " ;
+                    return  "( smoothstep ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 4 ] + " ) - " +
+                        "smoothstep ( " + args[ 2 ] + " , " + args[ 3 ] + " , " + args[ 4 ] + " ) )" ;
+                }
+            },
             {
-                if( args.size() != 3 ) return "clamp ( INVALID_ARGS ) " ;
-                return  "clamp ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " )" ;
-            }
-        },
-        {
-            motor::string_t( ":texture:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":clamp:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 3 ) return "clamp ( INVALID_ARGS ) " ;
+                    return  "clamp ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " )" ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "texture ( INVALID_ARGS ) " ;
-                return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":rt_texcoords:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":texture:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "texture ( INVALID_ARGS ) " ;
+                    return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "rt_texcoords ( INVALID_ARGS ) " ;
-                return  "float2 ( " + args[ 0 ] + ".x , 1.0f - " + args[ 0 ] + ".y ) " ;
-            }
-        },
-        {
-            motor::string_t( ":rt_texture:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":rt_texcoords:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "rt_texcoords ( INVALID_ARGS ) " ;
+                    return  "float2 ( " + args[ 0 ] + ".x , 1.0f - " + args[ 0 ] + ".y ) " ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "texture ( INVALID_ARGS ) " ;
-                return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , "
-                    "float2 ( " + args[ 1 ] + ".x , 1.0f - " + args[ 1 ] + ".y ) ) " ;
-            }
-        },
-        {
-            motor::string_t( ":rt_texture_offset:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":rt_texture:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "texture ( INVALID_ARGS ) " ;
+                    return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , "
+                        "float2 ( " + args[ 1 ] + ".x , 1.0f - " + args[ 1 ] + ".y ) ) " ;
+                }
+            },
             {
-                if( args.size() != 3 ) return "rt_texture_offset ( INVALID_ARGS ) " ;
-                return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , "
-                    "float2 ( " + args[ 1 ] + ".x , 1.0f - " + args[ 1 ] + ".y ) , int2( 1, -1 ) * " + args[2] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":ls:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":rt_texture_offset:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 3 ) return "rt_texture_offset ( INVALID_ARGS ) " ;
+                    return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , "
+                        "float2 ( " + args[ 1 ] + ".x , 1.0f - " + args[ 1 ] + ".y ) , int2( 1, -1 ) * " + args[2] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 2 ) return " << ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " << " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":rs:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":ls:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return " << ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " << " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return ">> ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " >> " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":leq:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":rs:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return ">> ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " >> " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "leq ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " <= " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":geq:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":leq:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "leq ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " <= " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "geq ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " >= " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":neq:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":geq:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "geq ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " >= " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "neq ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " != " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":eqeq:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":neq:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "neq ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " != " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "eqeq ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " == " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":lt:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":eqeq:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "eqeq ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " == " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "lt ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " < " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":gt:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":lt:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "lt ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " < " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "gt ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " > " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":lt_vec:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":gt:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "gt ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " > " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "lt_vec ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " < " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":gt_vec:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":lt_vec:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "lt_vec ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " < " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "gt_vec ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " > " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":lte_vec:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":gt_vec:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "gt_vec ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " > " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "lte_vec ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " <= " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":gte_vec:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":lte_vec:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "lte_vec ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " <= " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "gte_vec ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " >= " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":eqeq_vec:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":gte_vec:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "gte_vec ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " >= " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "eqeq_vec ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " == " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":neq_vec:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":eqeq_vec:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "eqeq_vec ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " == " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "neq_vec ( INVALID_ARGS ) " ;
-                return args[ 0 ] + " != " + args[ 1 ] ;
-            }
-        },
-        {
-            motor::string_t( ":any:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":neq_vec:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "neq_vec ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + " != " + args[ 1 ] ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "any ( INVALID_ARGS ) " ;
-                return "any( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":all:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":any:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "any ( INVALID_ARGS ) " ;
+                    return "any( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "all ( INVALID_ARGS ) " ;
-                return "all( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":ret:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":all:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "all ( INVALID_ARGS ) " ;
+                    return "all( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "ret ( INVALID_ARGS ) " ;
-                return args[0].empty() ? "return" : "return " + args[ 0 ] ;
-            }
-        },
-        {
-            motor::string_t( ":mix:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":ret:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "ret ( INVALID_ARGS ) " ;
+                    return args[0].empty() ? "return" : "return " + args[ 0 ] ;
+                }
+            },
             {
-                if( args.size() != 3 ) return "mix ( INVALID_ARGS ) " ;
-                return "lerp ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":inc:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":mix:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 3 ) return "mix ( INVALID_ARGS ) " ;
+                    return "lerp ( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "++ ( INVALID_ARGS ) " ;
-                return "++ ( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":dec:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":inc:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "++ ( INVALID_ARGS ) " ;
+                    return "++ ( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "-- ( INVALID_ARGS ) " ;
-                return "-- ( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":inc_post:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":dec:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "-- ( INVALID_ARGS ) " ;
+                    return "-- ( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "++ ( INVALID_ARGS ) " ;
-                return "( " + args[ 0 ] + " ) ++ " ;
-            }
-        },
-        {
-            motor::string_t( ":dec_post:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":inc_post:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "++ ( INVALID_ARGS ) " ;
+                    return "( " + args[ 0 ] + " ) ++ " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "-- ( INVALID_ARGS ) " ;
-                return "( " + args[ 0 ] + " ) -- " ;
-            }
-        },
-        {
-            motor::string_t( ":fract:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":dec_post:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "-- ( INVALID_ARGS ) " ;
+                    return "( " + args[ 0 ] + " ) -- " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "frac ( INVALID_ARGS ) " ;
-                return "frac ( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":ceil:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":fract:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "frac ( INVALID_ARGS ) " ;
+                    return "frac ( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "ceil ( INVALID_ARGS ) " ;
-                return "ceil ( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":floor:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":ceil:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "ceil ( INVALID_ARGS ) " ;
+                    return "ceil ( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "floor ( INVALID_ARGS ) " ;
-                return "floor ( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":abs:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":floor:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "floor ( INVALID_ARGS ) " ;
+                    return "floor ( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "abs ( INVALID_ARGS ) " ;
-                return "abs ( " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":dot:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":abs:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "abs ( INVALID_ARGS ) " ;
+                    return "abs ( " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "dot ( INVALID_ARGS ) " ;
-                return "dot ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":pow:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":dot:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "dot ( INVALID_ARGS ) " ;
+                    return "dot ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "pow ( INVALID_ARGS ) " ;
-                return "pow ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":min:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":pow:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "pow ( INVALID_ARGS ) " ;
+                    return "pow ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "min ( INVALID_ARGS ) " ;
-                return "min ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":max:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":min:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "min ( INVALID_ARGS ) " ;
+                    return "min ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "max ( INVALID_ARGS ) " ;
-                return "max ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":make_array:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":max:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "max ( INVALID_ARGS ) " ;
+                    return "max ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() < 3 ) return "make_array ( INVALID_ARGS ) " ;
-                motor::string_t tmp ;
-                for( size_t i=0; i<args.size()-3; ++i ) tmp += args[3+i] + " , " ;
-                tmp = tmp.substr( 0, tmp.size() - 3 ) ;
-                return args[0] + " " + args[1] + "[ " + args[2] + " ] = { " + tmp + " } " ;
-            }
-        },
-        {
-            motor::string_t( ":as_vec2:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":make_array:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() < 3 ) return "make_array ( INVALID_ARGS ) " ;
+                    motor::string_t tmp ;
+                    for( size_t i=0; i<args.size()-3; ++i ) tmp += args[3+i] + " , " ;
+                    tmp = tmp.substr( 0, tmp.size() - 3 ) ;
+                    return args[0] + " " + args[1] + "[ " + args[2] + " ] = { " + tmp + " } " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "as_vec2 ( INVALID_ARGS ) " ;
-                return "float2 ( " + args[ 0 ] + " , " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":as_vec3:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":as_vec2:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "as_vec2 ( INVALID_ARGS ) " ;
+                    return "float2 ( " + args[ 0 ] + " , " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "as_vec3 ( INVALID_ARGS ) " ;
-                return "float3 ( " + args[ 0 ] + " , " + args[ 0 ] + " , " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":as_vec4:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":as_vec3:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "as_vec3 ( INVALID_ARGS ) " ;
+                    return "float3 ( " + args[ 0 ] + " , " + args[ 0 ] + " , " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 1 ) return "as_vec4 ( INVALID_ARGS ) " ;
-                return "float4 ( " + args[ 0 ] + " , " + args[ 0 ] + " , " + args[ 0 ] + " , " + args[ 0 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":fetch_data:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":as_vec4:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 1 ) return "as_vec4 ( INVALID_ARGS ) " ;
+                    return "float4 ( " + args[ 0 ] + " , " + args[ 0 ] + " , " + args[ 0 ] + " , " + args[ 0 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
-                return args[ 0 ] + ".Load( " + args[ 1 ] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":texture_offset:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":fetch_data:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "fetch_data ( INVALID_ARGS ) " ;
+                    return args[ 0 ] + ".Load( " + args[ 1 ] + " ) " ;
+                }
+            },
             {
-                if( args.size() != 3 ) return "texture_offset ( INVALID_ARGS ) " ;
-                return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , " + args[ 1 ] + " , " + args[2] + " ) " ;
-            }
-        },
-        {
-            motor::string_t( ":texture_dims:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":texture_offset:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 3 ) return "texture_offset ( INVALID_ARGS ) " ;
+                    return  args[ 0 ] + ".Sample ( smp_" + args[ 0 ] + " , " + args[ 1 ] + " , " + args[2] + " ) " ;
+                }
+            },
             {
-                if( args.size() == 1 ) return "__d3d11_texture_dims__( " + args[ 0 ] + " , 0 ) " ;
-                if( args.size() == 2 ) return "__d3d11_texture_dims__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                motor::string_t( ":texture_dims:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__buildin_texture_dims__( " + args[ 0 ] + " , 0 ) " ;
+                    if( args.size() == 2 ) return "__buildin_texture_dims__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
 
-                return "texture_dims ( INVALID_ARGS ) " ;
-            }
-        },
-        {
-            motor::string_t( ":emit_vertex:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                    return "texture_dims ( INVALID_ARGS ) " ;
+                }
+            },
             {
-                if( args.size() != 0 ) return "emit_vertex( INVALID_ARGS ) " ;
-                return "prim_stream.Append( __output__ )"  ;
-            }
-        },
-        {
-            motor::string_t( ":end_primitive:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":emit_vertex:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 0 ) return "emit_vertex( INVALID_ARGS ) " ;
+                    return "prim_stream.Append( __output__ )"  ;
+                }
+            },
             {
-                if( args.size() != 0 ) return "end_primitive( INVALID_ARGS ) " ;
-                return "prim_stream.RestartStrip() ; " ;
-            }
-        },
-        {
-            motor::string_t( ":rand_1:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                motor::string_t( ":end_primitive:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 0 ) return "end_primitive( INVALID_ARGS ) " ;
+                    return "prim_stream.RestartStrip() ; " ;
+                }
+            },
             {
-                if( args.size() == 1 ) return "__d3d11_rand_1__( " + args[ 0 ] + " ) " ;
-                if( args.size() == 2 ) return "__d3d11_rand_1__( " + args[ 0 ] + " ) " ;
+                motor::string_t( ":rand_1:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__buildin_rand_1__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 2 ) return "__buildin_rand_1__( " + args[ 0 ] + " ) " ;
 
-                return "texture_dims ( INVALID_ARGS ) " ;
-            }
-        },
-        {
-            motor::string_t( ":noise_1:" ),
-            [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                    return "texture_dims ( INVALID_ARGS ) " ;
+                }
+            },
             {
-                if( args.size() == 1 ) return "__d3d11_noise_1__( " + args[ 0 ] + " ) " ;
-                if( args.size() == 2 ) return "__d3d11_noise_1__( " + args[ 0 ] + " ) " ;
+                motor::string_t( ":noise_1:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__buildin_noise_1__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 2 ) return "__buildin_noise_1__( " + args[ 0 ] + " ) " ;
 
-                return "texture_dims ( INVALID_ARGS ) " ;
+                    return "texture_dims ( INVALID_ARGS ) " ;
+                }
             }
-        }
+        } ;
+
+        return motor::msl::perform_repl( std::move( code ), repls ) ;
+    }
+
+    enum class api_build_in_types
+    {
+        texture_dims,
+        rand_1d_1,
+        rand_1d_2,
+        noise_1d_1,
+        noise_1d_2,
+        noise_1d_3,
+        int_mod_289_4d_4,
+        int_perm_4d_4
     } ;
 
-    return motor::msl::perform_repl( std::move( code ), repls ) ;
-}
+    static size_t as_number( api_build_in_types const i ) noexcept
+    {
+        return size_t( i ) ;
+    }
 
+    //******************************************************************************************************************
+    motor::core::types::bool_t buildin_by_opcode( motor::msl::buildin_type bit, 
+        motor::msl::api_specific_buildins_t & ret ) noexcept
+    {
+        motor::msl::api_specific_buildins_t const api_buildins = 
+        {
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec2(motor::msl::type_base::tuint), "__buildin_texture_dims__", 
+                    { { motor::msl::type_t::as_tex2d(), "tex" }, { motor::msl::type_t::as_int(), "lod" } } 
+                },
+                // fragments/strings_t
+                { 
+                    "uint width = 0 ; uint height = 0 ; int elements = 0 ; int depth = 0 ; int num_levels = 0 ; int num_samples = 0 ;",
+                    "tex.GetDimensions( lod, width, height, num_levels ) ;",
+                    "return uint2( width, height ) ;"
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__buildin_rand_1__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_float(), "x" },
+                    }
+                },
+                // fragments/strings_t
+                {
+                    "return frac ( sin( x ) * 43983.5453123 ) ;",
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__buildin_rand_1__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return frac ( sin ( dot ( x, float2( 12.8989, 4.1414 ) ) ) * 43983.4549 );",
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__buildin_noise_1__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_float(), "x" },
+                    }
+                },
+                // fragments/strings_t
+                {
+                    "float f1 = floor ( x ) ;",
+                    "float fc = frac ( x ) ;",
+                    this_file_hlsl5::replace_buildin_symbols( "return lerp ( :rand_1: ( f1 ) , :rand_1: ( f1 + 1.0 ) , fc ) ;" )
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__buildin_noise_1__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float2 ip = floor ( x ) ;",
+                    "float2 u = frac ( x ); ",
+                    "u = u * u * ( 3.0 - 2.0 * u ) ;",
+                    "float res = lerp( ",
+                    this_file_hlsl5::replace_buildin_symbols( "lerp ( :rand_1: ( ip ) , :rand_1: ( ip + float2 ( 1.0 , 0.0 ) ) , u.x )," ),
+                    this_file_hlsl5::replace_buildin_symbols( "lerp ( :rand_1: ( ip+float2(0.0,1.0) ) , :rand_1: ( ip+float2 ( 1.0,1.0 ) ) , u.x),u.y);"),
+                    "return res*res;"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__buildin_noise_1__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec3(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float3 a = floor(x);"
+                    "float3 d = x - a;"
+                    "d = d * d * (3.0 - 2.0 * d);"
+
+                    "float4 b = a.xxyy + float4(0.0, 1.0, 0.0, 1.0);"
+                    "float4 k1 = __internal_perm_4__(b.xyxy);"
+                    "float4 k2 = __internal_perm_4__(k1.xyxy + b.zzww);"
+
+                    "float4 c = k2 + a.zzzz;"
+                    "float4 k3 = __internal_perm_4__(c);"
+                    "float4 k4 = __internal_perm_4__(c + 1.0);"
+
+                    "float4 o1 = frac( k3 * (1.0 / 41.0));"
+                    "float4 o2 = frac( k4 * (1.0 / 41.0));"
+
+                    "float4 o3 = o2 * d.z + o1 * (1.0 - d.z);"
+                    "float2 o4 = o3.yw * d.x + o3.xz * (1.0 - d.x);"
+
+                    "return o4.y * d.y + o4.x * (1.0 - d.y);"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec4(),
+                    "__internal_mod_289_4__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec4(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return x - floor(x * (1.0 / 289.0)) * 289.0;"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec4(),
+                    "__internal_perm_4__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec4(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return __internal_mod_289_4__(((x * 34.0) + 1.0) * x);"
+                },
+            }
+        } ;
+
+        if( bit == motor::msl::buildin_type::texture_dims )
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::texture_dims)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::rand_1d ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_2)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::noise_1d ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_2)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_2)] ) ;
+
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_mod_289_4d_4)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_4d_4)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_3)] ) ;
+
+            return true ;
+        }
+
+        #if 0 // texture offset is available in hlsl but kept this as an example.
+        if( bit == motor::msl::buildin_type::texture_offset )
+        {
+            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_tex2d(), "tex" } ;
+            motor::msl::signature_t::arg_t b { motor::msl::type_t::as_vec2(motor::msl::type_base::tfloat), "uv" } ;
+            motor::msl::signature_t::arg_t c { motor::msl::type_t::as_vec2(motor::msl::type_base::tint), "off" } ;
+
+            motor::msl::signature_t sig = motor::msl::signature_t
+            { 
+                motor::msl::type_t::as_vec4(), "__buildin_texture_offset__", { a, b, c } 
+            } ;
+
+            motor::vector< motor::string_t > lines 
+            {                 
+                "return :texture_( tex, uv + uvr ) ;"
+            } ;
+
+            motor::msl::post_parse::library_t::fragment_t frg ;
+            frg.sym_long = motor::msl::symbol_t("__buildin_texture_offset__") ;
+            frg.sig = std::move( sig ) ;
+            frg.fragments = std::move( lines ) ;
+            frg.buildins.emplace_back( motor::msl::post_parse::used_buildin{ 0, 0, 
+                motor::msl::get_build_in( motor::msl::buildin_type::texture_dims ) }) ;
+
+            ret = std::move( frg ) ;
+
+            return true ;
+        }
+        #endif
+
+        return false ;
+    }
+}
 motor::string_t hlsl5_generator::map_variable_type( motor::msl::type_cref_t type ) noexcept
 {
     typedef std::pair< motor::msl::type_t, char const * > mapping_t ;
@@ -837,7 +948,7 @@ motor::msl::generated_code_t::shaders_t hlsl5_generator::generate( motor::msl::g
             {
                 for( auto& l : c.lines )
                 {
-                    l = this_t::replace_buildin_symbols( std::move( l ) ) ;
+                    l = this_file_hlsl5::replace_buildin_symbols( std::move( l ) ) ;
                 }
             }
         }
@@ -848,7 +959,7 @@ motor::msl::generated_code_t::shaders_t hlsl5_generator::generate( motor::msl::g
             {
                 //for( auto& l : c.lines )
                 {
-                    f = this_t::replace_buildin_symbols( std::move( f ) ) ;
+                    f = this_file_hlsl5::replace_buildin_symbols( std::move( f ) ) ;
                 }
             }
         }
@@ -856,50 +967,35 @@ motor::msl::generated_code_t::shaders_t hlsl5_generator::generate( motor::msl::g
 
     // inject composite buildins
     {
-        {
-            size_t accum = 0 ;
+        size_t accum = 0 ;
 
-            // accumulate number of entries
+        // accumulate number of entries
+        {
+            for( auto& s : genable.config.shaders )
             {
-                for( auto& s : genable.config.shaders )
+                for( auto& c : s.codes )
                 {
-                    for( auto& c : s.codes )
-                    {
-                        accum += c.buildins.size() ;
-                    }
-                }
-                for( auto& frg : genable.frags )
-                {
-                    accum += frg.buildins.size() ;
+                    accum += c.buildins.size() ;
                 }
             }
-
-            motor::msl::post_parse::used_buildins_t tmp ;
-            tmp.reserve( accum + 10 ) ;
-
-            // fill build-ins that need to be processed
-            // in the 1st pass.
+            for( auto& frg : genable.frags )
             {
-                size_t offset = 0 ;
-                for( auto& s : genable.config.shaders )
-                {
-                    for( auto& c : s.codes )
-                    {
-                        for( auto & ubi : c.buildins ) 
-                        {
-                            if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(ubi) const & d )
-                            {
-                                return d.bi.t == ubi.bi.t ;
-                            } ) != tmp.end() ) continue ;
+                accum += frg.buildins.size() ;
+            }
+        }
 
-                            tmp.emplace_back( ubi ) ;
-                        }
-                    }
-                }
+        motor::msl::post_parse::used_buildins_t tmp ;
+        tmp.reserve( accum + 10 ) ;
 
-                for( auto& frg : genable.frags )
+        // fill build-ins that need to be processed
+        // in the 1st pass.
+        {
+            size_t offset = 0 ;
+            for( auto& s : genable.config.shaders )
+            {
+                for( auto& c : s.codes )
                 {
-                    for( auto & ubi : frg.buildins ) 
+                    for( auto & ubi : c.buildins ) 
                     {
                         if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(ubi) const & d )
                         {
@@ -911,31 +1007,53 @@ motor::msl::generated_code_t::shaders_t hlsl5_generator::generate( motor::msl::g
                 }
             }
 
-            for( auto iter = tmp.begin(); iter != tmp.end(); ++iter )
+            for( auto& frg : genable.frags )
             {
-                auto & ubi = *iter ;
-
-                motor::msl::buildin_type test_bi = ubi.bi.t ;
+                for( auto & ubi : frg.buildins ) 
                 {
-                    motor::msl::post_parse::library_t::fragment_t new_frg ;
-                    if( this_file::fragment_by_opcode( test_bi, new_frg ) ) 
+                    if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(ubi) const & d )
                     {
-                        // need further testing for build-ins using build-ins!
-                        for( auto & new_ubi : new_frg.buildins )
-                        {
-                            if( std::find_if( tmp.begin(), tmp.end(), [&]( decltype(new_ubi) const & d )
-                            {
-                                return d.bi.t == new_ubi.bi.t ;
-                            } ) != tmp.end() ) continue ;
+                        return d.bi.t == ubi.bi.t ;
+                    } ) != tmp.end() ) continue ;
 
-                            tmp.emplace_back( new_ubi ) ;
-                        }
-
-                        genable.frags.emplace_back( std::move( new_frg ) ) ;
-                    }
-                    continue ;
+                    tmp.emplace_back( ubi ) ;
                 }
             }
+        }
+
+        motor::msl::api_specific_buildins_t buildins_ ;
+        buildins_.reserve( 10 ) ;
+
+        for( auto iter = tmp.begin(); iter != tmp.end(); ++iter )
+        {
+            auto & ubi = *iter ;
+
+            motor::msl::buildin_type test_bi = ubi.bi.t ;
+                
+            if( !this_file_hlsl5::buildin_by_opcode( test_bi, buildins_ ) ) continue ;
+
+            // need further testing for build-ins using build-ins!
+            for( auto const & new_apibi : buildins_ )
+            {
+                if( std::find_if( genable.frags.begin(), genable.frags.end(), 
+                    [&]( motor::msl::post_parse::library::fragment_in_t d )
+                    { return d.sig == new_apibi.sig ; } ) == genable.frags.end() )
+                {
+                    genable.frags.emplace_back( motor::msl::post_parse::library_t::fragment_t(
+                    {
+                        // motor::msl::signature_t
+                        new_apibi.sig,
+                        new_apibi.fragments,
+                        // motor::msl::post_parse::used_buildins_t (biuld_ins)
+                        {},
+                        // dependency symbols (deps)
+                        {},
+                        // sym_long
+                        motor::msl::symbol_t( new_apibi.sig.name )
+                    } ) ) ;
+                }
+            }
+            buildins_.clear() ;
         }
     }
 
@@ -1000,8 +1118,8 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
     motor::msl::shader_type const sht_before = motor::msl::shader_type_before( s.type, shader_types ) ;
     motor::msl::shader_type const sht_after = motor::msl::shader_type_after( s.type, shader_types ) ;
 
-    motor::string_t const input_struct_name = this_file::determine_input_structure_name( sht_cur, sht_before ) ;
-    motor::string_t const output_struct_name = this_file::determine_output_structure_name( sht_cur, sht_after ) ;
+    motor::string_t const input_struct_name = this_file_hlsl5::determine_input_structure_name( sht_cur, sht_before ) ;
+    motor::string_t const output_struct_name = this_file_hlsl5::determine_output_structure_name( sht_cur, sht_after ) ;
 
     text << "// config name: " << genable.config.name << std::endl << std::endl ;
 
@@ -1316,7 +1434,7 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
             while( p0 != std::string::npos ) 
             {
                 size_t const p1 = shd.find_first_of( " ", p0 ) ;
-                shd = shd.substr( 0, p0 ) + this_t::replace_buildin_symbols( motor::string_t(v.value) ) + shd.substr( p1 ) ;
+                shd = shd.substr( 0, p0 ) + this_file_hlsl5::replace_buildin_symbols( motor::string_t(v.value) ) + shd.substr( p1 ) ;
                 p0 = shd.find( find_what, p1 ) ;
             }
         }

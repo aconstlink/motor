@@ -32,8 +32,6 @@ namespace motor
 
             public:
                 
-                static motor::string_t replace_buildin_symbols( motor::string_rref_t code ) noexcept ;
-
                 static motor::string_t map_variable_type( motor::msl::type_cref_t type ) noexcept ;
 
                 static motor::string_t replace_types( motor::string_t code ) noexcept ;
