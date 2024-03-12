@@ -537,6 +537,7 @@ namespace motor
             min,
             max,
             fract,
+            mod,
             texture,
             rt_texcoords,
             rt_texture,
@@ -550,8 +551,14 @@ namespace motor
             emit_vertex,        // geometry shader only
             end_primitive,      // geometry shader only
             rand_1d,
+            rand_4d,
             noise_1d,
             perlin_1d,
+            perlin_2d,
+            perlin_3d,
+            snoise_2d,
+            snoise_3d,
+            iqnoise,
             num_build_ins
         };
 
@@ -623,6 +630,7 @@ namespace motor
             { buildin_type::min, "min", ":min:" },
             { buildin_type::max, "max", ":max:" },
             { buildin_type::fract, "fract", ":fract:" },
+            { buildin_type::mod, "mod", ":mod:" },
             { buildin_type::texture, "texture", ":texture:" },
             { buildin_type::rt_texcoords, "rt_texcoords", ":rt_texcoords:" },
             { buildin_type::rt_texture, "rt_texture", ":rt_texture:" },
@@ -637,10 +645,14 @@ namespace motor
             { buildin_type::emit_vertex, "emit_vertex", ":emit_vertex:" },
             { buildin_type::end_primitive, "end_primitive", ":end_primitive:" },
             { buildin_type::rand_1d, "rand_1d", ":rand_1:" },
+            { buildin_type::rand_4d, "rand_4d", ":rand_4:" },
             { buildin_type::noise_1d, "noise_1d", ":noise_1:" },
-            { buildin_type::perlin_1d, "perlin_1d", ":perlin_1:" }
-
-
+            { buildin_type::perlin_1d, "perlin_1d", ":perlin_1:" },
+            { buildin_type::perlin_2d, "perlin_2d", ":perlin_2:" },
+            { buildin_type::perlin_3d, "perlin_3d", ":perlin_3:" },
+            { buildin_type::snoise_2d, "snoise_2d", ":snoise_2:" },
+            { buildin_type::snoise_3d, "snoise_3d", ":snoise_3:" },
+            { buildin_type::iqnoise, "iqnoise", ":iqnoise:" }
         } ;
 
         static build_in get_build_in( buildin_type t ) noexcept

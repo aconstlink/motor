@@ -390,6 +390,15 @@ namespace this_file_hlsl5
                 }
             },
             {
+                motor::string_t( ":mod:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() != 2 ) return "mod ( INVALID_ARGS ) " ;
+                    return "fmod ( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                    //return "( " + args[0] + " - " + args[1] + " *  floor ( " + args[0] +" / " + args[1] + " ) )" ;
+                }
+            },
+            {
                 motor::string_t( ":ceil:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
@@ -402,7 +411,7 @@ namespace this_file_hlsl5
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
                     if( args.size() != 1 ) return "floor ( INVALID_ARGS ) " ;
-                    return "floor ( " + args[ 0 ] + " ) " ;
+                    return "sign ( " + args[ 0 ] + " ) * floor ( " + args[ 0 ] + " ) " ;
                 }
             },
             {
@@ -500,8 +509,8 @@ namespace this_file_hlsl5
                 motor::string_t( ":texture_dims:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__buildin_texture_dims__( " + args[ 0 ] + " , 0 ) " ;
-                    if( args.size() == 2 ) return "__buildin_texture_dims__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                    if( args.size() == 1 ) return "__bi_texture_dims__( " + args[ 0 ] + " , 0 ) " ;
+                    if( args.size() == 2 ) return "__bi_texture_dims__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
 
                     return "texture_dims ( INVALID_ARGS ) " ;
                 }
@@ -526,18 +535,26 @@ namespace this_file_hlsl5
                 motor::string_t( ":rand_1:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__buildin_rand_1__( " + args[ 0 ] + " ) " ;
-                    if( args.size() == 2 ) return "__buildin_rand_1__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "__bi_rand_1__( " + args[ 0 ] + " ) " ;
 
-                    return "texture_dims ( INVALID_ARGS ) " ;
+                    return "rand_1d ( INVALID_ARGS ) " ;
+                }
+            },
+            {
+                motor::string_t( ":rand_4:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__bi_rand_4__( " + args[ 0 ] + " ) " ;
+
+                    return "rand_1d ( INVALID_ARGS ) " ;
                 }
             },
             {
                 motor::string_t( ":noise_1:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__buildin_noise_1__( " + args[ 0 ] + " ) " ;
-                    if( args.size() == 2 ) return "__buildin_noise_1__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "__bi_noise_1__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 2 ) return "__bi_noise_1__( " + args[ 0 ] + " ) " ;
 
                     return "noise_1d ( INVALID_ARGS ) " ;
                 }
@@ -546,10 +563,50 @@ namespace this_file_hlsl5
                 motor::string_t( ":perlin_1:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__buildin_perlin_1_2__( " + args[ 0 ] + " , 50 ) " ;
-                    if( args.size() == 2 ) return "__buildin_perlin_1_2__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                    if( args.size() == 1 ) return "__bi_perlin_1_2__( " + args[ 0 ] + " , 50 ) " ;
+                    if( args.size() == 2 ) return "__bi_perlin_1_2__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
 
                     return "perlin_1d ( INVALID_ARGS ) " ;
+                }
+            },
+            {
+                motor::string_t( ":perlin_2:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__bi_perlin_2d__( " + args[ 0 ] + " ) " ;
+                    return "perlin_2d ( INVALID_ARGS ) " ;
+                }
+            },
+            {
+                motor::string_t( ":perlin_3:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__bi_perlin_3d__( " + args[ 0 ] + " ) " ;
+                    return "perlin_3d ( INVALID_ARGS ) " ;
+                }
+            },
+            {
+                motor::string_t( ":snoise_2:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__bi_snoise_2d__( " + args[ 0 ] + " ) " ;
+                    return "snoise_2d ( INVALID_ARGS ) " ;
+                }
+            },
+            {
+                motor::string_t( ":snoise_3:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__bi_snoise_3d__( " + args[ 0 ] + " ) " ;
+                    return "snoise_3d ( INVALID_ARGS ) " ;
+                }
+            },
+            {
+                motor::string_t( ":iqnoise:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 3 ) return "__bi_iqnoise__ ( " + args[ 0 ] + " , "+ args[ 1 ] +" , "+ args[ 2 ] +" ) " ;
+                    return "iqnoise ( INVALID_ARGS ) " ;
                 }
             }
         } ;
@@ -562,13 +619,30 @@ namespace this_file_hlsl5
         texture_dims,
         rand_1d_1,
         rand_1d_2,
+        rand_1d_3,
+        rand_1d_4,
+        rand_4d_4,
         noise_1d_1,
         noise_1d_2,
         noise_1d_3,
-        int_mod_289_4d_4,
+        int_perm_3d_3,
         int_perm_4d_4,
         int_pnoise_1d_2_1, // used for perlin_noise_1d
-        perlin_1d_2_1
+        perlin_1d_2_1,
+
+        
+        int_perlin_2d_fade_2d,
+        perlin_2d,
+
+        int_perlin3d_taylor_invsqrt_4d,
+        int_perlin_3d_fade_3d,
+        perlin_3d,
+
+        snoise_2d,
+        snoise_3d,
+
+        int_hash3,
+        iqnoise
     } ;
 
     static size_t as_number( api_build_in_types const i ) noexcept
@@ -585,7 +659,7 @@ namespace this_file_hlsl5
             {
                 // motor::msl::signature_t
                 { 
-                    motor::msl::type_t::as_vec2(motor::msl::type_base::tuint), "__buildin_texture_dims__", 
+                    motor::msl::type_t::as_vec2(motor::msl::type_base::tuint), "__bi_texture_dims__", 
                     { { motor::msl::type_t::as_tex2d(), "tex" }, { motor::msl::type_t::as_int(), "lod" } } 
                 },
                 // fragments/strings_t
@@ -599,7 +673,7 @@ namespace this_file_hlsl5
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__buildin_rand_1__",
+                    "__bi_rand_1__",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_float(), "x" },
@@ -614,7 +688,7 @@ namespace this_file_hlsl5
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__buildin_rand_1__",
+                    "__bi_rand_1__",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "x" },
@@ -629,7 +703,57 @@ namespace this_file_hlsl5
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__buildin_noise_1__",
+                    "__bi_rand_1__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec3(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return frac( sin( dot( x, float3( 12.8989, 4.1414, 23.94873 ) ) ) * 43983.4549 );",
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_rand_1__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec4(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return frac ( sin ( dot ( x, float4( 12.8989, 4.1414, 823.48367, 93.20831 ) ) ) * 43983.4549 );",
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec4(),
+                    "__bi_rand_4__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec4(), "x" },
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                     "return float4( "
+                        "frac ( sin ( dot ( x, float4( 12.8989, 4.1414, 823.48367, 93.20831 ) ) ) * 4393.1549 ),"
+                        "frac ( sin ( dot ( x, float4( 4.1414, 823.48367, 93.20831, 12.8989 ) ) ) * 7683.4549 ),"
+                        "frac ( sin ( dot ( x, float4( 823.48367, 93.20831, 12.8989, 4.1414 ) ) ) * 3354.4523 ),"
+                        "frac ( sin ( dot ( x, float4( 93.20831, 12.8989, 4.1414, 823.48367 ) ) ) * 8383.4579 )"
+                        ") ;"
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_noise_1__",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_float(), "x" },
@@ -646,7 +770,7 @@ namespace this_file_hlsl5
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__buildin_noise_1__",
+                    "__bi_noise_1__",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "x" },
@@ -667,7 +791,7 @@ namespace this_file_hlsl5
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__buildin_noise_1__",
+                    "__bi_noise_1__",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "x" },
@@ -699,16 +823,20 @@ namespace this_file_hlsl5
             {
                 // motor::msl::signature_t
                 { 
-                    motor::msl::type_t::as_vec4(),
-                    "__internal_mod_289_4__",
+                    motor::msl::type_t::as_vec3(),
+                    "__internal_perm_3__",
                     // motor::msl::signature_t::args_t
                     {
-                        { motor::msl::type_t::as_vec4(), "x" },
+                        { motor::msl::type_t::as_vec3(), "x" },
                     }
                 },
                 // fragmetns_t/strings_t
                 {
-                    "return x - floor(x * (1.0 / 289.0)) * 289.0;"
+                    "return fmod(x*x, 289.0);"    
+
+                    // original
+                    //"return fmod(((x*34.0)+1.0)*x, 289.0);"
+                    
                 },
             },
             {
@@ -723,7 +851,10 @@ namespace this_file_hlsl5
                 },
                 // fragmetns_t/strings_t
                 {
-                    "return __internal_mod_289_4__(((x * 34.0) + 1.0) * x);"
+                    "return fmod(x*x, 289.0);"    
+                    
+                    // original
+                    //"return fmod(((x*34.0)+1.0)*x, 289.0);"
                 },
             },
             {
@@ -743,10 +874,10 @@ namespace this_file_hlsl5
                     "float2 ij = floor(p/freq);"
                     "float2 xy = fmod(p,freq)/freq;"
                     "xy = .5*(1.-cos(pi*xy));"
-                    "float a = __buildin_rand_1__ ( (ij+float2(0.,0.)) ) ;"
-                    "float b = __buildin_rand_1__ ( (ij+float2(1.,0.)) ) ;"
-                    "float c = __buildin_rand_1__ ( (ij+float2(0.,1.)) ) ;"
-                    "float d = __buildin_rand_1__ ( (ij+float2(1.,1.)) ) ;"
+                    "float a = __bi_rand_1__ ( (ij+float2(0.,0.)) ) ;"
+                    "float b = __bi_rand_1__ ( (ij+float2(1.,0.)) ) ;"
+                    "float c = __bi_rand_1__ ( (ij+float2(0.,1.)) ) ;"
+                    "float d = __bi_rand_1__ ( (ij+float2(1.,1.)) ) ;"
                     "float x1 = lerp(a, b, xy.x);"
                     "float x2 = lerp(c, d, xy.x);"
                     "return lerp(x1, x2, xy.y);"
@@ -756,7 +887,7 @@ namespace this_file_hlsl5
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__buildin_perlin_1_2__",
+                    "__bi_perlin_1_2__",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "p" },
@@ -782,6 +913,352 @@ namespace this_file_hlsl5
                     "float nf = n/normK;"
                     "return nf*nf*nf*nf;"
                 },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec2(),
+                    "__internal_perlin_2_fade_2d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "t" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return t*t*t*(t*(t*6.0-15.0)+10.0);"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_perlin_2d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "P" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float4 Pi = floor(P.xyxy) + float4(0.0, 0.0, 1.0, 1.0);"
+                    "float4 Pf = frac(P.xyxy) - float4(0.0, 0.0, 1.0, 1.0);"
+                    "Pi = fmod(Pi, 289.0);"
+                    "float4 ix = Pi.xzxz;"
+                    "float4 iy = Pi.yyww;"
+                    "float4 fx = Pf.xzxz;"
+                    "float4 fy = Pf.yyww;"
+                    "float4 i = __internal_perm_4__(iy)+__internal_perm_4__(ix);"
+                    "float4 gx = 2.0 * frac(i * 0.0243902439) - 1.0;"
+                    "float4 gy = abs(gx) - 0.5;"
+                    "float4 tx = floor(gx + 0.5);"
+                    "gx = gx - tx;"
+                    "float2 g00 = float2(gx.x,gy.x);"
+                    "float2 g10 = float2(gx.y,gy.y);"
+                    "float2 g01 = float2(gx.z,gy.z);"
+                    "float2 g11 = float2(gx.w,gy.w);"
+                    "float4 norm = 1.79284291400159 - 0.85373472095314 * "
+                    "float4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11));"
+                    "g00 *= norm.x;"
+                    "g01 *= norm.y;"
+                    "g10 *= norm.z;"
+                    "g11 *= norm.w;"
+                    "float n00 = dot(g00, float2(fx.x, fy.x));"
+                    "float n10 = dot(g10, float2(fx.y, fy.y));"
+                    "float n01 = dot(g01, float2(fx.z, fy.z));"
+                    "float n11 = dot(g11, float2(fx.w, fy.w));"
+                    "float2 fade_xy = __internal_perlin_2_fade_2d__(Pf.xy);"
+                    "float2 n_x = lerp(float2(n00, n01), float2(n10, n11), fade_xy.x);"
+                    "float n_xy = lerp(n_x.x, n_x.y, fade_xy.y);"
+                    "return 2.3 * n_xy;"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec4(),
+                    "__int_taylor_inv_sqrt_4d_4d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec4(), "x" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return 1.79284291400159 - 0.85373472095314 * x;"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec3(),
+                    "__internal_perlin_3d_fade_3d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec3(), "t" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "return t*t*t*(t*(t*6.0-15.0)+10.0);"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_perlin_3d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec3(), "P" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float3 Pi0 = floor(P);"
+                    "float3 Pi1 = Pi0 + float3(1.0, 1.0, 1.0);"
+                    "Pi0 = fmod(Pi0, 289.0);"
+                    "Pi1 = fmod(Pi1, 289.0);"
+                    "float3 Pf0 = frac(P); "
+                    "float3 Pf1 = Pf0 - float3(1.0, 1.0, 1.0); "
+                    "float4 ix = float4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);"
+                    "float4 iy = float4(Pi0.yy, Pi1.yy);"
+                    "float4 iz0 = Pi0.zzzz;"
+                    "float4 iz1 = Pi1.zzzz;"
+
+                    "float4 ixy = __internal_perm_4__(__internal_perm_4__(ix)+iy);"
+                    "float4 ixy0 = __internal_perm_4__(ixy+iz0) ;"
+                    "float4 ixy1 = __internal_perm_4__(ixy+iz1) ;"
+
+                    "float4 gx0 = ixy0 / 7.0;"
+                    "float4 gy0 = frac(floor(gx0) / 7.0) - 0.5;"
+                    "gx0 = frac(gx0);"
+                    "float4 gz0 = float4(0.5, 0.5, 0.5, 0.5) - abs(gx0) - abs(gy0);"
+                    "float4 sz0 = step(gz0, float4(0.0, 0.0, 0.0, 0.0));"
+                    "gx0 -= sz0 * (step(0.0, gx0) - 0.5);"
+                    "gy0 -= sz0 * (step(0.0, gy0) - 0.5);"
+
+                    "float4 gx1 = ixy1 / 7.0;"
+                    "float4 gy1 = frac(floor(gx1) / 7.0) - 0.5;"
+                    "gx1 = frac(gx1);"
+                    "float4 gz1 = float4(0.5, 0.5, 0.5, 0.5) - abs(gx1) - abs(gy1);"
+                    "float4 sz1 = step(gz1, float4(0.0,0.0, 0.0, 0.0));"
+                    "gx1 -= sz1 * (step(0.0, gx1) - 0.5);"
+                    "gy1 -= sz1 * (step(0.0, gy1) - 0.5);"
+
+                    "float3 g000 = float3(gx0.x,gy0.x,gz0.x);"
+                    "float3 g100 = float3(gx0.y,gy0.y,gz0.y);"
+                    "float3 g010 = float3(gx0.z,gy0.z,gz0.z);"
+                    "float3 g110 = float3(gx0.w,gy0.w,gz0.w);"
+                    "float3 g001 = float3(gx1.x,gy1.x,gz1.x);"
+                    "float3 g101 = float3(gx1.y,gy1.y,gz1.y);"
+                    "float3 g011 = float3(gx1.z,gy1.z,gz1.z);"
+                    "float3 g111 = float3(gx1.w,gy1.w,gz1.w);"
+
+                    "float4 norm0 = __int_taylor_inv_sqrt_4d_4d__(float4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));"
+                    "g000 *= norm0.x;"
+                    "g010 *= norm0.y;"
+                    "g100 *= norm0.z;"
+                    "g110 *= norm0.w;"
+                    "float4 norm1 = __int_taylor_inv_sqrt_4d_4d__(float4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));"
+                    "g001 *= norm1.x;"
+                    "g011 *= norm1.y;"
+                    "g101 *= norm1.z;"
+                    "g111 *= norm1.w;"
+
+                    "float n000 = dot(g000, Pf0);"
+                    "float n100 = dot(g100, float3(Pf1.x, Pf0.yz));"
+                    "float n010 = dot(g010, float3(Pf0.x, Pf1.y, Pf0.z));"
+                    "float n110 = dot(g110, float3(Pf1.xy, Pf0.z));"
+                    "float n001 = dot(g001, float3(Pf0.xy, Pf1.z));"
+                    "float n101 = dot(g101, float3(Pf1.x, Pf0.y, Pf1.z));"
+                    "float n011 = dot(g011, float3(Pf0.x, Pf1.yz));"
+                    "float n111 = dot(g111, Pf1);"
+
+                    "float3 fade_xyz = __internal_perlin_3d_fade_3d__(Pf0);"
+                    "float4 n_z = lerp(float4(n000, n100, n010, n110), float4(n001, n101, n011, n111), fade_xyz.z);"
+                    "float2 n_yz = lerp(n_z.xy, n_z.zw, fade_xyz.y);"
+                    "float n_xyz = lerp(n_yz.x, n_yz.y, fade_xyz.x);"
+                    "return 2.2 * n_xyz;"
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_snoise_2d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "v" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "const float4 C = float4(0.211324865405187, 0.366025403784439,"
+                            "-0.577350269189626, 0.024390243902439);"
+                    "float2 i  = floor(v + dot(v, C.yy) );"
+                    "float2 x0 = v -   i + dot(i, C.xx);"
+                    "float2 i1;"
+                    
+                    "i1 = (x0.x > x0.y) ? float2(1.0, 0.0) : float2(0.0, 1.0);"
+                    "float4 x12 = x0.xyxy + C.xxzz;"
+                    "x12.xy -= i1;"
+                    "i = fmod(i, 289.0);"
+                    
+                    "float3 p = __internal_perm_3__( __internal_perm_3__( i.y + float3(0.0, i1.y, 1.0 ))"
+                    
+                    "+ i.x + float3(0.0, i1.x, 1.0 ));"
+                    
+                    "float3 m = max(0.5 - float3(dot(x0,x0), dot(x12.xy,x12.xy),"
+                    "dot(x12.zw,x12.zw)), 0.0);"
+                    "m = m*m ;"
+                    "m = m*m ;"
+                    
+                    "float3 x = 2.0 * frac(p * C.www) - 1.0;"
+                    "float3 h = abs(x) - 0.5;"
+
+                    "float3 ox = floor(x + 0.5);"
+                    "float3 a0 = x - ox;"
+                    "m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );"
+                    "float3 g;"
+                    "g.x  = a0.x  * x0.x  + h.x  * x0.y;"
+                    "g.yz = a0.yz * x12.xz + h.yz * x12.yw;"
+                    "return 130.0 * dot(m, g);"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_snoise_3d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec3(), "v" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float2  C = float2(1.0/6.0, 1.0/3.0) ;"
+                    "float4  D = float4(0.0, 0.5, 1.0, 2.0);"
+
+                
+                    "float3 i  = floor(v + dot(v, C.yyy) );"
+                    "float3 x0 =   v - i + dot(i, C.xxx) ;"
+
+                
+                    "float3 g = step(x0.yzx, x0.xyz);"
+                    "float3 l = 1.0 - g;"
+                    "float3 i1 = min( g.xyz, l.zxy );"
+                    "float3 i2 = max( g.xyz, l.zxy );"
+
+                    
+                    "float3 x1 = x0 - i1 + 1.0 * C.xxx;"
+                    "float3 x2 = x0 - i2 + 2.0 * C.xxx;"
+                    "float3 x3 = x0 - 1. + 3.0 * C.xxx;"
+
+                
+                    "i = fmod(i, 289.0 ); "
+                    "float4 p = __internal_perm_4__( __internal_perm_4__( __internal_perm_4__( "
+                                "i.z + float4(0.0, i1.z, i2.z, 1.0 ))"
+                            "+ i.y + float4(0.0, i1.y, i2.y, 1.0 )) "
+                            "+ i.x + float4(0.0, i1.x, i2.x, 1.0 ));"
+
+                
+                    "float n_ = 1.0/7.0; "
+                    "float3  ns = n_ * D.wyz - D.xzx;"
+
+                    "float4 j = p - 49.0 * floor(p * ns.z *ns.z);  "
+
+                    "float4 x_ = floor(j * ns.z);"
+                    "float4 y_ = floor(j - 7.0 * x_ );   "
+
+                    "float4 x = x_ *ns.x + ns.yyyy;"
+                    "float4 y = y_ *ns.x + ns.yyyy;"
+                    "float4 h = 1.0 - abs(x) - abs(y);"
+
+                    "float4 b0 = float4( x.xy, y.xy );"
+                    "float4 b1 = float4( x.zw, y.zw );"
+
+                    "float4 s0 = floor(b0)*2.0 + 1.0;"
+                    "float4 s1 = floor(b1)*2.0 + 1.0;"
+                    "float4 sh = -step(h, float4(0.0, 0.0, 0.0, 0.0));"
+
+                    "float4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;"
+                    "float4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;"
+
+                    "float3 p0 = float3(a0.xy,h.x);"
+                    "float3 p1 = float3(a0.zw,h.y);"
+                    "float3 p2 = float3(a1.xy,h.z);"
+                    "float3 p3 = float3(a1.zw,h.w);"
+
+                
+                    "float4 norm = __int_taylor_inv_sqrt_4d_4d__(float4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));"
+                    "p0 *= norm.x;"
+                    "p1 *= norm.y;"
+                    "p2 *= norm.z;"
+                    "p3 *= norm.w;"
+
+                
+                    "float4 m = max(0.6 - float4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);"
+                    "m = m * m;"
+                    "return 42.0 * dot( m*m, float4( dot(p0,x0), dot(p1,x1), "
+                                                "dot(p2,x2), dot(p3,x3) ) );"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec3(),
+                    "__int_hash_3__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "p" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float3 q = float3( dot(p,float2(127.1,311.7)), "
+                        "dot(p,float2(269.5,183.3)), "
+                        "dot(p,float2(419.2,371.9)) );"
+                    "return frac(sin(q)*43758.5453);"
+                
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_iqnoise__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "x" },
+                        { motor::msl::type_t::as_float(), "u" },
+                        { motor::msl::type_t::as_float(), "v" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float2 p = floor(x);"
+                    "float2 f = frac(x);"
+		
+                    "float k = 1.0+63.0*pow(1.0-v,4.0);"
+	
+                    "float va = 0.0;"
+                    "float wt = 0.0;"
+                    "for( int j=-2; j<=2; j++ )"
+                    "for( int i=-2; i<=2; i++ )"
+                    "{"
+                        "float2 g = float2( float(i),float(j) );"
+                        "float3 o = __int_hash_3__( p + g )*float3(u,u,1.0);"
+                        "float2 r = g - f + o.xy;"
+                        "float d = dot(r,r);"
+                        "float ww = pow( 1.0-smoothstep(0.0,1.414,sqrt(d)), k );"
+                        "va += o.z*ww;"
+                        "wt += ww;"
+                    "}"
+                    "return va/wt;"
+                
+                },
             }
         } ;
 
@@ -795,6 +1272,8 @@ namespace this_file_hlsl5
         {
             ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_1)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_2)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_3)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_4)] ) ;
             return true ;
         }
 
@@ -805,7 +1284,6 @@ namespace this_file_hlsl5
             ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_1)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_2)] ) ;
 
-            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_mod_289_4d_4)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_4d_4)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_3)] ) ;
 
@@ -822,35 +1300,46 @@ namespace this_file_hlsl5
             return true ;
         }
 
-        #if 0 // texture offset is available in hlsl but kept this as an example.
-        if( bit == motor::msl::buildin_type::texture_offset )
+        else if( bit == motor::msl::buildin_type::perlin_2d ) 
         {
-            motor::msl::signature_t::arg_t a { motor::msl::type_t::as_tex2d(), "tex" } ;
-            motor::msl::signature_t::arg_t b { motor::msl::type_t::as_vec2(motor::msl::type_base::tfloat), "uv" } ;
-            motor::msl::signature_t::arg_t c { motor::msl::type_t::as_vec2(motor::msl::type_base::tint), "off" } ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_4d_4)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perlin_2d_fade_2d)] ) ;
 
-            motor::msl::signature_t sig = motor::msl::signature_t
-            { 
-                motor::msl::type_t::as_vec4(), "__buildin_texture_offset__", { a, b, c } 
-            } ;
-
-            motor::vector< motor::string_t > lines 
-            {                 
-                "return :texture_( tex, uv + uvr ) ;"
-            } ;
-
-            motor::msl::post_parse::library_t::fragment_t frg ;
-            frg.sym_long = motor::msl::symbol_t("__buildin_texture_offset__") ;
-            frg.sig = std::move( sig ) ;
-            frg.fragments = std::move( lines ) ;
-            frg.buildins.emplace_back( motor::msl::post_parse::used_buildin{ 0, 0, 
-                motor::msl::get_build_in( motor::msl::buildin_type::texture_dims ) }) ;
-
-            ret = std::move( frg ) ;
-
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::perlin_2d)] ) ;
             return true ;
         }
-        #endif
+
+        else if( bit == motor::msl::buildin_type::perlin_3d ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_4d_4)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perlin3d_taylor_invsqrt_4d)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perlin_3d_fade_3d)] ) ;
+
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::perlin_3d)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::snoise_2d ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_3d_3)] ) ;
+
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::snoise_2d)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::snoise_3d ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_4d_4)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perlin3d_taylor_invsqrt_4d)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::snoise_3d)] ) ;
+            return true ;
+        }
+        else if( bit == motor::msl::buildin_type::iqnoise ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_hash3)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::iqnoise)] ) ;
+            return true ;
+        }
 
         return false ;
     }
