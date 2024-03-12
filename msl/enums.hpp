@@ -550,6 +550,9 @@ namespace motor
             texture_dims,
             emit_vertex,        // geometry shader only
             end_primitive,      // geometry shader only
+
+            // most of the noise functions are from here:
+            // https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
             rand_1d,
             rand_4d,
             noise_1d,
@@ -559,6 +562,9 @@ namespace motor
             snoise_2d,
             snoise_3d,
             iqnoise,
+            fbm_1d,
+            ////////////////////////////////////////////////////////////////////
+
             num_build_ins
         };
 
@@ -652,7 +658,8 @@ namespace motor
             { buildin_type::perlin_3d, "perlin_3d", ":perlin_3:" },
             { buildin_type::snoise_2d, "snoise_2d", ":snoise_2:" },
             { buildin_type::snoise_3d, "snoise_3d", ":snoise_3:" },
-            { buildin_type::iqnoise, "iqnoise", ":iqnoise:" }
+            { buildin_type::iqnoise, "iqnoise", ":iqnoise:" },
+            { buildin_type::fbm_1d, "fbm_1d", ":fbm_1:" }
         } ;
 
         static build_in get_build_in( buildin_type t ) noexcept

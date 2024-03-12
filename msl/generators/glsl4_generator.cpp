@@ -581,6 +581,15 @@ namespace this_file_glsl4
                     if( args.size() == 3 ) return "__bi_iqnoise__ ( " + args[ 0 ] + " , "+ args[ 1 ] +" , "+ args[ 2 ] +" ) " ;
                     return "iqnoise ( INVALID_ARGS ) " ;
                 }
+            },
+            {
+                motor::string_t( ":fbm_1:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    if( args.size() == 1 ) return "__bi_fbm_1d__ ( " + args[ 0 ] + " , 5 ) " ;
+                    else if( args.size() == 2 ) return "__bi_fbm_1d__ ( " + args[ 0 ] + " , "+ args[ 1 ] + " ) " ;
+                    return "fbm_1d ( INVALID_ARGS ) " ;
+                }
             }
 
         } ;
@@ -614,7 +623,11 @@ namespace this_file_glsl4
         snoise_3d,
 
         int_hash3,
-        iqnoise
+        iqnoise,
+
+        fbm_1d_1,
+        fbm_1d_2,
+        fbm_1d_3
     } ;
 
     static size_t as_number( api_build_in_types const i ) noexcept
@@ -1209,7 +1222,82 @@ namespace this_file_glsl4
                     "return va/wt;"
                 
                 },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_fbm_1d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_float(), "x" },
+                        { motor::msl::type_t::as_int(), "oct" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float v = 0.0;"
+                    "float a = 0.5;"
+                    "float shift = float(100);"
+                    "for (int i = 0; i < oct; ++i) {"
+                        "v += a * __bi_noise_1__(x);"
+                        "x = x * 2.0 + shift;"
+                        "a *= 0.5;"
+                    "}"
+                    "return v;"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_fbm_1d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec2(), "x" },
+                        { motor::msl::type_t::as_int(), "oct" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float v = 0.0;"
+                    "float a = 0.5;"
+                    "vec2 shift = vec2(100);"
+                    
+                    //"mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));"
+                    "for (int i = 0; i < oct; ++i) {"
+                        "v += a * __bi_noise_1__(x);"
+                        "x = /*rot */ x * 2.0 + shift;"
+                        "a *= 0.5;"
+                    "}"
+                    "return v;"
+                },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(),
+                    "__bi_fbm_1d__",
+                    // motor::msl::signature_t::args_t
+                    {
+                        { motor::msl::type_t::as_vec3(), "x" },
+                        { motor::msl::type_t::as_int(), "oct" }
+                    }
+                },
+                // fragmetns_t/strings_t
+                {
+                    "float v = 0.0;"
+                    "float a = 0.5;"
+                    "vec3 shift = vec3(100);"
+                    "for (int i = 0; i < oct; ++i) {"
+                        "v += a * __bi_noise_1__(x);"
+                        "x = x * 2.0 + shift;"
+                        "a *= 0.5;"
+                    "}"
+                    "return v;"
+                },
             }
+
         } ;
 
         if( bit == motor::msl::buildin_type::rand_1d ) 
@@ -1283,6 +1371,17 @@ namespace this_file_glsl4
         {
             ret.emplace_back( api_buildins[as_number(api_build_in_types::int_hash3)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::iqnoise)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::fbm_1d ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_2)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_3)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::fbm_1d_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::fbm_1d_2)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::fbm_1d_3)] ) ;
             return true ;
         }
 
