@@ -247,6 +247,11 @@ motor::string_t cpu_id::instruction_sets_string( void_t ) noexcept
         {
             instruction_sets += " SSE 4.2," ;
         }
+
+        if( cid.ecx() & CPUID_IA_ECX_AVX )
+        {
+            instruction_sets += " AVX_1," ;
+        }
     }
 
     // extended instruction sets
