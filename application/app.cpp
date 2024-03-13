@@ -105,11 +105,7 @@ bool_t app::carrier_update( void_t ) noexcept
                 
                 if( sv.close_changed )
                 {
-                    d.wnd->return_borrowed( d.fe ) ;
-                    d.fe = nullptr ;
-                    motor::memory::release_ptr( d.lst ) ;
-                    motor::memory::release_ptr( d.wnd ) ;
-                    motor::memory::release_ptr( d.imgui ) ;
+                    _destruction_queue.emplace_back( *iter ) ;
                     iter = _windows2.erase( iter ) ;
                     continue ;
                 }
@@ -238,26 +234,67 @@ bool_t app::carrier_update( void_t ) noexcept
         this_t::after_render(0) ;
     }
 
+    // handle windows to be destroyed
+    {
+        for( auto iter = _destruction_queue.begin(); iter != _destruction_queue.end(); ) 
+        {
+            if( !this_t::clear_out_window_data( *iter ) ) 
+            {
+                ++iter ;
+                continue ;
+            }
+            iter = _destruction_queue.erase( iter ) ;
+        }
+    }
+
+    return true ;
+}
+
+//**************************************************************************************************************
+bool_t app::clear_out_window_data( window_data & d ) noexcept 
+{
+    // have to wait until the render engine 
+    // is free of any more commands.
+    auto * re = d.fe->borrow_render_engine() ;
+    if( !re->can_enter_frame() ) 
+    {
+        return false ;
+    }
+
+    d.wnd->return_borrowed( d.fe ) ;
+    d.fe = nullptr ;
+    motor::memory::release_ptr( d.lst ) ;
+    motor::memory::release_ptr( d.wnd ) ;
+    motor::memory::release_ptr( d.imgui ) ;
+
     return true ;
 }
 
 //**************************************************************************************************************
 bool_t app::carrier_shutdown( void_t ) noexcept 
 {
-    this->on_shutdown() ;
+    if( !_shutdown_called ) 
+    {
+        this->on_shutdown() ;
+        _shutdown_called = true ;
+    }
+    
+    for( auto & d : _destruction_queue ) 
+    {
+        if( !this_t::clear_out_window_data( d ) ) 
+        {
+            return false ;
+        }
+    }
+
+    _destruction_queue.clear() ;
 
     for( auto & d : _windows ) 
     {
-        // have to wait until the render engine 
-        // is free of any more commands.
-        auto * re = d.fe->borrow_render_engine() ;
-        while( !re->can_enter_frame() ) ;
-
-        d.wnd->return_borrowed( d.fe ) ;
-        d.fe = nullptr ;
-        motor::memory::release_ptr( d.lst ) ;
-        motor::memory::release_ptr( d.wnd ) ;
-        motor::memory::release_ptr( d.imgui ) ;
+        if( !this_t::clear_out_window_data( d ) ) 
+        {
+            return false ;
+        }
     }
 
     _windows.clear() ;

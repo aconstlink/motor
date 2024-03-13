@@ -224,6 +224,11 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             }
                             d.ptr->ctx.deactivate() ;
                         }
+                        else if( d.ptr->re.can_execute() )
+                        {
+                            d.ptr->re.force_clear() ;
+                        }
+
                     }
                 }
             }
@@ -433,6 +438,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
         }
     }
 
+    assert( _destroy_queue.size() == 0 ) ;
 
     for( auto const & d : _win32_windows )
     {

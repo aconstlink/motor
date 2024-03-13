@@ -12,6 +12,14 @@ render_engine::render_engine( this_rref_t rhv ) noexcept
 }
 render_engine::~render_engine( void_t ) noexcept {}
 
+void_t render_engine::force_clear( void_t ) noexcept 
+{
+    std::lock_guard< std::mutex > lk( _mtx_has_commands ) ;
+    _coms_up.clear() ;
+    _coms_ex.clear() ;
+    _has_commands = false ;
+}
+
 bool_t render_engine::can_execute( void_t ) noexcept 
 {
     return this_t::has_frame_commands() ;

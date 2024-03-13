@@ -73,8 +73,11 @@ namespace motor
             motor::vector< window_data > _windows ;
             motor::vector< window_data > _windows2 ;
 
+            motor::vector< window_data > _destruction_queue ;
+
             bool_t _closed = false ;
             bool_t _first_audio = true ;
+            bool_t _shutdown_called = false ;
 
         private: // device
 
@@ -241,6 +244,10 @@ namespace motor
             bool_t before_logic( std::chrono::microseconds const & ) noexcept ;
             bool_t after_logic( size_t const iter ) noexcept ;
 
+
+        private: // internals
+
+            bool_t clear_out_window_data( window_data & d ) noexcept ;
         };
         motor_typedef( app ) ;
     }

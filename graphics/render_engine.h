@@ -42,6 +42,9 @@ namespace motor
 
         public:
 
+            // clear out command queue
+            void_t force_clear( void_t ) noexcept ;
+
             bool_t can_execute( void_t ) noexcept ;
 
             // returns true if a frame has been rendered

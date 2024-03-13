@@ -84,7 +84,7 @@ motor::application::result carrier::start_update_thread( void_t ) noexcept
             }
         }
         
-        ca.shutdown() ;
+        while( !ca.shutdown() ) ;
         
         this->close() ;
     } ) ;
