@@ -137,7 +137,7 @@ cpu_id::cpu_id( unsigned const i ) noexcept
 
 #elif MOTOR_COMPILER_GNU
 
-    __cpuid( (int)i, (int *)regs ) ;
+    __cpuid( (int)i, regs[0], regs[1], regs[2], regs[3] ) ;
 
 #else
     asm volatile
