@@ -80,6 +80,9 @@ namespace motor
                 _geo = rhv._geo ;
                 _soo = rhv._soo ;
 
+                for( auto * vs : _vars )
+                    motor::memory::release_ptr( vs ) ;
+
                 _vars.resize( rhv._vars.size() ) ;
                 for( size_t i=0; i<rhv._vars.size(); ++i )
                     _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
@@ -93,6 +96,9 @@ namespace motor
                 _datas = rhv._datas ;
                 _geo = rhv._geo ;
                 _soo = rhv._soo ;
+
+                for( auto * vs : _vars )
+                    motor::memory::release_ptr( vs ) ;
 
                 _vars.resize( rhv._vars.size() ) ;
                 for( size_t i=0; i<rhv._vars.size(); ++i )
