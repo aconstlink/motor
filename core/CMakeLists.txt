@@ -21,7 +21,8 @@ target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_BYTE_ORDER=${MOTOR
 target_link_libraries( ${cur_lib_name} 
     INTERFACE ct_motor_operating_system 
     INTERFACE ct_motor_build_library_type
-    INTERFACE ct_motor_compiler_options )
+    INTERFACE ct_motor_compiler_options
+    INTERFACE ct_motor_compiler )
 
 ###########################################################
 # SECTION: Build Tree

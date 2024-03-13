@@ -6,6 +6,9 @@ set( sources
     
     "global.h"
     "global.cpp"
+
+    "cpu_id.h"
+    "cpu_id.cpp"
     )
 
 set( unwanted_compiler_options )

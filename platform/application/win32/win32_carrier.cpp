@@ -1,4 +1,5 @@
 #include "win32_carrier.h"
+#include "../../cpu_id.h"
 
 #include <motor/graphics/render_engine.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
@@ -45,6 +46,10 @@ win32_carrier::win32_carrier( void_t ) noexcept
 {
     this_t::create_and_register_device_modules() ;
     this_t::create_and_register_audio_backend() ;
+
+    motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ;    
+    motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
+    motor::log::global_t::status( "[win32::is]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
 }
 
 //***********************************************************************
@@ -65,6 +70,10 @@ win32_carrier::win32_carrier( motor::application::app_mtr_safe_t app ) noexcept 
 {
     this_t::create_and_register_device_modules() ;
     this_t::create_and_register_audio_backend() ;
+
+    motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ;    
+    motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
+    motor::log::global_t::status( "[win32::is]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
 }
 
 //***********************************************************************

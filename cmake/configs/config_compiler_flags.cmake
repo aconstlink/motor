@@ -11,7 +11,7 @@ set( THIS_TARGET ct_motor_compiler_options )
 add_library( ${THIS_TARGET} INTERFACE )
 
 if( MOTOR_COMPILER_MSC )
-    
+
     # cherry-picking
     # C4005 : macro redefinition. Error within 3rd parties
     # C4100 : unreferenced local variable. Got error within 3rd parties
@@ -27,8 +27,6 @@ if( MOTOR_COMPILER_MSC )
     # WX : all compiler warnings as errors
     # EH : exception handling
     set( MOTOR_COMPILER_OPTIONS_PRIVATE /W4 /WX /EHsc ${MOTOR_UNWANTED_COMPILER_OPTIONS} )
-
-    
 
     target_compile_options( ${THIS_TARGET} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE} )
 
