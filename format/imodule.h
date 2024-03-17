@@ -6,8 +6,8 @@
 
 #include <motor/property/property_sheet.hpp>
 #include <motor/io/database.h>
-
 namespace motor
+
 {
     namespace format
     {

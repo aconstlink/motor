@@ -21,10 +21,12 @@ set( os_libs )
 if( MOTOR_TARGET_OS_WIN )
 
     set( device_win32_sources 
-      "device/win32/rawinput_module.h"
-      "device/win32/rawinput_module.cpp"
-      "device/win32/xinput_module.h"
-      "device/win32/xinput_module.cpp" )
+        "device/win32/rawinput_module.h"
+        "device/win32/rawinput_module.cpp"
+        "device/win32/xinput_module.h"
+        "device/win32/xinput_module.cpp"
+        "device/win32/midi_module.h"
+        "device/win32/midi_module.cpp")
 
     ###################################################
     # device

@@ -3,6 +3,7 @@
 #include "../../api.h"
 #include "../../device/win32/rawinput_module.h"
 #include "../../device/win32/xinput_module.h"
+#include "../../device/win32/midi_module.h"
 
 #include <motor/application/window/window.h>
 #include <motor/application/window/window_message_listener.h>
@@ -27,6 +28,7 @@ namespace motor
                                 
                 motor::platform::win32::rawinput_module_mtr_t _rawinput = nullptr ;
                 motor::platform::win32::xinput_module_mtr_t _xinput  = nullptr ;
+                motor::platform::win32::midi_module_mtr_t _midi = nullptr ;
 
             private: // win32 window data
 

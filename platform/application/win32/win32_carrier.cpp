@@ -47,8 +47,8 @@ win32_carrier::win32_carrier( void_t ) noexcept
     this_t::create_and_register_device_modules() ;
     this_t::create_and_register_audio_backend() ;
 
-    motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ;    
-    motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
+    motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ; 
+    motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::brand_string() ) ;
     motor::log::global_t::status( "[win32::is]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
 }
 
@@ -57,6 +57,7 @@ win32_carrier::win32_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rh
 {
     _rawinput = motor::move( rhv._rawinput ) ;
     _xinput = motor::move( rhv._xinput ) ;
+    _midi = motor::move( rhv._midi ) ;
 
     _win32_windows = std::move( rhv._win32_windows ) ;
     _queue = std::move( rhv._queue ) ;
@@ -71,8 +72,8 @@ win32_carrier::win32_carrier( motor::application::app_mtr_safe_t app ) noexcept 
     this_t::create_and_register_device_modules() ;
     this_t::create_and_register_audio_backend() ;
 
-    motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ;    
-    motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
+    motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ;
+    motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::brand_string() ) ;
     motor::log::global_t::status( "[win32::is]: " + motor::platform::cpu_id_t::instruction_sets_string() ) ;
 }
 
@@ -81,6 +82,7 @@ win32_carrier::~win32_carrier( void_t ) noexcept
 {
     motor::memory::release_ptr( _rawinput ) ;
     motor::memory::release_ptr( _xinput ) ;
+    motor::memory::release_ptr( _midi ) ;
 }
 
 //***********************************************************************
@@ -465,8 +467,12 @@ void_t win32_carrier::create_and_register_device_modules( void_t ) noexcept
     _xinput = motor::memory::create_ptr< motor::platform::win32::xinput_module_t > (
         "[win32] : xinput module" ) ;
 
+    _midi = motor::memory::create_ptr< motor::platform::win32::midi_module_t > (
+        "[win32] : midi module" ) ;
+
     this_t::get_dev_system()->add_module( motor::share( _rawinput ) ) ;
     this_t::get_dev_system()->add_module( motor::share( _xinput ) ) ;
+    this_t::get_dev_system()->add_module( motor::share( _midi ) ) ;
 }
 
 //***********************************************************************

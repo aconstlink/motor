@@ -3,6 +3,7 @@
 #include "api.h"
 #include "typedefs.h"
 #include "device.hpp"
+#include "iobserver.hpp"
 
 namespace motor
 {
@@ -23,6 +24,7 @@ namespace motor
             virtual void_t search( search_funk_t ) noexcept = 0 ;
             virtual void_t update( void_t ) noexcept = 0 ;
             virtual void_t release( void_t ) noexcept = 0 ;
+            virtual void_t install( motor::device::iobserver_mtr_t ) noexcept {}
         };
         motor_typedef( imodule ) ;
     }

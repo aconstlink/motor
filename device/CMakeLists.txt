@@ -10,7 +10,10 @@ set( sources
     "mapping.hpp"
     "system.h"
     "system.cpp"
-    
+    "midi_message.hpp"
+    "iobserver.hpp"
+    "midi_observer.hpp"
+
     "imodule.h"
     "modules/vdev_module.h"
     "modules/vdev_module.cpp"
@@ -20,6 +23,7 @@ set( sources
     "layouts/ps3_controller.hpp"
     "layouts/xbox_controller.hpp"
     "layouts/game_controller.hpp"
+    "layouts/midi_controller.hpp"
 
     "components/button.hpp"
     "components/key.hpp"

@@ -91,6 +91,11 @@ namespace motor
                 return *this ;
             }
 
+            motor::string_cref_t name( void_t ) const noexcept
+            {
+                return _name ;
+            }
+
         public: // add input
 
             template< typename comp_t >

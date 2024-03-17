@@ -4,20 +4,20 @@
 using namespace motor::device ;
 
 //***************************************************************
-system::system( void_t ) 
+system::system( void_t ) noexcept
 {
     //_vdev = motor::device::vdev_module_t() ;
 }
 
 //***************************************************************
-system::system( this_rref_t rhv )
+system::system( this_rref_t rhv ) noexcept
 {
     _modules = std::move( rhv._modules ) ;
     _vdev = std::move( rhv._vdev ) ;
 }
 
 //***************************************************************
-system::~system( void_t )
+system::~system( void_t ) noexcept
 {
     this_t::release() ;
 }
@@ -34,7 +34,7 @@ void_t system::add_module( motor::device::imodule_mtr_safe_t mod ) noexcept
 
 
 //***************************************************************
-void_t system::search( motor::device::imodule::search_funk_t funk ) 
+void_t system::search( motor::device::imodule::search_funk_t funk ) noexcept
 {
     for( auto & mod : _modules )
     {
@@ -44,7 +44,7 @@ void_t system::search( motor::device::imodule::search_funk_t funk )
 }
 
 //***************************************************************
-void_t system::update( void_t )
+void_t system::update( void_t ) noexcept
 {
     // update all modules which should update all physicals
     for( auto & res : _modules )
@@ -55,6 +55,15 @@ void_t system::update( void_t )
     // the virtual device module must update 
     // after all physical devices
     //_vdev->update() ;
+}
+
+//***************************************************************
+void_t system::install( motor::device::iobserver_mtr_t ptr ) noexcept 
+{
+    for( auto & res : _modules )
+    {
+        res->install( ptr ) ;
+    }
 }
 
 //***************************************************************
