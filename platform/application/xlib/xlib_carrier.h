@@ -3,7 +3,7 @@
 #include "../../api.h"
 #include "../../typedefs.h"
 
-#include "../../device/linux/xlib_module.h"
+#include "../../controls/linux/xlib_module.h"
 
 #include <motor/application/window/window.h>
 #include <motor/application/window/window_message_listener.h>

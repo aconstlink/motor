@@ -32,7 +32,7 @@ target_link_libraries( ${cur_lib_name}
   PRIVATE stb
   PUBLIC imgui
   PUBLIC motor::io
-  PUBLIC motor::device
+  PUBLIC motor::controls
   PUBLIC motor::graphics
   PUBLIC motor::memory
   PUBLIC motor::log 

@@ -9,10 +9,10 @@
 
 #include "window/window_message_listener.h"
 
-#include <motor/device/device.hpp>
-#include <motor/device/system.h>
-#include <motor/device/layouts/ascii_keyboard.hpp>
-#include <motor/device/layouts/three_mouse.hpp>
+#include <motor/controls/device.hpp>
+#include <motor/controls/system.h>
+#include <motor/controls/layouts/ascii_keyboard.hpp>
+#include <motor/controls/layouts/three_mouse.hpp>
 
 #include <motor/audio/frontend.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
@@ -81,8 +81,8 @@ namespace motor
 
         private: // device
 
-            motor::device::three_device_mtr_t _dev_mouse = nullptr ;
-            motor::device::ascii_device_mtr_t _dev_ascii = nullptr ;
+            motor::controls::three_device_mtr_t _dev_mouse = nullptr ;
+            motor::controls::ascii_device_mtr_t _dev_ascii = nullptr ;
 
         public:
 
@@ -128,8 +128,8 @@ namespace motor
 
             struct device_data 
             {
-                motor::device::three_device_mtr_t mouse ;
-                motor::device::ascii_device_mtr_t ascii ;
+                motor::controls::three_device_mtr_t mouse ;
+                motor::controls::ascii_device_mtr_t ascii ;
             };
             motor_typedef( device_data ) ;
 

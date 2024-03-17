@@ -581,7 +581,7 @@ void_t imgui::do_default_imgui_init( void_t )
 
     io.ConfigWindowsMoveFromTitleBarOnly = true ;
 
-    using key_t = motor::device::layouts::ascii_keyboard_t::ascii_key ;
+    using key_t = motor::controls::layouts::ascii_keyboard_t::ascii_key ;
 
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
 #if 0
@@ -654,7 +654,7 @@ void_t imgui::update( window_data_cref_t data ) noexcept
 }
 
 //****
-void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
+void_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -664,7 +664,7 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
     // handle mouse
     if( dev != nullptr )
     {
-        motor::device::three_device_t::layout_t mouse( dev ) ;
+        motor::controls::three_device_t::layout_t mouse( dev ) ;
         // 1. mouse position
         {
             if( io.WantSetMousePos )
@@ -689,7 +689,7 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
 
         // 2. buttons
         {
-            using layout_t = motor::device::three_device_t::layout_t ;
+            using layout_t = motor::controls::three_device_t::layout_t ;
 
             for( size_t i = 0; i < 3; ++i )
             {
@@ -724,7 +724,7 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
 
         // 3. wheel
         {
-            //using layout_t = motor::device::three_device_t::layout_t ;
+            //using layout_t = motor::controls::three_device_t::layout_t ;
 
             float_t const m = 1.0f ; // io.KeyCtrl ? 1.0f : 2.5f ;
             float_t s ;
@@ -741,13 +741,13 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
 }
 
 //****
-void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
+void_t imgui::update( motor::controls::ascii_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
 
-    using ks_t = motor::device::components::key_state ;
-    using layout_t = motor::device::layouts::ascii_keyboard_t ;
+    using ks_t = motor::controls::components::key_state ;
+    using layout_t = motor::controls::layouts::ascii_keyboard_t ;
     using key_t = layout_t::ascii_key ;
 
     // handle keyboard
@@ -756,7 +756,7 @@ void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
     ImGuiIO& io = ImGui::GetIO();
     //io.ClearInputKeys() ;
 
-    motor::device::layouts::ascii_keyboard_t keyboard( dev ) ;
+    motor::controls::layouts::ascii_keyboard_t keyboard( dev ) ;
 
     bool_t shift = false ;
     bool_t alt = false ;
