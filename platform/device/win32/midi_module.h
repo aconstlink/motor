@@ -133,10 +133,9 @@ namespace motor
                 motor::vector< open_close_msg > _need_open_close ;
 
                 using __clock_t = std::chrono::high_resolution_clock ;
-
                 __clock_t::time_point _tp_check_devices = __clock_t::now() ;
 
-            private:
+            private: // messages
 
                 struct in_message
                 {
@@ -149,7 +148,7 @@ namespace motor
                 std::mutex _mtx_in ;
                 in_messages_t _ins ;
 
-            private:
+            private: // observers
                 
                 motor_typedefs( motor::vector< motor::device::midi_observer_mtr_t>, observers ) ;
 
@@ -162,7 +161,7 @@ namespace motor
                 midi_module( this_rref_t ) noexcept ;
                 virtual ~midi_module( void_t ) noexcept ;
 
-            public: // interface
+            public: // imodule interface
 
                 virtual void_t search( search_funk_t ) noexcept ;
                 virtual void_t update( void_t ) noexcept ;
@@ -170,34 +169,27 @@ namespace motor
                 
                 virtual void_t install( motor::device::iobserver_mtr_t ) noexcept ;
 
-                #if 0
+
+            public: // interface for win32 midi proc
+
+                struct win32_midi_proc_accessor
+                {
+                    this_ptr_t _p ;
+                    win32_midi_proc_accessor( this_ptr_t p ) noexcept : _p( p ) {}
+                    void_t handle_message( HMIDIIN hin, motor::device::midi_message_cref_t msg ) noexcept { _p->handle_message( hin, msg ) ; }
+                    void_t handle_open_close( HMIDIIN hin, bool_t const open ) noexcept { _p->handle_open_close(hin,open) ; }
+                };
                 
-                
+            private: // interface through accessor
 
-                virtual void_t create_devices( motor_device::imidi_module_ptr_t ) ;
-                
-
-                virtual void_t get_device_names( motor_std::vector< motor_std::string_t > & ) const ;
-
-                virtual motor_device::midi_device_ptr_t find_midi_device( motor_device::key_cref_t ) ;
-                virtual motor_device::midi_device_ptr_t find_any_midi_device( void_t ) ;
-                
-
-                virtual void_t update_midi( void_t ) ;
-                #endif
-
-
-            public:
-
-                // interface for win32 midi proc
                 void_t handle_message( HMIDIIN, motor::device::midi_message_cref_t ) noexcept ;
                 void_t handle_open_close( HMIDIIN, bool_t const open ) noexcept ;
 
-                void_t create_devices( void_t ) noexcept ;
-
             private:
                 
-                void_t check_handle_for_device( size_t ) noexcept ;
+                void_t create_devices( void_t ) noexcept ;
+                
+                // updates a time point and then every 3 seconds checks for new devices
                 void_t check_for_new_devices( void_t ) noexcept ;
                 void_t unregister_device( this_t::device_data_ref_t, bool_t const closed ) noexcept ;
 

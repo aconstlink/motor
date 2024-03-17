@@ -71,15 +71,15 @@ void CALLBACK midi_in_proc(
         return ;
     }
 
-    auto * module_ptr = gsptr->self_ptr ;
+    motor::platform::win32::midi_module_t::win32_midi_proc_accessor ac( gsptr->self_ptr ) ;
 
     if( wMsg == MIM_OPEN )
     {
-        module_ptr->handle_open_close( hMidiIn, true ) ;
+        ac.handle_open_close( hMidiIn, true ) ;
     }
     else if( wMsg == MIM_CLOSE )
     {
-        module_ptr->handle_open_close( hMidiIn, false ) ;
+        ac.handle_open_close( hMidiIn, false ) ;
     }
     else if( wMsg == MIM_DATA )
     {
@@ -91,7 +91,7 @@ void CALLBACK midi_in_proc(
         BYTE const byte2 = LOBYTE( hiword ) ;
         BYTE const byte3 = HIBYTE( hiword ) ;
 
-        module_ptr->handle_message( hMidiIn, 
+        ac.handle_message( hMidiIn, 
             motor::device::midi_message( status, byte1, byte2, byte3 ) ) ;
     }
     else if( wMsg == MIM_LONGDATA )
@@ -421,89 +421,6 @@ void_t midi_module::create_devices( void_t ) noexcept
             }
         }
     } ) ;
-}
-
-//****************************************************************************************
-void_t midi_module::check_handle_for_device( size_t const slot ) noexcept
-{
-    #if 0
-    if( slot >= _devices.size() ) return ;
-    
-    auto & data = _devices[slot] ;
-    
-    this_t::midi_data & md = data.mdata ;
-
-    if( md.inh != NULL || md.outh != NULL ) return ;
-
-    uint_t index_in = uint_t(-1) ;
-    
-    // lookup midi in devices
-    {
-        for( uint_t i = 0; i < midiInGetNumDevs(); ++i )
-        {
-            MIDIINCAPS caps ;
-            ZeroMemory( &caps, sizeof(MIDIINCAPS) ) ;
-
-            MMRESULT const res = midiInGetDevCaps( i, &caps, sizeof(MIDIINCAPS) ) ;
-            if( res != MMSYSERR_NOERROR )
-            {
-                motor::log::global::warning( 
-                    "[midi_module::check_handle_for_device] : unable to retrieve device caps" ) ;
-                continue ;
-            }
-        
-            if( data.name == motor::string_t( caps.szPname ) )
-            {
-                index_in = i ;
-                break ;
-            }
-        }
-
-        if( motor::log::global::warning( index_in == uint_t(-1), 
-            "[midi_module::check_handle_for_device] : Could not find midi device" ) )
-        {
-            return ;
-        }
-    }
-    
-    uint_t index_out = uint_t( -1 ) ;
-
-    // lookup midi out devices
-    {
-        for(uint_t i = 0; i < midiOutGetNumDevs(); ++i)
-        {
-            MIDIOUTCAPS caps ;
-            ZeroMemory( &caps, sizeof( MIDIOUTCAPS ) ) ;
-
-            MMRESULT const res = midiOutGetDevCaps( i, &caps, sizeof( MIDIOUTCAPS ) ) ;
-            if(res != MMSYSERR_NOERROR)
-            {
-                motor::log::global::warning( 
-                    "[midi_module::check_handle_for_device] : unable to retrieve midi out caps" ) ;
-                continue ;
-            }
-
-            if( data.name == motor::string_t( caps.szPname ) )
-            {
-                index_out = i ;
-                break ;
-            }
-        }
-    }
-
-    // midi-in handle
-    {
-        this_t::midi_data_t md ;
-        this_t::open_midi_in( index_in, md ) ;
-        this_t::open_midi_out( index_out, md ) ;
-    }
-
-    // midi-out handle
-    if( index_out != uint_t(-1)) 
-    {
-        this_t::open_midi_out( index_out ) ;
-    }
-    #endif
 }
 
 //****************************************************************************************
