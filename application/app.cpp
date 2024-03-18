@@ -351,7 +351,7 @@ bool_t app::before_device( std::chrono::microseconds const & dt ) noexcept
     if( _device_residual >= _device_interval )
     {
         // looking for device. It is managed, so pointer must be copied.
-        _carrier->device_system()->search( [&] ( motor::controls::idevice_borrow_t::mtr_t dev_in )
+        _carrier->device_system()->search( [&] ( motor::controls::device_borrow_t::mtr_t dev_in )
         {
             if( auto * ptr1 = dynamic_cast<motor::controls::three_device_mtr_t>(dev_in); ptr1 != nullptr )
             {

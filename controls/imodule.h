@@ -19,7 +19,7 @@ namespace motor
 
             // this search funk requires the user to copy a device pointer if the user
             // will hold on to the pointer. Its a managed pointer. note: _mtr_!
-            typedef std::function< void_t ( motor::controls::idevice_borrow_t::mtr_t ) > search_funk_t ;
+            typedef std::function< void_t ( motor::controls::device_borrow_t::mtr_t ) > search_funk_t ;
 
             virtual void_t search( search_funk_t ) noexcept = 0 ;
             virtual void_t update( void_t ) noexcept = 0 ;

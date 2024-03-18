@@ -92,7 +92,7 @@ void_t vdev_module::init_controller_1( motor::controls::imodule_mtr_t mod ) noex
             if( r->name() == name ) have_xbox = true ;
         } ) ;
 
-        mod->search( [&] ( motor::controls::idevice_mtr_t dev_in )
+        mod->search( [&] ( motor::controls::device_mtr_t dev_in )
         {
             if( auto * ptr = dynamic_cast<motor::controls::xbc_device_mtr_t>( dev_in ); ptr != nullptr )
             {
@@ -151,7 +151,7 @@ void_t vdev_module::init_controller_1( motor::controls::imodule_mtr_t mod ) noex
             if( r->name() == name ) have_ascii = true ;
         } ) ;
 
-        mod->search( [&] ( motor::controls::idevice_mtr_t dev_in )
+        mod->search( [&] ( motor::controls::device_mtr_t dev_in )
         {
             if( auto * ptr = dynamic_cast<motor::controls::ascii_device_mtr_t>( dev_in ); ptr != nullptr )
             {
@@ -220,7 +220,7 @@ void_t vdev_module::init_controller_1( motor::controls::imodule_mtr_t mod ) noex
             if( r->name() == name ) have_mouse = true ;
         } ) ;
 
-        mod->search( [&] ( motor::controls::idevice_mtr_t dev_in )
+        mod->search( [&] ( motor::controls::device_mtr_t dev_in )
         {
             if( auto * ptr = dynamic_cast<motor::controls::three_device_mtr_t>( dev_in ); ptr != nullptr )
             {

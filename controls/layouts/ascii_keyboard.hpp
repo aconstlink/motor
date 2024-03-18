@@ -16,9 +16,6 @@ namespace motor
             class ascii_keyboard
             {
                 motor_this_typedefs( ascii_keyboard ) ;
-                motor_typedefs( motor::controls::device_tpl< this_t >, this_device ) ;
-
-                friend this_device_t ;
 
             public:
 
@@ -274,9 +271,9 @@ namespace motor
                     return input_component( size_t( k ) ) ;
                 }
 
-            private:
+            public:
 
-                static void_t init_components( this_t::this_device_ref_t dev )
+                static void_t init_components( motor::controls::device_inout_t dev )
                 {
                     using key_t = motor::controls::components::key<this_t::ascii_key> ;
 
@@ -292,12 +289,11 @@ namespace motor
 
             private:
 
-                // non-managed!
-                this_t::this_device_ptr_t _dev = nullptr ;
+                motor::controls::device_borrow_t::mtr_t _dev = nullptr ;
 
             public:
 
-                ascii_keyboard( this_t::this_device_ptr_t dev ) noexcept : _dev( dev )
+                ascii_keyboard( motor::controls::device_mtr_t dev ) noexcept : _dev( dev )
                 {
                     assert( dev != nullptr ) ;
                 }
@@ -338,7 +334,6 @@ namespace motor
             };
             motor_typedef( ascii_keyboard ) ;
         }
-        motor_typedefs( motor::controls::device_tpl< motor::controls::layouts::ascii_keyboard>, ascii_device ) ;
-        motor_typedefs( motor::controls::device_tpl< motor::controls::layouts::ascii_keyboard>, ascii_keyboard_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::layouts::ascii_keyboard >, ascii_device ) ;
     }
 }

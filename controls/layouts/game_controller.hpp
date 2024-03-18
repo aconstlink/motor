@@ -18,14 +18,10 @@ namespace motor
             class game_controller
             {
                 motor_this_typedefs( game_controller ) ;
-                motor_typedefs( motor::controls::device_tpl< this_t >, this_device ) ;
-
-                friend this_device_t ;
 
             private:
 
-                // non-managed!
-                this_t::this_device_ptr_t _dev ;
+                motor::controls::device_borrow_t::mtr_t _dev ;
 
             public:
 
@@ -69,9 +65,9 @@ namespace motor
 
                 static size_t as_id( output_component const oc ) noexcept { return size_t( oc ) ; }
 
-            private:
+            public:
 
-                static void_t init_components( this_t::this_device_ref_t dev )
+                static void_t init_components( motor::controls::device_inout_t dev )
                 {
                     // inputs
 
@@ -112,7 +108,7 @@ namespace motor
 
             public:
 
-                game_controller( this_t::this_device_ptr_t dev ) noexcept : 
+                game_controller( motor::controls::device_borrow_t::mtr_t dev ) noexcept : 
                     _dev( dev )
                 {
                     assert( _dev != nullptr ) ;
@@ -272,6 +268,6 @@ namespace motor
             };
             motor_typedef( game_controller ) ;
         }
-        motor_typedefs( motor::controls::device_tpl< motor::controls::layouts::game_controller_t>, game_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::layouts::game_controller >, game_device ) ;
     }
 }

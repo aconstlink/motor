@@ -14,9 +14,6 @@ namespace motor
             class midi_controller
             {
                 motor_this_typedefs( midi_controller ) ;
-                motor_typedefs( motor::controls::device_tpl< this_t >, this_device ) ;
-
-                friend this_device_t ;
 
             public:
 
@@ -26,12 +23,12 @@ namespace motor
                 enum class output_component 
                 {};
 
-                static void_t init_components( this_t::this_device_ref_t dev ) 
+                static void_t init_components( motor::controls::device_inout_t dev ) 
                 {
                 }
             };
             motor_typedef( midi_controller ) ;
         }
-        motor_typedefs( motor::controls::device_tpl< motor::controls::layouts::midi_controller>, midi_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::layouts::midi_controller>, midi_device ) ;
     }
 }

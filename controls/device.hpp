@@ -14,22 +14,9 @@ namespace motor
 {
     namespace controls
     {
-        class MOTOR_CONTROLS_API idevice
+        class device
         {
-        public:
-
-            virtual ~idevice( void_t ) {}
-        };
-        motor_typedef( idevice ) ;
-
-        template< typename L >
-        class device_tpl : public idevice
-        {
-            motor_this_typedefs( device_tpl<L> ) ;
-
-        public:
-
-            motor_typedefs( L, layout ) ;
+            motor_this_typedefs( device ) ;
 
         private:
 
@@ -41,19 +28,13 @@ namespace motor
 
         public:
 
-            device_tpl( void_t ) noexcept 
-            {
-                layout_t::init_components(*this) ;
-            }
+            device( void_t ) noexcept {}
 
-            device_tpl( motor::string_cref_t name ) noexcept : _name( name ) 
-            {
-                layout_t::init_components(*this) ;
-            }
+            device( motor::string_cref_t name ) noexcept : _name( name ) {}
 
-            device_tpl( this_cref_t rhv ) = delete ;
+            device( this_cref_t rhv ) = delete ;
 
-            device_tpl( this_rref_t rhv ) noexcept
+            device( this_rref_t rhv ) noexcept
             {
                 _name = std::move( rhv._name ) ;
 
@@ -62,7 +43,7 @@ namespace motor
                 _mappings = std::move( rhv._mappings ) ;
             }
 
-            virtual ~device_tpl( void_t ) noexcept
+            virtual ~device( void_t ) noexcept
             {
                 for( auto* ptr : _inputs )
                 {
@@ -222,6 +203,30 @@ namespace motor
                 for( auto* comp : _inputs ) comp->update() ;
                 for( auto* comp : _outputs ) comp->update() ;
                 for( auto& m : _mappings ) m->update() ;
+            }
+        };
+        motor_typedef( device ) ;
+
+
+        template< typename L >
+        class device_with : public device
+        {
+            motor_this_typedefs( device_with< L > ) ;
+
+        public:
+
+            using layout_t = L ;
+
+        public:
+
+            device_with( void_t ) noexcept
+            {
+                layout_t::init_components( *this ) ;
+            }
+
+            device_with( motor::string_cref_t name ) noexcept : device( name ) 
+            {
+                layout_t::init_components( *this ) ;
             }
         };
     }

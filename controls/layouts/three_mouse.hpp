@@ -16,9 +16,6 @@ namespace motor
             class three_mouse
             {
                 motor_this_typedefs( three_mouse ) ;
-                motor_typedefs( motor::controls::device_tpl< this_t >, this_device ) ;
-
-                friend this_device_t ;
 
             public:
 
@@ -42,9 +39,9 @@ namespace motor
 
                 static size_t as_id( output_component const oc ) noexcept { return static_cast<size_t>( oc ) ; }
 
-            private:
+            public:
 
-                static void_t init_components( this_t::this_device_ref_t dev ) 
+                static void_t init_components( motor::controls::device_inout_t dev ) 
                 {
                     // inputs
                     dev.add_input_component<motor::controls::components::button_t>() ;
@@ -60,11 +57,11 @@ namespace motor
             private:
 
                 // non-managed!
-                this_t::this_device_ptr_t _dev ;
+                motor::controls::device_borrow_t::mtr_t _dev ;
 
             public:
 
-                three_mouse( this_t::this_device_ptr_t dev ) noexcept : _dev( dev )
+                three_mouse( motor::controls::device_borrow_t::mtr_t dev ) noexcept : _dev( dev )
                 {
                     assert( dev != nullptr ) ;
                 }
@@ -269,6 +266,6 @@ namespace motor
             };
             motor_typedef( three_mouse ) ;
         }
-        motor_typedefs( motor::controls::device_tpl< motor::controls::layouts::three_mouse_t>, three_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::layouts::three_mouse >, three_device ) ;
     }
 }
