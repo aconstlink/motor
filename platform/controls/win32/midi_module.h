@@ -147,6 +147,7 @@ namespace motor
 
                 std::mutex _mtx_in ;
                 in_messages_t _ins ;
+                in_messages_t _ins_from_proc ;
 
             private: // observers
                 

@@ -37,7 +37,10 @@ namespace motor
             void_t update( void_t ) noexcept ;
             void_t release( void_t ) noexcept ;
 
-            void_t install( motor::controls::iobserver_mtr_t ) noexcept ;
+            // it is unclear at call time if the observer is taken by any
+            // module, so the observer needs to be borrowed and it 
+            // must be sure that the object is not deleted.
+            void_t install( motor::controls::iobserver_borrow_t::mtr_t ) noexcept ;
         };
         motor_typedef( system ) ;
     }

@@ -1,6 +1,6 @@
 
 #include "midi_module.h"
-
+#include <motor/controls/midi/device_demuxer.hpp>
 
 #include <motor/log/global.h>
 
@@ -271,61 +271,16 @@ void_t midi_module::update( void_t ) noexcept
         _need_open_close.clear() ;
     }
 
-    for( auto & item : _devices )
+    // swap in-message queues
     {
-        // was once registered but was plugged out.
-        if( item.mdata.inh == NULL || item.mdata.outh == NULL ) continue ;
-
-        #if 0
-        motor::controls::midi_device_t::midi_messages_t msgs ;
-        item.dev_ptr->update( msgs ) ;
-        
-
-        for( auto & msg : msgs )
-        {
-            MMRESULT res = midiOutShortMsg( item.mdata.outh, (DWORD) midi_message::to_32bit( msg ) ) ;
-            motor::log::global::error( res != MMSYSERR_NOERROR,
-                "[midi_module::transmit_message] : midiOutShortMsg " ) ;
-        }
-        #endif
-
-        {
-            auto res = midiInReset( item.mdata.inh ) ;
-            motor::log::global_t::error( res != MMSYSERR_NOERROR,
-                "[motor::controls::win32::midi_module::update] : midiInReset" ) ;
-        }
-
-        {
-            auto res = midiInStart( item.mdata.inh ) ;
-            motor::log::global::error( res != MMSYSERR_NOERROR,
-                "[motor::controls::win32::midi_module::update] : midiInStart" ) ;
-        }
-
-        //midiInStart( item.mdata.inh ) ;
-        //midiInReset( item.mdata.inh ) ;
-    }
-}
-
-//****************************************************************************************
-void_t midi_module::handle_message( HMIDIIN hin, motor::controls::midi_message_cref_t msg ) noexcept
-{
-    for( auto & item : _devices )
-    {
-        if( item.mdata.inh == hin )
-        {
-            #if 0
-            for( auto * ptr : _midi_notifies )
-            {
-                ptr->on_message( item.dev_ptr->get_device_info().device_name, msg ) ;
-            }
-
-            item.dev_ptr->receive_message( msg ) ;
-            #endif
-        }
+        auto tmp = std::move( _ins ) ;
+        std::lock_guard< std::mutex > lk( _mtx_in ) ;
+        _ins = std::move( _ins_from_proc ) ;
+        _ins_from_proc = std::move( tmp ) ;
     }
 
+    // update observers
     {
-        
         this_t::observers_t tmp ;
         
         {
@@ -333,15 +288,18 @@ void_t midi_module::handle_message( HMIDIIN hin, motor::controls::midi_message_c
             tmp = std::move( _observers ) ;
         }
 
-        UINT id = 0 ;
-        MIDIINCAPS caps ;
-        ZeroMemory( &caps, sizeof(MIDIINCAPS) ) ;
-        midiInGetID( hin, &id ) ;
-        midiInGetDevCaps( id, &caps, sizeof(MIDIINCAPS) ) ;
-
-        for( auto * obs : tmp )
+        for( auto [ hin, msg ] : _ins )
         {
-            obs->on_message( motor::string_t( caps.szPname ), msg ) ;
+            UINT id = 0 ;
+            MIDIINCAPS caps ;
+            ZeroMemory( &caps, sizeof(MIDIINCAPS) ) ;
+            midiInGetID( hin, &id ) ;
+            midiInGetDevCaps( id, &caps, sizeof(MIDIINCAPS) ) ;
+
+            for( auto * obs : tmp )
+            {
+                obs->on_message( motor::string_t( caps.szPname ), msg ) ;
+            }
         }
         
         {
@@ -350,6 +308,77 @@ void_t midi_module::handle_message( HMIDIIN hin, motor::controls::midi_message_c
             _observers = std::move( tmp ) ;
         }
     }
+
+    // midi-in
+    // may not be the most efficient way but
+    // I expect only very little devices( 1-3 )
+    // with only very little messages per update( 10 - 20 )
+    {
+        for( auto & item : _devices )
+        {
+            item.dev_ptr->update() ;
+        }
+
+        for( auto & item : _devices )
+        {
+            // probably plugged out
+            if( item.mdata.inh == NULL ) continue ;
+
+            for( auto [ hin, msg ] : _ins )
+            {
+                if( item.mdata.inh == hin )
+                {
+                    item.dev_ptr->handle_in_message( msg ) ;
+                }
+            }
+
+            // for sys-ex messages. Return all input buffers to the callback.
+            // also stops receiving messages of the input device. 
+            {
+                auto res = midiInReset( item.mdata.inh ) ;
+                motor::log::global_t::error( res != MMSYSERR_NOERROR,
+                    "[motor::controls::win32::midi_module::update] : midiInReset" ) ;
+            }
+
+            // restart receiving sys-ex messages.
+            {
+                auto res = midiInStart( item.mdata.inh ) ;
+                motor::log::global::error( res != MMSYSERR_NOERROR,
+                    "[motor::controls::win32::midi_module::update] : midiInStart" ) ;
+            }
+        }
+    }
+
+    // midi-out
+    {
+        for( auto & item : _devices )
+        {
+            // probably plugged out
+            if( item.mdata.outh == NULL ) continue ;
+
+            #if 0
+            motor::controls::midi_device_t::midi_messages_t msgs ;
+            item.dev_ptr->update( msgs ) ;
+        
+
+            for( auto & msg : msgs )
+            {
+                MMRESULT res = midiOutShortMsg( item.mdata.outh, (DWORD) midi_message::to_32bit( msg ) ) ;
+                motor::log::global::error( res != MMSYSERR_NOERROR,
+                    "[midi_module::transmit_message] : midiOutShortMsg " ) ;
+            }
+            #endif
+        }
+    }
+
+    _ins.clear() ;
+}
+
+//****************************************************************************************
+void_t midi_module::handle_message( HMIDIIN hin, motor::controls::midi_message_cref_t msg ) noexcept
+{
+    std::lock_guard< std::mutex > lk( _mtx_in ) ;
+    _ins_from_proc.emplace_back( this_t::in_message{ hin, msg } ) ;  
 }
 
 //****************************************************************************************
@@ -393,10 +422,11 @@ void_t midi_module::create_devices( void_t ) noexcept
         // e.g nanoPAD2, MIDI Mix, etc
         // need to create an actual device based on the device name.
         {
-            motor::controls::midi_device_t mdev = motor::controls::midi_device_t( motor::string_t( caps.szPname ) ) ;
+            auto const name = motor::string_t( caps.szPname ) ;
+            auto mdev = motor::controls::midi::demux_device( name, motor::controls::midi_device_t( name ) ) ;
 
             this_t::device_data sd ;
-            sd.name = motor::string_t( caps.szPname ) ;
+            sd.name = name ;
             sd.dev_ptr = motor::shared( std::move(mdev) ) ;
             this_t::open_midi_in( idx, sd.mdata ) ;
 

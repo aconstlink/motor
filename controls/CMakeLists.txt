@@ -36,6 +36,11 @@ set( sources
     "components/slider.hpp"
     "components/stick.hpp"
     "components/touch.hpp"
+
+    "midi/device_demuxer.hpp"
+    "midi/korg_nanokontrol2.hpp"
+    "midi/akai_apc_k25.hpp"
+    "midi/akai_midimix.hpp"
     )
 
 motor_vs_src_dir( sources )

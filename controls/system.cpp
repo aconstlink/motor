@@ -58,7 +58,7 @@ void_t system::update( void_t ) noexcept
 }
 
 //***************************************************************
-void_t system::install( motor::controls::iobserver_mtr_t ptr ) noexcept 
+void_t system::install( motor::controls::iobserver_borrow_t::mtr_t ptr ) noexcept 
 {
     for( auto & res : _modules )
     {
