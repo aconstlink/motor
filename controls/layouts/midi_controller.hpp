@@ -6,7 +6,7 @@
 #include "../components/point.hpp"
 #include "../device.hpp"
 
-#include "../midi_message.hpp"
+#include "../midi/midi_message.hpp"
 
 namespace motor
 {

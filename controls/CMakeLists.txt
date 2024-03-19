@@ -10,9 +10,7 @@ set( sources
     "mapping.hpp"
     "system.h"
     "system.cpp"
-    "midi_message.hpp"
     "iobserver.hpp"
-    "midi_observer.hpp"
 
     "imodule.h"
     "modules/vdev_module.h"
@@ -41,6 +39,8 @@ set( sources
     "midi/korg_demuxer.hpp"
     "midi/akai_demuxer.hpp"
     "midi/behringer_demuxer.hpp"
+    "midi/midi_message.hpp"
+    "midi/midi_observer.hpp"
     )
 
 motor_vs_src_dir( sources )

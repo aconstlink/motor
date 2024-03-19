@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include "typedefs.h"
+#include "../typedefs.h"
 
-#include "iobserver.hpp"
+#include "../iobserver.hpp"
 #include "midi_message.hpp"
 #include <motor/log/global.h>
 

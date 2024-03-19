@@ -3,7 +3,6 @@
 
 #include "typedefs.h"
 
-#include "midi_message.hpp"
 #include <motor/log/global.h>
 
 namespace motor

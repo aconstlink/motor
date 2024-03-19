@@ -5,8 +5,8 @@
 #include "../../typedefs.h"
 
 #include <motor/controls/imodule.h>
-#include <motor/controls/midi_message.hpp>
-#include <motor/controls/midi_observer.hpp>
+#include <motor/controls/midi/midi_message.hpp>
+#include <motor/controls/midi/midi_observer.hpp>
 #include <motor/controls/layouts/midi_controller.hpp>
 
 #include <motor/std/vector>
