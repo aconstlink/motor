@@ -57,7 +57,7 @@ void_t vdev_module::update( void_t ) noexcept
 {
     for( auto & g : _games )
     {
-        g.dev->update() ;
+        //g.dev->update() ;
     }
 }
 

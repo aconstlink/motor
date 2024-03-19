@@ -197,11 +197,26 @@ namespace motor
 
         public:
 
-            // meant for a module to reset the components
             void_t update( void_t ) noexcept
             {
+                this_t::update_inputs() ;
+                this_t::update_outputs() ;
+                this_t::update_mappings() ;
+            }
+
+            // meant for a module to reset the components
+            void_t update_inputs( void_t ) noexcept
+            {
                 for( auto* comp : _inputs ) comp->update() ;
+            }
+
+            void_t update_outputs( void_t ) noexcept
+            {
                 for( auto* comp : _outputs ) comp->update() ;
+            }
+
+            void_t update_mappings( void_t ) noexcept
+            {
                 for( auto& m : _mappings ) m->update() ;
             }
         };

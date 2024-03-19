@@ -55,17 +55,27 @@ namespace motor
 
             using layout_t = motor::controls::layouts::midi_controller ;
 
-            using midi_update_funk_t = std::function< bool_t ( 
+            using midi_in_update_funk_t = std::function< bool_t ( 
                 motor::controls::input_component_ptr_t, motor::controls::midi_message_cref_t ) > ;
+
+            using midi_out_update_funk_t = std::function< bool_t ( 
+                motor::controls::output_component_ptr_t, motor::controls::midi_message_inout_t ) > ;
 
         private:
 
-            struct update_data
+            struct update_in_data
             {
                 size_t id ;
-                midi_update_funk_t funk ;
+                midi_in_update_funk_t funk ;
             };
-            motor::vector< update_data > _update_ins ;
+            motor::vector< update_in_data > _update_ins ;
+
+            struct update_out_data
+            {
+                size_t id ;
+                midi_out_update_funk_t funk ;
+            };
+            motor::vector< update_out_data > _update_outs ;
 
         public:
 
@@ -82,21 +92,30 @@ namespace motor
             device_with( this_rref_t rhv ) noexcept : base_t ( std::move( rhv ) )
             {
                 _update_ins = std::move( rhv._update_ins ) ;
+                _update_outs = std::move( rhv._update_outs ) ;
             }
 
             template< typename comp_t >
-            this_ref_t add_input_component( comp_t && comp, midi_update_funk_t funk ) noexcept
+            this_ref_t add_input_component( comp_t && comp, midi_in_update_funk_t funk ) noexcept
             {
-                _update_ins.emplace_back( update_data{ _update_ins.size(), funk } ) ;
+                _update_ins.emplace_back( update_in_data{ _update_ins.size(), funk } ) ;
                 device::add_input_component<comp_t>( comp ) ;
                 return *this ;
             }
 
             template< typename comp_t >
-            this_ref_t add_input_component( midi_update_funk_t funk ) noexcept
+            this_ref_t add_input_component( midi_in_update_funk_t funk ) noexcept
             {
-                _update_ins.emplace_back( update_data{ _update_ins.size(), funk } ) ;
+                _update_ins.emplace_back( update_in_data{ _update_ins.size(), funk } ) ;
                 device::add_input_component<comp_t>() ;
+                return *this ;
+            }
+
+            template< typename comp_t >
+            this_ref_t add_out_component( midi_out_update_funk_t funk ) noexcept
+            {
+                _update_outs.emplace_back( update_out_data{ _update_outs.size(), funk } ) ;
+                device::add_output_component<comp_t>() ;
                 return *this ;
             }
 
@@ -105,6 +124,17 @@ namespace motor
                 for( auto ud : _update_ins )
                 {
                     if( ud.funk( base_t::get_in_component(ud.id), msg ) ) break ;
+                }
+            }
+
+            void_t handle_out_messages( motor::controls::midi_messages_inout_t msgs ) noexcept
+            {
+                motor::controls::midi_message_t msg ;
+
+                for( auto ud : _update_outs )
+                {
+                    if( ud.funk( base_t::get_out_component( ud.id ), msg ) )
+                        msgs.emplace_back( std::move( msg ) ) ;
                 }
             }
         };

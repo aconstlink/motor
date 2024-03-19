@@ -5,6 +5,7 @@
 #include "../components/button.hpp"
 #include "../components/slider.hpp"
 #include "../components/knob.hpp"
+#include "../components/led.hpp"
 
 #include <motor/memory/global.h>
 
@@ -85,6 +86,28 @@ namespace motor
                             }
                             return false ;
                         } ) ;
+                    }
+                }
+
+                // output leds
+                {
+                    motor::vector< size_t > ids = { 
+                        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } ;
+
+                    for( auto i : ids )
+                    {
+                        dev.add_out_component<motor::controls::components::binary_led_t >(
+                        [=]( motor::controls::output_component_ptr_t cptr, motor::controls::midi_message_inout_t msg )
+                        {
+                            auto & c = *reinterpret_cast< motor::controls::components::binary_led_ptr_t >( cptr ) ;
+                            if( c.has_changed() )
+                            {
+                                byte_t const v = c.value() ? 127 : 0 ;
+                                msg = motor::controls::midi_message_t( 144, byte_t( i ), v, 0 ) ;
+                                return true ;
+                            }
+                            return false ;
+                        }) ;
                     }
                 }
 

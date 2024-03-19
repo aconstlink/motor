@@ -316,7 +316,7 @@ void_t midi_module::update( void_t ) noexcept
     {
         for( auto & item : _devices )
         {
-            item.dev_ptr->update() ;
+            item.dev_ptr->update_inputs() ;
         }
 
         for( auto & item : _devices )
@@ -351,23 +351,28 @@ void_t midi_module::update( void_t ) noexcept
 
     // midi-out
     {
+        motor::controls::midi_messages_t msgs ;
+
         for( auto & item : _devices )
         {
             // probably plugged out
             if( item.mdata.outh == NULL ) continue ;
 
-            #if 0
-            motor::controls::midi_device_t::midi_messages_t msgs ;
-            item.dev_ptr->update( msgs ) ;
-        
+            item.dev_ptr->handle_out_messages( msgs ) ;
 
             for( auto & msg : msgs )
             {
-                MMRESULT res = midiOutShortMsg( item.mdata.outh, (DWORD) midi_message::to_32bit( msg ) ) ;
+                MMRESULT res = midiOutShortMsg( item.mdata.outh, (DWORD) motor::controls::midi_message_t::to_32bit( msg ) ) ;
                 motor::log::global::error( res != MMSYSERR_NOERROR,
                     "[midi_module::transmit_message] : midiOutShortMsg " ) ;
             }
-            #endif
+
+            msgs.clear() ;
+        }
+
+        for( auto & item : _devices )
+        {
+            item.dev_ptr->update_outputs() ;
         }
     }
 

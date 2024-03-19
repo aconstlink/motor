@@ -77,6 +77,7 @@ namespace motor
             }
         };
         motor_typedef( midi_message ) ;
+        motor_typedefs( motor::vector< midi_message_t >, midi_messages ) ;
 
         struct midi_sysex_message
         {
