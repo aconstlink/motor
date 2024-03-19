@@ -38,9 +38,9 @@ set( sources
     "components/touch.hpp"
 
     "midi/device_demuxer.hpp"
-    "midi/korg_nanokontrol2.hpp"
-    "midi/akai_apc_k25.hpp"
-    "midi/akai_midimix.hpp"
+    "midi/korg_demuxer.hpp"
+    "midi/akai_demuxer.hpp"
+    "midi/behringer_demuxer.hpp"
     )
 
 motor_vs_src_dir( sources )

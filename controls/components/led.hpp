@@ -58,6 +58,53 @@ namespace motor
             motor_typedefs( intesity_led< bool_t >, binary_led ) ;
             motor_typedefs( intesity_led< float_t >, linear_led ) ;
 
+            class multi_led : public output_component
+            {
+                motor_this_typedefs( multi_led ) ;
+
+            private:
+
+                bool_t _changed = false ;
+                byte_t _led_color = 0 ;
+
+            public:
+
+                multi_led( void_t ) noexcept{}
+
+                multi_led( this_cref_t rhv ) noexcept : output_component( rhv )
+                {
+                    _changed = rhv._changed ;
+                    _led_color = rhv._led_color ;
+                }
+
+                multi_led( this_rref_t rhv ) noexcept : output_component( std::move( rhv ) )
+                {
+                    _changed = rhv._changed ;
+                    _led_color = rhv._led_color ;
+                }
+
+                virtual ~multi_led( void_t ) noexcept {}
+
+            public:
+
+                // led_color == 0 is off
+                this_ref_t operator = ( byte_t const led_color ) noexcept
+                {
+                    _changed = true ;
+                    _led_color = led_color ;
+                    return *this ;
+                }
+
+                bool_t has_changed( void_t ) const { return _changed ; }
+                bool_t onoff ( void_t ) const noexcept { return _led_color == 0 ; }
+                byte_t led_color( void_t ) const noexcept { return _led_color ; }
+
+                virtual void_t update( void_t ) noexcept final
+                {
+                    _changed = false ;
+                }
+            };
+            motor_typedef( multi_led ) ;
         }
     }
 }

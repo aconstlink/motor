@@ -428,11 +428,12 @@ void_t midi_module::create_devices( void_t ) noexcept
         // need to create an actual device based on the device name.
         {
             auto const name = motor::string_t( caps.szPname ) ;
-            auto mdev = motor::controls::midi::demux_device( name, motor::controls::midi_device_t( name ) ) ;
+            motor::controls::midi_device_t dev( name ) ;
+            motor::controls::midi::demux_device( name, dev ) ;
 
             this_t::device_data sd ;
             sd.name = name ;
-            sd.dev_ptr = motor::shared( std::move(mdev) ) ;
+            sd.dev_ptr = motor::shared( std::move(dev) ) ;
             this_t::open_midi_in( idx, sd.mdata ) ;
 
             _devices.emplace_back( std::move( sd ) ) ;
