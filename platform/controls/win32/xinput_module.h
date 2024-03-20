@@ -5,7 +5,7 @@
 #include "../../typedefs.h"
 
 #include <motor/controls/imodule.h>
-#include <motor/controls/layouts/xbox_controller.hpp>
+#include <motor/controls/types/xbox_controller.hpp>
 
 #include <motor/std/vector>
 #include <motor/math/vector/vector2.hpp>

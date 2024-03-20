@@ -10,8 +10,8 @@
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
-#include <motor/controls/layouts/three_mouse.hpp>
-#include <motor/controls/layouts/ascii_keyboard.hpp>
+#include <motor/controls/types/three_mouse.hpp>
+#include <motor/controls/types/ascii_keyboard.hpp>
 
 #include <imgui/imgui.h>
 

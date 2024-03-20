@@ -10,7 +10,7 @@ using namespace motor::platform::win32 ;
 
 namespace this_file
 {
-    typedef motor::controls::layouts::three_mouse_t::button three_button_t ;
+    typedef motor::controls::types::three_mouse_t::button three_button_t ;
     typedef motor::controls::components::button_state button_state_t ;
 
     static button_state_t map_raw_button_state_left_to_button_state( USHORT const usButtonFlags )
@@ -58,9 +58,9 @@ namespace this_file
 
 namespace this_file
 {
-    typedef motor::controls::layouts::ascii_keyboard::ascii_key ascii_key_t ;
+    typedef motor::controls::types::ascii_keyboard::ascii_key ascii_key_t ;
     typedef motor::controls::components::key_state key_state_t ;
-    typedef motor::controls::layouts::ascii_keyboard_t layout_t ;
+    typedef motor::controls::types::ascii_keyboard_t layout_t ;
 
     static ascii_key_t map_virtual_keycode_to_ascii_key( WPARAM const wparam )
     {
@@ -223,7 +223,7 @@ void_t rawinput_module::update( void_t ) noexcept
 
     // mouse
     {
-        motor::controls::layouts::three_mouse_t mouse( _three_device ) ;
+        motor::controls::types::three_mouse_t mouse( _three_device ) ;
 
         std::lock_guard<std::mutex> lk( _buffer_mtx ) ;
 
@@ -277,7 +277,7 @@ void_t rawinput_module::update( void_t ) noexcept
 
     // keybaord
     {
-        motor::controls::layouts::ascii_keyboard_t keyboard( _ascii_device ) ;
+        motor::controls::types::ascii_keyboard_t keyboard( _ascii_device ) ;
 
         std::lock_guard<std::mutex> lk( _buffer_mtx ) ;
         

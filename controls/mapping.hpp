@@ -16,7 +16,7 @@
 #include "components/stick.hpp"
 #include "components/touch.hpp"
 
-#include "layouts/ascii_keyboard.hpp"
+#include "types/ascii_keyboard.hpp"
 
 namespace motor
 {
@@ -37,7 +37,7 @@ namespace motor
         {
             using comp_t = motor::controls::icomponent ;
             using comp_button_t = motor::controls::components::button_t ;
-            using comp_ascii_t = motor::controls::layouts::ascii_keyboard_t::ascii_component_t;
+            using comp_ascii_t = motor::controls::types::ascii_keyboard_t::ascii_component_t;
             //using comp_knob_t = motor::controls::components::knob_t ;
             using comp_point_t = motor::controls::components::point_t ;
             using comp_scroll_t = motor::controls::components::scroll_t ;
@@ -384,16 +384,16 @@ namespace motor
 
             struct input_mapping
             {
-                typename device_a_t::layout_t::input_component a ;
-                typename device_b_t::layout_t::input_component b ;
+                typename device_a_t::device_type_t::input_component a ;
+                typename device_b_t::device_type_t::input_component b ;
                 detail::mapping_funk_t funk ;
             };
             motor::vector< input_mapping > _inputs ;
 
             struct output_mapping
             {
-                typename device_a_t::layout_t::output_component a ;
-                typename device_b_t::layout_t::output_component b ;
+                typename device_a_t::device_type_t::output_component a ;
+                typename device_b_t::device_type_t::output_component b ;
                 detail::mapping_funk_t funk ;
             };
             motor::vector< output_mapping > _outputs ;
@@ -436,8 +436,8 @@ namespace motor
 
             // adds or exchanges an input mapping
             bool_t insert( 
-                typename device_a_t::layout_t::input_component const a, 
-                typename device_b_t::layout_t::input_component const b,
+                typename device_a_t::device_type_t::input_component const a, 
+                typename device_b_t::device_type_t::input_component const b,
                 motor::controls::mapping_detail const det = mapping_detail::one_to_one ) noexcept
             {
                 auto * ic_a = _a->get_in_component( static_cast< size_t > ( a ) ) ;

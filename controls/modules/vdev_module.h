@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../imodule.h"
-#include "../layouts/game_controller.hpp"
+#include "../types/game_controller.hpp"
 
 #include <motor/std/vector>
 

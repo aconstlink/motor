@@ -281,7 +281,7 @@ public:
 
 namespace this_file
 {
-    typedef motor::controls::layouts::xbox_controller_t::input_component ic_t ;
+    typedef motor::controls::types::xbox_controller_t::input_component ic_t ;
     static ic_t map_button_xinput_to_component( DWORD const b ) noexcept
     {
         ic_t ret = ic_t::num_components ;
@@ -308,7 +308,7 @@ namespace this_file
         return ret ;
     }
 
-    typedef motor::controls::layouts::xbox_controller_t::button button_t ;
+    typedef motor::controls::types::xbox_controller_t::button button_t ;
 
     static button_t map_button_xinput_to_layout( DWORD const b ) noexcept
     {
@@ -328,7 +328,7 @@ namespace this_file
         return ret ;
     }
 
-    typedef motor::controls::layouts::xbox_controller_t::thumb thumb_t ;
+    typedef motor::controls::types::xbox_controller_t::thumb thumb_t ;
 
     static thumb_t map_thumb_xinput_to_layout( DWORD const b ) noexcept
     {
@@ -344,7 +344,7 @@ namespace this_file
         return ret ;
     }
 
-    typedef motor::controls::layouts::xbox_controller_t::shoulder shoulder_t ;
+    typedef motor::controls::types::xbox_controller_t::shoulder shoulder_t ;
 
     static shoulder_t map_shoulder_xinput_to_layout( DWORD const b ) noexcept
     {
@@ -360,7 +360,7 @@ namespace this_file
         return ret ;
     }
 
-    typedef motor::controls::layouts::xbox_controller_t::dpad dpad_t ;
+    typedef motor::controls::types::xbox_controller_t::dpad dpad_t ;
 
     static dpad_t map_dpad_xinput_to_layout( DWORD const b ) noexcept
     {
@@ -454,7 +454,7 @@ void_t xinput_module::update( void_t ) noexcept
         if( motor::log::global_t::warning( res != ERROR_SUCCESS,
             motor_log_fn("XInputGetState") ) ) continue ;
 
-        motor::controls::layouts::xbox_controller_t ctrl( dev ) ;
+        motor::controls::types::xbox_controller_t ctrl( dev ) ;
 
         // buttons : Just the on/off buttons
         {
@@ -496,8 +496,8 @@ void_t xinput_module::update( void_t ) noexcept
                 auto const bs = helper.check_left_trigger( state, intensity ) ;
                 if( bs != motor::controls::components::button_state::none )
                 {
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::trigger::left ) = bs ;
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::trigger::left ) =
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::trigger::left ) = bs ;
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::trigger::left ) =
                         float_t( intensity ) / 255.0f ; ;
                 }
             }
@@ -505,8 +505,8 @@ void_t xinput_module::update( void_t ) noexcept
                 auto const bs = helper.check_right_trigger( state, intensity ) ;
                 if( bs != motor::controls::components::button_state::none )
                 {
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::trigger::right ) = bs ;
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::trigger::right ) =
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::trigger::right ) = bs ;
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::trigger::right ) =
                         float_t( intensity ) / 255.0f ; ;
                 }
             }
@@ -519,8 +519,8 @@ void_t xinput_module::update( void_t ) noexcept
                 auto const ss = helper.check_left_stick( state, change ) ;
                 if( ss != motor::controls::components::stick_state::none )
                 {
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::stick::left ) = ss ;
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::stick::left ) = change ;
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::stick::left ) = ss ;
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::stick::left ) = change ;
                 }
             }
 
@@ -528,8 +528,8 @@ void_t xinput_module::update( void_t ) noexcept
                 auto const ss = helper.check_right_stick( state, change ) ;
                 if( ss != motor::controls::components::stick_state::none )
                 {
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::stick::right ) = ss ;
-                    *ctrl.get_component( motor::controls::layouts::xbox_controller_t::stick::right ) = change ;
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::stick::right ) = ss ;
+                    *ctrl.get_component( motor::controls::types::xbox_controller_t::stick::right ) = change ;
                 }
             }
         }
@@ -540,12 +540,12 @@ void_t xinput_module::update( void_t ) noexcept
             std::memset( &vib, 0, sizeof( XINPUT_VIBRATION ) ) ;
             
             {
-                auto * motor = ctrl.get_component( motor::controls::layouts::xbox_controller_t::vibrator::left ) ;
+                auto * motor = ctrl.get_component( motor::controls::types::xbox_controller_t::vibrator::left ) ;
                 vib.wLeftMotorSpeed = WORD( 65535.0f * motor->value() ) ;
             }
 
             {
-                auto* motor = ctrl.get_component( motor::controls::layouts::xbox_controller_t::vibrator::right ) ;
+                auto* motor = ctrl.get_component( motor::controls::types::xbox_controller_t::vibrator::right ) ;
                 vib.wRightMotorSpeed = WORD( 65535.0f * motor->value() ) ;
             }
 

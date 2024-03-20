@@ -11,7 +11,7 @@ namespace motor
 {
     namespace controls
     {
-        namespace layouts
+        namespace types
         {
             class three_mouse
             {
@@ -266,6 +266,6 @@ namespace motor
             };
             motor_typedef( three_mouse ) ;
         }
-        motor_typedefs( motor::controls::device_with< motor::controls::layouts::three_mouse >, three_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::types::three_mouse >, three_device ) ;
     }
 }

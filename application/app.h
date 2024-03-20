@@ -11,8 +11,8 @@
 
 #include <motor/controls/device.hpp>
 #include <motor/controls/system.h>
-#include <motor/controls/layouts/ascii_keyboard.hpp>
-#include <motor/controls/layouts/three_mouse.hpp>
+#include <motor/controls/types/ascii_keyboard.hpp>
+#include <motor/controls/types/three_mouse.hpp>
 
 #include <motor/audio/frontend.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>

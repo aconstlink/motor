@@ -12,7 +12,7 @@ namespace motor
 {
     namespace controls
     {
-        namespace layouts
+        namespace types
         {
             class midi_controller
             {
@@ -46,14 +46,14 @@ namespace motor
         }
 
         template<>
-        class device_with<motor::controls::layouts::midi_controller> : public device
+        class device_with<motor::controls::types::midi_controller> : public device
         {
-            motor_this_typedefs( device_with< motor::controls::layouts::midi_controller > ) ;
+            motor_this_typedefs( device_with< motor::controls::types::midi_controller > ) ;
             using base_t = device ;
 
         public:
 
-            using layout_t = motor::controls::layouts::midi_controller ;
+            using layout_t = motor::controls::types::midi_controller ;
 
             using midi_in_update_funk_t = std::function< bool_t ( 
                 motor::controls::input_component_ptr_t, motor::controls::midi_message_cref_t ) > ;
@@ -138,6 +138,6 @@ namespace motor
                 }
             }
         };
-        motor_typedefs( motor::controls::device_with< motor::controls::layouts::midi_controller>, midi_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::types::midi_controller>, midi_device ) ;
     }
 }

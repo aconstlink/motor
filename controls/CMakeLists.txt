@@ -16,12 +16,12 @@ set( sources
     "modules/vdev_module.h"
     "modules/vdev_module.cpp"
 
-    "layouts/ascii_keyboard.hpp"
-    "layouts/three_mouse.hpp"
-    "layouts/ps3_controller.hpp"
-    "layouts/xbox_controller.hpp"
-    "layouts/game_controller.hpp"
-    "layouts/midi_controller.hpp"
+    "types/ascii_keyboard.hpp"
+    "types/three_mouse.hpp"
+    "types/ps3_controller.hpp"
+    "types/xbox_controller.hpp"
+    "types/game_controller.hpp"
+    "types/midi_controller.hpp"
 
     "components/button.hpp"
     "components/key.hpp"

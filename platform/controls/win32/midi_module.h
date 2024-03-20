@@ -7,7 +7,7 @@
 #include <motor/controls/imodule.h>
 #include <motor/controls/midi/midi_message.hpp>
 #include <motor/controls/midi/midi_observer.hpp>
-#include <motor/controls/layouts/midi_controller.hpp>
+#include <motor/controls/types/midi_controller.hpp>
 
 #include <motor/std/vector>
 #include <motor/math/vector/vector2.hpp>

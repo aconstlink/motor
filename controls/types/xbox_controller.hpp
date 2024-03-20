@@ -14,7 +14,7 @@ namespace motor
 {
     namespace controls
     {
-        namespace layouts
+        namespace types
         {
             // physical device layout
             class xbox_controller
@@ -372,6 +372,6 @@ namespace motor
             } ;
             motor_typedef( xbox_controller ) ;
         }
-        motor_typedefs( motor::controls::device_with< motor::controls::layouts::xbox_controller >, xbc_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::types::xbox_controller >, xbc_device ) ;
     }
 }

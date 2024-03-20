@@ -5,8 +5,8 @@
 #include "../../typedefs.h"
 
 #include <motor/controls/imodule.h>
-#include <motor/controls/layouts/three_mouse.hpp>
-#include <motor/controls/layouts/ascii_keyboard.hpp>
+#include <motor/controls/types/three_mouse.hpp>
+#include <motor/controls/types/ascii_keyboard.hpp>
 
 #include <motor/std/vector>
 #include <motor/math/vector/vector2.hpp>
@@ -25,7 +25,7 @@ namespace motor
 
             private: // mouse typedefs
 
-                typedef motor::controls::layouts::three_mouse_t::button three_button_t ;
+                typedef motor::controls::types::three_mouse_t::button three_button_t ;
                 typedef motor::controls::components::button_state button_state_t ;
 
                 typedef std::pair< three_button_t, button_state_t> mouse_button_item_t ;
@@ -43,7 +43,7 @@ namespace motor
 
             private: // keyboard typedefs 
 
-                typedef motor::controls::layouts::ascii_keyboard::ascii_key ascii_key_t ;
+                typedef motor::controls::types::ascii_keyboard::ascii_key ascii_key_t ;
                 typedef motor::controls::components::key_state key_state_t ;
 
                 typedef std::pair< ascii_key_t, key_state_t > ascii_keyboard_key_item_t ;

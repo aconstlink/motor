@@ -12,7 +12,7 @@ namespace motor
 {
     namespace controls
     {
-        namespace layouts
+        namespace types
         {
             // logical device layout
             class game_controller
@@ -268,6 +268,6 @@ namespace motor
             };
             motor_typedef( game_controller ) ;
         }
-        motor_typedefs( motor::controls::device_with< motor::controls::layouts::game_controller >, game_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::types::game_controller >, game_device ) ;
     }
 }

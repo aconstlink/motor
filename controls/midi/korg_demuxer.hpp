@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../layouts/midi_controller.hpp"
+#include "../types/midi_controller.hpp"
 #include "../components/button.hpp"
 #include "../components/slider.hpp"
 #include "../components/knob.hpp"

@@ -11,7 +11,7 @@ namespace motor
 {
     namespace controls
     {
-        namespace layouts
+        namespace types
         {
             class ascii_keyboard
             {
@@ -334,6 +334,6 @@ namespace motor
             };
             motor_typedef( ascii_keyboard ) ;
         }
-        motor_typedefs( motor::controls::device_with< motor::controls::layouts::ascii_keyboard >, ascii_device ) ;
+        motor_typedefs( motor::controls::device_with< motor::controls::types::ascii_keyboard >, ascii_device ) ;
     }
 }

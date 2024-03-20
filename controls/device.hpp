@@ -223,25 +223,25 @@ namespace motor
         motor_typedef( device ) ;
 
 
-        template< typename L >
+        template< typename T >
         class device_with : public device
         {
-            motor_this_typedefs( device_with< L > ) ;
+            motor_this_typedefs( device_with< T > ) ;
 
         public:
 
-            using layout_t = L ;
+            using device_type_t = T ;
 
         public:
 
             device_with( void_t ) noexcept
             {
-                layout_t::init_components( *this ) ;
+                device_type_t::init_components( *this ) ;
             }
 
             device_with( motor::string_cref_t name ) noexcept : device( name ) 
             {
-                layout_t::init_components( *this ) ;
+                device_type_t::init_components( *this ) ;
             }
         };
     }

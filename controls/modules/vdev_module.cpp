@@ -4,10 +4,10 @@
 
 #include "../mapping.hpp"
 
-#include <motor/controls/layouts/xbox_controller.hpp>
-#include <motor/controls/layouts/game_controller.hpp>
-#include <motor/controls/layouts/ascii_keyboard.hpp>
-#include <motor/controls/layouts/three_mouse.hpp>
+#include <motor/controls/types/xbox_controller.hpp>
+#include <motor/controls/types/game_controller.hpp>
+#include <motor/controls/types/ascii_keyboard.hpp>
+#include <motor/controls/types/three_mouse.hpp>
 
 #include <motor/log/global.h>
 
@@ -106,8 +106,8 @@ void_t vdev_module::init_controller_1( motor::controls::imodule_mtr_t mod ) noex
             using a_t = motor::controls::game_device_t ;
             using b_t = motor::controls::xbc_device_t ;
 
-            using ica_t = a_t::layout_t::input_component ;
-            using icb_t = b_t::layout_t::input_component ;
+            using ica_t = a_t::device_type_t::input_component ;
+            using icb_t = b_t::device_type_t::input_component ;
 
             using mapping_t = motor::controls::mapping< a_t, b_t > ;
             mapping_t m( name, g.dev, xbc_dev ) ;
@@ -165,42 +165,42 @@ void_t vdev_module::init_controller_1( motor::controls::imodule_mtr_t mod ) noex
             using a_t = motor::controls::game_device_t ;
             using b_t = motor::controls::ascii_device_t ;
 
-            using ica_t = a_t::layout_t::input_component ;
-            //using icb_t = b_t::layout_t::input_component ;
+            using ica_t = a_t::device_type_t::input_component ;
+            //using icb_t = b_t::device_type_t::input_component ;
 
             using mapping_t = motor::controls::mapping< a_t, b_t > ;
             mapping_t m( name, g.dev, ascii_dev ) ;
 
             {
                 auto const res = m.insert( ica_t::jump,
-                    b_t::layout_t::ascii_key_to_input_component( b_t::layout_t::ascii_key::space ) ) ;
+                    b_t::device_type_t::ascii_key_to_input_component( b_t::device_type_t::ascii_key::space ) ) ;
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
 
             {
                 auto const res = m.insert( ica_t::movement,
-                    b_t::layout_t::ascii_key_to_input_component( b_t::layout_t::ascii_key::a ),
+                    b_t::device_type_t::ascii_key_to_input_component( b_t::device_type_t::ascii_key::a ),
                     motor::controls::mapping_detail::negative_x ) ;
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
 
             {
                 auto const res = m.insert( ica_t::movement,
-                    b_t::layout_t::ascii_key_to_input_component( b_t::layout_t::ascii_key::d ),
+                    b_t::device_type_t::ascii_key_to_input_component( b_t::device_type_t::ascii_key::d ),
                     motor::controls::mapping_detail::positive_x ) ;
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
 
             {
                 auto const res = m.insert( ica_t::movement,
-                    b_t::layout_t::ascii_key_to_input_component( b_t::layout_t::ascii_key::w ),
+                    b_t::device_type_t::ascii_key_to_input_component( b_t::device_type_t::ascii_key::w ),
                     motor::controls::mapping_detail::positive_y ) ;
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
 
             {
                 auto const res = m.insert( ica_t::movement,
-                    b_t::layout_t::ascii_key_to_input_component( b_t::layout_t::ascii_key::s ),
+                    b_t::device_type_t::ascii_key_to_input_component( b_t::device_type_t::ascii_key::s ),
                     motor::controls::mapping_detail::negative_y ) ;
                 motor::log::global_t::warning( !res, "can not do mapping." ) ;
             }
@@ -234,8 +234,8 @@ void_t vdev_module::init_controller_1( motor::controls::imodule_mtr_t mod ) noex
             using a_t = motor::controls::game_device_t ;
             using b_t = motor::controls::three_device_t ;
 
-            using ica_t = a_t::layout_t::input_component ;
-            using icb_t = b_t::layout_t::input_component ;
+            using ica_t = a_t::device_type_t::input_component ;
+            using icb_t = b_t::device_type_t::input_component ;
 
             using mapping_t = motor::controls::mapping< a_t, b_t > ;
             mapping_t m( name, g.dev, three_dev ) ;
