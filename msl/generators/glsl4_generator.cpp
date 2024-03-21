@@ -508,7 +508,7 @@ namespace this_file_glsl4
                 motor::string_t( ":rand_1:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_rand_1__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_rand_1_msl_( " + args[ 0 ] + " ) " ;
 
                     return "rand_1 ( INVALID_ARGS ) " ;
                 }
@@ -517,7 +517,7 @@ namespace this_file_glsl4
                 motor::string_t( ":rand_4:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_rand_4__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_rand_4_msl_( " + args[ 0 ] + " ) " ;
 
                     return "rand_1d ( INVALID_ARGS ) " ;
                 }
@@ -526,8 +526,8 @@ namespace this_file_glsl4
                 motor::string_t( ":noise_1:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_noise_1__( " + args[ 0 ] + " ) " ;
-                    if( args.size() == 2 ) return "__bi_noise_1__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_noise_1_msl_( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 2 ) return "_msl_bi_noise_1_msl_( " + args[ 0 ] + " ) " ;
 
                     return "noise_1d ( INVALID_ARGS ) " ;
                 }
@@ -536,8 +536,8 @@ namespace this_file_glsl4
                 motor::string_t( ":perlin_1:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_perlin_1_2__( " + args[ 0 ] + " , 50 ) " ;
-                    if( args.size() == 2 ) return "__bi_perlin_1_2__( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_perlin_1_2_msl_( " + args[ 0 ] + " , 50 ) " ;
+                    if( args.size() == 2 ) return "_msl_bi_perlin_1_2_msl_( " + args[ 0 ] + " , " + args[ 1 ] + " ) " ;
 
                     return "perlin_1d ( INVALID_ARGS ) " ;
                 }
@@ -546,7 +546,7 @@ namespace this_file_glsl4
                 motor::string_t( ":perlin_2:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_perlin_2d__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_perlin_2d_msl_( " + args[ 0 ] + " ) " ;
                     return "perlin_2d ( INVALID_ARGS ) " ;
                 }
             },
@@ -554,7 +554,7 @@ namespace this_file_glsl4
                 motor::string_t( ":perlin_3:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_perlin_3d__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_perlin_3d_msl_( " + args[ 0 ] + " ) " ;
                     return "perlin_3d ( INVALID_ARGS ) " ;
                 }
             },
@@ -562,7 +562,7 @@ namespace this_file_glsl4
                 motor::string_t( ":snoise_2:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_snoise_2d__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_snoise_2d_msl_( " + args[ 0 ] + " ) " ;
                     return "snoise_2d ( INVALID_ARGS ) " ;
                 }
             },
@@ -570,7 +570,7 @@ namespace this_file_glsl4
                 motor::string_t( ":snoise_3:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_snoise_3d__( " + args[ 0 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_snoise_3d_msl_( " + args[ 0 ] + " ) " ;
                     return "snoise_3d ( INVALID_ARGS ) " ;
                 }
             },
@@ -578,7 +578,7 @@ namespace this_file_glsl4
                 motor::string_t( ":iqnoise:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 3 ) return "__bi_iqnoise__ ( " + args[ 0 ] + " , "+ args[ 1 ] +" , "+ args[ 2 ] +" ) " ;
+                    if( args.size() == 3 ) return "_msl_bi_iqnoise_msl_ ( " + args[ 0 ] + " , "+ args[ 1 ] +" , "+ args[ 2 ] +" ) " ;
                     return "iqnoise ( INVALID_ARGS ) " ;
                 }
             },
@@ -586,8 +586,8 @@ namespace this_file_glsl4
                 motor::string_t( ":fbm_1:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
-                    if( args.size() == 1 ) return "__bi_fbm_1d__ ( " + args[ 0 ] + " , 5 ) " ;
-                    else if( args.size() == 2 ) return "__bi_fbm_1d__ ( " + args[ 0 ] + " , "+ args[ 1 ] + " ) " ;
+                    if( args.size() == 1 ) return "_msl_bi_fbm_1d_msl_ ( " + args[ 0 ] + " , 5 ) " ;
+                    else if( args.size() == 2 ) return "_msl_bi_fbm_1d_msl_ ( " + args[ 0 ] + " , "+ args[ 1 ] + " ) " ;
                     return "fbm_1d ( INVALID_ARGS ) " ;
                 }
             }
@@ -645,7 +645,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_rand_1__",
+                    "_msl_bi_rand_1_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_float(), "x" },
@@ -660,7 +660,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_rand_1__",
+                    "_msl_bi_rand_1_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "x" },
@@ -675,7 +675,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_rand_1__",
+                    "_msl_bi_rand_1_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "x" },
@@ -690,7 +690,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_rand_1__",
+                    "_msl_bi_rand_1_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec4(), "x" },
@@ -705,7 +705,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_vec4(),
-                    "__bi_rand_4__",
+                    "_msl_bi_rand_4_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec4(), "x" },
@@ -726,7 +726,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_noise_1__",
+                    "_msl_bi_noise_1_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_float(), "x" },
@@ -742,7 +742,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_noise_1__",
+                    "_msl_bi_noise_1_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "x" },
@@ -763,7 +763,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_noise_1__",
+                    "_msl_bi_noise_1_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "x" },
@@ -776,12 +776,12 @@ namespace this_file_glsl4
                     "d = d * d * (3.0 - 2.0 * d);"
 
                     "vec4 b = a.xxyy + vec4(0.0, 1.0, 0.0, 1.0);"
-                    "vec4 k1 = __internal_perm_4__(b.xyxy);"
-                    "vec4 k2 = __internal_perm_4__(k1.xyxy + b.zzww);"
+                    "vec4 k1 = _msl_internal_perm_4_msl_(b.xyxy);"
+                    "vec4 k2 = _msl_internal_perm_4_msl_(k1.xyxy + b.zzww);"
 
                     "vec4 c = k2 + a.zzzz;"
-                    "vec4 k3 = __internal_perm_4__(c);"
-                    "vec4 k4 = __internal_perm_4__(c + 1.0);"
+                    "vec4 k3 = _msl_internal_perm_4_msl_(c);"
+                    "vec4 k4 = _msl_internal_perm_4_msl_(c + 1.0);"
 
                     "vec4 o1 = fract(k3 * (1.0 / 41.0));"
                     "vec4 o2 = fract(k4 * (1.0 / 41.0));"
@@ -796,7 +796,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_vec3(),
-                    "__internal_perm_3__",
+                    "_msl_internal_perm_3_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "x" },
@@ -813,7 +813,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_vec4(),
-                    "__internal_perm_4__",
+                    "_msl_internal_perm_4_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec4(), "x" },
@@ -830,7 +830,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__internal_perlin_1d__",
+                    "_msl_internal_perlin_1d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "p" },
@@ -843,10 +843,10 @@ namespace this_file_glsl4
                     "vec2 ij = floor(p/freq);"
                     "vec2 xy = mod(p,freq)/freq;"
                     "xy = .5*(1.-cos(pi*xy));"
-                    "float a = __bi_rand_1__ ( (ij+vec2(0.,0.)) ) ;"
-                    "float b = __bi_rand_1__ ( (ij+vec2(1.,0.)) ) ;"
-                    "float c = __bi_rand_1__ ( (ij+vec2(0.,1.)) ) ;"
-                    "float d = __bi_rand_1__ ( (ij+vec2(1.,1.)) ) ;"
+                    "float a = _msl_bi_rand_1_msl_ ( (ij+vec2(0.,0.)) ) ;"
+                    "float b = _msl_bi_rand_1_msl_ ( (ij+vec2(1.,0.)) ) ;"
+                    "float c = _msl_bi_rand_1_msl_ ( (ij+vec2(0.,1.)) ) ;"
+                    "float d = _msl_bi_rand_1_msl_ ( (ij+vec2(1.,1.)) ) ;"
                     "float x1 = mix(a, b, xy.x);"
                     "float x2 = mix(c, d, xy.x);"
                     "return mix(x1, x2, xy.y);"
@@ -856,7 +856,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_perlin_1_2__",
+                    "_msl_bi_perlin_1_2_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "p" },
@@ -872,7 +872,7 @@ namespace this_file_glsl4
                     "float amp = 1.;"
                     //"int iCount = 0;"
                     "for (int i = 0; i<iter; i++){"
-                    "n+=amp*__internal_perlin_1d__(p, f);"
+                    "n+=amp*_msl_internal_perlin_1d_msl_(p, f);"
                     "f*=2.;"
                     "normK+=amp;"
                     "amp*=persistance;"
@@ -887,7 +887,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_vec2(),
-                    "__internal_perlin_2_fade_2d__",
+                    "_msl_internal_perlin_2_fade_2d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "t" }
@@ -902,7 +902,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_perlin_2d__",
+                    "_msl_bi_perlin_2d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "P" }
@@ -917,7 +917,7 @@ namespace this_file_glsl4
                     vec4 iy = Pi.yyww;
                     vec4 fx = Pf.xzxz;
                     vec4 fy = Pf.yyww;
-                    vec4 i = __internal_perm_4__(iy)+__internal_perm_4__(ix) ;
+                    vec4 i = _msl_internal_perm_4_msl_(iy)+_msl_internal_perm_4_msl_(ix) ;
                     vec4 gx = 2.0 * fract(i * 0.0243902439) - 1.0;
                     vec4 gy = abs(gx) - 0.5;
                     vec4 tx = floor(gx + 0.5);
@@ -936,7 +936,7 @@ namespace this_file_glsl4
                     float n10 = dot(g10, vec2(fx.y, fy.y));
                     float n01 = dot(g01, vec2(fx.z, fy.z));
                     float n11 = dot(g11, vec2(fx.w, fy.w));
-                    vec2 fade_xy = __internal_perlin_2_fade_2d__(Pf.xy);
+                    vec2 fade_xy = _msl_internal_perlin_2_fade_2d_msl_(Pf.xy);
                     vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
                     float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
                     return 2.3 * n_xy;)"
@@ -946,7 +946,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_vec4(),
-                    "__int_taylor_inv_sqrt_4d_4d__",
+                    "_msl_int_taylor_inv_sqrt_4d_4d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec4(), "x" }
@@ -961,7 +961,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_vec3(),
-                    "__internal_perlin_3d_fade_3d__",
+                    "_msl_internal_perlin_3d_fade_3d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "t" }
@@ -976,7 +976,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_perlin_3d__",
+                    "_msl_bi_perlin_3d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "P" }
@@ -995,9 +995,9 @@ namespace this_file_glsl4
                     vec4 iz0 = Pi0.zzzz;
                     vec4 iz1 = Pi1.zzzz;
 
-                    vec4 ixy = __internal_perm_4__( __internal_perm_4__(ix)+iy ) ;
-                    vec4 ixy0 = __internal_perm_4__(ixy+iz0 ) ;
-                    vec4 ixy1 = __internal_perm_4__(ixy+iz1 ) ;
+                    vec4 ixy = _msl_internal_perm_4_msl_( _msl_internal_perm_4_msl_(ix)+iy ) ;
+                    vec4 ixy0 = _msl_internal_perm_4_msl_(ixy+iz0 ) ;
+                    vec4 ixy1 = _msl_internal_perm_4_msl_(ixy+iz1 ) ;
 
                     vec4 gx0 = ixy0 / 7.0;
                     vec4 gy0 = fract(floor(gx0) / 7.0) - 0.5;
@@ -1024,12 +1024,12 @@ namespace this_file_glsl4
                     vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
                     vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
 
-                    vec4 norm0 = __int_taylor_inv_sqrt_4d_4d__(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+                    vec4 norm0 = _msl_int_taylor_inv_sqrt_4d_4d_msl_(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
                     g000 *= norm0.x;
                     g010 *= norm0.y;
                     g100 *= norm0.z;
                     g110 *= norm0.w;
-                    vec4 norm1 = __int_taylor_inv_sqrt_4d_4d__(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+                    vec4 norm1 = _msl_int_taylor_inv_sqrt_4d_4d_msl_(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
                     g001 *= norm1.x;
                     g011 *= norm1.y;
                     g101 *= norm1.z;
@@ -1044,7 +1044,7 @@ namespace this_file_glsl4
                     float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
                     float n111 = dot(g111, Pf1);
 
-                    vec3 fade_xyz = __internal_perlin_3d_fade_3d__(Pf0);
+                    vec3 fade_xyz = _msl_internal_perlin_3d_fade_3d_msl_(Pf0);
                     vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
                     vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
                     float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
@@ -1055,7 +1055,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_snoise_2d__",
+                    "_msl_bi_snoise_2d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "v" }
@@ -1072,7 +1072,7 @@ namespace this_file_glsl4
                     "vec4 x12 = x0.xyxy + C.xxzz;"
                     "x12.xy -= i1;"
                     "i = mod(i, 289.0);"
-                    "vec3 p = __internal_perm_3__( __internal_perm_3__( i.y + vec3(0.0, i1.y, 1.0 ))"
+                    "vec3 p = _msl_internal_perm_3_msl_( _msl_internal_perm_3_msl_( i.y + vec3(0.0, i1.y, 1.0 ))"
                     "+ i.x + vec3(0.0, i1.x, 1.0 ));"
                     "vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy),"
                     "dot(x12.zw,x12.zw)), 0.0);"
@@ -1093,7 +1093,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_snoise_3d__",
+                    "_msl_bi_snoise_3d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "v" }
@@ -1121,7 +1121,7 @@ namespace this_file_glsl4
 
                 
                     "i = mod(i, 289.0 ); "
-                    "vec4 p = __internal_perm_4__( __internal_perm_4__( __internal_perm_4__( "
+                    "vec4 p = _msl_internal_perm_4_msl_( _msl_internal_perm_4_msl_( _msl_internal_perm_4_msl_( "
                                 "i.z + vec4(0.0, i1.z, i2.z, 1.0 ))"
                             "+ i.y + vec4(0.0, i1.y, i2.y, 1.0 )) "
                             "+ i.x + vec4(0.0, i1.x, i2.x, 1.0 ));"
@@ -1155,7 +1155,7 @@ namespace this_file_glsl4
                     "vec3 p3 = vec3(a1.zw,h.w);"
 
                 
-                    "vec4 norm = __int_taylor_inv_sqrt_4d_4d__(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));"
+                    "vec4 norm = _msl_int_taylor_inv_sqrt_4d_4d_msl_(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));"
                     "p0 *= norm.x;"
                     "p1 *= norm.y;"
                     "p2 *= norm.z;"
@@ -1172,7 +1172,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_vec3(),
-                    "__int_hash_3__",
+                    "_msl_int_hash_3_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "p" }
@@ -1191,7 +1191,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_iqnoise__",
+                    "_msl_bi_iqnoise_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "x" },
@@ -1212,7 +1212,7 @@ namespace this_file_glsl4
                     "for( int i=-2; i<=2; i++ )"
                     "{"
                         "vec2 g = vec2( float(i),float(j) );"
-                        "vec3 o = __int_hash_3__( p + g )*vec3(u,u,1.0);"
+                        "vec3 o = _msl_int_hash_3_msl_( p + g )*vec3(u,u,1.0);"
                         "vec2 r = g - f + o.xy;"
                         "float d = dot(r,r);"
                         "float ww = pow( 1.0-smoothstep(0.0,1.414,sqrt(d)), k );"
@@ -1227,7 +1227,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_fbm_1d__",
+                    "_msl_bi_fbm_1d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_float(), "x" },
@@ -1240,7 +1240,7 @@ namespace this_file_glsl4
                     "float a = 0.5;"
                     "float shift = float(100);"
                     "for (int i = 0; i < oct; ++i) {"
-                        "v += a * __bi_noise_1__(x);"
+                        "v += a * _msl_bi_noise_1_msl_(x);"
                         "x = x * 2.0 + shift;"
                         "a *= 0.5;"
                     "}"
@@ -1251,7 +1251,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_fbm_1d__",
+                    "_msl_bi_fbm_1d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec2(), "x" },
@@ -1266,7 +1266,7 @@ namespace this_file_glsl4
                     
                     //"mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));"
                     "for (int i = 0; i < oct; ++i) {"
-                        "v += a * __bi_noise_1__(x);"
+                        "v += a * _msl_bi_noise_1_msl_(x);"
                         "x = /*rot */ x * 2.0 + shift;"
                         "a *= 0.5;"
                     "}"
@@ -1277,7 +1277,7 @@ namespace this_file_glsl4
                 // motor::msl::signature_t
                 { 
                     motor::msl::type_t::as_float(),
-                    "__bi_fbm_1d__",
+                    "_msl_bi_fbm_1d_msl_",
                     // motor::msl::signature_t::args_t
                     {
                         { motor::msl::type_t::as_vec3(), "x" },
@@ -1290,7 +1290,7 @@ namespace this_file_glsl4
                     "float a = 0.5;"
                     "vec3 shift = vec3(100);"
                     "for (int i = 0; i < oct; ++i) {"
-                        "v += a * __bi_noise_1__(x);"
+                        "v += a * _msl_bi_noise_1_msl_(x);"
                         "x = x * 2.0 + shift;"
                         "a *= 0.5;"
                     "}"
@@ -1466,12 +1466,12 @@ namespace this_file
 //******************************************************************************************************************************************
 motor::string_t glsl4_generator::to_texture_type( motor::msl::type_cref_t t ) noexcept
 {
-    typedef std::pair< motor::msl::type_ext, char const * const > __mapping_t ;
+    typedef std::pair< motor::msl::type_ext, char const * const > _msl_mapping_t ;
 
-    static __mapping_t const __mappings[] = {
-        __mapping_t( motor::msl::type_ext::unknown, "unknown" ),
-        __mapping_t( motor::msl::type_ext::texture_1d, "sampler1D" ),
-        __mapping_t( motor::msl::type_ext::texture_2d, "sampler2D" )
+    static _msl_mapping_t const __mappings[] = {
+        _msl_mapping_t( motor::msl::type_ext::unknown, "unknown" ),
+        _msl_mapping_t( motor::msl::type_ext::texture_1d, "sampler1D" ),
+        _msl_mapping_t( motor::msl::type_ext::texture_2d, "sampler2D" )
     } ;
 
     for( auto const& m : __mappings ) if( m.first == t.ext ) return m.second ;
