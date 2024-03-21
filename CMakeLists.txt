@@ -137,6 +137,7 @@ list( APPEND subdirs
     #"system"
     "gfx"
     "geometry"
+    "noise"
     #"physics"
     #"profile"
     #${subdirs_header_only}

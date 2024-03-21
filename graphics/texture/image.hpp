@@ -118,7 +118,7 @@ namespace motor
             {
                 _width = w ;
                 _height = h ;
-                _depth = d ;
+                _depth = std::max( size_t(1), d ) ;
 
                 size_t const sib = this_t::sib() ;
 

@@ -3293,7 +3293,7 @@ public: // functions
 
         // texture
         {
-            auto iref = obj.image() ;
+            auto & iref = obj.image() ;
 
             size_t const width = iref.get_dims().x() ;
             size_t const height = iref.get_dims().y() ;
@@ -3497,6 +3497,42 @@ public: // functions
             std::memcpy( resource.pData, data_ptr, lsib * ne ) ;
             _ctx->ctx()->Unmap( data.buffer, 0 ) ;
         }
+
+        return true ;
+    }
+
+    //******************************************************************************************************************************
+    bool_t update( size_t const id, motor::graphics::image_object_ref_t obj, bool_t const is_config )
+    {
+        auto & data = images[ id ] ;
+        auto & iref = obj.image() ;
+
+        // check if image has changed
+        {
+            D3D11_TEXTURE2D_DESC bd ;
+            data.texture->GetDesc( &bd ) ;
+
+            size_t const width = iref.get_dims().x() ;
+            size_t const height = iref.get_dims().y() ;
+            size_t const depth = iref.get_dims().z() ;
+
+            bool_t const b1 = bd.Width != width ;
+            bool_t const b2 = bd.Height != height ;
+            bool_t const b3 = bd.ArraySize != depth ;
+            bool_t const b4 = bd.Format != motor::platform::d3d11::convert( iref.get_image_format(), iref.get_image_element_type() ) ; 
+
+            if( motor::math::vec4b_t( b1, b2, b3, b4).any() )
+            {
+                this->construct_image_config( id, obj ) ;
+                return true ;
+            }
+        }
+        #if 1
+        // copy data
+        {
+            _ctx->ctx()->UpdateSubresource( data.texture, 0, nullptr /*&box*/, iref.get_image_ptr(), 0, 0 ) ;
+        }
+        #endif
 
         return true ;
     }
@@ -4397,8 +4433,15 @@ motor::graphics::result d3d11_backend::update( motor::graphics::streamout_object
 }
 
 //******************************************************************************************************************************
-motor::graphics::result d3d11_backend::update( motor::graphics::image_object_mtr_t ) noexcept 
+motor::graphics::result d3d11_backend::update( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+
+    if( !_pimpl->update( oid, *obj, false ) )
+    {
+        return motor::graphics::result::failed ;
+    }
+
     return motor::graphics::result::ok ;
 }
 

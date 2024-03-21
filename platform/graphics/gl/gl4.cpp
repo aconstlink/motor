@@ -3941,8 +3941,15 @@ motor::graphics::result gl4_backend::update( motor::graphics::array_object_mtr_t
 }
 
 //*******************************************************************************************
-motor::graphics::result gl4_backend::update( motor::graphics::image_object_mtr_t ) noexcept 
+motor::graphics::result gl4_backend::update( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+
+    if( !_pimpl->update( oid, *obj, false ) )
+    {
+        return motor::graphics::result::failed ;
+    }
+
     return motor::graphics::result::ok ;
 }
 
