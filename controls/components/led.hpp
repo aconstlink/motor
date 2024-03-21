@@ -65,6 +65,7 @@ namespace motor
             private:
 
                 bool_t _changed = false ;
+                bool_t _onoff = false ;
                 byte_t _led_color = 0 ;
 
             public:
@@ -88,15 +89,22 @@ namespace motor
             public:
 
                 // led_color == 0 is off
-                this_ref_t operator = ( byte_t const led_color ) noexcept
+                this_ref_t operator = ( size_t const led_color ) noexcept
                 {
                     _changed = true ;
-                    _led_color = led_color ;
+                    _led_color = byte_t( led_color ) ;
+                    return *this ;
+                }
+
+                this_ref_t operator = ( bool_t const onoff ) noexcept
+                {
+                    _changed = true ;
+                    _onoff = onoff ;
                     return *this ;
                 }
 
                 bool_t has_changed( void_t ) const { return _changed ; }
-                bool_t onoff ( void_t ) const noexcept { return _led_color == 0 ; }
+                bool_t onoff ( void_t ) const noexcept { return _onoff ; }
                 byte_t led_color( void_t ) const noexcept { return _led_color ; }
 
                 virtual void_t update( void_t ) noexcept final

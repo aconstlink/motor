@@ -444,7 +444,7 @@ void_t xinput_module::update( void_t ) noexcept
     {
         if( !item.connected ) continue ;
 
-        item.dev->update() ;
+        item.dev->update_all() ;
 
         motor::controls::xbc_device_mtr_t dev = item.dev ;
         xinput_device & helper = *item.xinput_ptr ;
@@ -598,6 +598,7 @@ void_t xinput_module::check_gamepads( void_t ) noexcept
                 gd.xinput_ptr->exchange_state( state ) ;
             }
             gd.connected = false ;
+            gd.dev->set_plugged( false ) ;
             continue ;
         }
 
@@ -605,6 +606,7 @@ void_t xinput_module::check_gamepads( void_t ) noexcept
         {
             motor::log::global_t::status("[XInput] : device connected (" + motor::from_std( std::to_string(i) ) + ")" ) ;
             gd.connected = true ;
+            gd.dev->set_plugged( true ) ;
         }
 
         ++i ;

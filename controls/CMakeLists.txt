@@ -41,6 +41,9 @@ set( sources
     "midi/behringer_demuxer.hpp"
     "midi/midi_message.hpp"
     "midi/midi_observer.hpp"
+    "midi/layouts/akai_layouts.hpp"
+    "midi/layouts/behringer_layouts.hpp"
+    "midi/layouts/korg_layouts.hpp"    
     )
 
 motor_vs_src_dir( sources )

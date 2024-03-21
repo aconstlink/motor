@@ -122,8 +122,8 @@ void_t xlib_module::update( void_t ) noexcept
 
     // 1. update components
     {
-        _three_device->update() ;
-        _ascii_device->update() ;
+        _three_device->update_all() ;
+        _ascii_device->update_all() ;
     }
 
     // mouse

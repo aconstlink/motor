@@ -122,7 +122,7 @@ midi_module::midi_module( void_t ) noexcept
         "[platform::midi_module] : global self") ;
     _global_self_ptr->self_ptr = this ;
 
-    this_t::check_for_new_devices() ;
+    this_t::create_devices() ;
 }
 
 //****************************************************************************************
@@ -248,6 +248,17 @@ void_t midi_module::update( void_t ) noexcept
         this_t::check_for_new_devices() ;
     }
 
+    // update all input components
+    // need to call this function here because
+    // the devices' plugged state needs to update
+    // here, because it is written in the next section.
+    {
+        for( auto & item : _devices )
+        {
+            item.dev_ptr->update_inputs() ;
+        }
+    }
+
     // handle all closed devices
     {
         std::lock_guard< std::mutex > lk( _mtx_open_close ) ;
@@ -262,10 +273,12 @@ void_t midi_module::update( void_t ) noexcept
             {
                 this_t::unregister_device( *iter, true ) ;
                 motor::log::global_t::status( "Midi device is unplugged : " + iter->name ) ;
+                iter->dev_ptr->set_plugged( false ) ;
             }
             else 
             {
                 motor::log::global_t::status( "Midi device ready for use : " + iter->name ) ;
+                iter->dev_ptr->set_plugged( true ) ;
             }
         }
         _need_open_close.clear() ;
@@ -314,11 +327,6 @@ void_t midi_module::update( void_t ) noexcept
     // I expect only very little devices( 1-3 )
     // with only very little messages per update( 10 - 20 )
     {
-        for( auto & item : _devices )
-        {
-            item.dev_ptr->update_inputs() ;
-        }
-
         for( auto & item : _devices )
         {
             // probably plugged out

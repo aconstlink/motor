@@ -9,6 +9,7 @@
 #include "imapping.hpp"
 
 #include <motor/std/vector>
+#include <tuple>
 
 namespace motor
 {
@@ -26,6 +27,9 @@ namespace motor
             motor::vector< motor::controls::output_component_ptr_t > _outputs ;
             motor::vector< motor::controls::imapping_mtr_t  > _mappings ;
 
+            bool_t _plug_changed = false ;
+            bool_t _plugged = false ;
+
         public:
 
             device( void_t ) noexcept {}
@@ -41,6 +45,8 @@ namespace motor
                 _inputs = std::move( rhv._inputs ) ;
                 _outputs = std::move( rhv._outputs ) ;
                 _mappings = std::move( rhv._mappings ) ;
+                _plug_changed = rhv._plug_changed ;
+                _plugged = rhv._plugged;
             }
 
             virtual ~device( void_t ) noexcept
@@ -69,12 +75,26 @@ namespace motor
                 _inputs = std::move( rhv._inputs ) ;
                 _outputs = std::move( rhv._outputs ) ;
                 _mappings = std::move( rhv._mappings ) ;
+                _plug_changed = rhv._plug_changed ;
+                _plugged = rhv._plugged;
                 return *this ;
             }
 
             motor::string_cref_t name( void_t ) const noexcept
             {
                 return _name ;
+            }
+            
+            // @return [ changed, plugged ]
+            std::tuple<bool_t, bool_t> plug_state( void_t ) const noexcept
+            {
+                return { _plug_changed, _plugged } ;
+            }
+
+            void_t set_plugged( bool_t const b ) noexcept
+            {
+                _plug_changed = true ;
+                _plugged = b ;
             }
 
         public: // add input
@@ -153,6 +173,12 @@ namespace motor
             }
 
             template< typename T >
+            T const * get_in_component( size_t const c ) const noexcept
+            {
+                return c < _inputs.size() ? dynamic_cast< T const * >( _inputs[ c ] ) : nullptr ;
+            }
+
+            template< typename T >
             T* get_out_component( size_t const c ) noexcept
             {
                 return c < _outputs.size() ? dynamic_cast< T* >( _outputs[ c ] ) : nullptr ;
@@ -197,7 +223,7 @@ namespace motor
 
         public:
 
-            void_t update( void_t ) noexcept
+            void_t update_all( void_t ) noexcept
             {
                 this_t::update_inputs() ;
                 this_t::update_outputs() ;
@@ -207,6 +233,7 @@ namespace motor
             // meant for a module to reset the components
             void_t update_inputs( void_t ) noexcept
             {
+                _plug_changed = false ;
                 for( auto* comp : _inputs ) comp->update() ;
             }
 
