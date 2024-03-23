@@ -1,8 +1,11 @@
 #pragma once
 
-#include <motor/device/imodule.h>
-#include <motor/device/layouts/three_mouse.hpp>
-#include <motor/device/layouts/ascii_keyboard.hpp>
+#include "../../api.h"
+#include "../../typedefs.h"
+
+#include <motor/controls/imodule.h>
+#include <motor/controls/types/three_mouse.hpp>
+#include <motor/controls/types/ascii_keyboard.hpp>
 
 #include <motor/std/vector>
 #include <motor/math/vector/vector2.hpp>
@@ -11,18 +14,18 @@
 
 namespace motor
 {
-    namespace device
+    namespace platform
     {
         namespace xlib
         {
-            class xlib_module : public imodule
+            class xlib_module : public motor::controls::imodule
             {
                 motor_this_typedefs( xlib_module ) ;
 
                 private: // mouse typedefs
 
-                typedef motor::device::layouts::three_mouse_t::button three_button_t ;
-                typedef motor::device::components::button_state button_state_t ;
+                typedef motor::controls::types::three_mouse_t::button three_button_t ;
+                typedef motor::controls::components::button_state button_state_t ;
 
                 typedef std::pair< three_button_t, button_state_t> mouse_button_item_t ;
                 typedef motor::vector< mouse_button_item_t > mouse_button_items_t ;
@@ -39,8 +42,8 @@ namespace motor
 
             private: // keyboard typedefs 
 
-                typedef motor::device::layouts::ascii_keyboard::ascii_key ascii_key_t ;
-                typedef motor::device::components::key_state key_state_t ;
+                typedef motor::controls::types::ascii_keyboard::ascii_key ascii_key_t ;
+                typedef motor::controls::components::key_state key_state_t ;
 
                 typedef std::pair< ascii_key_t, key_state_t > ascii_keyboard_key_item_t ;
                 typedef motor::vector< ascii_keyboard_key_item_t > ascii_keyboard_keys_t ;
@@ -51,8 +54,8 @@ namespace motor
 
             private: // devices
 
-                motor::device::three_device_mtr_t _three_device ;
-                motor::device::ascii_device_mtr_t _ascii_device ;
+                motor::controls::three_device_mtr_t _three_device ;
+                motor::controls::ascii_device_mtr_t _ascii_device ;
 
             private: // raw input specific
 
@@ -69,7 +72,7 @@ namespace motor
 
             public:
 
-                virtual void_t search( motor::device::imodule::search_funk_t ) noexcept ;
+                virtual void_t search( motor::controls::imodule::search_funk_t ) noexcept ;
                 virtual void_t update( void_t ) noexcept ;
                 virtual void_t release( void_t ) noexcept ;
 
