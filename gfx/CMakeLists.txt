@@ -38,7 +38,7 @@ add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
 target_link_libraries( ${cur_lib_name}
   PUBLIC motor::font
-  PUBLIC motor::device
+  PUBLIC motor::controls
   PUBLIC motor::graphics
   PUBLIC motor::memory
   PUBLIC motor::log 

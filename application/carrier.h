@@ -9,7 +9,7 @@
 #include "window/iwindow.h"
 #include "window/window_info.h"
 
-#include <motor/device/system.h>
+#include <motor/controls/system.h>
 #include <motor/audio/system.h>
 
 #include <thread>
@@ -35,7 +35,7 @@ namespace motor
             std::mutex _mtx ;
             std::thread _thr ;
 
-            motor::device::system_ptr_t _dev_system = nullptr ;
+            motor::controls::system_ptr_t _dev_system = nullptr ;
             motor::audio::system_ptr_t _audio_system = nullptr ;
 
         public:
@@ -49,7 +49,7 @@ namespace motor
         public:
             
             int_t exec( void_t ) noexcept ;
-            motor::device::system_mtr_t device_system( void_t ) noexcept ;
+            motor::controls::system_mtr_t device_system( void_t ) noexcept ;
             void_t update_device_system( void_t ) noexcept ;
 
             motor::audio::system_ptr_t audio_system( void_t ) noexcept ;
@@ -60,7 +60,7 @@ namespace motor
 
         protected:
 
-            motor::device::system_ptr_t get_dev_system( void_t ) noexcept ;
+            motor::controls::system_ptr_t get_dev_system( void_t ) noexcept ;
             motor::audio::system_ptr_t get_audio_system( void_t ) noexcept ;
 
         private:

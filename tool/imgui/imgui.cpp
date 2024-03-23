@@ -581,7 +581,7 @@ void_t imgui::do_default_imgui_init( void_t )
 
     io.ConfigWindowsMoveFromTitleBarOnly = true ;
 
-    using key_t = motor::device::layouts::ascii_keyboard_t::ascii_key ;
+    using key_t = motor::controls::types::ascii_keyboard_t::ascii_key ;
 
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array.
 #if 0
@@ -654,7 +654,7 @@ void_t imgui::update( window_data_cref_t data ) noexcept
 }
 
 //****
-void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
+void_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -664,7 +664,7 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
     // handle mouse
     if( dev != nullptr )
     {
-        motor::device::three_device_t::layout_t mouse( dev ) ;
+        motor::controls::three_device_t::device_type_t mouse( dev ) ;
         // 1. mouse position
         {
             if( io.WantSetMousePos )
@@ -689,7 +689,7 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
 
         // 2. buttons
         {
-            using layout_t = motor::device::three_device_t::layout_t ;
+            using device_type_t = motor::controls::three_device_t::device_type_t ;
 
             for( size_t i = 0; i < 3; ++i )
             {
@@ -697,25 +697,25 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
                 
             }
 
-            if( mouse.is_pressed( layout_t::button::left ) )
+            if( mouse.is_pressed( device_type_t::button::left ) )
             {
                 io.AddMouseButtonEvent( 0, true ) ;
             }
-            else if( mouse.is_released( layout_t::button::left ) )
+            else if( mouse.is_released( device_type_t::button::left ) )
             {
                 io.AddMouseButtonEvent( 0, false ) ;
             }
 
-            if( mouse.is_pressing( layout_t::button::right ) )
+            if( mouse.is_pressing( device_type_t::button::right ) )
             {
                 io.AddMouseButtonEvent( 1, true ) ;
             }
-            else if( mouse.is_released( layout_t::button::right ) )
+            else if( mouse.is_released( device_type_t::button::right ) )
             {
                 io.AddMouseButtonEvent( 1, false ) ;
             }
 
-            if( mouse.is_pressing( layout_t::button::middle ) )
+            if( mouse.is_pressing( device_type_t::button::middle ) )
             {
                 //io.MouseDown[ 2 ] = true ;
                 io.AddMouseButtonEvent( 2, true ) ;
@@ -724,7 +724,7 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
 
         // 3. wheel
         {
-            //using layout_t = motor::device::three_device_t::layout_t ;
+            //using device_type_t = motor::controls::three_device_t::device_type_t ;
 
             float_t const m = 1.0f ; // io.KeyCtrl ? 1.0f : 2.5f ;
             float_t s ;
@@ -741,14 +741,14 @@ void_t imgui::update( motor::device::three_device_borrow_t::mtr_t dev ) noexcept
 }
 
 //****
-void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
+void_t imgui::update( motor::controls::ascii_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
 
-    using ks_t = motor::device::components::key_state ;
-    using layout_t = motor::device::layouts::ascii_keyboard_t ;
-    using key_t = layout_t::ascii_key ;
+    using ks_t = motor::controls::components::key_state ;
+    using device_type_t = motor::controls::types::ascii_keyboard_t ;
+    using key_t = device_type_t::ascii_key ;
 
     // handle keyboard
     if( dev == nullptr ) return ;
@@ -756,7 +756,7 @@ void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
     ImGuiIO& io = ImGui::GetIO();
     //io.ClearInputKeys() ;
 
-    motor::device::layouts::ascii_keyboard_t keyboard( dev ) ;
+    motor::controls::types::ascii_keyboard_t keyboard( dev ) ;
 
     bool_t shift = false ;
     bool_t alt = false ;
@@ -812,7 +812,7 @@ void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
 
         if( ks == ks_t::none ) continue ;
         
-        if( layout_t::is_key_character( key_t(i) ) )
+        if( device_type_t::is_key_character( key_t(i) ) )
         {
             auto const ik = (ImGuiKey)( size_t( ImGuiKey_A ) + size_t( key_t::z ) - i ) ;
             io.AddKeyEvent( ik, ks == ks_t::pressed || ks == ks_t::pressing ) ;
@@ -820,11 +820,11 @@ void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
             if( ks == ks_t::pressed )
             {
                 char_t c ;
-                layout_t::convert_key_to_ascii_char( shift, key_t( i ), c ) ;
+                device_type_t::convert_key_to_ascii_char( shift, key_t( i ), c ) ;
                 io.AddInputCharacter( c ) ;
             }
         }
-        else if( layout_t::is_key_number( key_t(i) ) )
+        else if( device_type_t::is_key_number( key_t(i) ) )
         {
             auto const ik = (ImGuiKey)( size_t( ImGuiKey_0 ) + size_t( key_t::k_9 ) - i ) ;
             io.AddKeyEvent( ik, ks == ks_t::pressed || ks == ks_t::pressing ) ;
@@ -832,11 +832,11 @@ void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
             if( ks == ks_t::pressed )
             {
                 char_t c ;
-                layout_t::convert_key_to_ascii_number( alt, shift, key_t( i ), c ) ;
+                device_type_t::convert_key_to_ascii_number( alt, shift, key_t( i ), c ) ;
                 io.AddInputCharacter( c ) ;
             }
         }        
-        else if( layout_t::is_key_num_number( key_t(i) ) )
+        else if( device_type_t::is_key_num_number( key_t(i) ) )
         {
             auto const ik = (ImGuiKey)( size_t( ImGuiKey_0 ) + size_t( key_t::num_9 ) - i ) ;
             io.AddKeyEvent( ik, ks == ks_t::pressed || ks == ks_t::pressing ) ;
@@ -844,7 +844,7 @@ void_t imgui::update( motor::device::ascii_device_borrow_t::mtr_t dev ) noexcept
             if( ks == ks_t::pressed )
             {
                 char_t c ;
-                layout_t::convert_key_to_ascii_num_number( key_t( i ), c ) ;
+                device_type_t::convert_key_to_ascii_num_number( key_t( i ), c ) ;
                 io.AddInputCharacter( c ) ;
             }
         }

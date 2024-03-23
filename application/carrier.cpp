@@ -12,7 +12,7 @@ using namespace motor::application ;
 carrier::carrier( void_t ) noexcept
 {
     _sd = motor::memory::global::alloc< this_t::shared_data >("shared data") ;
-    _dev_system = motor::memory::global_t::alloc( motor::device::system_t(), 
+    _dev_system = motor::memory::global_t::alloc( motor::controls::system_t(), 
         "[carrier] : device system" ) ;
     _audio_system = motor::memory::global_t::alloc( motor::audio::system_t(), 
         "[carrier] : audio system" ) ;
@@ -124,7 +124,7 @@ int_t carrier::exec( void_t ) noexcept
 }
 
 //******************************************************
-motor::device::system_ptr_t carrier::get_dev_system( void_t ) noexcept 
+motor::controls::system_ptr_t carrier::get_dev_system( void_t ) noexcept 
 {
     return _dev_system ;
 }
@@ -142,7 +142,7 @@ void_t carrier::update_device_system( void_t ) noexcept
 }
 
 //******************************************************
-motor::device::system_mtr_t carrier::device_system( void_t ) noexcept 
+motor::controls::system_mtr_t carrier::device_system( void_t ) noexcept 
 {
     return _dev_system ;
 }

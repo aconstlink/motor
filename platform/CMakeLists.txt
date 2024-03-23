@@ -15,22 +15,22 @@ set( unwanted_compiler_options )
 set( os_libs )
 
 ##
-## Device Section
+## Controls Section
 ##
 
 if( MOTOR_TARGET_OS_WIN )
 
-    set( device_win32_sources 
-        "device/win32/rawinput_module.h"
-        "device/win32/rawinput_module.cpp"
-        "device/win32/xinput_module.h"
-        "device/win32/xinput_module.cpp"
-        "device/win32/midi_module.h"
-        "device/win32/midi_module.cpp")
+    set( controls_win32_sources 
+        "controls/win32/rawinput_module.h"
+        "controls/win32/rawinput_module.cpp"
+        "controls/win32/xinput_module.h"
+        "controls/win32/xinput_module.cpp"
+        "controls/win32/midi_module.h"
+        "controls/win32/midi_module.cpp")
 
     ###################################################
-    # device
-    list( APPEND sources ${device_win32_sources} )
+    # controls
+    list( APPEND sources ${controls_win32_sources} )
     set( os_libs winmm.lib xinput )
 
     if( MOTOR_COMPILER_MSC )
@@ -43,12 +43,12 @@ if( MOTOR_TARGET_OS_WIN )
     # other lib
 
 elseif( MOTOR_TARGET_OS_LIN )
-    set( device_linux_sources
-      "device/linux/evdev_module.h"
-      "device/linux/evdev_module.cpp"
-      "device/linux/xlib_module.h"
-      "device/linux/xlib_module.cpp")
-  list( APPEND sources ${device_linux_sources} )
+    set( controls_linux_sources
+      "controls/linux/evdev_module.h"
+      "controls/linux/evdev_module.cpp"
+      "controls/linux/xlib_module.h"
+      "controls/linux/xlib_module.cpp")
+  list( APPEND sources ${controls_linux_sources} )
 endif()
 
 ##
@@ -169,7 +169,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::std 
   PUBLIC motor::memory
   PUBLIC motor::log 
-  PUBLIC motor::device
+  PUBLIC motor::controls
   PUBLIC motor::graphics
   PUBLIC motor::application
   PUBLIC motor::audio

@@ -10,8 +10,8 @@
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
-#include <motor/device/layouts/three_mouse.hpp>
-#include <motor/device/layouts/ascii_keyboard.hpp>
+#include <motor/controls/types/three_mouse.hpp>
+#include <motor/controls/types/ascii_keyboard.hpp>
 
 #include <imgui/imgui.h>
 
@@ -79,8 +79,8 @@ namespace motor
             motor_typedef( window_data ) ;
 
             void_t update( window_data_cref_t ) noexcept ;
-            void_t update( motor::device::three_device_borrow_t::mtr_t ) noexcept ;
-            void_t update( motor::device::ascii_device_borrow_t::mtr_t ) noexcept ;
+            void_t update( motor::controls::three_device_borrow_t::mtr_t ) noexcept ;
+            void_t update( motor::controls::ascii_device_borrow_t::mtr_t ) noexcept ;
 
             // Returns an id that can be used to render the passed image.
             // the image needs to be registered before via an image_object.

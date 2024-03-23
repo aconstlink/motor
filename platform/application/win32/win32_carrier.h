@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../api.h"
-#include "../../device/win32/rawinput_module.h"
-#include "../../device/win32/xinput_module.h"
-#include "../../device/win32/midi_module.h"
+#include "../../controls/win32/rawinput_module.h"
+#include "../../controls/win32/xinput_module.h"
+#include "../../controls/win32/midi_module.h"
 
 #include <motor/application/window/window.h>
 #include <motor/application/window/window_message_listener.h>
