@@ -16,14 +16,11 @@
 
 namespace motor
 {
-    namespace application
+    namespace platform
     {
         namespace egl
         {
-            class es_context ;
-            motor_class_proto_typedefs( es_context ) ;
-
-            class context : public gfx_context
+            class context : public motor::platform::opengl::rendering_context
             {
                 motor_this_typedefs( context ) ;
 
@@ -36,19 +33,17 @@ namespace motor
                 EGLContext _context ;
                 EGLSurface _surface ;
 
-                es_context_ptr_t _bend_ctx = nullptr ;
+                //motor::platform::gen4::es3_backend_mtr_t _backend = nullptr ;
 
             public:
 
-                motor_typedefs( 
-                     natus::ntd::vector< natus::ntd::string >, strings ) ;
+                motor_typedefs( motor::vector< natus::ntd::string >, strings ) ;
 
             public:
 
                 context( void_t ) ;
                 context( gl_info_in_t, EGLNativeWindowType wnd, EGLNativeDisplayType disp ) ;
                 context( this_cref_t ) = delete ;
-                /// allows to move-construct a context.
                 context( this_rref_t ) ;
                 ~context( void_t ) ;
 
@@ -57,6 +52,7 @@ namespace motor
 
             private:
 
+                bool_t  determine_gl_version( motor::application::gl_version & ) const noexcept ;
                 
             public:
 
@@ -65,7 +61,8 @@ namespace motor
                 virtual natus::application::result vsync( bool_t const on_off ) ;
                 virtual natus::application::result swap( void_t ) ;
 
-                virtual natus::graphics::backend_res_t create_backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_mtr_safe_t backend( void_t ) noexcept ;
+                motor::graphics::gen4::backend_borrow_t::mtr_t borrow_backend( void_t ) noexcept ;
 
             public:
 
@@ -104,48 +101,9 @@ namespace motor
 
             private:
 
-                natus::application::result create_the_context( 
-                    gl_info_cref_t gli ) ;
+                natus::application::result create_the_context( gl_info_cref_t gli ) ;
             };
             motor_res_typedef( context ) ;
-
-            // this is passed to the graphics backend at construction time, so the backend
-            // can check for extensions or other context related topics.
-            class NATUS_APPLICATION_API es_context : public natus::graphics::es_context
-            {
-                motor_this_typedefs( es_context ) ;
-
-                friend class natus::application::egl::context ;
-
-            private:
-
-                // owner
-                context_ptr_t _app_context = nullptr ;
-
-                es_context( context_ptr_t ctx ) noexcept : _app_context( ctx ) {}
-                es_context( this_cref_t ) = delete ;
-
-            public:
-
-                es_context( this_rref_t rhv ) noexcept
-                {
-                    motor_move_member_ptr( _app_context, rhv ) ;
-                }
-
-                void_t change_owner( context_ptr_t ctx ) noexcept { _app_context = ctx ; }
-
-            public:
-
-                virtual ~es_context( void_t ) noexcept {}
-
-            public:
-
-                virtual bool_t is_extension_supported( natus::ntd::string_cref_t ext ) const noexcept
-                {
-                    auto const res = _app_context->is_extension_supported( ext ) ;
-                    return res == natus::application::result::ok ;
-                }
-            };
         }
     }
 }

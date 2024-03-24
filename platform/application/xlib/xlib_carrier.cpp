@@ -10,7 +10,14 @@
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+
+#if MOTOR_GRAPHICS_GLX
 #include <motor/ogl/glx/glx.h>
+#endif
+
+#if MOTOR_GRAPHICS_EGL
+#include <motor/ogl/egl/egl.h>
+#endif
 
 using namespace motor::platform ;
 using namespace motor::platform::xlib ;
@@ -77,6 +84,16 @@ struct xlib_carrier::glx_pimpl
 } ;
 #endif
 
+
+#if MOTOR_GRAPHICS_EGL
+struct xlib_carrier::egl_pimpl
+{
+    motor::platform::egl::egl_context_t ctx ;
+    motor::graphics::render_engine_t re ;
+    motor::graphics::ifrontend_ptr_t fe ;
+
+} ;
+#endif
 //**********************************************************************
 Display * xlib_carrier::connect_display( void_t ) noexcept
 {
@@ -361,7 +378,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         ctx.deactivate() ;
 
                         this_t::glx_pimpl * pimpl = motor::memory::global_t::alloc(
-                            this_t::glx_pimpl( { std::move(ctx) } ), "[win32_carrier] : glx context") ;
+                            this_t::glx_pimpl( { std::move(ctx) } ), "[xlib_carrier] : glx context") ;
 
                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
                                 "[xlib_carrier] : gen4 frontend") ;

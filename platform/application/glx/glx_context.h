@@ -21,9 +21,6 @@ namespace motor
     {
         namespace glx
         {
-            //class gl_context ;
-            //motor_class_proto_typedefs( gl_context ) ;
-
             class context : public motor::platform::opengl::rendering_context
             {
                 motor_this_typedefs( context ) ;
@@ -47,7 +44,6 @@ namespace motor
                 context( void_t ) noexcept ;
                 context( Window wnd, Display * disp ) noexcept ;
                 context( this_cref_t ) = delete ;
-                /// allows to move-construct a context.
                 context( this_rref_t ) noexcept ;
                 ~context( void_t ) noexcept ;
 

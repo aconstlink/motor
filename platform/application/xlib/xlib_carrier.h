@@ -63,7 +63,7 @@ namespace motor
 
                 motor::vector< xlib_window_data_t > _xlib_windows ;
 
-            private: // wgl window data
+            private: // glx window data
 
                 struct glx_pimpl ;
 
@@ -75,6 +75,19 @@ namespace motor
                 motor_typedef( glx_window_data ) ;
 
                 motor::vector< glx_window_data_t > _glx_windows ;
+
+            private: // egl window data
+
+                struct egl_pimpl ;
+
+                struct egl_window_data
+                {
+                    Window hwnd ;
+                    egl_pimpl * ptr ;
+                };
+                motor_typedef( egl_window_data ) ;
+
+                motor::vector< egl_window_data_t > _egl_windows ;
 
             private: // destruction queue 
 

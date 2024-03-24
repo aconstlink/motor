@@ -4,7 +4,8 @@
 #include "../typedefs.h"
 #include "../api.h"
 
-#include <natus/ntd/vector.hpp>
+#include <motor/std/vector>
+#include <motor/std/string>
 
 //#include <GL/glcorearb.h>
 #include <EGL/egl.h>
@@ -20,16 +21,16 @@ namespace motor
 
         private:
 
-            typedef motor::vector< motor::string > strings_t ;
-            static strings_t _egl_extensions ;
+            typedef motor::vector< motor::string_t > strings_t ;
+            strings_t _egl_extensions ;
 
         public: 
 
             /// will init extensions
-            static motor::ogl::result init( EGLNativeDisplayType ) ;
+            motor::ogl::result init( EGLNativeDisplayType ) ;
 
 
-            static bool_t is_supported( char_cptr_t name ) ;
+            bool_t is_supported( char_cptr_t name ) ;
         };
     }
 }
