@@ -11,6 +11,7 @@ namespace motor
             none,
             gen4_auto,
             gen4_gl4,
+            gen4_es3,
             gen4_d3d11
         };
 

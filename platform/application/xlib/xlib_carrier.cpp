@@ -3,7 +3,7 @@
 #include <motor/graphics/render_engine.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
-#include "../glx/glx_context.h"
+
 
 #include <motor/log/global.h>
 #include <motor/concurrent/global.h>
@@ -12,10 +12,12 @@
 #include <X11/keysym.h>
 
 #if MOTOR_GRAPHICS_GLX
+#include "../glx/glx_context.h"
 #include <motor/ogl/glx/glx.h>
 #endif
 
 #if MOTOR_GRAPHICS_EGL
+#include "../egl/egl_context.h"
 #include <motor/ogl/egl/egl.h>
 #endif
 
@@ -207,9 +209,6 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         break ;
 
                     case DestroyNotify:
-                    {
-                        int bp = 0 ;
-                    }
                         break ;
 
                     case UnmapNotify:
@@ -351,8 +350,8 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                 {
                     #if MOTOR_GRAPHICS_DIRECT3D
                     d.wi.gen = motor::application::graphics_generation::gen4_d3d11 ;
-                    #elif MOTOR_GRAPHICS_WGL
-                    d.wi.gen = motor::application::graphics_generation::gen4_gl4 ;
+                    #elif MOTOR_GRAPHICS_EGL
+                    d.wi.gen = motor::application::graphics_generation::gen4_es3 ;
                     #elif MOTOR_GRAPHICS_GLX
                     d.wi.gen = motor::application::graphics_generation::gen4_gl4 ;
                     #else
@@ -378,7 +377,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         ctx.deactivate() ;
 
                         this_t::glx_pimpl * pimpl = motor::memory::global_t::alloc(
-                            this_t::glx_pimpl( { std::move(ctx) } ), "[xlib_carrier] : glx context") ;
+                            this_t::glx_pimpl( { std::move(ctx), motor::graphics::render_engine_t(), nullptr } ), "[xlib_carrier] : glx context") ;
 
                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
                                 "[xlib_carrier] : gen4 frontend") ;
@@ -548,6 +547,8 @@ bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
     motor::memory::release_ptr( iter->wnd ) ;
     motor::memory::release_ptr( iter->lsn ) ;
     _xlib_windows.erase( iter ) ;
+
+    return true ;
 }
 
 //*******************************************************************************************

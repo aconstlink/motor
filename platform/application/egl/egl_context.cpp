@@ -1,25 +1,25 @@
 #include "egl_context.h"
 #include "egl_window.h"
 
-#include <natus/graphics/backend/gl/es3.h>
+//#include <motor/graphics/backend/gl/es3.h>
 
-#include <natus/ntd/string/split.hpp>
+#include <motor/std/string_split.hpp>
 #include <GLES3/gl3.h>
 
 using namespace motor::application ;
 using namespace motor::application::egl ;
 
-//***********************n*****************************************
-context::context( void_t )
+//****************************************************************
+egl_context::egl_context( void_t ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::egl::es_context( this ),
+    _bend_ctx = motor::memory::global_t::alloc( motor::application::egl::es_context( this ),
         "[context] : backend es_context" ) ;
 }
 
 //****************************************************************
-context::context( gl_info_in_t gli, EGLNativeWindowType wnd, EGLNativeDisplayType disp ) 
+egl_context::egl_context( EGLNativeWindowType wnd, EGLNativeDisplayType disp ) noexcept
 {
-    _bend_ctx = natus::memory::global_t::alloc( natus::application::egl::es_context( this ),
+    _bend_ctx = motor::memory::global_t::alloc( motor::application::egl::es_context( this ),
         "[context] : backend es_context" ) ;
 
     _ndt = disp ;
@@ -28,7 +28,7 @@ context::context( gl_info_in_t gli, EGLNativeWindowType wnd, EGLNativeDisplayTyp
 }
 
 //****************************************************************
-context::context( this_rref_t rhv )
+egl_context::egl_context( this_rref_t rhv ) noexcept
 {
     _display = rhv._display ;
     rhv._display = NULL ;
@@ -49,7 +49,8 @@ context::context( this_rref_t rhv )
     _bend_ctx->change_owner( this ) ;
 }
 
-context::this_ref_t context::operator = ( this_rref_t rhv ) 
+//****************************************************************
+egl_context::this_ref_t egl_context::operator = ( this_rref_t rhv )  noexcept
 {
     _display = rhv._display ;
     rhv._display = NULL ;
@@ -72,108 +73,143 @@ context::this_ref_t context::operator = ( this_rref_t rhv )
 }
 
 //****************************************************************
-context::~context( void_t )
+egl_context::~context( void_t ) noexcept
 {
     this_t::deactivate() ;
-    natus::memory::global_t::dealloc( _bend_ctx ) ;
+    motor::memory::global_t::dealloc( _bend_ctx ) ;
 }
 
 //***************************************************************
-natus::application::result context::activate( void_t ) 
+motor::platform::result egl_context::activate( void_t ) noexcept
 {
     auto const res = eglMakeCurrent( _display, _surface, _surface, _context ) ;
     if( res == EGL_FALSE )
-        return natus::application::result::failed ;
+        return motor::platform::result::failed ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //***************************************************************
-natus::application::result context::deactivate( void_t ) 
+motor::platform::result egl_context::deactivate( void_t ) 
 {
     auto const res = eglMakeCurrent( _display, EGL_NO_SURFACE, 
                EGL_NO_SURFACE, EGL_NO_CONTEXT ) ;
     if( res == EGL_FALSE )
-        return natus::application::result::failed ;
-    return natus::application::result::ok ;
+        return motor::platform::result::failed ;
+    return motor::platform::result::ok ;
 }
 
 //***************************************************************
-natus::application::result context::vsync( bool_t const on_off ) 
+motor::platform::result egl_context::vsync( bool_t const on_off ) 
 {
     eglSwapInterval( _display, on_off ? 1 : 0 ) ;
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //**************************************************************
-natus::application::result context::swap( void_t ) 
+motor::platform::result egl_context::swap( void_t ) 
 {
     eglSwapBuffers( _display, _surface ) ;
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
-natus::graphics::backend_res_t context::create_backend( void_t ) noexcept
+//**************************************************************
+motor::graphics::gen4::backend_mtr_safe_t egl_context::backend( void_t ) noexcept 
 {
-    natus::application::gl_version glv ;
+    #if 0
+    if( _backend != nullptr ) return motor::share( _backend ) ;
+
+    motor::application::gl_version glv ;
+    this->get_gl_version( glv ) ;
+
+    // create gen 4 renderer
+    if( glv.major >= 4 || (glv.major >= 4 && glv.minor >= 0) )
+    {
+        _backend = motor::memory::create_ptr( motor::platform::gen4::gl4_backend_t( this ) ) ;
+    }
+    else
+    {
+        motor::log::global_t::error( "Can not create requested OpenGL 4 renderer. "
+            "OpenGL not matching the version requirement.") ;
+    }
+    
+    return motor::share( _backend ) ;
+    #else
+    return nullptr ;
+    #endif
+}
+
+//***********************************************************************
+motor::graphics::gen4::backend_borrow_t::mtr_t egl_context::borrow_backend( void_t ) noexcept 
+{
+    if( _backend != nullptr ) return _backend ;
+    return motor::memory::release_ptr( this_t::backend() ) ;
+}
+
+#if 0
+//***********************************************************************
+motor::graphics::backend_res_t egl_context::create_backend( void_t ) noexcept
+{
+    motor::application::gl_version glv ;
     this->get_es_version( glv ) ;
     if( glv.major >= 3 )
     {
-        return natus::graphics::es3_backend_res_t(
-            natus::graphics::es3_backend_t( _bend_ctx ) ) ;
+        return motor::graphics::es3_backend_res_t(
+            motor::graphics::es3_backend_t( _bend_ctx ) ) ;
     }
 
-    return natus::graphics::null_backend_res_t(
-        natus::graphics::null_backend_t() ) ;
+    return motor::graphics::null_backend_res_t(
+        motor::graphics::null_backend_t() ) ;
 }
-
+#endif
 //***************************************************************
-natus::application::result context::is_extension_supported( 
-    natus::ntd::string_cref_t extension_name ) 
+motor::platform::result egl_context::is_extension_supported( 
+    motor::string_cref_t extension_name ) const noexcept
 {
     this_t::strings_t ext_list ;
-    if( natus::application::no_success( get_egl_extension(ext_list) ) ) 
-        return natus::application::result::failed_wgl ;
+    if( motor::application::no_success( get_egl_extension(ext_list) ) ) 
+        return motor::platform::result::failed_wgl ;
 
     this_t::strings_t::iterator iter = ext_list.begin() ;
     while( iter != ext_list.end() )
     {
         if( *iter == extension_name ) 
-            return natus::application::result::ok ;
+            return motor::platform::result::ok ;
         ++iter ;
     }
-    return natus::application::result::invalid_extension ;
+    return motor::platform::result::invalid_extension ;
 }
 
 //*****************************************************************
-natus::application::result context::get_egl_extension( this_t::strings_out_t ext_list )
+motor::platform::result egl_context::get_egl_extension( this_t::strings_out_t ext_list )
 {
     char_cptr_t ch = eglQueryString( _display, EGL_EXTENSIONS ) ;
-    if( !ch ) return natus::application::result::failed ;
+    if( !ch ) return motor::platform::result::failed ;
     
-    natus::ntd::string_t extension_string( (const char*)ch) ;
-    natus::ntd::string_ops::split( extension_string, ' ', ext_list ) ;
+    motor::string_t extension_string( (const char*)ch) ;
+    motor::string_ops::split( extension_string, ' ', ext_list ) ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 //****************************************************************
-natus::application::result context::get_es_extension( this_t::strings_out_t ext_list )
+motor::platform::result egl_context::get_es_extension( this_t::strings_out_t ext_list )
 {
     const GLubyte * ch = glGetString( GL_EXTENSIONS ) ;
-    if( !ch ) return natus::application::result::failed ;
+    if( !ch ) return motor::platform::result::failed ;
 
-    natus::ntd::string_t extension_string( (const char*)ch) ;
-    natus::ntd::string_ops::split( extension_string, ' ', ext_list ) ;
-    return natus::application::result::ok ;
+    motor::string_t extension_string( (const char*)ch) ;
+    motor::string_ops::split( extension_string, ' ', ext_list ) ;
+    return motor::platform::result::ok ;
 }
 
 //****************************************************************
-natus::application::result context::get_es_version( natus::application::gl_version & version ) const 
+motor::platform::result egl_context::get_es_version( motor::application::gl_version & version ) const 
 {
     const GLubyte* ch = glGetString(GL_VERSION) ;
-    if( !ch ) return natus::application::result::failed ;
+    if( !ch ) return motor::platform::result::failed ;
 
-    natus::ntd::string_t version_string = natus::ntd::string((const char*)ch) ;
+    motor::string_t version_string = motor::string((const char*)ch) ;
 
     GLint major = 0;//boost::lexical_cast<GLint, std::string>(*token) ;
     GLint minor = 0;//boost::lexical_cast<GLint, std::string>(*(++token));
@@ -183,9 +219,9 @@ natus::application::result context::get_es_version( natus::application::gl_versi
         GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t const es = std::to_string(err) ;
-            natus::log::global::error( 
-                "[context::get_gl_version] : get gl major <"+es+">" ) ;
+            motor::string_t const es = std::to_string(err) ;
+            motor::log::global::error( 
+                "[egl_context::get_gl_version] : get gl major <"+es+">" ) ;
         }
     }
     {
@@ -193,20 +229,20 @@ natus::application::result context::get_es_version( natus::application::gl_versi
         GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            natus::ntd::string_t es = std::to_string(err) ;
-            natus::log::global::error( "[context::get_gl_version] : get gl minor <"+es+">" ) ;
+            motor::string_t es = std::to_string(err) ;
+            motor::log::global::error( "[egl_context::get_gl_version] : get gl minor <"+es+">" ) ;
         }
     }
 
     version.major = major ;
     version.minor = minor ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
 
 //****************************************************************
-void_t context::clear_now( natus::math::vec4f_t const & vec ) 
+void_t egl_context::clear_now( motor::math::vec4f_t const & vec ) 
 {
     {
         glClearColor( vec.x(), vec.y(), vec.z(), vec.w() ) ;
@@ -219,7 +255,7 @@ void_t context::clear_now( natus::math::vec4f_t const & vec )
 }
 
 //***************************************************************
-natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ ) 
+motor::platform::result egl_context::create_the_context( motor::application::gl_info_cref_t /*gli*/ ) 
 {
     EGLConfig config ;
     EGLDisplay display = eglGetDisplay( _ndt ) ;
@@ -231,19 +267,20 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
         auto const res = eglInitialize( display , &major, &minor ) ;
         if( res != EGL_TRUE )
         {
-            natus::log::global_t::error( motor_log_fn("eglInitialize") ) ;
-            return natus::application::result::failed ;
+            motor::log::global_t::error( motor_log_fn("eglInitialize") ) ;
+            return motor::platform::result::failed ;
         }
 
-        natus::log::global_t::status( "[egl_context] : EGL Version " + 
+        motor::log::global_t::status( "[egl_context] : EGL Version " + 
                std::to_string( major ) + "." + std::to_string( minor ) ) ;
     }
 
     {
         auto const res = this_t::is_extension_supported("EGL_KHR_create_context") ;
 
-        int const es3_supported = res == natus::application::result::ok ?
+        int const es3_supported = res == motor::platform::result::ok ?
             EGL_OPENGL_ES3_BIT_KHR : EGL_OPENGL_ES2_BIT ;
+
         EGLint numConfigs = 0 ;
         EGLint const  attribList[] = 
         {
@@ -260,25 +297,24 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
 
         if( !eglChooseConfig( display, attribList, &config, 1, &numConfigs ) )
         {
-            natus::log::global_t::warning( motor_log_fn("eglChooseConfig") ) ;
-            return natus::application::result::failed ;
+            motor::log::global_t::warning( motor_log_fn("eglChooseConfig") ) ;
+            return motor::platform::result::failed ;
         }
 
         if( numConfigs < 1 ) 
         {
-            natus::log::global_t::warning( motor_log_fn("numConfigs < 1") ) ;
-            return natus::application::result::failed ;
+            motor::log::global_t::warning( motor_log_fn("numConfigs < 1") ) ;
+            return motor::platform::result::failed ;
         }
     }
 
     {
-        EGLSurface surface = eglCreateWindowSurface( 
-                 display, config, _wnd, NULL ) ;
+        EGLSurface surface = eglCreateWindowSurface( display, config, _wnd, NULL ) ;
         if( surface == EGL_NO_SURFACE )
         {
-            natus::log::global_t::warning( 
+            motor::log::global_t::warning( 
                 motor_log_fn("eglCreateWindowSurface") ) ;
-            return natus::application::result::failed ;
+            return motor::platform::result::failed ;
         }
         _surface = surface ;
     }
@@ -296,8 +332,8 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
 
         if( context == EGL_NO_CONTEXT )
         {
-            natus::log::global_t::warning( motor_log_fn("eglCreateContext") ) ;
-            return natus::application::result::failed ;
+            motor::log::global_t::warning( motor_log_fn("eglCreateContext") ) ;
+            return motor::platform::result::failed ;
         }
         _context = context ;
     }
@@ -305,9 +341,9 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
     {
         eglMakeCurrent( display, _surface, _surface, _context ) ;
         {
-            natus::application::gl_version v ;
+            motor::application::gl_version v ;
             this_t::get_es_version( v ) ;
-            natus::log::global_t::status( "[egl_context] : OpenGLES Version " 
+            motor::log::global_t::status( "[egl_context] : OpenGLES Version " 
                    + std::to_string( v.major ) + "." + std::to_string( v.minor ) ) ;
         }
         this_t::strings_t list ;
@@ -325,6 +361,6 @@ natus::application::result context::create_the_context( gl_info_cref_t /*gli*/ )
 
     _display = display ;
 
-    return natus::application::result::ok ;
+    return motor::platform::result::ok ;
 }
 
