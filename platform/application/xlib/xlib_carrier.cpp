@@ -86,7 +86,6 @@ struct xlib_carrier::glx_pimpl
 } ;
 #endif
 
-
 #if MOTOR_GRAPHICS_EGL
 struct xlib_carrier::egl_pimpl
 {
@@ -96,6 +95,7 @@ struct xlib_carrier::egl_pimpl
 
 } ;
 #endif
+
 //**********************************************************************
 Display * xlib_carrier::connect_display( void_t ) noexcept
 {
@@ -251,7 +251,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 
         // test window destruction
         // also do 
-        // -> wgl context destruction
+        // -> glx context destruction
         {
             for( auto iter=_destroy_queue.begin(); iter != _destroy_queue.end(); )
             {
@@ -299,7 +299,64 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     {
                         std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
                     }
-                    
+                }
+
+                this_t::find_window_info( d.hwnd, [&]( this_t::xlib_window_data_ref_t wd )
+                {
+                    // set frame time
+                    {
+                        XStoreName( _display, wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms]").c_str() ) ;
+                    }
+
+                    // set vsync
+                    {
+                        if( wd.sv.vsync_msg_changed ) 
+                        {
+                            d.ptr->ctx.vsync( wd.sv.vsync_msg.on_off ) ;
+                            wd.sv.vsync_msg_changed = false ;
+                        }
+                    }
+                } )  ;
+            }
+        }
+
+        #endif
+
+        #if MOTOR_GRAPHICS_EGL
+
+        // update egl window context
+        // must be done here. If the window is closed,
+        // the window handle is not valid anymore and must be
+        // destructed in this class first.
+        {
+            for( auto & d : _egl_windows )
+            {
+                // could be threaded
+                {
+                    if( d.ptr->re.can_execute() )
+                    {
+                        {
+                            auto iter = std::find_if( _xlib_windows.begin(), _xlib_windows.end(), [&]( xlib_window_data const & wd )
+                            {
+                                return wd.hwnd == d.hwnd ;
+                            } ) ;
+
+                            d.ptr->ctx.borrow_backend()->set_window_info( {
+                                size_t(iter->width), size_t(iter->height) } ) ;
+                        }
+
+                        d.ptr->ctx.activate() ;
+                        d.ptr->ctx.borrow_backend()->render_begin() ;
+                        d.ptr->re.execute_frame() ;
+                        d.ptr->ctx.borrow_backend()->render_end() ;
+                        d.ptr->ctx.swap() ;
+                        d.ptr->ctx.deactivate() ;
+                    }
+                    // required for now, otherwise the application stalls.
+                    else if( milli == 0 )
+                    {
+                        std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
+                    }
                 }
 
                 this_t::find_window_info( d.hwnd, [&]( this_t::xlib_window_data_ref_t wd )
@@ -388,7 +445,41 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     }
                     else
                     {
-                        motor::log::global_t::critical( "Wanted to create a WGL window but could not." ) ;
+                        motor::log::global_t::critical( "Wanted to create a GLX window but could not." ) ;
+                    }
+                }
+                #endif
+
+                #if MOTOR_GRAPHICS_EGL 
+                if( d.wi.gen == motor::application::graphics_generation::gen4_es3 )
+                {
+                    _xlib_windows.back().window_text = " [es3 #" + motor::to_string(wnd_idx) +"]";
+
+                    motor::platform::egl::egl_context_t ctx ;
+
+                    auto const res = ctx.create_context( (EGLNativeWindowType)hwnd, (EGLNativeDisplayType)_display ) ;
+                    if( motor::platform::success( res ) )
+                    {
+                        ctx.activate() ;
+                        ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                        ctx.swap() ;
+                        ctx.clear_now( motor::math::vec4f_t(0.0f, 0.5f, 0.3f, 1.0f ) ) ;
+                        ctx.swap() ;
+                        ctx.deactivate() ;
+
+                        this_t::egl_pimpl * pimpl = motor::memory::global_t::alloc(
+                            this_t::egl_pimpl( { std::move(ctx), motor::graphics::render_engine_t(), nullptr } ), "[xlib_carrier] : glx context") ;
+
+                            pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
+                                "[xlib_carrier] : gen4 frontend") ;
+                            
+                            _xlib_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
+
+                        _egl_windows.emplace_back( egl_window_data({ hwnd, pimpl }) )  ;
+                    }
+                    else
+                    {
+                        motor::log::global_t::critical( "Wanted to create a EGL window but could not." ) ;
                     }
                 }
                 #endif
@@ -538,6 +629,24 @@ bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
             motor::memory::global_t::dealloc( iter2->ptr->fe ) ;
             motor::memory::global_t::dealloc( iter2->ptr ) ;
             _glx_windows.erase( iter2 ) ;
+        }
+    }
+    #endif 
+
+    #if MOTOR_GRAPHICS_EGL
+    // look for egl windows/context connection
+    // and remove those along with the window
+    {
+        auto iter2 = std::find_if( _egl_windows.begin(), _egl_windows.end(), [&]( egl_window_data_cref_t d )
+        {
+            return d.hwnd == hwnd ;
+        } ) ;
+
+        if( iter2 != _egl_windows.end() )
+        {
+            motor::memory::global_t::dealloc( iter2->ptr->fe ) ;
+            motor::memory::global_t::dealloc( iter2->ptr ) ;
+            _egl_windows.erase( iter2 ) ;
         }
     }
     #endif 

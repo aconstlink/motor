@@ -109,11 +109,11 @@ endif()
 
 if( MOTOR_GRAPHICS_EGL )
 
-    list( APPEND sources_
-      "platform/egl/egl_window.h"
-      "platform/egl/egl_window.cpp"
-      "platform/egl/egl_context.h"
-      "platform/egl/egl_context.cpp" )
+    list( APPEND sources
+      #"application/egl/egl_window.h"
+      #"platform/egl/egl_window.cpp"
+      "application/egl/egl_context.h"
+      "application/egl/egl_context.cpp" )
 endif()
 
 if( MOTOR_WINDOW_SYSTEM_WIN32 )

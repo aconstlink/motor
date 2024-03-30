@@ -5,7 +5,8 @@
 #include "../../result.h"
 
 #include "../../graphics/gl/es_context.h"
-//#include "../../graphics/gl/gl4.h"
+#include <motor/graphics/backend/gen4/backend.h>
+//#include "../../graphics/gl/es3.h"
 
 #include <motor/application/gl_info.h>
 #include <motor/math/vector/vector4.hpp>
@@ -36,6 +37,7 @@ namespace motor
                 EGLSurface _surface ;
 
                 //motor::platform::gen4::es3_backend_mtr_t _backend = nullptr ;
+                motor::graphics::gen4::backend_mtr_t _backend = nullptr ;
 
             public:
 
@@ -58,10 +60,10 @@ namespace motor
                 
             public:
 
-                virtual motor::platform::result activate( void_t ) ;
-                virtual motor::platform::result deactivate( void_t ) ;
-                virtual motor::platform::result vsync( bool_t const on_off ) ;
-                virtual motor::platform::result swap( void_t ) ;
+                virtual motor::platform::result activate( void_t ) noexcept ;
+                virtual motor::platform::result deactivate( void_t ) noexcept ;
+                virtual motor::platform::result vsync( bool_t const on_off ) noexcept ;
+                virtual motor::platform::result swap( void_t ) noexcept ;
 
                 motor::graphics::gen4::backend_mtr_safe_t backend( void_t ) noexcept ;
                 motor::graphics::gen4::backend_borrow_t::mtr_t borrow_backend( void_t ) noexcept ;
@@ -71,6 +73,8 @@ namespace motor
                     auto const res = this_t::is_extension_supported( ext ) ;
                     return res == motor::platform::result::ok ;
                 }
+
+                motor::platform::result create_context( EGLNativeWindowType wnd, EGLNativeDisplayType disp ) noexcept ;
                 
             public:
 
@@ -94,11 +98,11 @@ namespace motor
                 /// @precondition Must be used after context has 
                 /// been created and made current.
                 motor::platform::result get_egl_extension( 
-                    strings_out_t ext_list ) ;
+                    strings_out_t ext_list ) const noexcept ;
 
                 /// @precondition Context must be current.
                 motor::platform::result get_es_extension( 
-                    strings_out_t ext_list ) ;
+                    strings_out_t ext_list ) const noexcept ;
 
                 motor::platform::result get_es_version( 
                    motor::application::gl_version & version ) const ;

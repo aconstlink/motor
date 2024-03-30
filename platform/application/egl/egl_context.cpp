@@ -1,30 +1,24 @@
 #include "egl_context.h"
-#include "egl_window.h"
 
 //#include <motor/graphics/backend/gl/es3.h>
 
 #include <motor/std/string_split.hpp>
 #include <GLES3/gl3.h>
 
-using namespace motor::application ;
-using namespace motor::application::egl ;
+using namespace motor::platform ;
+using namespace motor::platform::egl ;
 
 //****************************************************************
 egl_context::egl_context( void_t ) noexcept
 {
-    _bend_ctx = motor::memory::global_t::alloc( motor::application::egl::es_context( this ),
-        "[context] : backend es_context" ) ;
 }
 
 //****************************************************************
 egl_context::egl_context( EGLNativeWindowType wnd, EGLNativeDisplayType disp ) noexcept
 {
-    _bend_ctx = motor::memory::global_t::alloc( motor::application::egl::es_context( this ),
-        "[context] : backend es_context" ) ;
-
     _ndt = disp ;
     _wnd = wnd ;
-    this_t::create_the_context( gli ) ;
+    this_t::create_the_context( motor::application::gl_info_t() ) ;
 }
 
 //****************************************************************
@@ -44,9 +38,6 @@ egl_context::egl_context( this_rref_t rhv ) noexcept
 
     _ndt = rhv._ndt ;
     rhv._ndt = 0 ;
-
-    motor_move_member_ptr( _bend_ctx, rhv ) ;
-    _bend_ctx->change_owner( this ) ;
 }
 
 //****************************************************************
@@ -67,16 +58,13 @@ egl_context::this_ref_t egl_context::operator = ( this_rref_t rhv )  noexcept
     _ndt = rhv._ndt ;
     rhv._ndt = 0 ;
 
-    motor_move_member_ptr( _bend_ctx, rhv ) ;
-    _bend_ctx->change_owner( this ) ;
     return *this ;
 }
 
 //****************************************************************
-egl_context::~context( void_t ) noexcept
+egl_context::~egl_context( void_t ) noexcept
 {
     this_t::deactivate() ;
-    motor::memory::global_t::dealloc( _bend_ctx ) ;
 }
 
 //***************************************************************
@@ -90,7 +78,7 @@ motor::platform::result egl_context::activate( void_t ) noexcept
 }
 
 //***************************************************************
-motor::platform::result egl_context::deactivate( void_t ) 
+motor::platform::result egl_context::deactivate( void_t ) noexcept
 {
     auto const res = eglMakeCurrent( _display, EGL_NO_SURFACE, 
                EGL_NO_SURFACE, EGL_NO_CONTEXT ) ;
@@ -100,14 +88,14 @@ motor::platform::result egl_context::deactivate( void_t )
 }
 
 //***************************************************************
-motor::platform::result egl_context::vsync( bool_t const on_off ) 
+motor::platform::result egl_context::vsync( bool_t const on_off ) noexcept
 {
     eglSwapInterval( _display, on_off ? 1 : 0 ) ;
     return motor::platform::result::ok ;
 }
 
 //**************************************************************
-motor::platform::result egl_context::swap( void_t ) 
+motor::platform::result egl_context::swap( void_t ) noexcept
 {
     eglSwapBuffers( _display, _surface ) ;
     return motor::platform::result::ok ;
@@ -146,6 +134,19 @@ motor::graphics::gen4::backend_borrow_t::mtr_t egl_context::borrow_backend( void
     return motor::memory::release_ptr( this_t::backend() ) ;
 }
 
+//***********************************************************************
+motor::platform::result egl_context::create_context( EGLNativeWindowType wnd, EGLNativeDisplayType disp ) noexcept 
+{
+    _display = disp ;
+    _wnd = wnd ;
+    
+    if( motor::log::global::error( disp == NULL || _wnd == 0, 
+        "[wgl_context::create_context] : Window handle is not valid." ) )
+        return motor::platform::result::invalid_argument ;
+
+    return this_t::create_the_context( motor::application::gl_info_t() ) ;
+}
+
 #if 0
 //***********************************************************************
 motor::graphics::backend_res_t egl_context::create_backend( void_t ) noexcept
@@ -167,7 +168,7 @@ motor::platform::result egl_context::is_extension_supported(
     motor::string_cref_t extension_name ) const noexcept
 {
     this_t::strings_t ext_list ;
-    if( motor::application::no_success( get_egl_extension(ext_list) ) ) 
+    if( motor::platform::no_success( this_t::get_egl_extension(ext_list) ) ) 
         return motor::platform::result::failed_wgl ;
 
     this_t::strings_t::iterator iter = ext_list.begin() ;
@@ -181,25 +182,25 @@ motor::platform::result egl_context::is_extension_supported(
 }
 
 //*****************************************************************
-motor::platform::result egl_context::get_egl_extension( this_t::strings_out_t ext_list )
+motor::platform::result egl_context::get_egl_extension( this_t::strings_out_t ext_list ) const noexcept
 {
     char_cptr_t ch = eglQueryString( _display, EGL_EXTENSIONS ) ;
     if( !ch ) return motor::platform::result::failed ;
     
     motor::string_t extension_string( (const char*)ch) ;
-    motor::string_ops::split( extension_string, ' ', ext_list ) ;
+    motor::mstd::string_ops::split( extension_string, ' ', ext_list ) ;
 
     return motor::platform::result::ok ;
 }
 
 //****************************************************************
-motor::platform::result egl_context::get_es_extension( this_t::strings_out_t ext_list )
+motor::platform::result egl_context::get_es_extension( this_t::strings_out_t ext_list ) const noexcept
 {
     const GLubyte * ch = glGetString( GL_EXTENSIONS ) ;
     if( !ch ) return motor::platform::result::failed ;
 
     motor::string_t extension_string( (const char*)ch) ;
-    motor::string_ops::split( extension_string, ' ', ext_list ) ;
+    motor::mstd::string_ops::split( extension_string, ' ', ext_list ) ;
     return motor::platform::result::ok ;
 }
 
@@ -209,7 +210,7 @@ motor::platform::result egl_context::get_es_version( motor::application::gl_vers
     const GLubyte* ch = glGetString(GL_VERSION) ;
     if( !ch ) return motor::platform::result::failed ;
 
-    motor::string_t version_string = motor::string((const char*)ch) ;
+    motor::string_t version_string = motor::string_t((const char*)ch) ;
 
     GLint major = 0;//boost::lexical_cast<GLint, std::string>(*token) ;
     GLint minor = 0;//boost::lexical_cast<GLint, std::string>(*(++token));
@@ -219,7 +220,7 @@ motor::platform::result egl_context::get_es_version( motor::application::gl_vers
         GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            motor::string_t const es = std::to_string(err) ;
+            motor::string_t const es = motor::to_string(err) ;
             motor::log::global::error( 
                 "[egl_context::get_gl_version] : get gl major <"+es+">" ) ;
         }
@@ -229,7 +230,7 @@ motor::platform::result egl_context::get_es_version( motor::application::gl_vers
         GLenum err = glGetError() ;
         if( err != GL_NO_ERROR )
         {
-            motor::string_t es = std::to_string(err) ;
+            motor::string_t es = motor::to_string(err) ;
             motor::log::global::error( "[egl_context::get_gl_version] : get gl minor <"+es+">" ) ;
         }
     }
@@ -272,7 +273,7 @@ motor::platform::result egl_context::create_the_context( motor::application::gl_
         }
 
         motor::log::global_t::status( "[egl_context] : EGL Version " + 
-               std::to_string( major ) + "." + std::to_string( minor ) ) ;
+               motor::to_string( major ) + "." + motor::to_string( minor ) ) ;
     }
 
     {
@@ -344,7 +345,7 @@ motor::platform::result egl_context::create_the_context( motor::application::gl_
             motor::application::gl_version v ;
             this_t::get_es_version( v ) ;
             motor::log::global_t::status( "[egl_context] : OpenGLES Version " 
-                   + std::to_string( v.major ) + "." + std::to_string( v.minor ) ) ;
+                   + motor::to_string( v.major ) + "." + motor::to_string( v.minor ) ) ;
         }
         this_t::strings_t list ;
         this_t::get_es_extension( list ) ;
