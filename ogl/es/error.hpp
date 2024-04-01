@@ -18,7 +18,7 @@ namespace motor
                 GLenum __so__err = glGetError() ;
                 if( __so__err == GL_NO_ERROR ) return false ;
 
-                std::string const __glstring = motor::ogl::to_string( __so__err ) ;
+                motor::string_t const __glstring = motor::ogl::to_string( __so__err ) ;
                 motor::log::global_t::error( "[es]" + msg + " " + __glstring ) ;
                 return true ;
             }

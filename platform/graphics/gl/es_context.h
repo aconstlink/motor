@@ -7,9 +7,10 @@ namespace motor
 {
     namespace platform
     {
-        namespace GLES3
+        namespace opengl_es
         {
-            using rendering_context_t = motor::platform::opengl::rendering_context ;
+            using rendering_context = motor::platform::opengl::rendering_context ;
+            motor_typedef( rendering_context ) ;
         }
     }
 }

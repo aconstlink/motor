@@ -3,8 +3,16 @@
 #include "es3.h"
 #include "es3_convert.h"
 
+#include <motor/msl/symbol.hpp>
+#include <motor/msl/database.hpp>
+#include <motor/msl/parser.h>
+#include <motor/msl/dependency_resolver.hpp>
+#include <motor/msl/generators/generator.h>
+#include <motor/msl/generators/glsl4_generator.h>
+
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
+#include <motor/graphics/shader/msl_bridge.hpp>
 
 #include <motor/ogl/es/error.hpp>
 #include <motor/memory/global.h>
@@ -13,7 +21,8 @@
 #include <motor/std/stack>
 #include <motor/std/string_split.hpp>
 
-using namespace motor::graphics ;
+using namespace motor::platform ;
+using namespace motor::platform::gen4 ;
 
 struct es3_backend::pimpl
 {
@@ -26,7 +35,7 @@ struct es3_backend::pimpl
         motor_this_typedefs( tf_data ) ;
 
         bool_t valid = false ;
-        motor::ntd::string_t name ;
+        motor::string_t name ;
 
         struct buffer
         {
@@ -61,7 +70,7 @@ struct es3_backend::pimpl
         //GLenum pt = 0 ;
 
         // for tf reconfig - render data ids
-        motor::ntd::vector< size_t > rd_ids ;
+        motor::vector< size_t > rd_ids ;
         void_t remove_render_data_id( size_t const rid ) noexcept
         {
             if( rid == size_t( -1 ) ) return ;
@@ -101,7 +110,7 @@ struct es3_backend::pimpl
     struct geo_data
     {
         bool_t valid = false ;
-        motor::ntd::string_t name ;
+        motor::string_t name ;
 
         GLuint vb_id = GLuint( -1 ) ;
         GLuint ib_id = GLuint( -1 ) ;
@@ -128,7 +137,7 @@ struct es3_backend::pimpl
                     motor::graphics::size_of( type_struct ) ) ;
             }
         };
-        motor::ntd::vector< layout_element > elements ;
+        motor::vector< layout_element > elements ;
 
         // per vertex sib
         GLuint stride = 0 ;
@@ -138,7 +147,7 @@ struct es3_backend::pimpl
         GLenum pt ;
 
         // for geo reconfig - render data ids
-        motor::ntd::vector< size_t > rd_ids ;
+        motor::vector< size_t > rd_ids ;
         void_t remove_render_data_id( size_t const rid ) noexcept
         {
             if( rid == size_t( -1 ) ) return ;
@@ -158,7 +167,7 @@ struct es3_backend::pimpl
     struct shader_data
     {
         bool_t valid = false ;
-        motor::ntd::string_t name ;
+        motor::string_t name ;
 
         GLuint vs_id = GLuint( -1 ) ;
         GLuint gs_id = GLuint( -1 ) ;
@@ -170,19 +179,19 @@ struct es3_backend::pimpl
         struct vertex_input_binding
         {
             motor::graphics::vertex_attribute va ;
-            motor::ntd::string_t name ;
+            motor::string_t name ;
         };
-        motor::ntd::vector< vertex_input_binding > vertex_inputs ;
+        motor::vector< vertex_input_binding > vertex_inputs ;
 
         struct vertex_output_binding
         {
             motor::graphics::vertex_attribute va ;
-            motor::ntd::string_t name ;
+            motor::string_t name ;
         };
-        motor::ntd::vector< vertex_output_binding > vertex_outputs ;
+        motor::vector< vertex_output_binding > vertex_outputs ;
         char const ** output_names = nullptr ;
 
-        bool_t find_vertex_input_binding_by_name( motor::ntd::string_cref_t name_,
+        bool_t find_vertex_input_binding_by_name( motor::string_cref_t name_,
             motor::graphics::vertex_attribute& va ) const noexcept
         {
             auto iter = std::find_if( vertex_inputs.begin(), vertex_inputs.end(),
@@ -197,7 +206,7 @@ struct es3_backend::pimpl
             return true ;
         }
 
-        bool_t find_vertex_output_binding_by_name( motor::ntd::string_cref_t name_,
+        bool_t find_vertex_output_binding_by_name( motor::string_cref_t name_,
             motor::graphics::vertex_attribute& va ) const noexcept
         {
             auto iter = std::find_if( vertex_outputs.begin(), vertex_outputs.end(),
@@ -215,17 +224,17 @@ struct es3_backend::pimpl
         struct attribute_variable
         {
             motor::graphics::vertex_attribute va ;
-            motor::ntd::string_t name ;
+            motor::string_t name ;
             GLuint loc ;
             GLenum type ;
         };
         motor_typedef( attribute_variable ) ;
 
-        motor::ntd::vector< attribute_variable_t > attributes ;
+        motor::vector< attribute_variable_t > attributes ;
 
         struct uniform_variable
         {
-            motor::ntd::string_t name ;
+            motor::string_t name ;
             GLuint loc ;
             GLenum type ;
 
@@ -245,7 +254,7 @@ struct es3_backend::pimpl
         };
         motor_typedef( uniform_variable ) ;
 
-        motor::ntd::vector< uniform_variable > uniforms ;
+        motor::vector< uniform_variable > uniforms ;
 
         void_ptr_t uniform_mem = nullptr ;
     } ;
@@ -255,8 +264,8 @@ struct es3_backend::pimpl
     struct state_data
     {
         bool_t valid = false ;
-        motor::ntd::string_t name ;
-        motor::ntd::vector< motor::graphics::render_state_sets_t > states ;
+        motor::string_t name ;
+        motor::vector< motor::graphics::render_state_sets_t > states ;
     } ;
     motor_typedef( state_data ) ;
 
@@ -264,10 +273,10 @@ struct es3_backend::pimpl
     struct render_data
     {
         bool_t valid = false ;
-        motor::ntd::string_t name ;
+        motor::string_t name ;
 
-        motor::ntd::vector< size_t > geo_ids ;
-        motor::ntd::vector< size_t > tf_ids ; // feed from for geometry
+        motor::vector< size_t > geo_ids ;
+        motor::vector< size_t > tf_ids ; // feed from for geometry
         size_t shd_id = size_t( -1 ) ;
 
         struct uniform_variable_link
@@ -281,12 +290,12 @@ struct es3_backend::pimpl
             void_ptr_t mem = nullptr ;
         };
 
-        motor::ntd::vector< motor::graphics::variable_set_res_t > var_sets ;
+        motor::vector< motor::graphics::variable_set_mtr_t > var_sets ;
 
         // user provided variable set
-        motor::ntd::vector< std::pair<
-            motor::graphics::variable_set_res_t,
-            motor::ntd::vector< uniform_variable_link > > > var_sets_data ;
+        motor::vector< std::pair<
+            motor::graphics::variable_set_mtr_t,
+            motor::vector< uniform_variable_link > > > var_sets_data ;
 
         struct uniform_texture_link
         {
@@ -298,9 +307,9 @@ struct es3_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        motor::ntd::vector< std::pair<
-            motor::graphics::variable_set_res_t,
-            motor::ntd::vector< uniform_texture_link > > > var_sets_texture ;
+        motor::vector< std::pair<
+            motor::graphics::variable_set_mtr_t,
+            motor::vector< uniform_texture_link > > > var_sets_texture ;
 
         struct uniform_array_data_link
         {
@@ -312,9 +321,9 @@ struct es3_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        motor::ntd::vector< std::pair<
-            motor::graphics::variable_set_res_t,
-            motor::ntd::vector< uniform_array_data_link > > > var_sets_array ;
+        motor::vector< std::pair<
+            motor::graphics::variable_set_mtr_t,
+            motor::vector< uniform_array_data_link > > > var_sets_array ;
 
         struct uniform_streamout_link
         {
@@ -326,9 +335,9 @@ struct es3_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        motor::ntd::vector< std::pair<
-            motor::graphics::variable_set_res_t,
-            motor::ntd::vector< uniform_streamout_link > > > var_sets_streamout ;
+        motor::vector< std::pair<
+            motor::graphics::variable_set_mtr_t,
+            motor::vector< uniform_streamout_link > > > var_sets_streamout ;
 
         // memory block for all variables in all variable sets.
         void_ptr_t mem_block = nullptr ;
@@ -349,7 +358,7 @@ struct es3_backend::pimpl
     struct image_data
     {
         bool_t valid = false ;
-        motor::ntd::string_t name ;
+        motor::string_t name ;
 
         GLenum type = GL_NONE ;
 
@@ -367,7 +376,7 @@ struct es3_backend::pimpl
     struct array_data
     {
         bool_t valid = false ;
-        motor::ntd::string_t name ;
+        motor::string_t name ;
 
         GLuint tex_id = GLuint( -1 ) ;
         GLuint buf_id = GLuint( -1 ) ;
@@ -381,7 +390,7 @@ struct es3_backend::pimpl
     {
         bool_t valid = false ;
 
-        motor::ntd::string_t name ;
+        motor::string_t name ;
 
         GLuint gl_id = GLuint( -1 ) ;
 
@@ -397,51 +406,53 @@ struct es3_backend::pimpl
     };
     motor_typedef( framebuffer_data ) ;
 
-    typedef motor::ntd::vector< this_t::shader_data > shaders_t ;
+    typedef motor::vector< this_t::shader_data > shaders_t ;
     shaders_t _shaders ;
 
-    typedef motor::ntd::vector< this_t::render_data > render_datas_t ;
+    typedef motor::vector< this_t::render_data > render_datas_t ;
     render_datas_t _renders ;
 
-    typedef motor::ntd::vector< this_t::geo_data > geo_datas_t ;
+    typedef motor::vector< this_t::geo_data > geo_datas_t ;
     geo_datas_t _geometries ;
 
-    typedef motor::ntd::vector< this_t::image_data > image_datas_t ;
+    typedef motor::vector< this_t::image_data > image_datas_t ;
     image_datas_t _images ;
 
-    typedef motor::ntd::vector< this_t::framebuffer_data_t > framebuffers_t ;
+    typedef motor::vector< this_t::framebuffer_data_t > framebuffers_t ;
     framebuffers_t _framebuffers ;
 
-    typedef motor::ntd::vector< this_t::state_data_t > states_t ;
+    typedef motor::vector< this_t::state_data_t > states_t ;
     states_t _states ;
-    motor::ntd::stack< motor::graphics::render_state_sets_t, 10 > _state_stack ;
+    motor::stack< motor::graphics::render_state_sets_t, 10 > _state_stack ;
 
-    typedef motor::ntd::vector< this_t::array_data_t > arrays_t ;
+    typedef motor::vector< this_t::array_data_t > arrays_t ;
     arrays_t _arrays ;
 
-    typedef motor::ntd::vector< this_t::tf_data_t > tf_datas_t ;
+    typedef motor::vector< this_t::tf_data_t > tf_datas_t ;
     tf_datas_t _feedbacks ;
 
     GLsizei vp_width = 0 ;
     GLsizei vp_height = 0 ;
 
-    motor::graphics::backend_type const bt = motor::graphics::backend_type::es3 ;
+    motor::graphics::gen4::backend_type const bt = motor::graphics::gen4::backend_type::es3 ;
     motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::glsles_3_0 ;
 
     // the current render state set
     motor::graphics::render_state_sets_t render_states ;
 
-    motor::graphics::es_context_ptr_t _ctx = nullptr ;
+    motor::platform::opengl_es::rendering_context_ptr_t _ctx = nullptr ;
 
     size_t _tf_active_id = size_t( -1 ) ;
 
+    size_t _bid = size_t(-1) ;
+
     //****************************************************************************************
-    pimpl( motor::graphics::es_context_ptr_t ctx ) : _ctx( ctx )
+    pimpl( size_t const bid, motor::platform::opengl_es::rendering_context_ptr_t ctx ) : _ctx( ctx )
     {
         {
             motor::graphics::state_object_t obj( "es3_default_states" ) ;
 
-            auto new_states = motor::graphics::backend_t::default_render_states() ;
+            auto new_states = motor::graphics::gen4::backend_t::default_render_states() ;
 
             new_states.view_s.do_change = true ;
             new_states.view_s.ss.do_activate = true ;
@@ -457,6 +468,8 @@ struct es3_backend::pimpl
 
             /*size_t const oid =*/ this_t::construct_state( size_t( -1 ), obj ) ;
         }
+
+        _bid = bid ;
     }
 
     //****************************************************************************************
@@ -506,11 +519,21 @@ struct es3_backend::pimpl
         _feedbacks.clear() ;
     }
 
+    //****************************************************************************************
     template< typename T >
-    static size_t determine_oid( motor::ntd::string_cref_t name, motor::ntd::vector< T >& v ) noexcept
+    static size_t determine_oid( size_t oid, motor::string_cref_t name, motor::vector< T >& v ) noexcept
     {
-        size_t oid = size_t( -1 ) ;
+        // just reuse the same object
+        if( v.size() > oid && v[oid].name == name )
+        {
+            v[ oid ].valid = true ;
+            return oid ;
+        }
 
+        oid = size_t(-1) ;
+        
+        // this code is required if we only know the name
+        // but do not have any oid.
         {
             auto iter = std::find_if( v.begin(), v.end(), [&] ( T const& c )
             {
@@ -549,7 +572,7 @@ struct es3_backend::pimpl
 
     //****************************************************************************************
     template< typename T >
-    static size_t find_index_by_resource_name( motor::ntd::string_in_t name, motor::ntd::vector< T > const & resources ) noexcept
+    static size_t find_index_by_resource_name( motor::string_in_t name, motor::vector< T > const & resources ) noexcept
     {
         size_t i = 0 ; 
         for( auto const & r : resources ) 
@@ -581,7 +604,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    void_t handle_render_state( render_state_sets const& new_states, bool_t const popped = false )
+    void_t handle_render_state( motor::graphics::render_state_sets const& new_states, bool_t const popped = false )
     {
         // depth test
         {
@@ -618,8 +641,8 @@ struct es3_backend::pimpl
                     glEnable( GL_BLEND ) ;
                     motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
 
-                    GLenum const glsrc = motor::graphics::es3::convert( new_states.blend_s.ss.src_blend_factor ) ;
-                    GLenum const gldst = motor::graphics::es3::convert( new_states.blend_s.ss.dst_blend_factor );
+                    GLenum const glsrc = motor::platform::es3::convert( new_states.blend_s.ss.src_blend_factor ) ;
+                    GLenum const gldst = motor::platform::es3::convert( new_states.blend_s.ss.dst_blend_factor );
 
                     glBlendFunc( glsrc, gldst ) ;
                     motor::es::error::check_and_log( motor_log_fn( "glBlendFunc" ) ) ;
@@ -641,10 +664,10 @@ struct es3_backend::pimpl
                     glEnable( GL_CULL_FACE ) ;
                     motor::es::error::check_and_log( motor_log_fn( "glEnable" ) ) ;
 
-                    glCullFace( motor::graphics::es3::convert( new_states.polygon_s.ss.cm ) ) ;
+                    glCullFace( motor::platform::es3::convert( new_states.polygon_s.ss.cm ) ) ;
                     motor::es::error::check_and_log( motor_log_fn( "glCullFace" ) ) ;
 
-                    glFrontFace( motor::graphics::es3::convert( new_states.polygon_s.ss.ff ) ) ;
+                    glFrontFace( motor::platform::es3::convert( new_states.polygon_s.ss.ff ) ) ;
                     motor::es::error::check_and_log( motor_log_fn( "glFrontFace" ) ) ;
                 }
                 else
@@ -797,14 +820,14 @@ struct es3_backend::pimpl
                 GLsizei const width = dims.x() ;
                 GLsizei const height = dims.y() ;
                 GLenum const format = GL_RGBA ;
-                GLenum const type = motor::graphics::es3::to_pixel_type( ctt ) ;
+                GLenum const type = motor::platform::es3::to_pixel_type( ctt ) ;
                 GLint const border = 0 ;
-                GLint const internal_format = motor::graphics::es3::to_gl_format( ctt ) ;
+                GLint const internal_format = motor::platform::es3::to_gl_format( ctt ) ;
 
                 // maybe required for memory allocation
                 // at the moment, render targets do not have system memory.
                 #if 0
-                size_t const sib = motor::graphics::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
+                size_t const sib = motor::platform::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
                 #endif
                 void_cptr_t data = 0;//nullptr ;
 
@@ -849,15 +872,15 @@ struct es3_backend::pimpl
                 GLint const level = 0 ;
                 GLsizei const width = dims.x() ;
                 GLsizei const height = dims.y() ;
-                GLenum const format = motor::graphics::es3::to_gl_format( dst ) ;
-                GLenum const type = motor::graphics::es3::to_gl_type( dst ) ;
+                GLenum const format = motor::platform::es3::to_gl_format( dst ) ;
+                GLenum const type = motor::platform::es3::to_gl_type( dst ) ;
                 GLint const border = 0 ;
-                GLint const internal_format = motor::graphics::es3::to_gl_format( dst ) ;
+                GLint const internal_format = motor::platform::es3::to_gl_format( dst ) ;
 
                 // maybe required for memory allocation
                 // at the moment, render targets do not have system memory.
                 #if 0
-                size_t const sib = motor::graphics::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
+                size_t const sib = motor::platform::es3::calc_sib( dims.x(), dims.y(), ctt ) ;
                 #endif
                 void_cptr_t data = nullptr ;
 
@@ -868,7 +891,7 @@ struct es3_backend::pimpl
             // attach
             {
                 GLuint const tid = fb.depth ;
-                GLenum const att = motor::graphics::es3::to_gl_attachment( dst ) ;
+                GLenum const att = motor::platform::es3::to_gl_attachment( dst ) ;
                 glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
                 motor::es::error::check_and_log( motor_log_fn( "glFramebufferTexture2D" ) ) ;
             }
@@ -908,7 +931,7 @@ struct es3_backend::pimpl
             {
                 size_t const idx = id + i ;
                 _images[ idx ].valid = true ;
-                _images[ idx ].name = fb.name + "." + std::to_string( i ) ;
+                _images[ idx ].name = fb.name + "." + motor::to_string( i ) ;
                 _images[ idx ].tex_id = fb.colors[ i ] ;
                 _images[ idx ].type = GL_TEXTURE_2D ; 
 
@@ -1097,11 +1120,11 @@ struct es3_backend::pimpl
         motor::graphics::shader_set_t ss ;
         {
             auto const res = obj.shader_set( this_t::sapi, ss ) ;
-            if( motor::core::is_not(res) )
+            if( !res )
             {
                 motor::log::global_t::warning( motor_log_fn(
                     "config [" + obj.name() + "] has no shaders for " + 
-                    motor::graphics::to_string( this_t::bt ) ) ) ;
+                    motor::graphics::gen4::to_string( this_t::bt ) ) ) ;
                 return oid ;
             }
         }
@@ -1252,7 +1275,7 @@ struct es3_backend::pimpl
     }
 
     //*********************************************************************************
-    bool_t compile_shader( GLuint const id, motor::ntd::string_cref_t code )
+    bool_t compile_shader( GLuint const id, motor::string_cref_t code )
     {
         if( code.empty() ) return true ;
 
@@ -1291,8 +1314,8 @@ struct es3_backend::pimpl
 
             glGetShaderInfoLog( id, length, 0, info_log ) ;
 
-            motor::ntd::vector< motor::ntd::string_t > tokens ;
-            motor::ntd::string_ops::split( motor::ntd::string_t( info_log ), '\n', tokens ) ;
+            motor::vector< motor::string_t > tokens ;
+            motor::mstd::string_ops::split( motor::string_t( info_log ), '\n', tokens ) ;
 
             for( auto const & msg : tokens )
             {
@@ -1331,8 +1354,8 @@ struct es3_backend::pimpl
             std::string info_log_string = std::string( ( const char* ) info_log ) ;
 
             {
-                motor::ntd::vector< motor::ntd::string_t > tokens ;
-                motor::ntd::string_ops::split( motor::ntd::string_t( info_log ), '\n', tokens ) ;
+                motor::vector< motor::string_t > tokens ;
+                motor::mstd::string_ops::split( motor::string_t( info_log ), '\n', tokens ) ;
 
                 for( auto token : tokens )
                 {
@@ -1380,7 +1403,7 @@ struct es3_backend::pimpl
             GLuint const location_id = glGetAttribLocation( program_id, buffer ) ;
             if( motor::es::error::check_and_log( "glGetAttribLocation failed. continue loop." ) ) continue ;
 
-            motor::ntd::string_t const variable_name = motor::ntd::string_t( ( const char* ) buffer ) ;
+            motor::string_t const variable_name = motor::string_t( ( const char* ) buffer ) ;
 
             this_t::shader_data::attribute_variable_t vd ;
             vd.name = std::move( variable_name ) ;
@@ -1390,7 +1413,7 @@ struct es3_backend::pimpl
             {
                 motor::graphics::vertex_attribute va = motor::graphics::vertex_attribute::undefined ;
                 auto const res = config.find_vertex_input_binding_by_name( vd.name, va ) ;
-                motor::log::global_t::error( motor::core::is_not( res ), 
+                motor::log::global_t::error( !res, 
                     motor_log_fn("can not find vertex attribute - " + vd.name ) ) ;
                 vd.va = va ;
             }
@@ -1471,7 +1494,7 @@ struct es3_backend::pimpl
                 motor::log::global_t::warning( motor_log_fn( "Vertex attribute (" +
                     motor::graphics::to_string(e.va) + ") in shader (" + sconfig.name + ") not used."
                     "Will bind geometry (" +sconfig.name+ ") layout attribute to custom location (" 
-                    + std::to_string( uint_t(loc) ) + ").") ) ;
+                    + motor::to_string( uint_t(loc) ) + ").") ) ;
             }
             else
             {
@@ -1536,7 +1559,7 @@ struct es3_backend::pimpl
             if( motor::log::global_t::error( location_id == GLuint( -1 ), 
                 motor_log_fn( "invalid uniform location id." ) ) ) continue ;
 
-            motor::ntd::string const variable_name = motor::ntd::string( char_cptr_t( buffer ) ) ;
+            motor::string_t const variable_name = motor::string_t( char_cptr_t( buffer ) ) ;
 
             this_t::shader_data::uniform_variable_t vd ;
             vd.name = std::move( variable_name ) ;
@@ -1555,7 +1578,7 @@ struct es3_backend::pimpl
 
         auto & config = _images[ oid ] ;
         config.name = obj.name() ;
-        config.type = motor::graphics::es3::convert( obj.get_type() ) ;
+        config.type = motor::platform::es3::convert( obj.get_type() ) ;
 
         // sampler
         if( config.tex_id == GLuint( -1 ) )
@@ -1570,13 +1593,13 @@ struct es3_backend::pimpl
         {
             for( size_t j=0; j<(size_t)motor::graphics::texture_wrap_mode::size; ++j )
             {
-                config.wrap_types[ j ] = motor::graphics::es3::convert(
+                config.wrap_types[ j ] = motor::platform::es3::convert(
                     obj.get_wrap( ( motor::graphics::texture_wrap_mode )j ) );
             }
 
             for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
             {
-                config.filter_types[ j ] = motor::graphics::es3::convert(
+                config.filter_types[ j ] = motor::platform::es3::convert(
                     obj.get_filter( ( motor::graphics::texture_filter_mode )j ) );
             }
         }
@@ -1605,24 +1628,40 @@ struct es3_backend::pimpl
     }
 
     //***********************************************************************************
-    size_t construct_render_config( size_t oid, motor::graphics::render_object_ref_t obj )
+    size_t construct_render_data( size_t oid, motor::graphics::render_object_ref_t obj )
     {
-        oid = determine_oid( obj.name(), _renders ) ;
-        
-        {
-            _renders[ oid ].name = obj.name() ;
-            _renders[ oid ].var_sets_data.clear() ;
-            _renders[ oid ].var_sets_texture.clear() ;
-            _renders[ oid ].var_sets_array.clear() ;
-            _renders[ oid ].var_sets_streamout.clear() ;
-            _renders[ oid ].var_sets.clear() ;
+        oid = determine_oid( obj.get_oid(_bid), obj.name(), _renders ) ;
 
-            _renders[ oid ].geo_ids.clear();
-            _renders[ oid ].tf_ids.clear() ;
-            _renders[ oid ].shd_id = size_t( -1 ) ;
+        auto & rd = _renders[ oid ] ;
+
+        {
+            rd.name = obj.name() ;
+            
+            for( auto id : rd.geo_ids ) _geometries[id].remove_render_data_id( oid ) ;
+            rd.geo_ids.clear();
+
+            for( auto id : rd.tf_ids )
+            {
+                _feedbacks[id].remove_render_data_id( oid ) ;
+            }
+            rd.tf_ids.clear() ;
+
+            rd.shd_id = size_t( -1 ) ;
 
             motor::memory::global_t::dealloc( _renders[ oid ].mem_block ) ;
-            _renders[ oid ].mem_block = nullptr ;
+            rd.mem_block = nullptr ;
+
+            for( auto & d : rd.geo_to_vaos ) 
+            {
+                glDeleteVertexArrays( 1, &d.vao ) ;
+                motor::ogl::error::check_and_log( motor_log_fn( "glDeleteVertexArrays" ) ) ;
+            }
+            rd.geo_to_vaos.clear() ;
+        }
+
+        if( !this_t::construct_render_data_ext( oid, obj ) )
+        {
+            motor::log::global_t::error("[gl4] : construct_render_data update failed") ;
         }
 
         return oid ;
@@ -1659,7 +1698,7 @@ struct es3_backend::pimpl
 
         {
             sc.for_each_vertex_input_binding( [&]( size_t const,
-                motor::graphics::vertex_attribute const va, motor::ntd::string_cref_t name )
+                motor::graphics::vertex_attribute const va, motor::string_cref_t name )
             {
                 sconfig.vertex_inputs.emplace_back( this_t::shader_data::vertex_input_binding 
                     { va, name } ) ;
@@ -1676,7 +1715,7 @@ struct es3_backend::pimpl
 
             sc.for_each_vertex_output_binding( [&]( size_t const i,
                 motor::graphics::vertex_attribute const va, 
-                motor::graphics::ctype const, motor::ntd::string_cref_t name )
+                motor::graphics::ctype const, motor::string_cref_t name )
             {
                 sconfig.vertex_outputs.emplace_back( 
                     this_t::shader_data::vertex_output_binding { va, name } ) ;
@@ -1688,7 +1727,7 @@ struct es3_backend::pimpl
             // object is used, the engine needs to relink this shader 
             // based on the number of buffers attached to the streamout
             // object.
-            GLenum const mode = motor::graphics::es3::convert( sc.get_streamout_mode() ) ;
+            GLenum const mode = motor::platform::es3::convert( sc.get_streamout_mode() ) ;
             glTransformFeedbackVaryings( sconfig.pg_id, GLsizei( sc.get_num_output_bindings() ), 
                                          sconfig.output_names, mode ) ;
 
@@ -1858,11 +1897,10 @@ struct es3_backend::pimpl
         }
 
         {
-            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_res_t vs )
+            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
             {
                 auto const res = this_t::connect( id, vs ) ;
-                motor::log::global_t::warning( motor::core::is_not( res ),
-                    motor_log_fn( "connect" ) ) ;
+                motor::log::global_t::warning( !res, motor_log_fn( "connect" ) ) ;
             } ) ;
         }
         
@@ -1973,7 +2011,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    size_t construct_geo( size_t oid, motor::ntd::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
+    size_t construct_geo( size_t oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
         oid = determine_oid( name, _geometries ) ;
 
@@ -2087,7 +2125,7 @@ struct es3_backend::pimpl
     }
 
     //************************************************************************************
-    bool_t update( size_t const id, motor::graphics::geometry_object_res_t geo, 
+    bool_t update( size_t const id, motor::graphics::geometry_object_mtr_t geo, 
                    bool_t const is_config = false )
     {
         auto& config = _geometries[ id ] ;
@@ -2103,7 +2141,7 @@ struct es3_backend::pimpl
             config.num_elements_vb = geo->vertex_buffer().get_num_elements() ;
             config.ib_elem_sib = 0 ;
             config.ib_type = GL_UNSIGNED_INT ;
-            config.pt = motor::graphics::es3::convert( geo->primitive_type() ) ;
+            config.pt = motor::platform::es3::convert( geo->primitive_type() ) ;
         }
 
         // bind vertex buffer
@@ -2191,8 +2229,8 @@ struct es3_backend::pimpl
         GLsizei const width = GLsizei( confin.image().get_dims().x() ) ;
         GLsizei const height = GLsizei( confin.image().get_dims().y() ) ;
         GLsizei const depth = GLsizei( confin.image().get_dims().z() ) ;
-        GLenum const format = motor::graphics::es3::convert_to_gl_pixel_format( confin.image().get_image_format() ) ;
-        GLenum const type = motor::graphics::es3::convert_to_gl_pixel_type( confin.image().get_image_element_type() ) ;
+        GLenum const format = motor::platform::es3::convert_to_gl_pixel_format( confin.image().get_image_format() ) ;
+        GLenum const type = motor::platform::es3::convert_to_gl_pixel_type( confin.image().get_image_element_type() ) ;
         void_cptr_t data = confin.image().get_image_ptr() ;
 
         // determine how to unpack the data
@@ -2212,7 +2250,7 @@ struct es3_backend::pimpl
         if( do_config || (sib == 0 || config.sib < sib) )
         {
             GLint const border = 0 ;
-            GLint const internal_format = motor::graphics::es3::convert_to_gl_format( confin.image().get_image_format(), confin.image().get_image_element_type() ) ;
+            GLint const internal_format = motor::platform::es3::convert_to_gl_format( confin.image().get_image_format(), confin.image().get_image_element_type() ) ;
 
             if( target == GL_TEXTURE_2D )
             {
@@ -2253,7 +2291,7 @@ struct es3_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( size_t const id, motor::graphics::variable_set_res_t vs )
+    bool_t connect( size_t const id, motor::graphics::variable_set_mtr_t vs )
     {
         auto& config = _renders[ id ] ;
 
@@ -2263,19 +2301,19 @@ struct es3_backend::pimpl
     }
 
     //*********************************************************************************************
-    bool_t connect( this_t::render_data & config, motor::graphics::variable_set_res_t vs )
+    bool_t connect( this_t::render_data & config, motor::graphics::variable_set_mtr_t vs )
     {
         auto item_data = std::make_pair( vs,
-            motor::ntd::vector< this_t::render_data::uniform_variable_link >() ) ;
+            motor::vector< this_t::render_data::uniform_variable_link >() ) ;
 
         auto item_tex = std::make_pair( vs,
-            motor::ntd::vector< this_t::render_data::uniform_texture_link >() ) ;
+            motor::vector< this_t::render_data::uniform_texture_link >() ) ;
 
         auto item_buf = std::make_pair( vs,
-            motor::ntd::vector< this_t::render_data::uniform_array_data_link >() ) ;
+            motor::vector< this_t::render_data::uniform_array_data_link >() ) ;
 
         auto item_tfb = std::make_pair( vs,
-            motor::ntd::vector< this_t::render_data::uniform_streamout_link >() ) ;
+            motor::vector< this_t::render_data::uniform_streamout_link >() ) ;
 
         this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
 
@@ -2285,9 +2323,9 @@ struct es3_backend::pimpl
             // is it a data uniform variable?
             if( motor::ogl::uniform_is_data( uv.type ) )
             {
-                auto const types = motor::graphics::es3::to_type_type_struct( uv.type ) ;
+                auto const types = motor::platform::es3::to_type_type_struct( uv.type ) ;
                 auto* var = vs->data_variable( uv.name, types.first, types.second ) ;
-                if( motor::core::is_nullptr( var ) )
+                if( var == nullptr )
                 {
                     motor::log::global_t::error( motor_log_fn( "can not claim variable " + uv.name ) ) ;
                     continue ;
@@ -2301,11 +2339,11 @@ struct es3_backend::pimpl
             }
             else if( motor::ogl::uniform_is_texture( uv.type ) )
             {
-                //auto const types = motor::graphics::es3::to_type_type_struct( uv.type ) ;
+                //auto const types = motor::platform::es3::to_type_type_struct( uv.type ) ;
                 auto* var = vs->texture_variable( uv.name ) ;
                 var = var->get().empty() ? vs->array_variable( uv.name ) : var ;
 
-                if( motor::core::is_nullptr( var ) )
+                if( var == nullptr )
                 {
                     motor::log::global_t::error( motor_log_fn( "can not claim variable " + uv.name ) ) ;
                     continue ;
@@ -2335,7 +2373,7 @@ struct es3_backend::pimpl
             {
                 auto* var = vs->array_variable( uv.name ) ;
 
-                if( motor::core::is_nullptr( var ) )
+                if( var == nullptr )
                 {
                     motor::log::global_t::error( motor_log_fn( "can not claim variable " + uv.name ) ) ;
                     continue ;
@@ -2500,7 +2538,7 @@ struct es3_backend::pimpl
                 return false ;
 
             auto const le = obj.data_buffer().get_layout_element(0) ;
-            glTexBuffer( GL_TEXTURE_BUFFER, motor::graphics::es3::convert_for_texture_buffer(
+            glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::es3::convert_for_texture_buffer(
                 le.type, le.type_struct ), data.buf_id ) ;
             if( motor::es::error::check_and_log( motor_log_fn( "glTexBuffer" ) ) )
                 return false ;
@@ -2528,8 +2566,8 @@ struct es3_backend::pimpl
             {
                 if( buffer.bids[i] != GLuint(-1) ) continue ;
 
-                motor::ntd::string_t const is = std::to_string( i ) ;
-                motor::ntd::string_t const bs = std::to_string( rw ) ;
+                motor::string_t const is = motor::to_string( i ) ;
+                motor::string_t const bs = motor::to_string( rw ) ;
 
                 size_t const gid = this_t::construct_geo( size_t(-1), 
                     obj.name() + ".feedback."+is+"."+bs, obj.get_buffer(i) ) ;
@@ -2655,7 +2693,7 @@ struct es3_backend::pimpl
                         continue ;
 
                     auto const le = obj.get_buffer( i ).get_layout_element_zero() ;
-                    glTexBuffer( GL_TEXTURE_BUFFER, motor::graphics::es3::convert_for_texture_buffer(
+                    glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::es3::convert_for_texture_buffer(
                         le.type, le.type_struct ), buffer.bids[i] ) ;
                     if( motor::es::error::check_and_log( motor_log_fn( "glTexBuffer" ) ) )
                         continue ;
@@ -3052,7 +3090,7 @@ struct es3_backend::pimpl
                     motor::es::error::check_and_log( motor_log_fn( "glGetQueryObjectuiv" ) ) ;
                 }
                 glDrawArrays( pt, start_element, num_prims * 
-                              motor::graphics::es3::primitive_type_to_num_vertices( pt ) ) ;
+                              motor::platform::es3::primitive_type_to_num_vertices( pt ) ) ;
 
                 motor::es::error::check_and_log( motor_log_fn( "glDrawArrays" ) ) ;
                 #else
@@ -3154,11 +3192,9 @@ struct es3_backend::pimpl
 //****************************************************************************************************************************************************************************************************************
 
 //********************************************************************************************************************
-es3_backend::es3_backend( motor::graphics::es_context_ptr_t ctx ) noexcept : 
-    backend( motor::graphics::backend_type::es3 )
+es3_backend::es3_backend( motor::platform::opengl_es::rendering_context_ptr_t ctx ) noexcept 
 {
-    _pimpl = motor::memory::global_t::alloc( pimpl( ctx ), 
-        motor_log_fn("es3_backend::pimpl") ) ;
+    _pimpl = motor::memory::global_t::alloc( pimpl( ctx ), "es3_backend::pimpl" ) ;
 
     _context = ctx ;
 }
@@ -3171,7 +3207,7 @@ es3_backend::es3_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv )
 }
 
 //********************************************************************************************************************
-es3_backend::~es3_backend( void_t ) 
+es3_backend::~es3_backend( void_t ) noexcept
 {
     motor::memory::global_t::dealloc( _pimpl ) ;
 }
@@ -3192,53 +3228,32 @@ void_t es3_backend::set_window_info( window_info_cref_t wi ) noexcept
 }
 
 //*****************************************************************************************
-motor::graphics::result es3_backend::configure( motor::graphics::geometry_object_res_t gconf ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_res_t id = gconf->get_id() ;
+    size_t const oid = obj->set_oid( this_t::get_bid(),
+        _pimpl->construct_geo( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
+    if( !_pimpl->update( oid, obj, true ) )
     {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_geo( 
-            id->get_oid( this_t::get_bid() ), *gconf ) ) ;
-    }
-
-    {
-        auto const res = _pimpl->update( id->get_oid( this_t::get_bid() ), gconf, true ) ;
-        if( motor::core::is_not( res ) )
-        {
-            return motor::graphics::result::failed ;
-        }
+        return motor::graphics::result::failed ;
     }
 
     return motor::graphics::result::ok ;
 }
 
 //***************************************************************************************
-motor::graphics::result es3_backend::configure( motor::graphics::render_object_res_t config ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::render_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_res_t id = config->get_id() ;
-
-    {
-        id->set_oid( this_t::get_bid(), _pimpl->construct_render_config( 
-            id->get_oid( this_t::get_bid() ), *config ) ) ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    {
-        auto const res = _pimpl->update( oid, *config ) ;
-        if( motor::core::is_not( res ) )
-        {
-            return motor::graphics::result::failed ;
-        }
-    }
+    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_render_data( 
+        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
     return motor::graphics::result::ok ;
 }
 
 //***
-motor::graphics::result es3_backend::configure( motor::graphics::shader_object_res_t config ) noexcept
+motor::graphics::result es3_backend::configure( motor::graphics::shader_object_mtr_t config ) noexcept
 {
-    motor::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_mtr_t id = config->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_shader_data( 
@@ -3259,9 +3274,9 @@ motor::graphics::result es3_backend::configure( motor::graphics::shader_object_r
 }
 
 //***
-motor::graphics::result es3_backend::configure( motor::graphics::image_object_res_t config ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::image_object_mtr_t config ) noexcept 
 {
-    motor::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_mtr_t id = config->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
@@ -3282,7 +3297,7 @@ motor::graphics::result es3_backend::configure( motor::graphics::image_object_re
 }
 
 //***
-motor::graphics::result es3_backend::configure( motor::graphics::framebuffer_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::framebuffer_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3290,7 +3305,7 @@ motor::graphics::result es3_backend::configure( motor::graphics::framebuffer_obj
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
@@ -3301,7 +3316,7 @@ motor::graphics::result es3_backend::configure( motor::graphics::framebuffer_obj
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::configure( motor::graphics::state_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::configure( motor::graphics::state_object_mtr_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3309,7 +3324,7 @@ motor::graphics::result es3_backend::configure( motor::graphics::state_object_re
         return motor::graphics::result::invalid_argument ;
     }
 
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_state(
@@ -3320,9 +3335,9 @@ motor::graphics::result es3_backend::configure( motor::graphics::state_object_re
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::configure( motor::graphics::array_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_array_data( 
@@ -3340,9 +3355,9 @@ motor::graphics::result es3_backend::configure( motor::graphics::array_object_re
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::configure( motor::graphics::streamout_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::configure( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
 
     {
         id->set_oid( this_t::get_bid(), _pimpl->construct_feedback( 
@@ -3360,7 +3375,7 @@ motor::graphics::result es3_backend::configure( motor::graphics::streamout_objec
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::geometry_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3369,7 +3384,7 @@ motor::graphics::result es3_backend::release( motor::graphics::geometry_object_r
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         _pimpl->release_geometry( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3378,7 +3393,7 @@ motor::graphics::result es3_backend::release( motor::graphics::geometry_object_r
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::render_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::render_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3387,7 +3402,7 @@ motor::graphics::result es3_backend::release( motor::graphics::render_object_res
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         _pimpl->release_render_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3396,7 +3411,7 @@ motor::graphics::result es3_backend::release( motor::graphics::render_object_res
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::shader_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::release( motor::graphics::shader_object_mtr_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3405,7 +3420,7 @@ motor::graphics::result es3_backend::release( motor::graphics::shader_object_res
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         _pimpl->release_shader_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3414,7 +3429,7 @@ motor::graphics::result es3_backend::release( motor::graphics::shader_object_res
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::image_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3423,7 +3438,7 @@ motor::graphics::result es3_backend::release( motor::graphics::image_object_res_
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         _pimpl->release_image_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3432,7 +3447,7 @@ motor::graphics::result es3_backend::release( motor::graphics::image_object_res_
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::framebuffer_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::framebuffer_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3441,7 +3456,7 @@ motor::graphics::result es3_backend::release( motor::graphics::framebuffer_objec
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         _pimpl->release_framebuffer( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3450,7 +3465,7 @@ motor::graphics::result es3_backend::release( motor::graphics::framebuffer_objec
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::state_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::release( motor::graphics::state_object_mtr_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3459,7 +3474,7 @@ motor::graphics::result es3_backend::release( motor::graphics::state_object_res_
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         //_pimpl->relese( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3468,7 +3483,7 @@ motor::graphics::result es3_backend::release( motor::graphics::state_object_res_
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::array_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::release( motor::graphics::array_object_mtr_t obj ) noexcept
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3477,7 +3492,7 @@ motor::graphics::result es3_backend::release( motor::graphics::array_object_res_
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         _pimpl->release_array_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3486,7 +3501,7 @@ motor::graphics::result es3_backend::release( motor::graphics::array_object_res_
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::release( motor::graphics::streamout_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::release( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() || obj->name().empty() )
     {
@@ -3495,7 +3510,7 @@ motor::graphics::result es3_backend::release( motor::graphics::streamout_object_
     }
 
     {
-        motor::graphics::id_res_t id = obj->get_id() ;
+        motor::graphics::id_mtr_t id = obj->get_id() ;
         _pimpl->release_tf_data( id->get_oid( this_t::get_bid() ) ) ;
         id->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
@@ -3504,10 +3519,10 @@ motor::graphics::result es3_backend::release( motor::graphics::streamout_object_
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::connect( motor::graphics::render_object_res_t config, 
-                motor::graphics::variable_set_res_t vs ) noexcept
+motor::graphics::result es3_backend::connect( motor::graphics::render_object_mtr_t config, 
+                motor::graphics::variable_set_mtr_t vs ) noexcept
 {
-    motor::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_mtr_t id = config->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
@@ -3525,9 +3540,9 @@ motor::graphics::result es3_backend::connect( motor::graphics::render_object_res
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::update( motor::graphics::geometry_object_res_t config ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::geometry_object_mtr_t config ) noexcept 
 {
-    motor::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_mtr_t id = config->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
@@ -3545,9 +3560,9 @@ motor::graphics::result es3_backend::update( motor::graphics::geometry_object_re
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::update( motor::graphics::streamout_object_res_t obj ) noexcept
+motor::graphics::result es3_backend::update( motor::graphics::streamout_object_mtr_t obj ) noexcept
 {
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     {
@@ -3559,9 +3574,9 @@ motor::graphics::result es3_backend::update( motor::graphics::streamout_object_r
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::update( motor::graphics::array_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     {
@@ -3573,15 +3588,15 @@ motor::graphics::result es3_backend::update( motor::graphics::array_object_res_t
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::update( motor::graphics::image_object_res_t ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::image_object_mtr_t ) noexcept 
 {
     return motor::graphics::result::ok ;
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::update( motor::graphics::render_object_res_t obj, size_t const varset ) noexcept 
+motor::graphics::result es3_backend::update( motor::graphics::render_object_mtr_t obj, size_t const varset ) noexcept 
 {
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
     size_t const oid = id->get_oid( this_t::get_bid() ) ;
 
     {
@@ -3593,14 +3608,14 @@ motor::graphics::result es3_backend::update( motor::graphics::render_object_res_
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::use( motor::graphics::framebuffer_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::use( motor::graphics::framebuffer_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() )
     {
         return this_t::unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
     }
 
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
@@ -3615,14 +3630,14 @@ motor::graphics::result es3_backend::use( motor::graphics::framebuffer_object_re
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::use( motor::graphics::streamout_object_res_t obj ) noexcept 
+motor::graphics::result es3_backend::use( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
     if( !obj.is_valid() )
     {
         return this_t::unuse( motor::graphics::backend::unuse_type::streamout ) ;
     }
 
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
@@ -3649,14 +3664,14 @@ motor::graphics::result es3_backend::unuse( motor::graphics::backend::unuse_type
 }
 
 //**************************************************************************************************
-motor::graphics::result es3_backend::push( motor::graphics::state_object_res_t obj, size_t const sid, bool_t const ) noexcept 
+motor::graphics::result es3_backend::push( motor::graphics::state_object_mtr_t obj, size_t const sid, bool_t const ) noexcept 
 {
     if( !obj.is_valid() )
     {
         return this_t::pop( motor::graphics::backend::pop_type::render_state ) ;
     }
 
-    motor::graphics::id_res_t id = obj->get_id() ;
+    motor::graphics::id_mtr_t id = obj->get_id() ;
 
     if( id->is_not_valid( this_t::get_bid() ) )
     {
@@ -3677,10 +3692,10 @@ motor::graphics::result es3_backend::pop( motor::graphics::backend::pop_type con
 }
 
 //***********************************************************************************************
-motor::graphics::result es3_backend::render( motor::graphics::render_object_res_t config, 
+motor::graphics::result es3_backend::render( motor::graphics::render_object_mtr_t config, 
          motor::graphics::backend::render_detail_cref_t detail ) noexcept 
 { 
-    motor::graphics::id_res_t id = config->get_id() ;
+    motor::graphics::id_mtr_t id = config->get_id() ;
 
     //motor::log::global_t::status( motor_log_fn("render") ) ;
 

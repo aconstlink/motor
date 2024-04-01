@@ -3642,7 +3642,7 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
 motor::graphics::result gl4_backend::configure( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
     size_t const oid = obj->set_oid( this_t::get_bid(),
-        _pimpl->construct_geo( obj->get_oid(this_t::get_bid() ), *obj ) ) ;
+        _pimpl->construct_geo( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
     if( !_pimpl->update( oid, obj, true ) )
     {

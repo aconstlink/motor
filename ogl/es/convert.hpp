@@ -414,7 +414,7 @@ namespace motor
             case GL_INVALID_OPERATION: return motor::string_t( "GL_INVALID_OPERATION" ) ;
             default: break ;
             }
-            return std::to_string( e ) ;
+            return motor::to_string( size_t(e) ) ;
         }
     }
 }

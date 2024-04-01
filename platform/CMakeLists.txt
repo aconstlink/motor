@@ -64,7 +64,7 @@ list( APPEND sources
 )
 endif()
 if( MOTOR_GRAPHICS_OPENGLES )
-list( APPEND sources_ 
+list( APPEND sources 
     "graphics/gl/es3.h"
     "graphics/gl/es3.cpp"
     "graphics/gl/es_context.h"
