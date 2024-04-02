@@ -122,7 +122,7 @@ list( APPEND subdirs
     "memory"
     "concurrent"
     "io"
-    "device"
+    "controls"
     "msl"
     
     "graphics"

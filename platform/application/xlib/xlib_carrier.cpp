@@ -588,6 +588,6 @@ bool_t xlib_carrier::find_window_info( Window hwnd, xlib_carrier::find_window_in
 //***********************************************************************
 void_t xlib_carrier::create_and_register_device_modules( void_t ) noexcept 
 {
-    _device_module = motor::shared( motor::device::xlib::xlib_module_t(), "[xlib] : device module" ) ;
+    _device_module = motor::shared( motor::platform::xlib::xlib_module_t(), "[xlib] : device module" ) ;
     this_t::get_dev_system()->add_module( motor::share( _device_module ) ) ;
 }

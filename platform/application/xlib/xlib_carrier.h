@@ -3,7 +3,7 @@
 #include "../../api.h"
 #include "../../typedefs.h"
 
-#include "../../device/linux/xlib_module.h"
+#include "../../controls/linux/xlib_module.h"
 
 #include <motor/application/window/window.h>
 #include <motor/application/window/window_message_listener.h>
@@ -37,7 +37,7 @@ namespace motor
                 void_t disconnect_display( void_t ) noexcept ;
                 Display * move_display( void_t ) noexcept ;
 
-                motor::device::xlib::xlib_module_mtr_t _device_module ;
+                motor::platform::xlib::xlib_module_mtr_t _device_module ;
             
                 bool_t _done = false ;
 
