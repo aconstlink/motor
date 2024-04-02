@@ -14,17 +14,18 @@ gradient_noise::gradient_noise( uint_t seed, uint_t bit, uint_t num_mixes ) noex
 
     bit = _pt.get_bit() ;
 
-    srand( seed ) ;
+    uint_t const value_limit = ( 1u << bit ) - 1u ;
+
     for( uint_t i=0; i<get_num_entries(); ++i )
     {
-        uint_t const value_limit = (1u<<bit)-1u ;
+        uint_t const ptv = _pt.permute_at(i) ;
 
-        float_t const z = -((float_t)((rand() & value_limit)/(double_t)value_limit)) * 
+        float_t const z = -((float_t)(( ptv & value_limit)/(double_t)value_limit)) *
             2.0f + 1.0f ;
 
         float_t const r = motor::math::fn<float_t>::sqrt( 1.0f - z*z ) ;
         float_t const theta = 2.0f * motor::math::constants<float_t>::pi() * 
-            ((float_t)((rand()& value_limit)/(double_t)value_limit));
+            ((float_t)(( ptv & value_limit)/(double_t)value_limit));
 
         _noises[i] = motor::math::vec3f_t( 
             r*motor::math::fn<float_t>::cos(theta), 

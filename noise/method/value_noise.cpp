@@ -16,10 +16,11 @@ value_noise::value_noise( uint_t const seed, uint_t bit, uint_t const num_mixes 
     bit = _pt.get_bit() ;
     uint_t const value_limit = (1u<<bit)-1u ;
     
-    srand( seed ) ;
     for( uint_t i=0; i<this_t::get_num_entries(); ++i )
     {
-        _noises[i] = ((float_t)((rand() & value_limit)/(double_t)value_limit))*2.0f - 1.0f  ;
+        uint_t const ptv = _pt.permute_at(i) ;
+
+        _noises[i] = ((float_t)(( ptv & value_limit)/(double_t)value_limit))*2.0f - 1.0f  ;
     }
 }
 
@@ -50,6 +51,18 @@ float_t value_noise::lattice( uint_t i0, uint_t i1 ) const noexcept
 float_t value_noise::lattice( uint_t i0, uint_t i1, uint_t i2 ) const noexcept
 {
     return _noises[_pt.permute_at(i0, i1, i2)] ;
+}
+
+//***********************************************************************************
+float_t value_noise::noise( motor::math::vec2f_cref_t p ) const noexcept
+{
+    return this_t::noise( p.x(), p.y() ) ;
+}
+
+//***********************************************************************************
+float_t value_noise::noise( motor::math::vec3f_cref_t p ) const noexcept
+{
+    return this_t::noise( p.x(), p.y(), p.z() ) ;
 }
 
 //***********************************************************************************

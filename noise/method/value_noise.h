@@ -3,6 +3,9 @@
 #include "inoise.h"
 #include "../permutation_table.h"
 
+#include <motor/math/vector/vector2.hpp>
+#include <motor/math/vector/vector3.hpp>
+
 #include <motor/std/vector>
 
 namespace motor { namespace noise
@@ -40,6 +43,9 @@ namespace motor { namespace noise
         virtual float_t noise( float_t f0, float_t f1 ) const noexcept;
 
         virtual float_t noise( float_t f0, float_t f1, float_t f2 ) const noexcept ;
+
+        float_t noise(motor::math::vec2f_cref_t p) const noexcept ;
+        float_t noise(motor::math::vec3f_cref_t p) const noexcept ;
 
     public:
 
