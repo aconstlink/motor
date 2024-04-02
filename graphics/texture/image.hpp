@@ -98,10 +98,25 @@ namespace motor
 
         public:
 
+            // returns the size in bytes(sib) for the whole image
             size_t sib( void_t ) const noexcept 
             {
                 return motor::graphics::size_of( _iet )* motor::graphics::size_of( _if )*
                     _width* _height* _depth ;
+            }
+
+            // returns the size in bytes(sib) for one row
+            size_t row_sib( void_t ) const noexcept
+            {
+                return motor::graphics::size_of( _iet ) * motor::graphics::size_of( _if ) *
+                    _width ;
+            }
+
+            // returns the size in bytes(sib) for one depth layer (width*height)
+            size_t layer_sib( void_t ) const noexcept
+            {
+                return motor::graphics::size_of( _iet ) * motor::graphics::size_of( _if ) *
+                    _width * _height ;
             }
 
             this_ref_t resize( this_t::dims_in_t dims ) noexcept

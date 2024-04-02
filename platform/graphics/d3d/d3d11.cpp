@@ -3502,7 +3502,7 @@ public: // functions
     }
 
     //******************************************************************************************************************************
-    bool_t update( size_t const id, motor::graphics::image_object_ref_t obj, bool_t const is_config )
+    bool_t update( size_t const id, motor::graphics::image_object_ref_t obj, bool_t const is_config ) noexcept
     {
         auto & data = images[ id ] ;
         auto & iref = obj.image() ;
@@ -3527,12 +3527,26 @@ public: // functions
                 return true ;
             }
         }
-        #if 1
-        // copy data
+
+        // copy data if only the content has changed.
         {
-            _ctx->ctx()->UpdateSubresource( data.texture, 0, nullptr /*&box*/, iref.get_image_ptr(), 0, 0 ) ;
+            size_t const width = iref.get_dims().x();
+            size_t const height = iref.get_dims().y();
+            size_t const depth = iref.get_dims().z();
+
+            D3D11_BOX region ;
+            region.left = 0u ;
+            region.right = (UINT) width ;
+            region.top = 0u ;
+            region.bottom = (UINT) height ;
+            region.front = 0u ;
+            region.back = (UINT) depth ;
+
+            UINT const row_pitch = ( UINT ) iref.row_sib() ;
+            UINT const depth_pitch = ( UINT ) iref.layer_sib() ;
+
+            _ctx->ctx()->UpdateSubresource( data.texture, 0, &region, iref.get_image_ptr(), row_pitch, depth_pitch ) ;
         }
-        #endif
 
         return true ;
     }
