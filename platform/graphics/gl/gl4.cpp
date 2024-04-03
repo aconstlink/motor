@@ -283,27 +283,30 @@ struct gl4_backend::pimpl
         } ;
         motor::vector< geo_to_vao > geo_to_vaos ;
 
+        // also keep this one for ref counting
+        motor::vector< motor::graphics::variable_set_mtr_t > var_sets ;
+
         struct uniform_variable_link
         {
-            // the index into the shader_config::uniforms array
-            size_t uniform_id ;
             // the user variable holding the data.
             motor::graphics::ivariable_ptr_t var ;
+
+            // index into var_sets
+            size_t var_set_idx ;
+
+            // the index into the shader_config::uniforms array
+            size_t uniform_id ;
 
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-
-        // also keep this one for ref counting
-        motor::vector< motor::graphics::variable_set_mtr_t > var_sets ;
-
-        // user provided variable set
-        motor::vector< std::pair<
-            motor::graphics::variable_set_ptr_t,
-            motor::vector< uniform_variable_link > > > var_sets_data ;
+        motor::vector< uniform_variable_link > var_sets_data ;
 
         struct uniform_texture_link
         {
+            // index into var_sets
+            size_t var_set_idx ;
+
             // the index into the shader_config::uniforms array
             size_t uniform_id ;
             GLint tex_id ;
@@ -312,12 +315,13 @@ struct gl4_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        motor::vector< std::pair<
-            motor::graphics::variable_set_ptr_t,
-            motor::vector< uniform_texture_link > > > var_sets_texture ;
+        motor::vector< uniform_texture_link > var_sets_texture ;
 
         struct uniform_array_data_link
         {
+            // index into var_sets
+            size_t var_set_idx ;
+
             // the index into the shader_config::uniforms array
             size_t uniform_id ;
             GLint tex_id ;
@@ -326,12 +330,13 @@ struct gl4_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        motor::vector< std::pair<
-            motor::graphics::variable_set_ptr_t,
-            motor::vector< uniform_array_data_link > > > var_sets_array ;
+        motor::vector< uniform_array_data_link > var_sets_array ;
 
         struct uniform_streamout_link
         {
+            // index into var_sets
+            size_t var_set_idx ;
+
             // the index into the shader_config::uniforms array
             size_t uniform_id ;
             GLint tex_id[2] ; // streamout object do double buffer
@@ -340,9 +345,7 @@ struct gl4_backend::pimpl
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
         };
-        motor::vector< std::pair<
-            motor::graphics::variable_set_ptr_t,
-            motor::vector< uniform_streamout_link > > > var_sets_streamout ;
+        motor::vector< uniform_streamout_link > var_sets_streamout ;
 
         // memory block for all variables in all variable sets.
         void_ptr_t mem_block = nullptr ;
@@ -1425,6 +1428,7 @@ struct gl4_backend::pimpl
         {
             this_t::post_link_attributes( sd ) ;
             this_t::post_link_uniforms( sd ) ;
+            this_t::post_link_uniform_blocks( sd ) ;
         }
 
         // if the shader is redone, all render objects using
@@ -1441,10 +1445,11 @@ struct gl4_backend::pimpl
                 rd.var_sets_array.clear() ;
                 rd.var_sets_streamout.clear() ;
 
-                auto vs = std::move( rd.var_sets ) ;
-                for( auto * item : vs )
+                auto sets = std::move( rd.var_sets ) ;
+                for ( size_t s = 0; s < sets.size(); ++s )
                 {
-                    this_t::connect( rd, item ) ;
+                    auto & vs = sets[ s ] ;
+                    this_t::connect( rd, s, vs ) ;
                 }
 
                 this_t::render_object_variable_memory( rd, _shaders[ rd.shd_id ] ) ;
@@ -1862,6 +1867,45 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
+    void_t post_link_uniform_blocks( this_t::shader_data & config )
+    {
+        GLuint const program_id = config.pg_id ;
+
+        GLint num_active_uniform_blocks = 0 ;
+        GLint max_block_name_length = 0 ;
+        GLint max_uniform_name_length = 0 ;
+
+        glGetProgramiv( program_id, GL_ACTIVE_UNIFORM_BLOCKS, &num_active_uniform_blocks ) ;
+        motor::ogl::error::check_and_log( "[glGetProgramiv] : GL_ACTIVE_UNIFORM_BLOCKS" ) ;
+
+        glGetProgramiv( program_id, GL_ACTIVE_UNIFORM_MAX_LENGTH, &max_uniform_name_length ) ;
+        motor::ogl::error::check_and_log( "[glGetProgramiv] : GL_ACTIVE_UNIFORM_MAX_LENGTH" ) ;
+
+        if ( num_active_uniform_blocks == 0 ) return ;
+
+        glGetProgramiv( program_id, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &max_block_name_length ) ;
+        motor::ogl::error::check_and_log( "[glGetProgramiv] : GL_ACTIVE_UNIFORM_MAX_LENGTH" ) ;
+
+        //GLint size ;
+        //GLenum gl_uniform_type ;
+
+        motor::memory::malloc_guard<char> block_name( max_block_name_length ) ;
+        motor::memory::malloc_guard<char> uniform_name( max_uniform_name_length ) ;
+
+        for ( GLuint i = 0; i < (GLuint)num_active_uniform_blocks; ++i )
+        {
+            GLsizei block_name_len = 0 ;
+
+            glGetActiveUniformBlockName( program_id, i, (GLsizei) max_block_name_length, &block_name_len, block_name ) ;
+            motor::ogl::error::check_and_log( "[glGetActiveUniformBlockName]" ) ;
+
+            GLuint const block_index = glGetUniformBlockIndex( program_id, block_name ) ;
+
+            int bp = 0;
+        }
+    }
+
+    //****************************************************************************************
     size_t construct_image_config( size_t /*oid*/, motor::string_cref_t name, 
         motor::graphics::image_object_ref_t config )
     {
@@ -2141,14 +2185,8 @@ struct gl4_backend::pimpl
         rd.rss.clear() ;
         
         for( auto * v : rd.var_sets ) motor::memory::release_ptr( v ) ;
-        #if 0
-        for( auto & v : rd.var_sets_array ) motor::memory::release_ptr( v.first ) ;
-        for( auto & v : rd.var_sets_streamout ) motor::memory::release_ptr( v.first ) ;
-        for( auto & v : rd.var_sets_data ) motor::memory::release_ptr( v.first ) ;
-        for( auto & v : rd.var_sets_texture ) motor::memory::release_ptr( v.first ) ;
-        #endif
 
-        // remember that rd.var_sets hold the ref cound reminder!
+        // remember that rd.var_sets hold the ref count reminder!
         rd.var_sets.clear() ;
         rd.var_sets_array.clear() ;
         rd.var_sets_streamout.clear() ;
@@ -2259,9 +2297,9 @@ struct gl4_backend::pimpl
             config.var_sets_streamout.clear() ;
             config.var_sets.clear() ;
 
-            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
+            rc.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
             {
-                auto const res = this_t::connect( config, motor::memory::copy_ptr(vs) ) ;
+                auto const res = this_t::connect( config, i, motor::memory::copy_ptr(vs) ) ;
                 motor::log::global_t::warning( !res, motor_log_fn( "connect" ) ) ;
             } ) ;
 
@@ -2295,40 +2333,28 @@ struct gl4_backend::pimpl
         // construct memory block
         {
             size_t sib = 0 ;
-            for( auto & vs : config.var_sets_data )
+            for( auto & link : config.var_sets_data )
             {
-                for( auto & link : vs.second )
-                {
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += motor::ogl::uniform_size_of( uv.type ) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                sib += motor::ogl::uniform_size_of( uv.type ) ;
             }
 
-            for( auto & vs : config.var_sets_texture )
+            for ( auto & link : config.var_sets_texture )
             {
-                for( auto & link : vs.second )
-                {
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += motor::ogl::uniform_size_of( uv.type ) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                sib += motor::ogl::uniform_size_of( uv.type ) ;
             }
 
-            for( auto & vs : config.var_sets_array )
+            for ( auto & link : config.var_sets_array )
             {
-                for( auto & link : vs.second )
-                {
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += motor::ogl::uniform_size_of( uv.type ) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                sib += motor::ogl::uniform_size_of( uv.type ) ;
             }
 
-            for( auto & vs : config.var_sets_streamout )
+            for ( auto & link : config.var_sets_streamout )
             {
-                for( auto & link : vs.second )
-                {
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    sib += motor::ogl::uniform_size_of( uv.type ) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                sib += motor::ogl::uniform_size_of( uv.type ) ;
             }
 
             motor::memory::global_t::dealloc( config.mem_block ) ;
@@ -2338,52 +2364,40 @@ struct gl4_backend::pimpl
         // assign memory locations
         {
             void_ptr_t mem = config.mem_block ;
-            for( auto & vs : config.var_sets_data )
+            for( auto & link : config.var_sets_data )
             {
-                for( auto & link : vs.second )
-                {
-                    link.mem = mem ;
+                link.mem = mem ;
 
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                           size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                mem = reinterpret_cast<void_ptr_t>( size_t( mem ) +
+                    size_t( motor::ogl::uniform_size_of( uv.type ) ) ) ;
             }
 
-            for( auto & vs : config.var_sets_texture )
+            for ( auto & link : config.var_sets_texture )
             {
-                for( auto & link : vs.second )
-                {
-                    link.mem = mem ;
+                link.mem = mem ;
 
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                          size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                mem = reinterpret_cast<void_ptr_t>( size_t( mem ) +
+                    size_t( motor::ogl::uniform_size_of( uv.type ) ) ) ;
             }
 
-            for( auto & vs : config.var_sets_array )
+            for ( auto & link : config.var_sets_array )
             {
-                for( auto & link : vs.second )
-                {
-                    link.mem = mem ;
+                link.mem = mem ;
 
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                        size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                mem = reinterpret_cast<void_ptr_t>( size_t( mem ) +
+                    size_t( motor::ogl::uniform_size_of( uv.type ) ) ) ;
             }
 
-            for( auto & vs : config.var_sets_streamout )
+            for ( auto & link : config.var_sets_streamout )
             {
-                for( auto & link : vs.second )
-                {
-                    link.mem = mem ;
+                link.mem = mem ;
 
-                    auto & uv = shader.uniforms[ link.uniform_id ] ;
-                    mem = reinterpret_cast<void_ptr_t>( size_t(mem) + 
-                         size_t( motor::ogl::uniform_size_of( uv.type ) )) ;
-                }
+                auto & uv = shader.uniforms[ link.uniform_id ] ;
+                mem = reinterpret_cast<void_ptr_t>( size_t( mem ) +
+                    size_t( motor::ogl::uniform_size_of( uv.type ) ) ) ;
             }
         }
     }
@@ -2663,20 +2677,8 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( this_t::render_data & config, motor::graphics::variable_set_mtr_t vs )
+    bool_t connect( this_t::render_data & config, size_t const var_set_idx, motor::graphics::variable_set_mtr_t vs )
     {
-        auto item_data = std::make_pair( vs,
-            motor::vector< this_t::render_data::uniform_variable_link >() ) ;
-
-        auto item_tex = std::make_pair( vs,
-            motor::vector< this_t::render_data::uniform_texture_link >() ) ;
-
-        auto item_buf = std::make_pair( vs,
-            motor::vector< this_t::render_data::uniform_array_data_link >() ) ;
-
-        auto item_tfb = std::make_pair( vs,
-            motor::vector< this_t::render_data::uniform_streamout_link >() ) ;
-
         this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
 
         size_t id = 0 ;
@@ -2694,10 +2696,11 @@ struct gl4_backend::pimpl
                 }
 
                 this_t::render_data::uniform_variable_link link ;
+                link.var_set_idx = var_set_idx ;
                 link.uniform_id = id++ ;
                 link.var = var ;
 
-                item_data.second.emplace_back( link ) ;
+                config.var_sets_data.emplace_back( link ) ;
             }
             else if( motor::ogl::uniform_is_texture( uv.type ) )
             {
@@ -2728,10 +2731,11 @@ struct gl4_backend::pimpl
                     }
 
                     this_t::render_data::uniform_texture_link link ;
+                    link.var_set_idx = var_set_idx ;
                     link.uniform_id = id++ ;
                     link.tex_id = _images[ i ].tex_id ;
                     link.img_id = i ;
-                    item_tex.second.emplace_back( link ) ;
+                    config.var_sets_texture.emplace_back( link ) ;
                 }
             }
             else if( motor::ogl::uniform_is_buffer( uv.type ) )
@@ -2756,10 +2760,11 @@ struct gl4_backend::pimpl
                     if( i >= _arrays.size() ) return false ;
 
                     this_t::render_data::uniform_array_data_link link ;
+                    link.var_set_idx = var_set_idx ;
                     link.uniform_id = id++ ;
                     link.tex_id = _arrays[ i ].tex_id ;
                     link.buf_id = i ;
-                    item_buf.second.emplace_back( link ) ;
+                    config.var_sets_array.emplace_back( link ) ;
                     return true ;
                 } ;
 
@@ -2770,11 +2775,12 @@ struct gl4_backend::pimpl
                     if( i >= _feedbacks.size() ) return false ;
 
                     this_t::render_data::uniform_streamout_link link ;
+                    link.var_set_idx = var_set_idx ;
                     link.uniform_id = id++ ;
                     link.tex_id[0] = _feedbacks[ i ]._buffers[0].tids[0] ;
                     link.tex_id[1] = _feedbacks[ i ]._buffers[1].tids[0] ;
                     link.so_id = i ;
-                    item_tfb.second.emplace_back( link ) ;
+                    config.var_sets_streamout.emplace_back( link ) ;
                     return true ;
                 } ;
 
@@ -2792,10 +2798,6 @@ struct gl4_backend::pimpl
 
         // ref count one copy here for all stored items
         config.var_sets.emplace_back( vs ) ;
-        config.var_sets_data.emplace_back( std::move( item_data ) ) ;
-        config.var_sets_texture.emplace_back( std::move( item_tex ) ) ;
-        config.var_sets_array.emplace_back( std::move( item_buf ) ) ;
-        config.var_sets_streamout.emplace_back( std::move( item_tfb ) ) ;
 
         return true ;
     }
@@ -3200,7 +3202,7 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t update_variables( size_t const rd_id, size_t const varset_id )
+    bool_t update_variables( size_t const rd_id, size_t const varset_id ) noexcept
     {
         this_t::render_data & config = _renders[ rd_id ] ;
         this_t::shader_data & sconfig = _shaders[ config.shd_id ] ;
@@ -3213,15 +3215,17 @@ struct gl4_backend::pimpl
             }
         }
 
-        if( config.var_sets_data.size() > varset_id )
+        if( config.var_sets.size() > varset_id )
         {
             // data vars
             {
-                auto& varset = config.var_sets_data[ varset_id ] ;
-                for( auto& item : varset.second )
+                for ( auto & link : config.var_sets_data )
                 {
-                    auto& uv = sconfig.uniforms[ item.uniform_id ] ;
-                    uv.do_copy_funk( item.mem, item.var ) ;
+                    if ( link.var_set_idx > varset_id ) break ;
+                    if ( link.var_set_idx < varset_id ) continue ;
+
+                    auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                    uv.do_copy_funk( link.mem, link.var ) ;
                 }
             }
 
@@ -3232,13 +3236,15 @@ struct gl4_backend::pimpl
                 int_t tex_unit = 0 ;
                 // textures
                 {
-                    auto& varset = config.var_sets_texture[ varset_id ] ;
-                    for( auto& item : varset.second )
+                    for( auto& link : config.var_sets_texture )
                     {
-                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
-                        auto & uv = sconfig.uniforms[ item.uniform_id ] ;
+                        if ( link.var_set_idx > varset_id ) break ;
+                        if ( link.var_set_idx < varset_id ) continue ;
 
-                        uv.do_copy_funk( item.mem, &var ) ;
+                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
+                        auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+
+                        uv.do_copy_funk( link.mem, &var ) ;
 
                         ++tex_unit ;
                     }
@@ -3246,13 +3252,15 @@ struct gl4_backend::pimpl
 
                 // array data vars
                 {
-                    auto & varset = config.var_sets_array[ varset_id ] ;
-                    for( auto & item : varset.second )
+                    for( auto & link : config.var_sets_array )
                     {
-                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
-                        auto & uv = sconfig.uniforms[ item.uniform_id ] ;
+                        if ( link.var_set_idx > varset_id ) break ;
+                        if ( link.var_set_idx < varset_id ) continue ;
 
-                        uv.do_copy_funk( item.mem, &var ) ;
+                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
+                        auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+
+                        uv.do_copy_funk( link.mem, &var ) ;
 
                         ++tex_unit ;
                     }
@@ -3260,13 +3268,15 @@ struct gl4_backend::pimpl
 
                 // transform feedback bound vars
                 {
-                    auto & varset = config.var_sets_streamout[ varset_id ] ;
-                    for( auto & item : varset.second )
+                    for( auto & link : config.var_sets_streamout )
                     {
-                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
-                        auto & uv = sconfig.uniforms[ item.uniform_id ] ;
+                        if ( link.var_set_idx > varset_id ) break ;
+                        if ( link.var_set_idx < varset_id ) continue ;
 
-                        uv.do_copy_funk( item.mem, &var ) ;
+                        auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
+                        auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+
+                        uv.do_copy_funk( link.mem, &var ) ;
 
                         ++tex_unit ;
                     }
@@ -3356,17 +3366,19 @@ struct gl4_backend::pimpl
             }
         }
 
-        if( config.var_sets_data.size() > varset_id )
+        if( config.var_sets.size() > varset_id )
         {
             // data vars
             {
-                auto& varset = config.var_sets_data[ varset_id ] ;
-                for( auto& item : varset.second )
+                for ( auto & link : config.var_sets_data )
                 {
-                    auto& uv = sconfig.uniforms[ item.uniform_id ] ;
-                    if( !uv.do_uniform_funk( item.mem ) )
+                    if ( link.var_set_idx > varset_id ) break ;
+                    if ( link.var_set_idx < varset_id ) continue ;
+
+                    auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                    if ( !uv.do_uniform_funk( link.mem ) )
                     {
-                        motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ; 
+                        motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ;
                     }
                 }
             }
@@ -3377,16 +3389,18 @@ struct gl4_backend::pimpl
                 int_t tex_unit = 0 ;
                 // textures
                 {
-                    auto& varset = config.var_sets_texture[ varset_id ] ;
-                    for( auto& item : varset.second )
+                    for( auto & link : config.var_sets_texture )
                     {
-                        glActiveTexture( GLenum(GL_TEXTURE0 + tex_unit) ) ;
+                        if ( link.var_set_idx > varset_id ) break ;
+                        if ( link.var_set_idx < varset_id ) continue ;
+
+                        glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                         motor::ogl::error::check_and_log( motor_log_fn( "glActiveTexture" ) ) ;
 
                         {
-                            auto const& ic = _images[ item.img_id ] ;  
+                            auto const& ic = _images[ link.img_id ] ;  
 
-                            glBindTexture( ic.type, item.tex_id ) ;
+                            glBindTexture( ic.type, link.tex_id ) ;
                             motor::ogl::error::check_and_log( motor_log_fn( "glBindTexture" ) ) ;
 
                             glTexParameteri( ic.type, GL_TEXTURE_WRAP_S, ic.wrap_types[0] ) ;
@@ -3398,8 +3412,8 @@ struct gl4_backend::pimpl
                         }
 
                         {
-                            auto & uv = sconfig.uniforms[ item.uniform_id ] ;
-                            if( !uv.do_uniform_funk( item.mem ) )
+                            auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                            if( !uv.do_uniform_funk( link.mem ) )
                             {
                                 motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ;
                             }
@@ -3411,17 +3425,19 @@ struct gl4_backend::pimpl
 
                 // array data vars
                 {
-                    auto & varset = config.var_sets_array[ varset_id ] ;
-                    for( auto & item : varset.second )
+                    for( auto & link : config.var_sets_array )
                     {
+                        if ( link.var_set_idx > varset_id ) break ;
+                        if ( link.var_set_idx < varset_id ) continue ;
+
                         glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                         motor::ogl::error::check_and_log( motor_log_fn( "glActiveTexture" ) ) ;
-                        glBindTexture( GL_TEXTURE_BUFFER, item.tex_id ) ;
+                        glBindTexture( GL_TEXTURE_BUFFER, link.tex_id ) ;
                         motor::ogl::error::check_and_log( motor_log_fn( "glBindTexture" ) ) ;
 
                         {
-                            auto & uv = sconfig.uniforms[ item.uniform_id ] ;
-                            if( !uv.do_uniform_funk( item.mem ) )
+                            auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                            if( !uv.do_uniform_funk( link.mem ) )
                             {
                                 motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ;
                             }
@@ -3433,11 +3449,13 @@ struct gl4_backend::pimpl
 
                 // transform feedback as TBO
                 {
-                    auto & varset = config.var_sets_streamout[ varset_id ] ;
-                    for( auto & item : varset.second )
+                    for( auto & link : config.var_sets_streamout )
                     {
-                        auto const & tfd = _feedbacks[ item.so_id ] ;
-                        GLuint const tid = item.tex_id[tfd.read_index()] ;
+                        if ( link.var_set_idx > varset_id ) break ;
+                        if ( link.var_set_idx < varset_id ) continue ;
+
+                        auto const & tfd = _feedbacks[ link.so_id ] ;
+                        GLuint const tid = link.tex_id[tfd.read_index()] ;
 
                         glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                         motor::ogl::error::check_and_log( motor_log_fn( "glActiveTexture" ) ) ;
@@ -3445,8 +3463,8 @@ struct gl4_backend::pimpl
                         motor::ogl::error::check_and_log( motor_log_fn( "glBindTexture" ) ) ;
 
                         {
-                            auto & uv = sconfig.uniforms[ item.uniform_id ] ;
-                            if( !uv.do_uniform_funk( item.mem ) )
+                            auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                            if( !uv.do_uniform_funk( link.mem ) )
                             {
                                 motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ;
                             }
