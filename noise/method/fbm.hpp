@@ -4,6 +4,9 @@
 
 #include <motor/math/utility/fn.hpp>
 
+#include <motor/math/vector/vector2.hpp>
+#include <motor/math/vector/vector3.hpp>
+
 #include <vector>
 
 namespace motor { namespace noise
@@ -119,7 +122,7 @@ namespace motor { namespace noise
 
                 value *= value_damp ;
             
-                p = (p + vec2f_t(0.72356f, -0.12324f)) * lacunarity ;
+                p = (p + vec2_t(0.72356f, -0.12324f)) * lacunarity ;
             }
 
             value += remainder * noi.noise(p.x(), p.y() ) * 
