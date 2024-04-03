@@ -1295,14 +1295,14 @@ public: // functions
     }
 
     //******************************************************************************************************************************
-    void_t handle_render_state( this_t::render_state_sets & new_states, bool_t const popped )
+    void_t handle_render_state( this_t::render_state_sets & incoming_states, bool_t const popped )
     {
         //  viewport
-        if( new_states.rss.view_s.do_change )
+        if( incoming_states.rss.view_s.do_change )
         {
-            if( new_states.rss.view_s.ss.do_activate )
+            if( incoming_states.rss.view_s.ss.do_activate )
             {
-                auto const& vp_ = new_states.rss.view_s.ss.vp  ;
+                auto const& vp_ = incoming_states.rss.view_s.ss.vp  ;
 
                 // Setup the viewport
                 D3D11_VIEWPORT vp ;
@@ -1327,16 +1327,16 @@ public: // functions
             }
         }
 
-        if( new_states.rss.clear_s.do_change && new_states.rss.clear_s.ss.do_activate && !popped )
+        if( incoming_states.rss.clear_s.do_change && incoming_states.rss.clear_s.ss.do_activate && !popped )
         {
             if( _cur_fb_active == size_t(-1) )
             {
-                bool_t const clear_color = new_states.rss.clear_s.ss.do_color_clear ;
-                bool_t const clear_depth = new_states.rss.clear_s.ss.do_depth_clear ;
+                bool_t const clear_color = incoming_states.rss.clear_s.ss.do_color_clear ;
+                bool_t const clear_depth = incoming_states.rss.clear_s.ss.do_depth_clear ;
 
                 if( clear_color )
                 {
-                    motor::math::vec4f_t const color = new_states.rss.clear_s.ss.clear_color ;
+                    motor::math::vec4f_t const color = incoming_states.rss.clear_s.ss.clear_color ;
                     _ctx->clear_render_target_view( color ) ;
                 }
 
@@ -1349,12 +1349,12 @@ public: // functions
             {
                 framebuffer_data_ref_t fb = framebuffer_data_ref_t( framebuffers[ _cur_fb_active ] ) ;
 
-                bool_t const clear_color = new_states.rss.clear_s.ss.do_color_clear ;
-                bool_t const clear_depth = new_states.rss.clear_s.ss.do_depth_clear ;
+                bool_t const clear_color = incoming_states.rss.clear_s.ss.do_color_clear ;
+                bool_t const clear_depth = incoming_states.rss.clear_s.ss.do_depth_clear ;
 
                 if( clear_color )
                 {
-                    motor::math::vec4f_t const color = new_states.rss.clear_s.ss.clear_color ;
+                    motor::math::vec4f_t const color = incoming_states.rss.clear_s.ss.clear_color ;
                     FLOAT const dxcolor[ 4 ] = { color.x(), color.y(), color.z(), color.w() } ;
                     for( size_t i=0; i<fb.num_color; ++i )
                         _ctx->ctx()->ClearRenderTargetView( fb.rt_view[ i ], dxcolor ) ;
@@ -1367,114 +1367,145 @@ public: // functions
             }
         }
 
-        if( new_states.rss.depth_s.do_change )
+        if( incoming_states.rss.depth_s.do_change )
         {
-            D3D11_DEPTH_STENCIL_DESC desc = { } ;
-            desc.DepthEnable = new_states.rss.depth_s.ss.do_activate ? TRUE : FALSE ;
-            desc.DepthFunc = D3D11_COMPARISON_LESS ;
-            desc.DepthWriteMask = new_states.rss.depth_s.ss.do_depth_write ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO ;
-
-            if( new_states.depth_stencil_state != nullptr ) 
+            if ( popped )
             {
-                new_states.depth_stencil_state->Release() ;
-                new_states.depth_stencil_state = nullptr ;
-            }
-            auto const res = _ctx->dev()->CreateDepthStencilState( &desc, &new_states.depth_stencil_state ) ;
-            if( FAILED( res ) )
-            {
-                motor::log::global_t::error( "CreateDepthStencilState" ) ;
-            }
+                assert( incoming_states.depth_stencil_state != nullptr ) ;
 
-            _ctx->ctx()->OMSetDepthStencilState( new_states.depth_stencil_state, 0 ) ;
+                _ctx->ctx()->OMSetDepthStencilState( incoming_states.depth_stencil_state, 0 ) ;
+
+                incoming_states.depth_stencil_state->Release() ;
+                incoming_states.depth_stencil_state = nullptr ;
+            }
+            else
+            {
+                assert( incoming_states.depth_stencil_state == nullptr ) ;
+
+                D3D11_DEPTH_STENCIL_DESC desc = {} ;
+                desc.DepthEnable = incoming_states.rss.depth_s.ss.do_activate ? TRUE : FALSE ;
+                desc.DepthFunc = D3D11_COMPARISON_LESS ;
+                desc.DepthWriteMask = incoming_states.rss.depth_s.ss.do_depth_write ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO ;
+
+                auto const res = _ctx->dev()->CreateDepthStencilState( &desc, &incoming_states.depth_stencil_state ) ;
+                if ( FAILED( res ) )
+                {
+                    motor::log::global_t::error( "CreateDepthStencilState" ) ;
+                }
+
+                _ctx->ctx()->OMSetDepthStencilState( incoming_states.depth_stencil_state, 0 ) ;
+            }
         }
 
         // blend
         {
-            D3D11_BLEND_DESC desc = { } ;
-
-            desc.RenderTarget[ 0 ].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-            desc.RenderTarget[ 0 ].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-            desc.RenderTarget[ 0 ].BlendOp = D3D11_BLEND_OP_ADD;
-            desc.RenderTarget[ 0 ].SrcBlendAlpha = D3D11_BLEND_ONE;
-            desc.RenderTarget[ 0 ].DestBlendAlpha = D3D11_BLEND_ZERO;
-            desc.RenderTarget[ 0 ].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-            desc.RenderTarget[ 0 ].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-            if( new_states.rss.blend_s.do_change )
+            if ( popped )
             {
-                desc.RenderTarget[ 0 ].BlendEnable = new_states.rss.blend_s.ss.do_activate ;
+                assert( incoming_states.blend_state != nullptr ) ;
 
-                desc.RenderTarget[ 0 ].SrcBlend = motor::platform::d3d11::convert( 
-                    new_states.rss.blend_s.ss.src_blend_factor ) ;
-                desc.RenderTarget[ 0 ].DestBlend = motor::platform::d3d11::convert( 
-                    new_states.rss.blend_s.ss.dst_blend_factor ) ;
-                desc.RenderTarget[ 0 ].BlendOp = motor::platform::d3d11::convert( 
-                    new_states.rss.blend_s.ss.blend_func ) ;
+                _ctx->ctx()->OMSetBlendState( incoming_states.blend_state, 0, 0xffffffff );
 
-                desc.RenderTarget[ 0 ].SrcBlendAlpha = D3D11_BLEND_ONE ;
-                desc.RenderTarget[ 0 ].DestBlendAlpha = D3D11_BLEND_ZERO ;
-                desc.RenderTarget[ 0 ].BlendOpAlpha = D3D11_BLEND_OP_ADD ;
+                incoming_states.blend_state->Release() ;
+                incoming_states.blend_state = nullptr ;
+            }
+            else
+            {
+                assert( incoming_states.blend_state == nullptr ) ;
 
-                if( new_states.blend_state != nullptr ) 
+                D3D11_BLEND_DESC desc = {} ;
+
+                desc.RenderTarget[ 0 ].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+                desc.RenderTarget[ 0 ].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+                desc.RenderTarget[ 0 ].BlendOp = D3D11_BLEND_OP_ADD;
+                desc.RenderTarget[ 0 ].SrcBlendAlpha = D3D11_BLEND_ONE;
+                desc.RenderTarget[ 0 ].DestBlendAlpha = D3D11_BLEND_ZERO;
+                desc.RenderTarget[ 0 ].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+                desc.RenderTarget[ 0 ].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+                if ( incoming_states.rss.blend_s.do_change )
                 {
-                    new_states.blend_state->Release() ;
-                    new_states.blend_state = nullptr ;
-                }
+                    desc.RenderTarget[ 0 ].BlendEnable = incoming_states.rss.blend_s.ss.do_activate ;
 
-                auto const res = _ctx->dev()->CreateBlendState( &desc, &new_states.blend_state ) ;
-                if( SUCCEEDED( res ) )
-                {
-                    _ctx->ctx()->OMSetBlendState( new_states.blend_state, 0, 0xffffffff );
+                    desc.RenderTarget[ 0 ].SrcBlend = motor::platform::d3d11::convert(
+                        incoming_states.rss.blend_s.ss.src_blend_factor ) ;
+                    desc.RenderTarget[ 0 ].DestBlend = motor::platform::d3d11::convert(
+                        incoming_states.rss.blend_s.ss.dst_blend_factor ) ;
+                    desc.RenderTarget[ 0 ].BlendOp = motor::platform::d3d11::convert(
+                        incoming_states.rss.blend_s.ss.blend_func ) ;
+
+                    desc.RenderTarget[ 0 ].SrcBlendAlpha = D3D11_BLEND_ONE ;
+                    desc.RenderTarget[ 0 ].DestBlendAlpha = D3D11_BLEND_ZERO ;
+                    desc.RenderTarget[ 0 ].BlendOpAlpha = D3D11_BLEND_OP_ADD ;
+
+                    auto const res = _ctx->dev()->CreateBlendState( &desc, &incoming_states.blend_state ) ;
+                    if ( SUCCEEDED( res ) )
+                    {
+                        _ctx->ctx()->OMSetBlendState( incoming_states.blend_state, 0, 0xffffffff );
+                    }
                 }
             }
+            
         }
         // rasterizer state conglomerate
         {
-            D3D11_RASTERIZER_DESC raster_desc = { } ;
-
-            if( new_states.rss.polygon_s.do_change )
+            if ( popped )
             {
-                if( new_states.rss.polygon_s.ss.do_activate )
-                    raster_desc.CullMode = motor::platform::d3d11::convert( new_states.rss.polygon_s.ss.cm ) ;
-                else
-                    raster_desc.CullMode = D3D11_CULL_NONE ;
+                assert( incoming_states.raster_state != nullptr ) ;
 
-                raster_desc.FillMode = motor::platform::d3d11::convert( new_states.rss.polygon_s.ss.fm ) ;
+                _ctx->ctx()->RSSetState( incoming_states.raster_state ) ;
 
-                raster_desc.FrontCounterClockwise = new_states.rss.polygon_s.ss.ff == motor::graphics::front_face::counter_clock_wise ;
+                incoming_states.raster_state->Release() ;
+                incoming_states.raster_state = nullptr ;
             }
-
-            if( new_states.rss.scissor_s.do_change )
+            else
             {
-                raster_desc.ScissorEnable = new_states.rss.scissor_s.ss.do_activate ;
-                if( new_states.rss.scissor_s.ss.do_activate )
+                assert( incoming_states.raster_state == nullptr ) ;
+
+                D3D11_RASTERIZER_DESC raster_desc = {} ;
+
+                if ( incoming_states.rss.polygon_s.do_change )
                 {
-                    LONG const h = _state_stack.top().rss.view_s.ss.vp.w() ;
+                    if ( incoming_states.rss.polygon_s.ss.do_activate )
+                        raster_desc.CullMode = motor::platform::d3d11::convert( incoming_states.rss.polygon_s.ss.cm ) ;
+                    else
+                        raster_desc.CullMode = D3D11_CULL_NONE ;
 
-                    D3D11_RECT rect ;
-                    rect.left = new_states.rss.scissor_s.ss.rect.x() ;
-                    rect.right = new_states.rss.scissor_s.ss.rect.x() + new_states.rss.scissor_s.ss.rect.z() ;
-                    rect.top = h - (new_states.rss.scissor_s.ss.rect.y()+new_states.rss.scissor_s.ss.rect.w()) ;
-                    rect.bottom = rect.top + new_states.rss.scissor_s.ss.rect.w() ;
+                    raster_desc.FillMode = motor::platform::d3d11::convert( incoming_states.rss.polygon_s.ss.fm ) ;
 
-                    _ctx->ctx()->RSSetScissorRects( 1, &rect ) ;
+                    raster_desc.FrontCounterClockwise = incoming_states.rss.polygon_s.ss.ff == motor::graphics::front_face::counter_clock_wise ;
                 }
-            }
-            if( new_states.raster_state != nullptr ) 
-            {
-                new_states.raster_state->Release() ;
-                new_states.raster_state = nullptr ;
-            }
 
-            auto const res = _ctx->dev()->CreateRasterizerState( &raster_desc, &new_states.raster_state ) ;
-            if( FAILED( res ) )
-            {
-                motor::log::global_t::error( "CreateRasterizerState" ) ;
-            }
+                if ( incoming_states.rss.scissor_s.do_change )
+                {
+                    raster_desc.ScissorEnable = incoming_states.rss.scissor_s.ss.do_activate ;
+                    if ( incoming_states.rss.scissor_s.ss.do_activate )
+                    {
+                        LONG const h = _state_stack.top().rss.view_s.ss.vp.w() ;
 
-            _ctx->ctx()->RSSetState( new_states.raster_state ) ;
+                        D3D11_RECT rect ;
+                        rect.left = incoming_states.rss.scissor_s.ss.rect.x() ;
+                        rect.right = incoming_states.rss.scissor_s.ss.rect.x() + incoming_states.rss.scissor_s.ss.rect.z() ;
+                        rect.top = h - ( incoming_states.rss.scissor_s.ss.rect.y() + incoming_states.rss.scissor_s.ss.rect.w() ) ;
+                        rect.bottom = rect.top + incoming_states.rss.scissor_s.ss.rect.w() ;
+
+                        _ctx->ctx()->RSSetScissorRects( 1, &rect ) ;
+                    }
+                }
+                if ( incoming_states.raster_state != nullptr )
+                {
+                    incoming_states.raster_state->Release() ;
+                    incoming_states.raster_state = nullptr ;
+                }
+
+                auto const res = _ctx->dev()->CreateRasterizerState( &raster_desc, &incoming_states.raster_state ) ;
+                if ( FAILED( res ) )
+                {
+                    motor::log::global_t::error( "CreateRasterizerState" ) ;
+                }
+
+                _ctx->ctx()->RSSetState( incoming_states.raster_state ) ;
+            }
         }
-        
     }
 
     //******************************************************************************************************************************
@@ -1492,21 +1523,12 @@ public: // functions
                 return ;
             }
             auto old = _state_stack.pop() ;
-            #if 0
-            if( old.depth_stencil_state != nullptr )
-                old.depth_stencil_state->Release() ;
-            if( old.raster_state != nullptr )
-                old.raster_state->Release() ;
-            if( old.blend_state != nullptr )
-                old.blend_state->Release() ;
-            #endif
 
             // undo render state effects 
             {
                 old.rss = old.rss - _state_stack.top().rss ;
                 this->handle_render_state( old, true ) ;
             }
-
         }
         else
         {
@@ -3759,6 +3781,10 @@ public: // functions
                 rss.rss = state_sets[ ids_new.first ].states[ ids_new.second ] ;
                 _state_stack.push( rss ) ;
                 this->handle_render_state( rss, false ) ;
+
+                // rss is filled in handle_render_state, so repush that one
+                _state_stack.pop() ;
+                _state_stack.push( rss  ) ;
             }
         }
 
@@ -3773,7 +3799,14 @@ public: // functions
     //******************************************************************************************************************************
     void_t end_frame( void_t )
     {
-        this->handle_render_state( size_t( -1 ), size_t( -1 ) ) ;
+        auto const ids_new = std::make_pair( size_t( 0 ), size_t( 0 ) ) ;
+
+        assert( _state_stack.size() == 1 ) ;
+
+        // simply pop the begin frame render states
+        // and also release all state objects.
+        auto rss = _state_stack.pop() ;
+        this->handle_render_state( rss, true ) ;
     }
 
     //******************************************************************************************************************************
