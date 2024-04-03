@@ -820,6 +820,8 @@ struct d3d11_backend::pimpl
         // requires its own constant buffer data.
         struct cbuffer
         {
+            size_t var_set_idx ;
+
             UINT slot ;
             void_ptr_t mem = nullptr ;
             guard<ID3D11Buffer> ptr ;
@@ -828,12 +830,9 @@ struct d3d11_backend::pimpl
         motor_typedef( cbuffer ) ;
         motor_typedefs( motor::vector< cbuffer_t >, cbuffers ) ;
 
-        typedef motor::vector< std::pair< motor::graphics::variable_set_mtr_t,
-            cbuffers_t > > varsets_to_cbuffers_t ;
-
-        varsets_to_cbuffers_t var_sets_data_vs ;
-        varsets_to_cbuffers_t var_sets_data_gs ;
-        varsets_to_cbuffers_t var_sets_data_ps ;
+        cbuffers_t var_sets_data_vs ;
+        cbuffers_t var_sets_data_gs ;
+        cbuffers_t var_sets_data_ps ;
 
         //
         ///////////////////// END: Cbuffer variables <-> normal data variables
@@ -854,6 +853,7 @@ struct d3d11_backend::pimpl
             motor_move_member_ptr( raster_state, rhv ) ;
             motor_move_member_ptr( blend_state, rhv ) ;
 
+            var_sets = std::move( rhv.var_sets ) ;
             var_sets_imgs_vs = std::move( rhv.var_sets_imgs_vs ) ;
             var_sets_imgs_ps = std::move( rhv.var_sets_imgs_ps ) ;
             var_sets_buffers_vs = std::move( rhv.var_sets_buffers_vs ) ;
@@ -885,6 +885,7 @@ struct d3d11_backend::pimpl
             motor_move_member_ptr( raster_state, rhv ) ;
             motor_move_member_ptr( blend_state, rhv ) ;
 
+            var_sets = std::move( rhv.var_sets ) ;
             var_sets_imgs_vs = std::move( rhv.var_sets_imgs_vs ) ;
             var_sets_imgs_ps = std::move( rhv.var_sets_imgs_ps ) ;
             var_sets_buffers_vs = std::move( rhv.var_sets_buffers_vs ) ;
@@ -950,15 +951,12 @@ struct d3d11_backend::pimpl
             }
 
             {
-                auto clear_funk = [&]( this_t::render_data::varsets_to_cbuffers_t & datum )
+                auto clear_funk = [&]( this_t::render_data::cbuffers_t & datum )
                 {
-                    for( auto & d : datum )
+                    for ( auto & d2 : datum )
                     {
-                        for( auto & d2 : d.second )
-                        {
-                            motor::memory::global_t::dealloc_raw( d2.mem ) ;
-                            d2.ptr = guard<ID3D11Buffer>() ; ;
-                        }
+                        motor::memory::global_t::dealloc_raw( d2.mem ) ;
+                        d2.ptr = guard<ID3D11Buffer>() ; ;
                     }
                     datum.clear() ;
                 } ;
@@ -3006,20 +3004,16 @@ public: // functions
         }
 
         {
-            auto release_funk = [&]( this_t::render_data::varsets_to_cbuffers_t & datum )
+            auto release_funk = [&]( this_t::render_data::cbuffers_ref_t datum )
             {
-                for( auto& vsd : datum )
+                for ( auto & b : datum )
                 {
-                    for( auto& b : vsd.second )
+                    if ( b.mem != nullptr )
                     {
-                        if( b.mem != nullptr )
-                        {
-                            motor::memory::global_t::dealloc_raw( b.mem ) ;
-                            b.mem = nullptr ;
-                        }
-                        b.ptr = guard<ID3D11Buffer>() ;
+                        motor::memory::global_t::dealloc_raw( b.mem ) ;
+                        b.mem = nullptr ;
                     }
-                    vsd.second.clear() ;
+                    b.ptr = guard<ID3D11Buffer>() ;
                 }
                 datum.clear() ;
             } ;
@@ -3054,16 +3048,15 @@ public: // functions
 
         // constant buffer mapping
         {
-            auto var_funk = []( ID3D11Device * dev, motor::graphics::variable_set_mtr_t vs, 
-                this_t::shader_data_t::cbuffers_ref_t cbuffers, this_t::render_data::varsets_to_cbuffers_t & vtcb )
+            auto var_funk = []( ID3D11Device * dev, size_t const var_set_idx, motor::graphics::variable_set_mtr_t vs, 
+                this_t::shader_data_t::cbuffers_ref_t cbuffers, this_t::render_data::cbuffers_inout_t cbs )
             {
-                this_t::render_data_t::cbuffers_t cbs ;
-
                 for( auto& c : cbuffers )
                 {
                     this_t::render_data_t::cbuffer_t cb ;
                     cb.mem = motor::memory::global_t::alloc_raw< uint8_t >( c.sib, "[d3d11] : vertex shader cbuffer variable" ) ;
                     cb.slot = c.slot ;
+                    cb.var_set_idx = var_set_idx ;
 
                     D3D11_BUFFER_DESC bd = { } ;
                     bd.Usage = D3D11_USAGE_DEFAULT ;
@@ -3089,18 +3082,16 @@ public: // functions
                         dv.ts = var.ts ;
                         cb.data_variables.emplace_back( dv ) ;
                     }
-
                     cbs.emplace_back( std::move( cb ) ) ;
                 }
-                vtcb.emplace_back( std::make_pair( vs, std::move(cbs))) ;
             } ;
 
             this_t::shader_data_ref_t shd = shaders[ rd.shd_id ] ;
-            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
+            rc.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
             {
-                var_funk( _ctx->dev(), vs, shd.vs_cbuffers, rd.var_sets_data_vs ) ;
-                var_funk( _ctx->dev(), vs, shd.gs_cbuffers, rd.var_sets_data_gs ) ;
-                var_funk( _ctx->dev(), vs, shd.ps_cbuffers, rd.var_sets_data_ps ) ;
+                var_funk( _ctx->dev(), i, vs, shd.vs_cbuffers, rd.var_sets_data_vs ) ;
+                var_funk( _ctx->dev(), i, vs, shd.gs_cbuffers, rd.var_sets_data_gs ) ;
+                var_funk( _ctx->dev(), i, vs, shd.ps_cbuffers, rd.var_sets_data_ps ) ;
             } ) ;
         }
 
@@ -3508,29 +3499,34 @@ public: // functions
         if( !rnd.valid ) return false ;
         
         {
-            auto update_funk = [&]( ID3D11DeviceContext * ctx_, size_t const vsid, this_t::render_data::varsets_to_cbuffers_t & cbuffer )
+            auto update_funk = [&]( ID3D11DeviceContext * ctx_, size_t const vsid, this_t::render_data::cbuffers_t & cbuffers )
             {
-                for( auto & cb : cbuffer[vsid].second )
+                for ( auto & cb : cbuffers )
                 {
+                    if ( cb.var_set_idx != vsid ) continue ;
+                    if ( cb.var_set_idx > vsid ) break ;
+
+                    auto * vs = rnd.var_sets[ vsid ] ;
+
                     size_t offset = 0 ;
 
-                    for( auto iter = cb.data_variables.begin(); iter != cb.data_variables.end(); ++iter )
+                    for ( auto iter = cb.data_variables.begin(); iter != cb.data_variables.end(); ++iter )
                     {
                         // if a variable was not there at construction time, 
                         // try it once more. If still not found, remove the entry.
-                        while( iter->ivar == nullptr )
+                        while ( iter->ivar == nullptr )
                         {
                             auto & var = *iter ;
-                            auto * ptr = cbuffer[vsid].first->data_variable( var.name, var.t, var.ts ) ;
-                            if( ptr == nullptr )
+                            auto * ptr = vs->data_variable( var.name, var.t, var.ts ) ;
+                            if ( ptr == nullptr )
                             {
                                 iter = cb.data_variables.erase( iter ) ;
                             }
-                            if( iter == cb.data_variables.end() ) break ;
+                            if ( iter == cb.data_variables.end() ) break ;
                         }
-                        if( iter == cb.data_variables.end() ) break ;
+                        if ( iter == cb.data_variables.end() ) break ;
 
-                        iter->do_copy_funk( uint8_ptr_t(cb.mem) + offset ) ;
+                        iter->do_copy_funk( uint8_ptr_t( cb.mem ) + offset ) ;
                         offset += iter->sib ;
                     }
 
@@ -3583,8 +3579,10 @@ public: // functions
 
         // SECTION: vertex shader variables
         {
-            for( auto & cb : rnd.var_sets_data_vs[ varset_id ].second )
+            for( auto & cb : rnd.var_sets_data_vs )
             {
+                if ( cb.var_set_idx > varset_id ) break  ;
+                if ( cb.var_set_idx < varset_id ) continue ;
                 ctx->VSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
             }
 
@@ -3602,8 +3600,11 @@ public: // functions
 
         // SECTION: geometry shader variables
         {
-            for( auto & cb : rnd.var_sets_data_gs[ varset_id ].second )
+            for( auto & cb : rnd.var_sets_data_gs )
             {
+                if ( cb.var_set_idx > varset_id ) break  ;
+                if ( cb.var_set_idx < varset_id ) continue ;
+
                 ctx->GSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
             }
 
@@ -3625,8 +3626,11 @@ public: // functions
 
         // SECTION: pixel shader variables
         {
-            for( auto& cb : rnd.var_sets_data_ps[ varset_id ].second )
+            for( auto& cb : rnd.var_sets_data_ps )
             {
+                if ( cb.var_set_idx > varset_id ) break  ;
+                if ( cb.var_set_idx < varset_id ) continue ;
+
                 ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
             }
 
