@@ -769,6 +769,9 @@ struct d3d11_backend::pimpl
 
         struct image_variable
         {
+            // into var_sets
+            size_t var_set_idx ;
+
             // texture and its sampler must be on the same slot
             motor::string_t name ;
             UINT slot ;
@@ -779,11 +782,8 @@ struct d3d11_backend::pimpl
         motor_typedef( image_variable ) ;
         motor_typedefs( motor::vector< image_variable_t >, image_variables ) ;
 
-        motor::vector< std::pair< motor::graphics::variable_set_mtr_t,
-            image_variables_t > > var_sets_imgs_vs ;
-
-        motor::vector< std::pair< motor::graphics::variable_set_mtr_t,
-            image_variables_t > > var_sets_imgs_ps ;
+        image_variables_t var_sets_imgs_vs ;
+        image_variables_t var_sets_imgs_ps ;
 
         ///////////////////// BEGIN: Buffer variables <-> array data
         //
@@ -830,9 +830,9 @@ struct d3d11_backend::pimpl
         motor_typedef( cbuffer ) ;
         motor_typedefs( motor::vector< cbuffer_t >, cbuffers ) ;
 
-        cbuffers_t var_sets_data_vs ;
-        cbuffers_t var_sets_data_gs ;
-        cbuffers_t var_sets_data_ps ;
+        cbuffers_t _cbuffers_vs ;
+        cbuffers_t _cbuffers_gs ;
+        cbuffers_t _cbuffers_ps ;
 
         //
         ///////////////////// END: Cbuffer variables <-> normal data variables
@@ -862,9 +862,9 @@ struct d3d11_backend::pimpl
             var_sets_buffers_so_gs = std::move( rhv.var_sets_buffers_so_gs ) ;
             var_sets_buffers_ps = std::move( rhv.var_sets_buffers_ps ) ;
             var_sets_buffers_so_ps = std::move( rhv.var_sets_buffers_so_ps ) ;
-            var_sets_data_vs = std::move( rhv.var_sets_data_vs ) ;
-            var_sets_data_gs = std::move( rhv.var_sets_data_gs ) ;
-            var_sets_data_ps = std::move( rhv.var_sets_data_ps ) ;
+            _cbuffers_vs = std::move( rhv._cbuffers_vs ) ;
+            _cbuffers_gs = std::move( rhv._cbuffers_gs ) ;
+            _cbuffers_ps = std::move( rhv._cbuffers_ps ) ;
         }
         ~render_data( void_t ) noexcept
         {
@@ -894,9 +894,9 @@ struct d3d11_backend::pimpl
             var_sets_buffers_so_gs = std::move( rhv.var_sets_buffers_so_gs ) ;
             var_sets_buffers_ps = std::move( rhv.var_sets_buffers_ps ) ;
             var_sets_buffers_so_ps = std::move( rhv.var_sets_buffers_so_ps ) ;
-            var_sets_data_vs = std::move( rhv.var_sets_data_vs ) ;
-            var_sets_data_gs = std::move( rhv.var_sets_data_gs ) ;
-            var_sets_data_ps = std::move( rhv.var_sets_data_ps ) ;
+            _cbuffers_vs = std::move( rhv._cbuffers_vs ) ;
+            _cbuffers_gs = std::move( rhv._cbuffers_gs ) ;
+            _cbuffers_ps = std::move( rhv._cbuffers_ps ) ;
 
             return *this ;
         }
@@ -960,9 +960,9 @@ struct d3d11_backend::pimpl
                     }
                     datum.clear() ;
                 } ;
-                clear_funk( var_sets_data_vs ) ;
-                clear_funk( var_sets_data_gs ) ;
-                clear_funk( var_sets_data_ps ) ;
+                clear_funk( _cbuffers_vs ) ;
+                clear_funk( _cbuffers_gs ) ;
+                clear_funk( _cbuffers_ps ) ;
             }
         }
 
@@ -3017,17 +3017,18 @@ public: // functions
                 }
                 datum.clear() ;
             } ;
-            release_funk( rd.var_sets_data_vs ) ;
-            release_funk( rd.var_sets_data_gs ) ;
-            release_funk( rd.var_sets_data_ps ) ;
+            release_funk( rd._cbuffers_vs ) ;
+            release_funk( rd._cbuffers_gs ) ;
+            release_funk( rd._cbuffers_ps ) ;
         }
 
         {
+            rd.var_sets_imgs_vs.clear() ;
             rd.var_sets_imgs_ps.clear() ;
             
-            rd.var_sets_data_vs.clear() ;
-            rd.var_sets_data_gs.clear() ;
-            rd.var_sets_data_ps.clear() ;
+            rd._cbuffers_vs.clear() ;
+            rd._cbuffers_gs.clear() ;
+            rd._cbuffers_ps.clear() ;
 
             rd.var_sets_buffers_vs.clear() ;
             rd.var_sets_buffers_gs.clear() ;
@@ -3089,18 +3090,17 @@ public: // functions
             this_t::shader_data_ref_t shd = shaders[ rd.shd_id ] ;
             rc.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
             {
-                var_funk( _ctx->dev(), i, vs, shd.vs_cbuffers, rd.var_sets_data_vs ) ;
-                var_funk( _ctx->dev(), i, vs, shd.gs_cbuffers, rd.var_sets_data_gs ) ;
-                var_funk( _ctx->dev(), i, vs, shd.ps_cbuffers, rd.var_sets_data_ps ) ;
+                var_funk( _ctx->dev(), i, vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
+                var_funk( _ctx->dev(), i, vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
+                var_funk( _ctx->dev(), i, vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
             } ) ;
         }
 
         // texture variable mapping
         {
             this_t::shader_data_ref_t shd = shaders[ rd.shd_id ] ;
-            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
+            rc.for_each( [&] ( size_t const vs_id, motor::graphics::variable_set_mtr_t vs )
             {
-                this_t::render_data_t::image_variables_t ivs ;
                 for( auto& t : shd.ps_textures )
                 {
                     auto * dv = vs->texture_variable( t.name ) ;
@@ -3112,10 +3112,11 @@ public: // functions
                     if( i == images.size() ) continue ;
                     
                     this_t::render_data_t::image_variable_t iv ;
+                    iv.var_set_idx = vs_id ;
                     iv.id = i ;
                     iv.name = t.name ;
                     iv.slot = t.slot ;
-                    ivs.emplace_back( std::move( iv ) ) ;
+                    rd.var_sets_imgs_ps.emplace_back( std::move( iv ) ) ;
 
                     // set y flip for the current texture in the current variable set
                     {
@@ -3123,7 +3124,6 @@ public: // functions
                         var->set( images[i].requires_y_flip ) ;
                     }
                 }
-                rd.var_sets_imgs_ps.emplace_back( std::make_pair( vs, std::move( ivs ) ) ) ;
             } ) ;
         }
 
@@ -3534,9 +3534,9 @@ public: // functions
                 }
             } ;
 
-            update_funk( _ctx->ctx(), varset_id, rnd.var_sets_data_vs ) ;
-            update_funk( _ctx->ctx(), varset_id, rnd.var_sets_data_gs ) ;
-            update_funk( _ctx->ctx(), varset_id, rnd.var_sets_data_ps ) ;
+            update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_vs ) ;
+            update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_gs ) ;
+            update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_ps ) ;
         }
 
         return true ;
@@ -3579,7 +3579,7 @@ public: // functions
 
         // SECTION: vertex shader variables
         {
-            for( auto & cb : rnd.var_sets_data_vs )
+            for( auto & cb : rnd._cbuffers_vs )
             {
                 if ( cb.var_set_idx > varset_id ) break  ;
                 if ( cb.var_set_idx < varset_id ) continue ;
@@ -3600,7 +3600,7 @@ public: // functions
 
         // SECTION: geometry shader variables
         {
-            for( auto & cb : rnd.var_sets_data_gs )
+            for( auto & cb : rnd._cbuffers_gs )
             {
                 if ( cb.var_set_idx > varset_id ) break  ;
                 if ( cb.var_set_idx < varset_id ) continue ;
@@ -3626,7 +3626,7 @@ public: // functions
 
         // SECTION: pixel shader variables
         {
-            for( auto& cb : rnd.var_sets_data_ps )
+            for( auto& cb : rnd._cbuffers_ps )
             {
                 if ( cb.var_set_idx > varset_id ) break  ;
                 if ( cb.var_set_idx < varset_id ) continue ;
@@ -3634,8 +3634,11 @@ public: // functions
                 ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
             }
 
-            for( auto& img : rnd.var_sets_imgs_ps[ varset_id ].second )
+            for( auto& img : rnd.var_sets_imgs_ps )
             {
+                if ( img.var_set_idx > varset_id ) break  ;
+                if ( img.var_set_idx < varset_id ) continue ;
+
                 ctx->PSSetShaderResources( img.slot, 1, images[ img.id ].view ) ;
                 ctx->PSSetSamplers( img.slot, 1, images[ img.id ].sampler ) ;
             }
