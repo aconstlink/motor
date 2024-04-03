@@ -744,6 +744,9 @@ struct d3d11_backend::pimpl
         ID3D11RasterizerState* raster_state = nullptr ;
         ID3D11BlendState* blend_state = nullptr ;
 
+        // also keep this one for ref counting
+        motor::vector< motor::graphics::variable_set_mtr_t > var_sets ;
+
         struct data_variable
         {
             motor::string_t name ;
@@ -931,15 +934,6 @@ struct d3d11_backend::pimpl
                 blend_state->Release() ;
                 blend_state = nullptr ;
             }
-            
-            for( auto & v : var_sets_imgs_vs ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_imgs_ps ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_buffers_vs ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_buffers_so_vs ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_buffers_gs ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_buffers_so_gs ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_buffers_ps ) motor::memory::release_ptr( v.first ) ;
-            for( auto & v : var_sets_buffers_so_ps ) motor::memory::release_ptr( v.first ) ;
 
             var_sets_imgs_vs.clear() ;
             var_sets_imgs_ps.clear() ;
@@ -951,11 +945,15 @@ struct d3d11_backend::pimpl
             var_sets_buffers_so_ps.clear() ;
 
             {
+                for( auto * mtr : var_sets ) motor::memory::release_ptr( mtr ) ;
+                var_sets.clear() ;
+            }
+
+            {
                 auto clear_funk = [&]( this_t::render_data::varsets_to_cbuffers_t & datum )
                 {
                     for( auto & d : datum )
                     {
-                        motor::memory::release_ptr( d.first ) ;
                         for( auto & d2 : d.second )
                         {
                             motor::memory::global_t::dealloc_raw( d2.mem ) ;
@@ -3001,7 +2999,12 @@ public: // functions
             }
         }
         
-        #if 1
+        // release placeholder/ref count manager variable sets
+        {
+            for ( auto * vs : rd.var_sets ) motor::memory::release_ptr( vs ) ;
+            rd.var_sets.clear() ;
+        }
+
         {
             auto release_funk = [&]( this_t::render_data::varsets_to_cbuffers_t & datum )
             {
@@ -3016,7 +3019,6 @@ public: // functions
                         }
                         b.ptr = guard<ID3D11Buffer>() ;
                     }
-                    motor::memory::release_ptr( vsd.first );
                     vsd.second.clear() ;
                 }
                 datum.clear() ;
@@ -3025,82 +3027,29 @@ public: // functions
             release_funk( rd.var_sets_data_gs ) ;
             release_funk( rd.var_sets_data_ps ) ;
         }
-        #else        
-        // release all cbuffers
-        {
-            for( auto& vsd : rd.var_sets_data_vs )
-            {
-                for( auto& b : vsd.second )
-                {
-                    if( b.mem != nullptr )
-                    {
-                        motor::memory::global_t::dealloc_raw( b.mem ) ;
-                        b.mem = nullptr ;
-                    }
-
-                    if( b.ptr != nullptr )
-                    {
-                        b.ptr->Release() ;
-                        b.ptr = nullptr ;
-                    }
-                }
-                vsd.second.clear() ;
-            }
-            rd.var_sets_data_vs.clear() ;
-        }
-
-        // release all cbuffers
-        {
-            for( auto& vsd : rd.var_sets_data_ps )
-            {
-                for( auto& b : vsd.second )
-                {
-                    if( b.mem != nullptr )
-                    {
-                        motor::memory::global_t::dealloc_raw( b.mem ) ;
-                        b.mem = nullptr ;
-                    }
-
-                    if( b.ptr != nullptr )
-                    {
-                        b.ptr->Release() ;
-                        b.ptr = nullptr ;
-                    }
-                }
-                vsd.second.clear() ;
-            }
-            rd.var_sets_data_ps.clear() ;
-        }
-        #endif
 
         {
-            for( auto & d : rd.var_sets_imgs_ps ) motor::memory::release_ptr(d.first) ;
-
             rd.var_sets_imgs_ps.clear() ;
-
-            for( auto & d : rd.var_sets_data_vs ) motor::memory::release_ptr(d.first) ;
-            for( auto & d : rd.var_sets_data_gs ) motor::memory::release_ptr(d.first) ;
-            for( auto & d : rd.var_sets_data_ps ) motor::memory::release_ptr(d.first) ;
             
             rd.var_sets_data_vs.clear() ;
             rd.var_sets_data_gs.clear() ;
             rd.var_sets_data_ps.clear() ;
 
-            for( auto & d : rd.var_sets_buffers_vs ) motor::memory::release_ptr(d.first) ;
-            for( auto & d : rd.var_sets_buffers_gs ) motor::memory::release_ptr(d.first) ;
-            for( auto & d : rd.var_sets_buffers_ps ) motor::memory::release_ptr(d.first) ;
-
             rd.var_sets_buffers_vs.clear() ;
             rd.var_sets_buffers_gs.clear() ;
             rd.var_sets_buffers_ps.clear() ;
 
-            for( auto & d : rd.var_sets_buffers_so_vs ) motor::memory::release_ptr(d.first) ;
-            for( auto & d : rd.var_sets_buffers_so_gs ) motor::memory::release_ptr(d.first) ;
-            for( auto & d : rd.var_sets_buffers_so_ps ) motor::memory::release_ptr(d.first) ;
-
             rd.var_sets_buffers_so_vs.clear() ;
             rd.var_sets_buffers_so_gs.clear() ;
             rd.var_sets_buffers_so_ps.clear() ;
+        }
+
+        // track ref count for variable set
+        {
+            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
+            {
+                rd.var_sets.emplace_back( motor::memory::copy_ptr( vs ) ) ;
+            } ) ;
         }
 
         // constant buffer mapping
@@ -3143,7 +3092,7 @@ public: // functions
 
                     cbs.emplace_back( std::move( cb ) ) ;
                 }
-                vtcb.emplace_back( std::make_pair( motor::memory::copy_ptr(vs), std::move( cbs ) ) ) ;
+                vtcb.emplace_back( std::make_pair( vs, std::move(cbs))) ;
             } ;
 
             this_t::shader_data_ref_t shd = shaders[ rd.shd_id ] ;
@@ -3183,7 +3132,7 @@ public: // functions
                         var->set( images[i].requires_y_flip ) ;
                     }
                 }
-                rd.var_sets_imgs_ps.emplace_back( std::make_pair( motor::memory::copy_ptr(vs), std::move( ivs ) ) ) ;
+                rd.var_sets_imgs_ps.emplace_back( std::make_pair( vs, std::move( ivs ) ) ) ;
             } ) ;
         }
 
@@ -3228,8 +3177,8 @@ public: // functions
                         }                        
                     }
                 }
-                var_sets_buffers.emplace_back( std::make_pair( motor::memory::copy_ptr( vs ), std::move( bvs ) ) ) ;
-                var_sets_buffers_so.emplace_back( std::make_pair( motor::memory::copy_ptr( vs ), std::move( bvs_so ) ) ) ;
+                var_sets_buffers.emplace_back( std::make_pair( vs, std::move( bvs ) ) ) ;
+                var_sets_buffers_so.emplace_back( std::make_pair( vs, std::move( bvs_so ) ) ) ;
             } ) ;
         } ;
         
