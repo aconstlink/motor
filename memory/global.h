@@ -32,6 +32,12 @@ namespace motor
 
         public: // singleton functions
 
+            #if MOTOR_MEMORY_OBSERVER
+            static motor::memory::observer_ptr_t get_observer( void_t ) noexcept
+            {
+                return _manager.get_observer() ;
+            }
+            #endif
 
         public: // managed interface
 

@@ -13,6 +13,8 @@ set( sources
     "malloc_guard.hpp"
     
     "arena.hpp"
+
+    "observer.hpp"
     )
 
 motor_vs_src_dir( sources )
@@ -24,6 +26,12 @@ target_link_libraries( ${cur_lib_name}
     PUBLIC motor::std
     PUBLIC motor::core 
     )
+
+option( MOTOR_MEMORY_OBSERVER "Memory Observer" False )
+
+if( MOTOR_MEMORY_OBSERVER )
+target_compile_definitions( ${cur_lib_name} PUBLIC MOTOR_MEMORY_OBSERVER )
+endif()
 
 ###########################################################
 # SECTION: Build Tree

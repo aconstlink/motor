@@ -12,6 +12,7 @@ set( sources
     "insertion_sort.hpp"
     #"string/utf8.hpp"
     "string_split.hpp"
+    "histogram.hpp"
     )
 
 motor_vs_src_dir( sources )

@@ -3,8 +3,9 @@
 #include "../api.h"
 #include "../typedefs.h"
 
-#include <motor/std/map>
+#include "../observer.hpp"
 
+#include <map>
 #include <mutex>
 
 
@@ -29,6 +30,8 @@ namespace motor
 
             typedef std::mutex mutex_t ;
             typedef std::unique_lock< mutex_t > lock_t ;
+
+            motor::memory::observer_ptr_t _observer = nullptr ;
 
         private:
 
@@ -64,6 +67,12 @@ namespace motor
             void_t dealloc( void_ptr_t ) noexcept ;
             size_t get_sib( void_t ) const noexcept ;
             bool_t get_purpose( void_ptr_t, char_cptr_t & ) const noexcept ;
+
+        public:
+
+#if MOTOR_MEMORY_OBSERVER
+            motor::memory::observer_ptr_t get_observer( void_t ) noexcept ;
+#endif
 
             void_t dump_to_std( void_t ) const noexcept ;
 

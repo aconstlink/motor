@@ -20,6 +20,8 @@
 #include <motor/tool/imgui/imgui.h>
 #include <motor/concurrent/typedefs.h>
 
+#include <motor/std/histogram.hpp>
+
 namespace motor
 {
     namespace application
@@ -57,6 +59,9 @@ namespace motor
             std::chrono::microseconds _device_interval = std::chrono::microseconds( 10000 ) ;
             std::chrono::microseconds _device_residual = std::chrono::microseconds( 0 ) ;
 
+            std::chrono::microseconds _profile_interval = std::chrono::microseconds( 10000 ) ;
+            std::chrono::microseconds _profile_residual = std::chrono::microseconds( 0 ) ;
+
         private:
 
             struct window_data
@@ -78,6 +83,16 @@ namespace motor
             bool_t _closed = false ;
             bool_t _first_audio = true ;
             bool_t _shutdown_called = false ;
+
+            struct profiling_data
+            {
+                motor::mstd::histogram< size_t > memory_allocations ;
+                motor::mstd::histogram< size_t > memory_deallocations ;
+                motor::mstd::histogram< size_t > memory_current ;
+            };
+            motor_typedef( profiling_data ) ;
+
+            profiling_data_t _profiling_data ;
 
         private: // device
 
@@ -147,6 +162,12 @@ namespace motor
             };
             motor_typedef( tool_data ) ;
 
+            struct profile_data
+            {
+                motor::memory::observer_t::observable_data_t memory_data ;
+            };
+            motor_typedef( profile_data ) ;
+
         public:
 
             virtual void_t on_init( void_t ) noexcept {} ;
@@ -160,6 +181,8 @@ namespace motor
             virtual void_t on_logic( logic_data_in_t ) noexcept { }
             
             virtual void_t on_physics( physics_data_in_t ) noexcept { }
+
+            virtual void_t on_profile( profile_data_in_t ) noexcept { }
 
         public:
 
@@ -243,11 +266,16 @@ namespace motor
             bool_t after_device( size_t const iter ) noexcept ;
             bool_t before_logic( std::chrono::microseconds const & ) noexcept ;
             bool_t after_logic( size_t const iter ) noexcept ;
-
+            bool_t before_profile( std::chrono::microseconds const & ) noexcept ;
+            void_t after_profile( void_t ) noexcept ;
 
         private: // internals
 
             bool_t clear_out_window_data( window_data & d ) noexcept ;
+
+        private: // imgui profiling
+
+            void_t display_profiling_data( void_t ) noexcept ;
         };
         motor_typedef( app ) ;
     }

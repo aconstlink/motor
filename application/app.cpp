@@ -170,6 +170,35 @@ bool_t app::carrier_update( void_t ) noexcept
         this_t::after_audio(0) ;
     }
 
+    if ( this_t::before_profile( dt_micro ) )
+    {
+        this_t::profile_data_t dat ;
+
+        #if MOTOR_MEMORY_OBSERVER
+        motor::memory::observer_t::observable_data_t od = 
+            motor::memory::global_t::get_observer()->swap_and_clear() ;
+
+        for ( auto const & m : od.messages )
+        {
+            if ( m.type == motor::memory::observer_t::alloc_type::allocation ||
+                 m.type == motor::memory::observer_t::alloc_type::managed )
+            {
+                _profiling_data.memory_allocations.insert( m.sib ) ;
+                _profiling_data.memory_current.insert( m.sib ) ;
+            }
+            else if ( m.type == motor::memory::observer_t::alloc_type::deallocation )
+            {
+                _profiling_data.memory_deallocations.insert( m.sib ) ;
+                _profiling_data.memory_current.remove( m.sib ) ;
+            }
+        }
+        #endif
+        
+        this->on_profile( dat ) ;
+
+        this_t::after_profile() ;
+    }
+
     // @todo on_graphics could be called already if 
     // only the shared user/engine data has been send upstream
     if( this_t::before_render(dt_micro) )
@@ -209,10 +238,10 @@ bool_t app::carrier_update( void_t ) noexcept
                         {
                             d.imgui->execute( [&] ( void_t )
                             {
-                                //this_t::tool_data_t td = { motor::tool::imgui_view_t( d.imgui ) } ;
-                                    this_t::tool_data_t td ;
+                                this_t::tool_data_t td ;
                                 if( this->on_tool( i, td ) )
                                 {
+                                    this_t::display_profiling_data() ;
                                     d.imgui->render( fe ) ;
                                 }
                             } ) ;
@@ -391,6 +420,19 @@ bool_t app::after_logic( size_t const iter ) noexcept
 }
 
 //***
+bool_t app::before_profile( std::chrono::microseconds const & dt ) noexcept
+{
+    _profile_residual += dt ;
+    return _profile_residual >= _profile_interval ;
+}
+
+//***
+void_t app::after_profile( void_t ) noexcept
+{
+    _profile_residual = decltype( _profile_residual )(0) ;
+}
+
+//***
 bool_t app::before_update( std::chrono::microseconds const & dt ) noexcept
 {
     _update_residual += dt ;
@@ -472,4 +514,24 @@ void_t app::after_audio( size_t const ) noexcept
 {
     _physics_residual = std::chrono::microseconds( 0 ) ;
     _first_audio = false ;
+}
+
+//***
+void_t app::display_profiling_data( void_t ) noexcept
+{
+    if ( ImGui::Begin( "Profiling Data" ) )
+    {
+        using histogram_t = decltype( _profiling_data.memory_current  ) ;
+        motor::vector< float_t > values( _profiling_data.memory_current.get_num_entries() )  ;
+        _profiling_data.memory_current.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
+        {
+            values[ i ] = (float_t)d.count ;
+        } ) ;
+
+        float_t const max_value = (float_t)_profiling_data.memory_current.get_max_count() ;
+
+        ImGui::PlotHistogram( "Histogram#profiling_data", (float const*)values.data(), 
+            (int) values.size(), 0, NULL, 0.0f, max_value, ImVec2(0, 100.0f)) ;
+    }
+    ImGui::End() ;
 }

@@ -10,12 +10,12 @@
 
 using namespace motor::memory ;
 
-static std::atomic< size_t > count = 0 ;
-
 //*************************************************************************************
 manager::manager( void_t ) noexcept 
 {
-    ++count ;
+    #if MOTOR_MEMORY_OBSERVER
+    _observer = new ( malloc( sizeof( motor::memory::observer_t ) ) ) motor::memory::observer_t ;
+    #endif
 }
 
 //*************************************************************************************
@@ -24,12 +24,15 @@ manager::manager( this_rref_t rhv ) noexcept
     _allocated_sib = rhv._allocated_sib ;
     rhv._allocated_sib = 0 ;
     _ptr_to_info = std::move( rhv._ptr_to_info ) ;
+    _observer = motor::move( rhv._observer ) ;
 }
 
 //*************************************************************************************
 manager::~manager( void_t ) noexcept
 {
-    --count ;
+#if MOTOR_MEMORY_OBSERVER
+    free( _observer ) ;
+#endif
 }
 
 //*************************************************************************************
@@ -38,6 +41,7 @@ manager::this_ref_t manager::operator = ( this_rref_t rhv ) noexcept
     _allocated_sib = rhv._allocated_sib ;
     rhv._allocated_sib = 0 ;
     _ptr_to_info = std::move( rhv._ptr_to_info ) ;
+    _observer = motor::move( rhv._observer ) ;
 
     return *this ;
 }
@@ -68,6 +72,10 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
 
     ++iter->second.rc ;
 
+    #if MOTOR_MEMORY_OBSERVER
+    _observer->on_ref_inc() ;
+    #endif
+
     return ptr ;
 }
 
@@ -82,6 +90,15 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
         _ptr_to_info[ptr] = memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ;
         _allocated_sib += sib ;
     }
+
+#if MOTOR_MEMORY_OBSERVER
+    if ( _observer->on_alloc( sib, managed ) > 500000 )
+    {
+        _observer->swap_and_clear() ;
+        std::cout << "[MOTOR_MEMORY_OBSERVER] : swap and clear" << std::endl ;
+    }
+#endif
+
     return ptr ;
 }
 
@@ -102,6 +119,10 @@ void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk
 {
     if( ptr == nullptr ) return nullptr ;
 
+    #if MOTOR_MEMORY_OBSERVER
+    size_t obs_sib = 0 ;
+    #endif 
+
     {
         lock_t lk(_mtx) ;
         auto iter = _ptr_to_info.find( ptr ) ;
@@ -112,14 +133,28 @@ void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk
 
         if( --(iter->second.rc) != size_t(0) )
         {
+            #if MOTOR_MEMORY_OBSERVER
+            _observer->on_ref_dec() ;
+            #endif
+
             return ptr ;
         }
         
+        #if MOTOR_MEMORY_OBSERVER
+        obs_sib = iter->second.sib ;
+        #endif
+
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }
+
     rel_funk() ;
     free( ptr ) ;
+
+    #if MOTOR_MEMORY_OBSERVER
+    _observer->on_dealloc( obs_sib ) ;
+    #endif
+
     return nullptr ;
 }
 
@@ -128,6 +163,10 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
 {
     if( ptr == nullptr ) return ;
 
+    #if MOTOR_MEMORY_OBSERVER
+    size_t obs_sib = 0 ;
+    #endif 
+
     {
         lock_t lk(_mtx) ;
         auto iter = _ptr_to_info.find( ptr ) ;
@@ -135,10 +174,18 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
         assert( iter != _ptr_to_info.end() && "[manager::dealloc] : ptr is not found in manager." ) ;
         assert( iter->second.rc == size_t(-1) && "[manager::release] : managed pointer must be released" ) ;
 
+        #if MOTOR_MEMORY_OBSERVER
+        obs_sib = iter->second.sib ;
+        #endif 
+
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }
     free( ptr ) ;
+
+    #if MOTOR_MEMORY_OBSERVER
+    _observer->on_dealloc( obs_sib ) ;
+    #endif
 }
 
 //*************************************************************************************
@@ -161,10 +208,16 @@ bool_t manager::get_purpose( void_ptr_t ptr, char_cptr_t & pout ) const noexcept
           //  "[manager::get_purpose] : ptr location not found" ) )
             return false ;
 
-        pout = iter->second.purpose ;        
+        pout = iter->second.purpose ;
     }
 
     return true ;
+}
+
+//*************************************************************************************
+motor::memory::observer_ptr_t manager::get_observer( void_t ) noexcept
+{
+    return _observer ;
 }
 
 //*************************************************************************************
