@@ -1,7 +1,7 @@
 
 #include "imgui_custom.h"
 
-#include "imgui/imgui_internal.h"
+#include "imgui_internal.h"
 
 #include <motor/memory/malloc_guard.hpp>
 

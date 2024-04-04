@@ -47,8 +47,8 @@ target_link_libraries( imgui
 set_target_properties( imgui PROPERTIES LINKER_LANGUAGE CXX )
 set_target_properties( imgui PROPERTIES FOLDER "motor/externals" )
 target_include_directories( imgui 
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
-  PUBLIC $<INSTALL_INTERFACE:"include/"> ) 
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imgui>
+  PUBLIC $<INSTALL_INTERFACE:"include/imgui"> ) 
 
 export( TARGETS imgui APPEND FILE ${PROJECT_NAME}-targets.cmake)
 
@@ -67,6 +67,6 @@ message( STATUS "[ImGui] : Target available : imgui" )
 #set( BASE_INSTALL_DIR "${IMGUI_INSTALL_HEADER_BASE}/${FOLDER_NAME}" )
 
 install_headers( "${INCLUDES}" "include/imgui" )
-install_library( imgui${cur_lib_name} ${PROJECT_NAME}-targets )
+install_library( imgui ${PROJECT_NAME}-targets )
 
 message( STATUS "<<< [external : ImGui] <<< " )

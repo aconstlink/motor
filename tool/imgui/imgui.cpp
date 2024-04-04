@@ -11,13 +11,16 @@ imgui::imgui( motor::string_cref_t name ) noexcept
         motor::graphics::variable_set_t(), "imgui variable set" ) ) ;
 
     _ctx = ImGui::CreateContext() ;
+    _ip_ctx = ImPlot::CreateContext() ;
+
     this_t::init( name ) ;
 }
 
 //***
 imgui::imgui( this_rref_t rhv ) noexcept
 {
-    motor_move_member_ptr( _ctx, rhv ) ;
+    _ctx = motor::move( rhv._ctx ) ;
+    _ip_ctx = motor::move( rhv._ip_ctx ) ;
 
     _rc = motor::move( rhv._rc ) ;
     _sc = motor::move( rhv._sc ) ;
@@ -31,6 +34,11 @@ imgui::imgui( this_rref_t rhv ) noexcept
 //***
 imgui::~imgui( void_t ) noexcept
 {
+    if ( _ip_ctx != nullptr )
+    {
+        ImPlot::DestroyContext( _ip_ctx );
+    }
+
     if( _ctx != nullptr )
     {
         ImGui::DestroyContext(_ctx);
@@ -50,10 +58,16 @@ imgui::~imgui( void_t ) noexcept
 void_t imgui::execute( exec_funk_t funk ) noexcept
 {  
     auto * old = ImGui::GetCurrentContext() ;
+    auto * old_ip = ImPlot::GetCurrentContext() ;
+
     ImGui::SetCurrentContext( _ctx ) ;
+    ImPlot::SetCurrentContext( _ip_ctx ) ;
+
     this_t::begin() ;
     funk() ;
     this_t::end() ;
+    
+    ImPlot::SetCurrentContext( old_ip ) ;
     ImGui::SetCurrentContext( old ) ;
 }
 

@@ -19,3 +19,6 @@
 [submodule "externals/aconstlink/khronos-header"]
 	path = externals/aconstlink/khronos-header
 	url = https://github.com/aconstlink/khronos-header.git
+[submodule "externals/epezent/implot"]
+	path = externals/epezent/implot
+	url = https://github.com/epezent/implot.git

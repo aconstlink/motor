@@ -13,7 +13,8 @@
 #include <motor/controls/types/three_mouse.hpp>
 #include <motor/controls/types/ascii_keyboard.hpp>
 
-#include <imgui/imgui.h>
+#include <imgui.h>
+#include <implot.h>
 
 namespace motor
 {
@@ -26,6 +27,7 @@ namespace motor
         private:
 
             ImGuiContext* _ctx = nullptr ;
+            ImPlotContext * _ip_ctx = nullptr ;
 
             struct vertex 
             { 

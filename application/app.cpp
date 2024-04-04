@@ -522,16 +522,21 @@ void_t app::display_profiling_data( void_t ) noexcept
     if ( ImGui::Begin( "Profiling Data" ) )
     {
         using histogram_t = decltype( _profiling_data.memory_current  ) ;
-        motor::vector< float_t > values( _profiling_data.memory_current.get_num_entries() )  ;
+        motor::vector< int_t > values( _profiling_data.memory_current.get_num_entries() )  ;
         _profiling_data.memory_current.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
         {
-            values[ i ] = (float_t)d.count ;
+            values[ i ] = (int_t)d.count ;
         } ) ;
 
-        float_t const max_value = (float_t)_profiling_data.memory_current.get_max_count() ;
+        int_t const max_value = (int_t)_profiling_data.memory_current.get_max_count() ;
 
-        ImGui::PlotHistogram( "Histogram#profiling_data", (float const*)values.data(), 
-            (int) values.size(), 0, NULL, 0.0f, max_value, ImVec2(0, 100.0f)) ;
+        if ( ImPlot::BeginPlot( "My Plot" ) ) 
+        {
+            ImPlot::PlotBars( "My Bar Plot", values.data(), (int_t)values.size() );
+            
+            
+            ImPlot::EndPlot();
+        }
     }
     ImGui::End() ;
 }
