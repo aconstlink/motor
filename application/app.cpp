@@ -180,6 +180,9 @@ bool_t app::carrier_update( void_t ) noexcept
         motor::memory::observer_t::observable_data_t od = 
             motor::memory::global_t::get_observer()->swap_and_clear() ;
 
+        _profiling_data.memory_allocations.clear() ;
+        _profiling_data.memory_deallocations.clear() ;
+
         for ( auto const & m : od.messages )
         {
             if ( m.type == motor::memory::observer_t::alloc_type::allocation ||
@@ -572,6 +575,10 @@ void_t app::display_profiling_data( void_t ) noexcept
                 motor::vector< int_t > ys ;
                 int_t max_value = 0 ;
 
+                // draw allocation difference
+                {
+                    common_histogram() ;
+                }
                 // draw allocations
                 {
                     if ( _profiling_data.display_allocations )
@@ -589,9 +596,9 @@ void_t app::display_profiling_data( void_t ) noexcept
                     }
 
                     ImPlot::HideNextItem( true ) ;
-                    ImPlot::PlotBars( "All Allocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
+                    ImPlot::PlotBars( "Relative Allocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
 
-                    if ( ImPlot::IsLegendEntryHovered( "All Allocations" ) )
+                    if ( ImPlot::IsLegendEntryHovered( "Relative Allocations" ) )
                     {
                         if ( ImGui::IsItemClicked() )
                         {
@@ -617,9 +624,9 @@ void_t app::display_profiling_data( void_t ) noexcept
                     }
 
                     ImPlot::HideNextItem( true ) ;
-                    ImPlot::PlotBars( "All Deallocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
+                    ImPlot::PlotBars( "Relative Deallocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
 
-                    if ( ImPlot::IsLegendEntryHovered( "All Deallocations" ) )
+                    if ( ImPlot::IsLegendEntryHovered( "Relative Deallocations" ) )
                     {
                         if ( ImGui::IsItemClicked() )
                         {
@@ -628,10 +635,7 @@ void_t app::display_profiling_data( void_t ) noexcept
                     }
                 }
 
-                // draw allocation difference
-                {
-                    common_histogram() ;
-                }
+                
 
                 ImPlot::EndPlot() ;
             }

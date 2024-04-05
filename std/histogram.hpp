@@ -82,5 +82,11 @@ namespace motor { namespace mstd {
 
         size_t get_num_entries( void_t ) const noexcept { return _histo.size() ; }
         size_t get_max_count( void_t ) const noexcept { return _max_count ;  }
+
+        void_t clear( void_t ) noexcept
+        {
+            _histo.clear() ;
+            _max_count = 0 ;
+        }
     };
 } }
