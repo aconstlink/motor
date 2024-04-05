@@ -900,6 +900,11 @@ void_t imgui::update( motor::controls::ascii_device_borrow_t::mtr_t dev ) noexce
                 if( ks == ks_t::pressed )
                     io.AddInputCharacter( '+' ) ;
             }
+            else if( key_t(i) >= key_t::f1 && key_t( i ) <= key_t::f12 )
+            {
+                ii = ImGuiKey_F1 + i - size_t( key_t::f1 ) ;
+            }
+            
 
             io.AddKeyEvent( (ImGuiKey)ii, ks == ks_t::pressed ) ;
         }
