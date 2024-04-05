@@ -86,6 +86,8 @@ namespace motor
 
             struct profiling_data
             {
+                bool_t display_allocations = false ;
+                bool_t display_deallocations = false ;
                 motor::mstd::histogram< size_t > memory_allocations ;
                 motor::mstd::histogram< size_t > memory_deallocations ;
                 motor::mstd::histogram< size_t > memory_current ;
@@ -93,6 +95,8 @@ namespace motor
             motor_typedef( profiling_data ) ;
 
             profiling_data_t _profiling_data ;
+
+            bool_t _display_engine_stats = false ;
 
         private: // device
 
@@ -275,6 +279,7 @@ namespace motor
 
         private: // imgui profiling
 
+            void_t display_engine_stats( void_t ) noexcept ;
             void_t display_profiling_data( void_t ) noexcept ;
         };
         motor_typedef( app ) ;

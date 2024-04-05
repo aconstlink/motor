@@ -3,6 +3,8 @@
 
 #include "carrier.h"
 
+#include <motor/tool/imgui/custom_widgets.h>
+
 using namespace motor::application ;
 
 //**************************************************************************************************************
@@ -241,7 +243,7 @@ bool_t app::carrier_update( void_t ) noexcept
                                 this_t::tool_data_t td ;
                                 if( this->on_tool( i, td ) )
                                 {
-                                    this_t::display_profiling_data() ;
+                                    this_t::display_engine_stats() ;
                                     d.imgui->render( fe ) ;
                                 }
                             } ) ;
@@ -517,26 +519,138 @@ void_t app::after_audio( size_t const ) noexcept
 }
 
 //***
+void_t app::display_engine_stats( void_t ) noexcept
+{    
+    if ( ImGui::IsKeyReleased( ImGuiKey_F2 ) )
+    {
+        _display_engine_stats = !_display_engine_stats ;
+    }
+
+    if ( !_display_engine_stats && motor::tool::custom_imgui_widgets::overlay_begin( "EngineStatsOverlay" ) )
+    {
+        ImGui::Text( "Press F2 for Engine Stats" );
+        motor::tool::custom_imgui_widgets::overlay_end() ;
+    }
+    else
+    {
+        this_t::display_profiling_data() ;
+    }
+}
+
+//***
 void_t app::display_profiling_data( void_t ) noexcept
 {
-    if ( ImGui::Begin( "Profiling Data" ) )
+    if ( !ImGui::Begin( "Profiling Data" ) ) return ;
+
+    
+    if ( ImGui::BeginTabBar( "Profiling Data##TabBar" ) )
     {
-        using histogram_t = decltype( _profiling_data.memory_current  ) ;
-        motor::vector< int_t > values( _profiling_data.memory_current.get_num_entries() )  ;
-        _profiling_data.memory_current.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
-        {
-            values[ i ] = (int_t)d.count ;
-        } ) ;
+        using histogram_t = decltype( _profiling_data.memory_current ) ;
 
-        int_t const max_value = (int_t)_profiling_data.memory_current.get_max_count() ;
-
-        if ( ImPlot::BeginPlot( "My Plot" ) ) 
+        auto common_histogram = [&] ( void_t ) 
         {
-            ImPlot::PlotBars( "My Bar Plot", values.data(), (int_t)values.size() );
+            motor::vector< int_t > xs( _profiling_data.memory_current.get_num_entries() )  ;
+            motor::vector< int_t > ys( _profiling_data.memory_current.get_num_entries() )  ;
+
+            _profiling_data.memory_current.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
+            {
+                xs[ i ] = (int_t) d.value ;
+                ys[ i ] = (int_t) d.count ;
+            } ) ;
+
+            int_t const max_value = (int_t) _profiling_data.memory_current.get_max_count() ;
+
+
+            ImPlot::PlotBars( "Current Footprint", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
+        } ;
+
+        if ( ImGui::BeginTabItem( "CPU Memory" ) )
+        {
+            if ( ImPlot::BeginPlot( "CPU Memory##the_plot" ) )
+            {
+                motor::vector< int_t > xs ;
+                motor::vector< int_t > ys ;
+                int_t max_value = 0 ;
+
+                // draw allocations
+                {
+                    if ( _profiling_data.display_allocations )
+                    {
+                        xs = motor::vector< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
+                        ys = motor::vector< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
+
+                        _profiling_data.memory_allocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
+                        {
+                            xs[ i ] = (int_t) d.value ;
+                            ys[ i ] = (int_t) d.count ;
+                        } ) ;
+
+                        max_value = (int_t) _profiling_data.memory_allocations.get_max_count() ;
+                    }
+
+                    ImPlot::HideNextItem( true ) ;
+                    ImPlot::PlotBars( "All Allocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
+
+                    if ( ImPlot::IsLegendEntryHovered( "All Allocations" ) )
+                    {
+                        if ( ImGui::IsItemClicked() )
+                        {
+                            _profiling_data.display_allocations = !_profiling_data.display_allocations ;
+                        }
+                    }
+                }
+
+                // draw deallocations
+                {
+                    if ( _profiling_data.display_deallocations )
+                    {
+                        xs = motor::vector< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
+                        ys = motor::vector< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
+
+                        _profiling_data.memory_deallocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
+                        {
+                            xs[ i ] = (int_t) d.value ;
+                            ys[ i ] = (int_t) d.count ;
+                        } ) ;
+
+                        max_value = (int_t) _profiling_data.memory_deallocations.get_max_count() ;
+                    }
+
+                    ImPlot::HideNextItem( true ) ;
+                    ImPlot::PlotBars( "All Deallocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
+
+                    if ( ImPlot::IsLegendEntryHovered( "All Deallocations" ) )
+                    {
+                        if ( ImGui::IsItemClicked() )
+                        {
+                            _profiling_data.display_deallocations = !_profiling_data.display_deallocations ;
+                        }
+                    }
+                }
+
+                // draw allocation difference
+                {
+                    common_histogram() ;
+                }
+
+                ImPlot::EndPlot() ;
+            }
             
-            
-            ImPlot::EndPlot();
+            ImGui::EndTabItem() ;
         }
+
+        if ( ImGui::BeginTabItem( "GPU Memory" ) )
+        {
+            ImGui::EndTabItem() ;
+        }
+
+        if ( ImGui::BeginTabItem( "GPU Performace" ) )
+        {
+            ImGui::EndTabItem() ;
+        }
+
+        ImGui::EndTabBar() ;
     }
+    
     ImGui::End() ;
 }
