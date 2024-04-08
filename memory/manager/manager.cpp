@@ -214,11 +214,13 @@ bool_t manager::get_purpose( void_ptr_t ptr, char_cptr_t & pout ) const noexcept
     return true ;
 }
 
+#if MOTOR_MEMORY_OBSERVER
 //*************************************************************************************
 motor::memory::observer_ptr_t manager::get_observer( void_t ) noexcept
 {
     return _observer ;
 }
+#endif
 
 //*************************************************************************************
 void_t manager::dump_to_std( void_t ) const noexcept 
