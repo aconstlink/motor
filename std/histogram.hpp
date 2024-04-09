@@ -2,9 +2,6 @@
 
 #pragma once
 
-#include "api.h"
-#include "typedefs.h"
-
 #include <motor/std/vector>
 
 namespace motor { namespace mstd {
@@ -12,9 +9,11 @@ namespace motor { namespace mstd {
     template< typename T >
     class histogram
     {
-        motor_this_typedefs( histogram ) ;
+        using this_t = histogram< T > ;
+        using this_rref_t = this_t && ;
+        using this_cref_t = this_t const & ;
 
-        motor_typedefs( T, value ) ;
+        using value_t = T ;
 
     public:
 
@@ -33,9 +32,9 @@ namespace motor { namespace mstd {
 
     public:
 
-        histogram( void_t ) noexcept {}
+        histogram( void ) noexcept {}
 
-        void_t insert( value_t const v ) noexcept
+        void insert( value_t const v ) noexcept
         {
             auto iter = std::find_if( _histo.begin(), _histo.end(), [&] ( this_t::data_cref_t d )
             {
@@ -52,7 +51,7 @@ namespace motor { namespace mstd {
             _max_count = std::max( _max_count, iter->count ) ;
         }
 
-        void_t remove( value_t const v ) noexcept
+        void remove( value_t const v ) noexcept
         {
             auto iter = std::find_if( _histo.begin(), _histo.end(), [&] ( this_t::data_cref_t d )
             {
@@ -70,8 +69,8 @@ namespace motor { namespace mstd {
             if ( iter->count == 0 ) _histo.erase( iter ) ;
         }
 
-        using for_each_funk_t = std::function< void_t ( size_t const i, this_t::data_cref_t ) > ;
-        void_t for_each_entry( for_each_funk_t funk ) const noexcept
+        using for_each_funk_t = std::function< void ( size_t const i, this_t::data_cref_t ) > ;
+        void for_each_entry( for_each_funk_t funk ) const noexcept
         {
             size_t i = 0; 
             for ( auto const & d : _histo )
@@ -80,10 +79,10 @@ namespace motor { namespace mstd {
             }
         }
 
-        size_t get_num_entries( void_t ) const noexcept { return _histo.size() ; }
-        size_t get_max_count( void_t ) const noexcept { return _max_count ;  }
+        size_t get_num_entries( void ) const noexcept { return _histo.size() ; }
+        size_t get_max_count( void ) const noexcept { return _max_count ;  }
 
-        void_t clear( void_t ) noexcept
+        void clear( void ) noexcept
         {
             _histo.clear() ;
             _max_count = 0 ;

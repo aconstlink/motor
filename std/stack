@@ -18,6 +18,7 @@ namespace motor
 
         using object_t = O ;
         using object_cref_t = object_t const & ;
+        using object_rref_t = object_t && ;
         using object_ref_t = object_t & ;
 
         using stack_t = motor::vector< object_t > ;
@@ -75,6 +76,14 @@ namespace motor
         }
 
     public:
+
+        void push( object_rref_t rhv ) noexcept
+        {
+            check_and_resize() ;
+            _stack[ _cur_pos ] = std::move( rhv ) ;
+            ++_cur_pos ;
+            
+        }
 
         void push( object_cref_t rhv ) noexcept
         {
