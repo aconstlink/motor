@@ -9,6 +9,8 @@
 #include <motor/std/string>
 #include <motor/std/vector>
 
+#include <thread>
+
 namespace motor{ namespace profiling { 
 
     class MOTOR_PROFILING_API manager
