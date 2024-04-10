@@ -39,6 +39,7 @@ target_link_libraries( ${cur_lib_name}
     PUBLIC motor::graphics
     PUBLIC motor::controls
     PUBLIC motor::tool
+    PUBLIC motor::profiling
 ) 
 
 

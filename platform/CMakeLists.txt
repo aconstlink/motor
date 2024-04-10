@@ -173,6 +173,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::graphics
   PUBLIC motor::application
   PUBLIC motor::audio
+  PUBLIC motor::profiling
 
   # make oal optional
   PRIVATE OpenAL

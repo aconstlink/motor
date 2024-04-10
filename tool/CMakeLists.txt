@@ -21,6 +21,8 @@ set( sources
     "imgui/keyframe_editor.cpp"
     "imgui/player_controller.h"
     "imgui/player_controller.cpp"
+    "imgui/engine_profiling.h"
+    "imgui/engine_profiling.cpp"
     )
 
 motor_vs_src_dir( sources )
@@ -36,7 +38,8 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::controls
   PUBLIC motor::graphics
   PUBLIC motor::memory
-  PUBLIC motor::log 
+  PUBLIC motor::log
+  PUBLIC motor::profiling
     )
 
 if( MOTOR_COMPILER_GNU )

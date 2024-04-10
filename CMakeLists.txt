@@ -121,6 +121,7 @@ endif()
 list( APPEND subdirs
     "log"
     "memory"
+    "profiling"
     "concurrent"
     "io"
     "controls"

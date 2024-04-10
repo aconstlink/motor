@@ -3,6 +3,7 @@
 
 #include "carrier.h"
 
+#include <motor/profiling/global.h>
 #include <motor/tool/imgui/custom_widgets.h>
 
 using namespace motor::application ;
@@ -16,6 +17,17 @@ app::app( void_t ) noexcept
 app::app( this_rref_t rhv ) noexcept
 {
     _windows = std::move( rhv._windows ) ;
+    
+    _destruction_queue = std::move( rhv._destruction_queue ) ;
+    _closed = rhv._closed ;
+    _first_audio = rhv._first_audio ;
+    _shutdown_called = rhv._shutdown_called ;
+
+    _engine_profiling = std::move( rhv._engine_profiling ) ;
+    _display_engine_stats = rhv._display_engine_stats ;
+
+    _dev_mouse = motor::move( rhv._dev_mouse ) ;
+    _dev_ascii = motor::move( rhv._dev_ascii ) ;
 }
 
 //**************************************************************************************************************
@@ -176,28 +188,7 @@ bool_t app::carrier_update( void_t ) noexcept
     {
         this_t::profile_data_t dat ;
 
-        #if MOTOR_MEMORY_OBSERVER
-        motor::memory::observer_t::observable_data_t od = 
-            motor::memory::global_t::get_observer()->swap_and_clear() ;
-
-        _profiling_data.memory_allocations.clear() ;
-        _profiling_data.memory_deallocations.clear() ;
-
-        for ( auto const & m : od.messages )
-        {
-            if ( m.type == motor::memory::observer_t::alloc_type::allocation ||
-                 m.type == motor::memory::observer_t::alloc_type::managed )
-            {
-                _profiling_data.memory_allocations.insert( m.sib ) ;
-                _profiling_data.memory_current.insert( m.sib ) ;
-            }
-            else if ( m.type == motor::memory::observer_t::alloc_type::deallocation )
-            {
-                _profiling_data.memory_deallocations.insert( m.sib ) ;
-                _profiling_data.memory_current.remove( m.sib ) ;
-            }
-        }
-        #endif
+        _engine_profiling.update() ;
         
         this->on_profile( dat ) ;
 
@@ -543,118 +534,5 @@ void_t app::display_engine_stats( void_t ) noexcept
 //***
 void_t app::display_profiling_data( void_t ) noexcept
 {
-    if ( !ImGui::Begin( "Profiling Data" ) ) return ;
-
-    
-    if ( ImGui::BeginTabBar( "Profiling Data##TabBar" ) )
-    {
-        using histogram_t = decltype( _profiling_data.memory_current ) ;
-
-        auto common_histogram = [&] ( void_t ) 
-        {
-            motor::vector< int_t > xs( _profiling_data.memory_current.get_num_entries() )  ;
-            motor::vector< int_t > ys( _profiling_data.memory_current.get_num_entries() )  ;
-
-            _profiling_data.memory_current.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
-            {
-                xs[ i ] = (int_t) d.value ;
-                ys[ i ] = (int_t) d.count ;
-            } ) ;
-
-            int_t const max_value = (int_t) _profiling_data.memory_current.get_max_count() ;
-
-
-            ImPlot::PlotBars( "Current Footprint", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
-        } ;
-
-        if ( ImGui::BeginTabItem( "CPU Memory" ) )
-        {
-            if ( ImPlot::BeginPlot( "CPU Memory##the_plot" ) )
-            {
-                motor::vector< int_t > xs ;
-                motor::vector< int_t > ys ;
-                int_t max_value = 0 ;
-
-                // draw allocation difference
-                {
-                    common_histogram() ;
-                }
-                // draw allocations
-                {
-                    if ( _profiling_data.display_allocations )
-                    {
-                        xs = motor::vector< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
-                        ys = motor::vector< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
-
-                        _profiling_data.memory_allocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
-                        {
-                            xs[ i ] = (int_t) d.value ;
-                            ys[ i ] = (int_t) d.count ;
-                        } ) ;
-
-                        max_value = (int_t) _profiling_data.memory_allocations.get_max_count() ;
-                    }
-
-                    ImPlot::HideNextItem( true ) ;
-                    ImPlot::PlotBars( "Relative Allocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
-
-                    if ( ImPlot::IsLegendEntryHovered( "Relative Allocations" ) )
-                    {
-                        if ( ImGui::IsItemClicked() )
-                        {
-                            _profiling_data.display_allocations = !_profiling_data.display_allocations ;
-                        }
-                    }
-                }
-
-                // draw deallocations
-                {
-                    if ( _profiling_data.display_deallocations )
-                    {
-                        xs = motor::vector< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
-                        ys = motor::vector< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
-
-                        _profiling_data.memory_deallocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
-                        {
-                            xs[ i ] = (int_t) d.value ;
-                            ys[ i ] = (int_t) d.count ;
-                        } ) ;
-
-                        max_value = (int_t) _profiling_data.memory_deallocations.get_max_count() ;
-                    }
-
-                    ImPlot::HideNextItem( true ) ;
-                    ImPlot::PlotBars( "Relative Deallocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
-
-                    if ( ImPlot::IsLegendEntryHovered( "Relative Deallocations" ) )
-                    {
-                        if ( ImGui::IsItemClicked() )
-                        {
-                            _profiling_data.display_deallocations = !_profiling_data.display_deallocations ;
-                        }
-                    }
-                }
-
-                
-
-                ImPlot::EndPlot() ;
-            }
-            
-            ImGui::EndTabItem() ;
-        }
-
-        if ( ImGui::BeginTabItem( "GPU Memory" ) )
-        {
-            ImGui::EndTabItem() ;
-        }
-
-        if ( ImGui::BeginTabItem( "GPU Performace" ) )
-        {
-            ImGui::EndTabItem() ;
-        }
-
-        ImGui::EndTabBar() ;
-    }
-    
-    ImGui::End() ;
+    _engine_profiling.display() ;
 }

@@ -18,9 +18,9 @@
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/tool/imgui/imgui.h>
-#include <motor/concurrent/typedefs.h>
+#include <motor/tool/imgui/engine_profiling.h>
 
-#include <motor/std/histogram.hpp>
+#include <motor/concurrent/typedefs.h>
 
 namespace motor
 {
@@ -84,18 +84,9 @@ namespace motor
             bool_t _first_audio = true ;
             bool_t _shutdown_called = false ;
 
-            struct profiling_data
-            {
-                bool_t display_allocations = false ;
-                bool_t display_deallocations = false ;
-                motor::mstd::histogram< size_t > memory_allocations ;
-                motor::mstd::histogram< size_t > memory_deallocations ;
-                motor::mstd::histogram< size_t > memory_current ;
-            };
-            motor_typedef( profiling_data ) ;
+        public: // profiling 
 
-            profiling_data_t _profiling_data ;
-
+            motor::tool::engine_profiling_t _engine_profiling ;
             bool_t _display_engine_stats = false ;
 
         private: // device

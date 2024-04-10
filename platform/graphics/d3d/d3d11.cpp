@@ -15,6 +15,8 @@
 #include <motor/graphics/texture/image.hpp>
 #include <motor/graphics/shader/msl_bridge.hpp>
 
+#include <motor/profiling/probe_guard.hpp>
+
 #include <motor/memory/global.h>
 #include <motor/memory/malloc_guard.hpp>
 #include <motor/std/vector>
@@ -3567,7 +3569,9 @@ public: // functions
     //******************************************************************************************************************************
     bool_t render( size_t const id, size_t const geo_idx = 0, bool_t feed_from_so = false, bool_t use_streamout_count = false, size_t const varset_id = size_t( 0 ), UINT const start_element = UINT( 0 ),
         UINT const num_elements = UINT( -1 ) )
-    {
+    {        
+        MOTOR_PROBE( "Graphics", "[d3d11] : render" ) ;
+
         this_t::render_data_ref_t rnd = renders[ id ] ;
 
         if( rnd.shd_id == size_t( -1 ) )

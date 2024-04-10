@@ -14,6 +14,8 @@
 #include <motor/graphics/buffer/index_buffer.hpp>
 #include <motor/graphics/shader/msl_bridge.hpp>
 
+#include <motor/profiling/probe_guard.hpp>
+
 #include <motor/ogl/gl/gl.h>
 #include <motor/ogl/gl/convert.hpp>
 #include <motor/ogl/gl/error.hpp>
@@ -3292,6 +3294,8 @@ struct gl4_backend::pimpl
                    bool_t const use_streamout_count = false, size_t const varset_id = size_t(0), 
                    GLsizei const start_element = GLsizei(0), GLsizei const num_elements = GLsizei(-1) )
     {
+        MOTOR_PROBE( "Graphics", "[gl4] : render" ) ;
+
         this_t::render_data & config = _renders[ id ] ;
         this_t::shader_data & sconfig = _shaders[ config.shd_id ] ;
 
