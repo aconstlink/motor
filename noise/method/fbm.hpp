@@ -151,7 +151,7 @@ namespace motor { namespace noise
 
                 value *= value_damp ;
             
-                p = (p + vec3f_t(0.72356f, -0.12324f, 1.29764f)) * lacunarity ;
+                p = (p + vec3_t(0.72356f, -0.12324f, 1.29764f)) * lacunarity ;
             }
 
             value += remainder * noi.noise(p.x(), p.y(), p.z() ) * 

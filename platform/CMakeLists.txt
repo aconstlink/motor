@@ -97,7 +97,7 @@ if( MOTOR_GRAPHICS_DIRECT3D )
       "application/d3d/dx11_context.cpp" )
 endif()
 
-if( MOTOR_GRAPHICS_GLX )
+if( MOTOR_GRAPHICS_GLX AND TARGET OpenGL::GL )
 
     list( APPEND sources
       #"platform/glx/glx_window.h"

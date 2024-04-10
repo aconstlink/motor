@@ -10,7 +10,10 @@
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+
+#if MOTOR_GRAPHICS_GLX
 #include <motor/ogl/glx/glx.h>
+#endif
 
 using namespace motor::platform ;
 using namespace motor::platform::xlib ;

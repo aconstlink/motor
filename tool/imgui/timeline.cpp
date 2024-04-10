@@ -106,7 +106,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
         ImGui::SetCursorScreenPos( capture_pos ) ;
     }
     
-    float_t const scroll_max_x = ImGui::GetScrollMaxX() ;
+    //float_t const scroll_max_x = ImGui::GetScrollMaxX() ;
     float_t const scroll_x = ImGui::GetScrollX() ;
     
     float_t const mouse_x = 

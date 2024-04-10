@@ -115,7 +115,6 @@ void_t custom_imgui_widgets::text_overlay( char const * label, motor::string_cre
 
 bool_t custom_imgui_widgets::overlay_begin( char const * label, int corner ) noexcept 
 {
-    ImGuiIO& io = ImGui::GetIO();
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
     if (corner != -1)
     {

@@ -393,7 +393,7 @@ void_t tri_render_3d::prepare_for_rendering( void_t ) noexcept
     // 2. prepare variable sets 
     // one var set per layer
     {
-        _ro.for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vars )
+        _ro.for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t vars )
         {
             {
                 auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
