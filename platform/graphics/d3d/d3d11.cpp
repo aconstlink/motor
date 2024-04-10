@@ -3342,6 +3342,8 @@ public: // functions
     //******************************************************************************************************************************
     size_t construct_array_data( size_t oid, motor::graphics::array_object_ref_t obj ) noexcept
     {
+        MOTOR_PROBE( "Graphics", "[d3d11] : construct array object" ) ;
+
         oid = this_t::determine_oid( oid, obj.name(), arrays ) ;
 
         // only vec4 float allowed
@@ -3438,6 +3440,8 @@ public: // functions
     //******************************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::array_object_ref_t obj, bool_t const is_config )
     {
+        MOTOR_PROBE( "Graphics", "[d3d11] : update array object" ) ;
+
         auto & data = arrays[ id ] ;
         
         D3D11_BUFFER_DESC bd ;
@@ -3468,6 +3472,8 @@ public: // functions
     //******************************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::image_object_ref_t obj, bool_t const is_config ) noexcept
     {
+        MOTOR_PROBE( "Graphics", "[d3d11] : update image object" ) ;
+
         auto & data = images[ id ] ;
         auto & iref = obj.image() ;
 
@@ -3518,6 +3524,8 @@ public: // functions
     //******************************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::render_object_ref_t obj, size_t const varset_id )
     {
+        MOTOR_PROBE( "Graphics", "[d3d11] : update render object" ) ;
+
         this_t::render_data_ref_t rnd = renders[ id ] ;
 
         if( !rnd.valid ) return false ;

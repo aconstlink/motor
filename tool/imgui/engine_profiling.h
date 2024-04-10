@@ -4,6 +4,8 @@
 #include "../api.h"
 #include "../typedefs.h"
 
+#include <motor/profiling/manager.h>
+
 #include <motor/std/histogram.hpp>
 #include <motor/std/hash_map>
 #include <motor/std/ring_buffer>
@@ -28,13 +30,30 @@ namespace motor{ namespace tool {
                 size_t num_calls = 0 ;
                 std::chrono::nanoseconds duration = std::chrono::nanoseconds( 0 ) ;
             };
-            motor::hash_map< motor::string_t, motor::ring_buffer< function_timing_data, 1000 > > function_timings ;
+
+            using ring_of_function_timings_t = motor::ring_buffer< function_timing_data, 1000 >;
+
+            motor::hash_map< motor::string_t, ring_of_function_timings_t > function_timings ;
 
             motor::hash_map< motor::string_t, this_t::profiling_data::function_timing_data > tmp ;
+
+
+            motor::profiling::manager_t::data_points_t profiling_data_points ;
         };
         motor_typedef( profiling_data ) ;
 
         profiling_data_t _profiling_data ;
+
+        struct by_category_data
+        {
+            using by_name_t= motor::hash_map< char_cptr_t, size_t > ;
+            motor::hash_map < char_cptr_t, by_name_t > by_cat ;
+
+            
+        };
+        motor_typedef( by_category_data ) ;
+
+        by_category_data_t _by_categories ;
 
     public:
 

@@ -38,3 +38,9 @@ void_t global::pop( void_t ) noexcept
 }
 
 #endif
+
+//******************************************************
+void_t global::deinit( void_t ) noexcept
+{
+    _mgr.~manager() ;
+}

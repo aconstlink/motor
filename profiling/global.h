@@ -41,6 +41,7 @@ namespace motor{ namespace profiling {
         static inline void_t pop( void_t ) noexcept {}
         #endif
 
+        static void_t deinit( void_t ) noexcept ;
     };
     motor_typedef( global ) ;
 } }

@@ -35,10 +35,11 @@ void_t engine_profiling::update( void_t ) noexcept
     #endif
 
     #if MOTOR_PROFILING
+    _profiling_data.profiling_data_points.clear() ;
+    _profiling_data.profiling_data_points = motor::profiling::global_t::manager().swap_and_clear() ;
+    
     {
-        auto dps = motor::profiling::global_t::manager().swap_and_clear() ;
-
-        for ( auto & dp : dps )
+        for ( auto & dp : _profiling_data.profiling_data_points  )
         {
             size_t const id = dp.probe_id ;
 
@@ -52,9 +53,20 @@ void_t engine_profiling::update( void_t ) noexcept
             auto & vec = _profiling_data.function_timings[ key ] ;
             vec.append( value ) ;
         }
-
-        _profiling_data.tmp.clear() ;
     }
+
+    {
+        for ( auto & dp : _profiling_data.profiling_data_points )
+        {
+            size_t const pid = dp.probe_id ;
+            auto & cat_item = _by_categories.by_cat[ motor::profiling::manager_t::get_category( pid ) ] ;
+            auto & name_item = cat_item[ motor::profiling::manager_t::get_name( pid ) ] ;
+            ++name_item ;
+            
+        }
+    }
+
+    _profiling_data.tmp.clear() ;
     #endif
 }
 
@@ -162,33 +174,79 @@ bool_t engine_profiling::display( void_t ) noexcept
         uint_t num_calls[ max_entries ] ;
         uint_t spend_micro[ max_entries ] ;
 
-        if ( ImGui::BeginTabItem( "CPU Functions" ) )
+        if ( ImGui::BeginTabItem( "CPU Probes" ) )
         {
-            for ( auto & [key, value] : _profiling_data.function_timings )
+            if ( ImGui::TreeNode( "Unordered" ) )
             {
-                for ( size_t i = value.cur_pos(); i < max_entries; ++i )
+                for ( auto & [key, value] : _profiling_data.function_timings )
                 {
-                    num_calls[ i ] = 0 ;
-                    spend_micro[ i ] = 0 ;
-                }
-
-                for ( size_t i = 0; i < std::min(size_t( max_entries ), value.cur_pos() ) ; ++i )
-                {
-                    num_calls[ i ] = value[ i ].num_calls ;
-                    spend_micro[ i ] = uint_t( std::chrono::duration_cast<std::chrono::microseconds>(
-                        value[ i ].duration ).count() )  ;
-                }
-
-                if ( ImGui::TreeNode( key.c_str() ) )
-                {
-                    if ( ImPlot::BeginPlot( key.c_str() ) )
+                    for ( size_t i = value.cur_pos(); i < max_entries; ++i )
                     {
-                        ImPlot::PlotLine( "Num Calls", num_calls, max_entries ) ;
-                        ImPlot::PlotLine( "Microsecs", spend_micro, max_entries ) ;
-                        ImPlot::EndPlot() ;
+                        num_calls[ i ] = 0 ;
+                        spend_micro[ i ] = 0 ;
                     }
-                    ImGui::TreePop();
+
+                    for ( size_t i = 0; i < std::min( size_t( max_entries ), value.cur_pos()+1 ) ; ++i )
+                    {
+                        num_calls[ i ] = value[ i ].num_calls ;
+                        spend_micro[ i ] = uint_t( std::chrono::duration_cast<std::chrono::microseconds>(
+                            value[ i ].duration ).count() )  ;
+                    }
+
+                    if ( ImGui::TreeNode( key.c_str() ) )
+                    {
+                        if ( ImPlot::BeginPlot( key.c_str() ) )
+                        {
+                            ImPlot::PlotLine( "Num Calls", num_calls, max_entries ) ;
+                            ImPlot::PlotLine( "Microsecs", spend_micro, max_entries ) ;
+                            ImPlot::EndPlot() ;
+                        }
+                        ImGui::TreePop();
+                    }
                 }
+                ImGui::TreePop();
+            }
+            if ( ImGui::TreeNode( "By Category" ) )
+            {
+                for ( auto & [category, by_name] : _by_categories.by_cat )
+                {
+                    if ( ImGui::TreeNode( category ) )
+                    {
+                        for ( auto & [name, not_used_var] : by_name )
+                        {
+                            this_t::profiling_data::ring_of_function_timings_t & value =
+                                _profiling_data.function_timings[name] ;
+
+                            if ( ImGui::TreeNode( name ) )
+                            {
+                                for ( size_t i = value.cur_pos(); i < max_entries; ++i )
+                                {
+                                    num_calls[ i ] = 0 ;
+                                    spend_micro[ i ] = 0 ;
+                                }
+
+                                for ( size_t i = 0; i < std::min( size_t( max_entries ), value.cur_pos() ) ; ++i )
+                                {
+                                    num_calls[ i ] = value[ i ].num_calls ;
+                                    spend_micro[ i ] = uint_t( std::chrono::duration_cast<std::chrono::microseconds>(
+                                        value[ i ].duration ).count() )  ;
+                                }
+
+                                if ( ImPlot::BeginPlot( name ) )
+                                {
+                                    ImPlot::PlotLine( "Num Calls", num_calls, max_entries ) ;
+                                    ImPlot::PlotLine( "Microsecs", spend_micro, max_entries ) ;
+                                    ImPlot::EndPlot() ;
+                                }
+
+                                ImGui::TreePop();
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+                }
+                
+                ImGui::TreePop();
             }
 
             if ( ImGui::TreeNode( "Functions" ) )
