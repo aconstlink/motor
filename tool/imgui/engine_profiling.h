@@ -33,9 +33,9 @@ namespace motor{ namespace tool {
 
             using ring_of_function_timings_t = motor::ring_buffer< function_timing_data, 1000 >;
 
-            motor::hash_map< motor::string_t, ring_of_function_timings_t > function_timings ;
+            motor::hash_map< char_cptr_t, ring_of_function_timings_t > function_timings ;
 
-            motor::hash_map< motor::string_t, this_t::profiling_data::function_timing_data > tmp ;
+            motor::hash_map< char_cptr_t, this_t::profiling_data::function_timing_data > tmp ;
 
 
             motor::profiling::manager_t::data_points_t profiling_data_points ;

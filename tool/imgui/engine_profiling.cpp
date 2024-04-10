@@ -193,9 +193,9 @@ bool_t engine_profiling::display( void_t ) noexcept
                             value[ i ].duration ).count() )  ;
                     }
 
-                    if ( ImGui::TreeNode( key.c_str() ) )
+                    if ( ImGui::TreeNode( key ) )
                     {
-                        if ( ImPlot::BeginPlot( key.c_str() ) )
+                        if ( ImPlot::BeginPlot( key ) )
                         {
                             ImPlot::PlotLine( "Num Calls", num_calls, max_entries ) ;
                             ImPlot::PlotLine( "Microsecs", spend_micro, max_entries ) ;
