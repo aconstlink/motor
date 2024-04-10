@@ -1,0 +1,12 @@
+
+#pragma once
+
+#include <motor/memory/allocator.hpp>
+#include <unordered_map>
+
+namespace motor
+{
+    template< typename Key, typename T > 
+    using hash_map = std::unordered_map< Key, T, std::hash<Key>, std::equal_to<Key>, 
+        motor::memory::allocator< std::pair<const Key, T> > >;
+}

@@ -4,7 +4,7 @@ set( sources
     "string"
     "vector"
     "map"
-    "unordered"
+    "hash_map"
     "filesystem"
     "stack"
     "sstream"
@@ -13,6 +13,8 @@ set( sources
     #"string/utf8.hpp"
     "string_split.hpp"
     "histogram.hpp"
+    "ring.hpp"
+    "ring_buffer"
     )
 
 motor_vs_src_dir( sources )
