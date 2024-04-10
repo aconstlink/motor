@@ -20,12 +20,16 @@ namespace motor{ namespace profiling {
 
         inline probe_guard( size_t const id ) noexcept : _id( id )
         {
+            #if MOTOR_PROFILING 
             _idx = motor::profiling::global_t::manager().begin_probe( id ) ;
+            #endif
         }
 
         inline ~probe_guard( void_t ) noexcept
         {
+            #if MOTOR_PROFILING 
             motor::profiling::global_t::manager().end_probe( _idx ) ;
+            #endif
         }
     };
 
@@ -39,7 +43,7 @@ namespace motor{ namespace profiling {
             motor::profiling::global_t::manager().gen_id( category, name ) ;\
         motor::profiling::probe_guard MOTOR_PROFILING_VARNAME( _motor_probe_guard_ )( MOTOR_PROFILING_VARNAME(_motor_probe_id_) ) ;
     #else
-    #define MOTOR_PROBE( name )
+    #define MOTOR_PROBE( category, name )
     #endif
 
 } }
