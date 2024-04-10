@@ -87,7 +87,7 @@ void_t line_render_2d::init( motor::string_cref_t name ) noexcept
     {
         auto vb = motor::graphics::vertex_buffer_t()
             .add_layout_element( motor::graphics::vertex_attribute::position, motor::graphics::type::tfloat, motor::graphics::type_struct::vec2 )
-            .resize( 4 ).update<this_t::vertex>( [=] ( this_t::vertex* array, size_t const ne )
+            .resize( 4 ).update<this_t::vertex>( [=] ( this_t::vertex* array, size_t const /*ne*/ )
         {
             array[ 0 ].pos = motor::math::vec2f_t( -0.5f, -0.5f ) ;
             array[ 1 ].pos = motor::math::vec2f_t( -0.5f, +0.5f ) ;
@@ -444,7 +444,7 @@ void_t line_render_2d::prepare_for_rendering( void_t ) noexcept
             offset += int32_t( _render_data[i].num_elems ) ;
         }
 
-        _ro.for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vars )
+        _ro.for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t vars )
         {
             {
                 auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;

@@ -64,7 +64,7 @@ void_t primitive_render_3d::draw_rect(  motor::math::vec3f_cref_t p0, motor::mat
 
 //*****************************************************************
 void_t primitive_render_3d::draw_circle( motor::math::mat3f_cref_t o, motor::math::vec3f_cref_t p0, float_t const r, motor::math::vec4f_cref_t color, 
-    motor::math::vec4f_cref_t border_color, size_t const s) noexcept 
+    motor::math::vec4f_cref_t /*border_color*/, size_t const s) noexcept 
 {
     _tr.draw_circle( o, p0, r, color, s ) ;
     //_lr.draw_circle( s, p0, r, border_color ) ;

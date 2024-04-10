@@ -74,7 +74,7 @@ void_t line_render_3d::init( motor::string_cref_t name ) noexcept
     {
         auto vb = motor::graphics::vertex_buffer_t()
             .add_layout_element( motor::graphics::vertex_attribute::position, motor::graphics::type::tfloat, motor::graphics::type_struct::vec3 )
-            .resize( 4 ).update<this_t::vertex>( [=] ( this_t::vertex* array, size_t const ne )
+            .resize( 4 ).update<this_t::vertex>( [=] ( this_t::vertex* array, size_t const /*ne*/ )
         {
             array[ 0 ].pos = motor::math::vec3f_t( -0.5f, -0.5f ) ;
             array[ 1 ].pos = motor::math::vec3f_t( -0.5f, +0.5f ) ;
@@ -303,7 +303,7 @@ void_t line_render_3d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noe
 //**********************************************************
 void_t line_render_3d::prepare_for_rendering( void_t ) noexcept 
 {
-    prepare_update pe = { false, false } ;
+    //prepare_update pe = { false, false } ;
 
     // 1. copy data
     {
@@ -345,8 +345,8 @@ void_t line_render_3d::prepare_for_rendering( void_t ) noexcept
             } ) ;
         }
 
-        pe.vertex_realloc = _go.vertex_buffer().get_sib() > vsib ;
-        pe.data_realloc = _ao.data_buffer().get_sib() > bsib ;
+        _pe.vertex_realloc = _go.vertex_buffer().get_sib() > vsib ;
+        _pe.data_realloc = _ao.data_buffer().get_sib() > bsib ;
 
         _num_lines = _lines.size() ;
         _lines.clear() ;
@@ -354,7 +354,7 @@ void_t line_render_3d::prepare_for_rendering( void_t ) noexcept
 
     // 2. prepare variable set
     {
-        _ro.for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vars )
+        _ro.for_each( [&]( size_t const , motor::graphics::variable_set_mtr_t vars )
         {
             {
                 auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;

@@ -370,7 +370,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
 
             // copy vertices
             {
-                size_t tmp = sizeof( this_t::vertex) ;
+                //size_t tmp = sizeof( this_t::vertex) ;
                 size_t const num_verts = tris.size() * 3 ;
                 _go.vertex_buffer().update<this_t::vertex>( start, start+num_verts, 
                     [&]( this_t::vertex * array, size_t const ne )
@@ -442,7 +442,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
             offset += int32_t( _render_data[i].num_elems ) ;
         }
 
-        _ro.for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t vars )
+        _ro.for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t vars )
         {
             {
                 auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;

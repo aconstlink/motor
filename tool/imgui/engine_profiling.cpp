@@ -91,7 +91,7 @@ bool_t engine_profiling::display( void_t ) noexcept
                 ys[ i ] = (int_t) d.count ;
             } ) ;
 
-            int_t const max_value = (int_t) _profiling_data.memory_current.get_max_count() ;
+            //int_t const max_value = (int_t) _profiling_data.memory_current.get_max_count() ;
 
 
             ImPlot::PlotBars( "Current Footprint", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
