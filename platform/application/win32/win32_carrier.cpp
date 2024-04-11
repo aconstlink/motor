@@ -19,6 +19,7 @@
 #include <motor/concurrent/global.h>
 
 #include <windows.h>
+//#include <windowsx.h>
 #include <strsafe.h>
 
 using namespace motor::platform ;
@@ -589,7 +590,7 @@ HWND win32_carrier::create_win32_window( motor::application::window_info_cref_t 
     // Important action here. The user data is used pass the object
     // that will perform the callback in the static wndproc
     SetWindowLongPtr( hwnd, GWLP_USERDATA, (LONG_PTR)this ) ;
-    
+
     return hwnd ;
 }
 
@@ -610,6 +611,31 @@ LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPA
         // pass-through
         break ;
     
+        // requires TrackMouseEvent
+    case WM_MOUSELEAVE :
+    {
+        this_ptr_t p = (this_ptr_t) GetWindowLongPtr( hwnd, GWLP_USERDATA ) ;
+        p->find_window_info( hwnd, [&] ( this_t::win32_window_data_ref_t wi )
+        {
+            p->send_mouse( wi, motor::application::mouse_message::state_type::leave ) ;
+        } ) ;
+    }
+    break ;
+
+    case WM_MOUSEMOVE:
+    {
+        // GET_X_LPARAM requires #include< windowsx.h > 
+        //int_t x = GET_X_LPARAM( lParam ) ;
+        //int_t y = GET_Y_LPARAM( lParam ) ;
+
+        this_ptr_t p = (this_ptr_t) GetWindowLongPtr( hwnd, GWLP_USERDATA ) ;
+        p->find_window_info( hwnd, [&] ( this_t::win32_window_data_ref_t wi )
+        {
+            p->send_mouse( wi, motor::application::mouse_message::state_type::move ) ;
+        } ) ;
+    }
+    break ;
+
     case WM_MOVE:
     case WM_SIZE:
     {
@@ -769,6 +795,68 @@ void_t win32_carrier::send_resize( win32_window_data_inout_t d ) noexcept
         d.sv.resize_msg.w = w ;
         d.sv.resize_msg.h = h ;
     }
+}
+
+//*******************************************************************************************
+void_t win32_carrier::send_mouse( win32_window_data_inout_t d, motor::application::mouse_message_t::state_type const st ) noexcept
+{
+    auto new_state = st ;
+    auto const old_state = d.sv.mouse_msg.state ;
+
+    bool_t const enter_state =
+        ( new_state == motor::application::mouse_message_t::state_type::move &&
+            old_state == motor::application::mouse_message_t::state_type::leave ) ||
+        ( new_state == motor::application::mouse_message_t::state_type::move &&
+            old_state == motor::application::mouse_message_t::state_type::none  ) ;
+
+    bool_t const leave_state = 
+        new_state == motor::application::mouse_message_t::state_type::leave ;
+
+    bool_t const move_state = 
+        new_state == motor::application::mouse_message_t::state_type::move ;
+
+    // enter state
+    if ( enter_state )
+    {
+        // reactivate mouse tracking for leave event
+        {
+            TRACKMOUSEEVENT tme ;
+            tme.cbSize = sizeof( tme ) ;
+            tme.hwndTrack = d.hwnd ;
+            tme.dwFlags = TME_LEAVE ;
+
+            if ( !TrackMouseEvent( &tme ) )
+            {
+                motor::log::global_t::status( "[win32] : TrackMouseEvent failed" ) ;
+            }
+        }
+
+        new_state = motor::application::mouse_message_t::state_type::enter ;
+    }
+    // leave state
+    else if ( leave_state )
+    {
+        new_state = motor::application::mouse_message_t::state_type::leave ;
+    }
+    // move state
+    else if ( move_state )
+    {
+        new_state = motor::application::mouse_message_t::state_type::move ;
+    }
+    
+    // send new state to the user
+    // do not need move events. those come from the raw input module.
+    if( new_state != motor::application::mouse_message_t::state_type::move )
+    {
+        motor::application::mouse_message_t mm ;
+        mm.state = new_state ;
+        d.wnd->foreach_out( [&] ( motor::application::iwindow_message_listener_mtr_t l )
+        {
+            l->on_message( mm ) ;
+        } ) ;
+    }
+
+    d.sv.mouse_msg.state = new_state ;
 }
 
 //*******************************************************************************************

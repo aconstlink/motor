@@ -103,7 +103,7 @@ bool_t app::carrier_update( void_t ) noexcept
         
         for( auto iter=_windows2.begin() ; iter!=_windows2.end(); )
         {
-            size_t const i = std::distance( iter, _windows2.end() ) ;
+            size_t const i = std::distance( _windows2.begin(), iter ) ;
 
             auto & d = *iter ;
 
@@ -121,12 +121,26 @@ bool_t app::carrier_update( void_t ) noexcept
                 {
                     _destruction_queue.emplace_back( *iter ) ;
                     iter = _windows2.erase( iter ) ;
+
                     continue ;
                 }
 
                 if( sv.resize_changed )
                 {
                     d.imgui->update( {(int_t)sv.resize_msg.w,(int_t)sv.resize_msg.h} ) ;
+                }
+
+                // check if mouse is in tool window
+                if ( sv.mouse_msg_changed )
+                {
+                    if ( sv.mouse_msg.state == motor::application::mouse_message::state_type::enter )
+                    {
+                        d.is_mouse_over = true ;
+                    }
+                    else if ( sv.mouse_msg.state == motor::application::mouse_message::state_type::leave )
+                    {
+                        d.is_mouse_over = false ;
+                    }
                 }
                 
             }
@@ -141,8 +155,11 @@ bool_t app::carrier_update( void_t ) noexcept
         {
             for( auto & d : _windows )
             {
-                d.imgui->update( _dev_ascii ) ;
-                d.imgui->update( _dev_mouse ) ;
+                if ( d.is_mouse_over )
+                {
+                    d.imgui->update( _dev_ascii ) ;
+                    d.imgui->update( _dev_mouse ) ;
+                }
             }
         }
 

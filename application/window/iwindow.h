@@ -46,6 +46,7 @@ namespace motor
             virtual void_t send_message( motor::application::vsync_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::fullscreen_message_cref_t ) noexcept = 0 ;
             virtual void_t send_message( motor::application::cursor_message_cref_t ) noexcept = 0 ;
+            virtual void_t send_message( motor::application::mouse_message_cref_t ) noexcept = 0 ;
         } ;
         motor_typedef( iwindow ) ;
     }

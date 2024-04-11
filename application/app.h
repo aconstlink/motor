@@ -72,6 +72,8 @@ namespace motor
                 motor::tool::imgui_mtr_t imgui ;
 
                 bool_t first_frame = true ;
+
+                bool_t is_mouse_over = false ;
             };
 
             std::mutex _mtx_windows ;

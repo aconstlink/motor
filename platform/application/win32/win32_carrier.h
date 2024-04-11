@@ -131,6 +131,7 @@ namespace motor
                 void_t send_destroy( win32_window_data_in_t ) noexcept ;
                 void_t send_create( win32_window_data_in_t ) noexcept ;
                 void_t send_resize( win32_window_data_inout_t ) noexcept ;
+                void_t send_mouse( win32_window_data_inout_t, motor::application::mouse_message_t::state_type const ) noexcept ;
 
             private: // handle messages -> incoming messages
 

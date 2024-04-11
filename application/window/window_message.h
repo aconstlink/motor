@@ -89,6 +89,22 @@ namespace motor
             bool_t on_off ;
         };
         motor_typedef( cursor_message ) ;
+
+        struct mouse_message
+        {
+            enum class state_type
+            {
+                none,
+                enter,
+                move,
+                leave
+            };
+            // x,y 
+
+            state_type state = state_type::none ;
+
+        };
+        motor_typedef( mouse_message ) ;
     }
 }
 

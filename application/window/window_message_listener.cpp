@@ -135,3 +135,17 @@ void_t window_message_listener::on_message( motor::application::cursor_message_c
     _states.cursor_msg = msg ;
     _has_any_change = true ;
 }
+
+//***************************************************************************
+void_t window_message_listener::on_message( motor::application::mouse_message_cref_t msg ) noexcept
+{
+    std::lock_guard< std::mutex > lk( _mtx ) ;
+    if ( _states.mouse_msg_changed )
+    {
+        if ( _states.mouse_msg.state == motor::application::mouse_message::state_type::enter &&
+            msg.state == motor::application::mouse_message::state_type::move ) return ;
+    }
+    _states.mouse_msg_changed = true ;
+    _states.mouse_msg = msg ;
+    _has_any_change = true ;
+}

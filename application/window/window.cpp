@@ -166,6 +166,15 @@ void_t window::send_message( motor::application::cursor_message_cref_t msg ) noe
 }
 
 //***************************************************************************
+void_t window::send_message( motor::application::mouse_message_cref_t msg ) noexcept
+{
+    this_t::foreach_in( [&] ( motor::application::iwindow_message_listener_mtr_t lsn )
+    {
+        lsn->on_message( msg ) ;
+    } ) ;
+}
+
+//***************************************************************************
 size_t window::set_renderable( motor::graphics::render_engine_ptr_t re, motor::graphics::ifrontend_ptr_t fe ) noexcept 
 {
     std::lock_guard< std::mutex > lk( _mtx_rnd ) ;
