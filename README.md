@@ -20,7 +20,7 @@ Sample code using the engine can be found in the [sample suites](https://github.
 
 *For development:*
 ```bash
-libX11-devel mesa-libGLES-devel mesa-libGL-devel mesa-libEGL-devel alsa-lib-devel make cmake gcc gcc-c++
+libX11-devel libGLES-devel libGL-devel libEGL-devel alsa-lib-devel make cmake gcc gcc-c++
 ```
 *For execution only*
 ```bash
