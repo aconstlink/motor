@@ -38,7 +38,7 @@ namespace motor
                     motor::application::window_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
                     // can be used to store messages to be used continuously.
-                    // Use for vsync messages.
+                    // Use for vsync, cursor, resize messages.
                     motor::application::window_message_listener_t::state_vector_t sv ;
 
                     // store window text for later alteration.
@@ -130,7 +130,7 @@ namespace motor
                 // send listeners of the window that is about to die
                 void_t send_destroy( win32_window_data_in_t ) noexcept ;
                 void_t send_create( win32_window_data_in_t ) noexcept ;
-                void_t send_resize( win32_window_data_in_t ) noexcept ;
+                void_t send_resize( win32_window_data_inout_t ) noexcept ;
 
             private: // handle messages -> incoming messages
 

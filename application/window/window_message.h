@@ -6,9 +6,15 @@ namespace motor
 {
     namespace application
     {
+        enum class three_state
+        {
+            on, off, toggle
+        };
+
         struct show_message
         {
-            bool_t show ;
+            bool_t show = true ;
+            three_state borderless = three_state::off ;
         };
         motor_typedef( show_message ) ;
 
@@ -73,8 +79,8 @@ namespace motor
 
         struct fullscreen_message
         {
-            bool_t on_off ;
-            bool_t borderless ;
+            three_state fullscreen = three_state::off ;
+            three_state borderless = three_state::off ;
         };
         motor_typedef( fullscreen_message ) ;
 

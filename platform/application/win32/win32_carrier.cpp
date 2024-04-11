@@ -602,9 +602,15 @@ LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPA
         break ;
     case WM_SYSCOMMAND: break ;
 
+    case WM_STYLECHANGED:
+        break ;
+
     case WM_SHOWWINDOW:
         //this_t::send_show( wParam ) ;
         // pass-through
+        break ;
+    
+    case WM_MOVE:
     case WM_SIZE:
     {
         this_ptr_t p = (this_ptr_t)GetWindowLongPtr( hwnd, GWLP_USERDATA ) ;
@@ -733,34 +739,76 @@ void_t win32_carrier::send_create( win32_window_data_in_t d ) noexcept
 }
 
 //*******************************************************************************************
-void_t win32_carrier::send_resize( win32_window_data_in_t d ) noexcept
+void_t win32_carrier::send_resize( win32_window_data_inout_t d ) noexcept
 {
     RECT rect ;
-    GetClientRect( d.hwnd, &rect ) ;
+    //GetClientRect( d.hwnd, &rect ) ;
+    GetWindowRect( d.hwnd, &rect ) ;
+
+    int_t const x = int_t( rect.left ) ;
+    int_t const y = int_t( rect.top ) ;
+    int_t const w = int_t( rect.right - rect.left ) ;
+    int_t const h = int_t( rect.bottom - rect.top ) ;
 
     motor::application::resize_message const rm {
         true,
-        int_t(rect.left), int_t(rect.top), 
+        x, y,
         true,
-        size_t(rect.right-rect.left), size_t(rect.bottom-rect.top)
+        size_t(w), size_t(h)
     } ;
 
     d.wnd->foreach_out( [&]( motor::application::iwindow_message_listener_mtr_t l )
     {
         l->on_message( rm ) ;
     } ) ;
+
+    if ( d.sv.fulls_msg.fullscreen == motor::application::three_state::off )
+    {
+        d.sv.resize_msg.x = x ;
+        d.sv.resize_msg.y = y ;
+        d.sv.resize_msg.w = w ;
+        d.sv.resize_msg.h = h ;
+    }
 }
 
 //*******************************************************************************************
-void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::application::window_message_listener_t::state_vector_in_t states ) noexcept 
+void_t win32_carrier::handle_messages( win32_window_data_inout_t d, 
+    motor::application::window_message_listener_t::state_vector_in_t states ) noexcept 
 {
     if( states.show_changed )
     {
         ShowWindow( d.hwnd, states.show_msg.show ? SW_SHOW : SW_HIDE ) ;
+
+        if ( states.show_msg.borderless == motor::application::three_state::on )
+        {
+            DWORD const style = WS_POPUP | WS_VISIBLE ;
+            SetWindowLongPtrA( d.hwnd, GWL_STYLE, style ) ;
+        }
+        else if ( states.show_msg.borderless == motor::application::three_state::off )
+        {
+            DWORD const style = WS_OVERLAPPEDWINDOW | WS_VISIBLE ;
+            SetWindowLongPtrA( d.hwnd, GWL_STYLE, style ) ;
+        }
+        else if ( states.show_msg.borderless == motor::application::three_state::toggle )
+        {
+            DWORD style = (DWORD) GetWindowLongPtr( d.hwnd, GWL_STYLE ) ;
+            if ( style & WS_POPUP ) // its borderless
+            {
+                style = WS_OVERLAPPEDWINDOW | WS_VISIBLE ;
+                SetWindowLongPtrA( d.hwnd, GWL_STYLE, style ) ;
+            }
+            else
+            {
+                style =  WS_VISIBLE | WS_POPUP ;
+                SetWindowLongPtrA( d.hwnd, GWL_STYLE, style ) ;
+            }
+        }
+        else{ /*invalid state*/ }
     }
+
     if( states.fulls_msg_changed )
     {
-        motor::application::fullscreen_message_cref_t msg = states.fulls_msg ;
+        motor::application::fullscreen_message_t msg = states.fulls_msg ;
 
         {
             DWORD ws_ex_style = WS_EX_APPWINDOW /*& ~(WS_EX_DLGMODALFRAME |
@@ -769,16 +817,32 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::appli
         }
 
         {
+            if ( msg.fullscreen == motor::application::three_state::toggle )
+            {
+                if ( d.sv.fulls_msg.fullscreen == motor::application::three_state::on )
+                {
+                    msg.fullscreen = motor::application::three_state::off ;
+                }
+                else if ( d.sv.fulls_msg.fullscreen == motor::application::three_state::off )
+                {
+                    msg.fullscreen = motor::application::three_state::on ;
+                }
+            }
+
             DWORD ws_style = 0 ;
 
-            if( msg.on_off )
+            if( msg.fullscreen == motor::application::three_state::on )
             {
                 ws_style = WS_POPUP | SW_SHOWNORMAL ;
+                d.sv.fulls_msg.fullscreen = motor::application::three_state::on ;
             }
-            else
+            else if( msg.fullscreen == motor::application::three_state::off )
             {
                 ws_style = WS_OVERLAPPEDWINDOW ;
+                d.sv.fulls_msg.fullscreen = motor::application::three_state::off ;
             }
+            
+            else{ /*invalid state*/ }
 
             SetWindowLongPtrA( d.hwnd, GWL_STYLE, ws_style ) ;
         }
@@ -788,12 +852,14 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::appli
             int_t width = GetSystemMetrics( SM_CXSCREEN ) ;
             int_t height = GetSystemMetrics( SM_CYSCREEN ) ;
 
-            if( !msg.on_off )
+            if( msg.fullscreen == motor::application::three_state::off )
             {
                 height += GetSystemMetrics( SM_CYCAPTION ) ;
 
-                width /= 2 ;
-                height /= 2 ;
+                start_x = d.sv.resize_msg.x ;
+                start_y = d.sv.resize_msg.y ;
+                width = int_t( d.sv.resize_msg.w ) ;
+                height = int_t( d.sv.resize_msg.h ) ;
             }
 
             SetWindowPos( d.hwnd, HWND_TOP, start_x, start_y, width, height, SWP_SHOWWINDOW ) ;
@@ -833,7 +899,10 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d, motor::appli
             rc.bottom = y + height ;
         }
 
-        SetWindowPos( d.hwnd, NULL, x, y, width+difx, height+dify, 0 ) ;
+        int_t const w = width + difx ;
+        int_t const h = height + dify ;
+
+        SetWindowPos( d.hwnd, NULL, x, y, width, height, 0 ) ;
     }
 
     if( states.cursor_msg_changed )
