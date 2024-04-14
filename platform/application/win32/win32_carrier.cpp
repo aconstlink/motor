@@ -767,14 +767,17 @@ void_t win32_carrier::send_create( win32_window_data_in_t d ) noexcept
 //*******************************************************************************************
 void_t win32_carrier::send_resize( win32_window_data_inout_t d ) noexcept
 {
-    RECT rect ;
-    //GetClientRect( d.hwnd, &rect ) ;
-    GetWindowRect( d.hwnd, &rect ) ;
+    RECT client_rect ;
+    GetClientRect( d.hwnd, &client_rect ) ;
 
-    int_t const x = int_t( rect.left ) ;
-    int_t const y = int_t( rect.top ) ;
-    int_t const w = int_t( rect.right - rect.left ) ;
-    int_t const h = int_t( rect.bottom - rect.top ) ;
+    RECT window_rect ;
+    GetWindowRect( d.hwnd, &window_rect ) ;
+
+    int_t const x = int_t( window_rect.left ) ;
+    int_t const y = int_t( window_rect.top ) ;
+
+    int_t const w = int_t( client_rect.right - client_rect.left ) ;
+    int_t const h = int_t( client_rect.bottom - client_rect.top ) ;
 
     motor::application::resize_message const rm {
         true,
