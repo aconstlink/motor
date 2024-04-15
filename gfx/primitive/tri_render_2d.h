@@ -12,6 +12,8 @@
 
 #include <motor/std/vector>
 
+#include <array>
+
 namespace motor
 {
     namespace gfx
@@ -142,6 +144,20 @@ namespace motor
                 motor::math::vec2f_cref_t p2, motor::math::vec2f_cref_t p3, motor::math::vec4f_cref_t color ) noexcept ;
 
             void_t draw_circle( size_t const, size_t const, motor::math::vec2f_cref_t p0, float_t const r, motor::math::vec4f_cref_t color ) noexcept ;
+
+        public: // multi-draw
+
+            using tri_md_t = std::array< motor::math::vec2f_t, 3 > ;
+
+            struct rect
+            {
+                std::array< motor::math::vec2f_t, 4 > points ;
+                motor::math::vec4f_t color ;
+            };
+            using rect_md_t = rect ;
+
+            using draw_rects_funk_t = std::function< rect_md_t ( size_t const ) > ;
+            void_t draw_rects( size_t const layer, size_t const num_rects, draw_rects_funk_t ) ;
 
         public:
 

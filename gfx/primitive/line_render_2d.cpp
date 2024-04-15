@@ -301,14 +301,9 @@ void_t line_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0,
         }
     }
 
-    this_t::line_t ln ;
-    ln.p2.p0 = p0 ;
-    ln.p2.p1 = p1 ;
-    ln.color = color ;
-
     {
         motor::concurrent::lock_guard_t lk( _layers[l].mtx ) ;
-        _layers[l].lines.emplace_back( std::move( ln ) ) ;
+        _layers[l].lines.emplace_back( this_t::line_t { { p0, p1 }, color } ) ;
     }
 
     {
@@ -338,6 +333,45 @@ void_t line_render_2d::draw_circle( size_t const l, size_t const s, motor::math:
         this_t::draw( l, p0+points[i]*r, p0+points[i+1]*r, color ) ;
     }
     this_t::draw( l, p0+points.back()*r, p0+points[0]*r, color ) ;
+}
+
+//**********************************************************************************************************
+void_t line_render_2d::draw_lines( size_t const l, size_t const num_lines, draw_lines_funk_t funk ) noexcept
+{
+    {
+        motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
+        if ( _layers.size() <= l + 1 )
+        {
+            _layers.resize( l + 1 ) ;
+            _render_data.resize( l + 1 ) ;
+        }
+    }
+
+    size_t cur_pos = 0 ;
+
+    // resize lines array
+    {
+        motor::concurrent::lock_guard_t lk( _layers[ l ].mtx ) ;
+        size_t const cur_size = _layers[ l ].lines.size() ;
+        _layers[ l ].lines.resize( cur_size + num_lines ) ;
+
+        cur_pos = cur_size ;
+    }
+
+    // remember how many lines are drawn
+    {
+        motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
+        _num_lines += num_lines ;
+    }
+
+    // call user funk for lines
+    {
+        for ( size_t i = 0; i < num_lines; ++i )
+        {
+            size_t const idx = cur_pos + i ;
+            _layers[ l ].lines[idx] = funk( i ) ;
+        }
+    }
 }
 
 //**********************************************************************************************************
@@ -385,7 +419,7 @@ void_t line_render_2d::prepare_for_rendering( void_t ) noexcept
                     {
                         for( size_t l=r.begin(); l<r.end(); ++l )
                         {
-                            array[ l ].pos = lines[ l / 2 ].a2[ l % 2 ] ;
+                            array[ l ].pos = lines[ l / 2 ].points[ l % 2 ] ;
                         }
                     } ) ;
                     #else

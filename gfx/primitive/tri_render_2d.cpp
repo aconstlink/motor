@@ -4,6 +4,8 @@
 #include <motor/concurrent/parallel_for.hpp>
 #include <motor/math/utility/constants.hpp>
 
+#include <motor/concurrent/parallel_for.hpp>
+
 using namespace motor::gfx ;
 
 //**********************************************************************************************************
@@ -333,6 +335,94 @@ void_t tri_render_2d::draw_circle( size_t const l, size_t const s, motor::math::
         this_t::draw( l, p0, p0+points[i]*r, p0+points[i+1]*r, color ) ;
     }
     this_t::draw( l, p0, p0+points.back()*r, p0+points[0]*r, color ) ;
+}
+
+//**********************************************************************************************************
+void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_rects_funk_t funk )
+{
+    {
+        motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
+        if ( _layers.size() <= l + 1 )
+        {
+            _layers.resize( l + 1 ) ;
+            _render_data.resize( l + 1 ) ;
+        }
+    }
+
+    size_t cur_pos = 0 ;
+
+    {
+        motor::concurrent::lock_guard_t lk( _layers[ l ].mtx ) ;
+        size_t const cur_size = _layers[ l ].tris.size() ;
+        _layers[ l ].tris.resize( cur_size + (num_rects << 1) ) ;
+        cur_pos = cur_size ;
+    }
+
+    {
+        auto & tris = _layers[ l ].tris ;
+
+        #if 1
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_rects ), 
+            [&] ( motor::concurrent::range_1d<size_t> const & r ) 
+        {
+            for ( size_t i = r.begin(); i < r.end(); ++i )
+            {
+                size_t const idx = cur_pos + ( i << 1 ) ;
+
+                auto rect = funk( i ) ;
+
+                {
+                    this_t::tri_t ln ;
+                    ln.pts.p0 = rect.points[ 0 ] ;
+                    ln.pts.p1 = rect.points[ 1 ] ;
+                    ln.pts.p2 = rect.points[ 2 ] ;
+                    ln.color = rect.color ;
+                    tris[ idx + 0 ] = std::move( ln ) ;
+                }
+
+                {
+                    this_t::tri_t ln ;
+                    ln.pts.p0 = rect.points[ 0 ] ;
+                    ln.pts.p1 = rect.points[ 2 ] ;
+                    ln.pts.p2 = rect.points[ 3 ] ;
+                    ln.color = rect.color ;
+                    tris[ idx + 1 ] = std::move( ln ) ;
+                }
+            }
+        } ) ;
+        #else
+        for ( size_t i = 0; i < num_rects; ++i )
+        {
+            size_t const idx = cur_pos + (i<<1) ;
+
+            auto rect = funk( i ) ;
+
+            {
+                this_t::tri_t ln ;
+                ln.pts.p0 = rect.points[ 0 ] ;
+                ln.pts.p1 = rect.points[ 1 ] ;
+                ln.pts.p2 = rect.points[ 2 ] ;
+                ln.color = rect.color ;
+                tris[ idx + 0 ] = std::move( ln ) ;
+            }
+
+            {
+                this_t::tri_t ln ;
+                ln.pts.p0 = rect.points[ 0 ] ;
+                ln.pts.p1 = rect.points[ 2 ] ;
+                ln.pts.p2 = rect.points[ 3 ] ;
+                ln.color = rect.color ;
+                tris[ idx + 1 ] = std::move( ln ) ;
+            }
+        }
+        #endif
+    }
+
+    {
+        motor::concurrent::lock_guard_t lk( _num_tris_mtx ) ;
+        _num_tris += num_rects << 1 ;
+    }
+
 }
 
 //**********************************************************************************************************

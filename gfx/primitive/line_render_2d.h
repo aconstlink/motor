@@ -11,7 +11,7 @@
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/std/vector>
-
+#include <array>
 namespace motor
 {
     namespace gfx
@@ -20,50 +20,53 @@ namespace motor
         {
             motor_this_typedefs( line_render_2d ) ;
 
-        private: // data
+        public: // data
 
             struct line
             {
-                struct points
-                {
-                    motor::math::vec2f_t p0 ;
-                    motor::math::vec2f_t p1 ;
-                };
+                using vec_t = motor::math::vec2f_t ;
+                using vec_cref_t = vec_t const & ;
+                using points_t = std::array< motor::math::vec2f_t, 2 > ;
 
-                union 
-                {
-                    points p2 ;
-                    motor::math::vec4f_t v4 ;
-                    motor::math::vec2f_t a2[2] ;
-                };
+                points_t points ;
+
                 motor::math::vec4f_t color ;
 
                 line( void_t ) noexcept {}
+                line( points_t const & points_, motor::math::vec4f_cref_t color_ ) noexcept :
+                    points(points_), color(color_) {}
+
                 line( line const & rhv ) noexcept 
                 {
-                    v4 = rhv.v4 ;
+                    points[ 0 ] = rhv.points[ 0 ] ;
+                    points[ 1 ] = rhv.points[ 1 ] ;
                     color = rhv.color ;
                 }
                 line( line && rhv ) noexcept
                 {
-                    v4 = std::move( rhv.v4 ) ;
+                    points[ 0 ] = std::move( rhv.points[ 0 ] ) ;
+                    points[ 1 ] = std::move( rhv.points[ 1 ] ) ;
                     color = std::move( rhv.color ) ;
                 }
 
                 line & operator = ( line const & rhv ) noexcept
                 {
-                    v4 = rhv.v4 ;
+                    points[ 0 ] = rhv.points[ 0 ] ;
+                    points[ 1 ] = rhv.points[ 1 ] ;
                     color = rhv.color ;
                     return *this ;
                 }
                 line & operator = ( line && rhv ) noexcept
                 {
-                    v4 = std::move( rhv.v4 ) ;
+                    points[ 0 ] = std::move( rhv.points[ 0 ] ) ;
+                    points[ 1 ] = std::move( rhv.points[ 1 ] ) ;
                     color = std::move( rhv.color ) ;
                     return *this ;
                 }
             };
             motor_typedef( line ) ;
+
+        private:
 
             struct layer
             {
@@ -135,12 +138,19 @@ namespace motor
 
         public:
 
-            void_t draw( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, motor::math::vec4f_cref_t color ) noexcept ;
+            void_t draw( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
+                motor::math::vec4f_cref_t color ) noexcept ;
 
             void_t draw_rect( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
                 motor::math::vec2f_cref_t p2, motor::math::vec2f_cref_t p3, motor::math::vec4f_cref_t color ) noexcept ;
 
             void_t draw_circle( size_t const layer, size_t const num_points, motor::math::vec2f_cref_t p0, float_t const r, motor::math::vec4f_cref_t color ) noexcept ;
+
+        public: // multi-draw
+
+            using draw_lines_funk_t = std::function< line_t ( size_t const ) > ;
+
+            void_t draw_lines( size_t const layer, size_t const num_lines, draw_lines_funk_t ) noexcept ;
 
         public:
 

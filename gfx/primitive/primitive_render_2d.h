@@ -33,7 +33,8 @@ namespace motor
 
         public:
 
-            void_t draw_line( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, motor::math::vec4f_cref_t color ) noexcept ;
+            void_t draw_line( size_t const layer, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, motor::math::vec4f_cref_t color ) noexcept ;
+            void_t draw_lines( size_t const layer, size_t const num_lines, motor::gfx::line_render_2d::draw_lines_funk_t ) noexcept ;
 
             void_t draw_tri( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
                 motor::math::vec2f_cref_t p2, motor::math::vec4f_cref_t color ) noexcept ;
@@ -41,6 +42,8 @@ namespace motor
             void_t draw_rect( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
                 motor::math::vec2f_cref_t p2, motor::math::vec2f_cref_t p3, motor::math::vec4f_cref_t color, 
                 motor::math::vec4f_cref_t border_color ) noexcept ;
+
+            void_t draw_rects( size_t const l, size_t const num_rects, motor::gfx::tri_render_2d::draw_rects_funk_t ) noexcept ;
 
             void_t draw_circle( size_t const, size_t const, motor::math::vec2f_cref_t p0, float_t const r, 
                 motor::math::vec4f_cref_t color, motor::math::vec4f_cref_t border_color ) noexcept ;

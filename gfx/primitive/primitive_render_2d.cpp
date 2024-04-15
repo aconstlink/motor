@@ -43,6 +43,12 @@ void_t primitive_render_2d::draw_line( size_t const l, motor::math::vec2f_cref_t
 }
 
 //**********************************************************************************************************
+void_t primitive_render_2d::draw_lines( size_t const layer, size_t const num_lines, motor::gfx::line_render_2d::draw_lines_funk_t funk ) noexcept
+{
+    _lr.draw_lines( layer, num_lines, funk ) ;
+}
+
+//**********************************************************************************************************
 void_t primitive_render_2d::draw_tri( size_t const l, motor::math::vec2f_cref_t p0, 
     motor::math::vec2f_cref_t p1, motor::math::vec2f_cref_t p2, motor::math::vec4f_cref_t color ) noexcept 
 {
@@ -57,6 +63,13 @@ void_t primitive_render_2d::draw_rect( size_t const l, motor::math::vec2f_cref_t
     auto const layer = l << 1 ;
     _tr.draw_rect( layer+0, p0, p1, p2, p3, color ) ;
     _lr.draw_rect( layer+1, p0, p1, p2, p3, border_color ) ;
+}
+
+//**********************************************************************************************************
+void_t primitive_render_2d::draw_rects( size_t const l, size_t const num_rects, motor::gfx::tri_render_2d::draw_rects_funk_t funk ) noexcept
+{
+    auto const layer = l << 1 ;
+    _tr.draw_rects( l, num_rects, funk ) ;
 }
 
 //**********************************************************************************************************
