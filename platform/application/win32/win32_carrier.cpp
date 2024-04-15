@@ -633,11 +633,23 @@ LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPA
         {
             p->send_mouse( wi, motor::application::mouse_message::state_type::move ) ;
         } ) ;
+        
     }
     break ;
 
     case WM_MOVE:
-    case WM_SIZE:
+    {
+        this_ptr_t p = (this_ptr_t) GetWindowLongPtr( hwnd, GWLP_USERDATA ) ;
+        p->find_window_info( hwnd, [&] ( this_t::win32_window_data_ref_t wi )
+        {
+            p->send_resize( wi ) ;
+        } ) ;
+    }
+    break ;
+
+    //case WM_SIZE: // too many messages
+    //case WM_ENTERSIZEMOVE:
+    case WM_EXITSIZEMOVE:
     {
         this_ptr_t p = (this_ptr_t)GetWindowLongPtr( hwnd, GWLP_USERDATA ) ;
         p->find_window_info( hwnd, [&]( this_t::win32_window_data_ref_t wi )
