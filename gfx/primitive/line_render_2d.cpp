@@ -41,12 +41,18 @@ line_render_2d::this_ref_t line_render_2d::operator = ( this_rref_t rhv ) noexce
     _proj = std::move( rhv._proj ) ;
     _view = std::move( rhv._view ) ;
 
+    _layers = std::move( rhv._layers ) ;
+
     return *this ;
 }
 
 //**********************************************************************************************************
 line_render_2d::~line_render_2d( void_t )  noexcept
 {
+    for ( auto * layer : _layers )
+    {
+        motor::memory::global_t::dealloc( layer ) ;
+    }
 }
 
 //**********************************************************************************************************
@@ -292,18 +298,11 @@ void_t line_render_2d::release( void_t ) noexcept
 void_t line_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, 
     motor::math::vec2f_cref_t p1, motor::math::vec4f_cref_t color ) noexcept
 {
-    {
-        motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
-        if( _layers.size() <= l+1 ) 
-        {
-            _layers.resize( l+1 ) ;
-            _render_data.resize( l+1 ) ;
-        }
-    }
+    auto * layer = this_t::add_layer( l ) ;
 
     {
-        motor::concurrent::lock_guard_t lk( _layers[l].mtx ) ;
-        _layers[l].lines.emplace_back( this_t::line_t { { p0, p1 }, color } ) ;
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        layer->lines.emplace_back( this_t::line_t { { p0, p1 }, color } ) ;
     }
 
     {
@@ -338,22 +337,15 @@ void_t line_render_2d::draw_circle( size_t const l, size_t const s, motor::math:
 //**********************************************************************************************************
 void_t line_render_2d::draw_lines( size_t const l, size_t const num_lines, draw_lines_funk_t funk ) noexcept
 {
-    {
-        motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
-        if ( _layers.size() <= l + 1 )
-        {
-            _layers.resize( l + 1 ) ;
-            _render_data.resize( l + 1 ) ;
-        }
-    }
+    auto * layer = this_t::add_layer( l ) ;
 
     size_t cur_pos = 0 ;
 
     // resize lines array
     {
-        motor::concurrent::lock_guard_t lk( _layers[ l ].mtx ) ;
-        size_t const cur_size = _layers[ l ].lines.size() ;
-        _layers[ l ].lines.resize( cur_size + num_lines ) ;
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        size_t const cur_size = layer->lines.size() ;
+        layer->lines.resize( cur_size + num_lines ) ;
 
         cur_pos = cur_size ;
     }
@@ -369,8 +361,115 @@ void_t line_render_2d::draw_lines( size_t const l, size_t const num_lines, draw_
         for ( size_t i = 0; i < num_lines; ++i )
         {
             size_t const idx = cur_pos + i ;
-            _layers[ l ].lines[idx] = funk( i ) ;
+            layer->lines[idx] = funk( i ) ;
         }
+    }
+}
+
+//**********************************************************************************************************
+void_t line_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_rects_funk_t funk ) noexcept
+{
+    auto * layer = this_t::add_layer( l ) ;
+
+    size_t cur_pos = 0 ;
+    size_t const num_lines = num_rects << 2 ;
+
+    // resize lines array
+    {
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        size_t const cur_size = layer->lines.size() ;
+        layer->lines.resize( cur_size + num_lines ) ;
+
+        cur_pos = cur_size ;
+    }
+
+    // remember how many lines are drawn
+    {
+        motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
+        _num_lines += num_lines ;
+    }
+
+    // call user funk for lines
+    {
+        for ( size_t i = 0; i < num_rects; ++i )
+        {
+            size_t const idx = cur_pos + ( i << 2 ) ;
+
+            auto const r = funk( i ) ;
+
+            layer->lines[ idx + 0 ] = this_t::line { { r.points[ 0 ], r.points[ 1 ] }, r.color } ;
+            layer->lines[ idx + 1 ] = this_t::line { { r.points[ 1 ], r.points[ 2 ] }, r.color } ;
+            layer->lines[ idx + 2 ] = this_t::line { { r.points[ 2 ], r.points[ 3 ] }, r.color } ;
+            layer->lines[ idx + 3 ] = this_t::line { { r.points[ 3 ], r.points[ 0 ] }, r.color } ;
+        }
+    }
+}
+
+//**********************************************************************************************************
+void_t line_render_2d::draw_circles( size_t const l, size_t const num_segs, size_t const num_circles, this_t::draw_circles_funk_t funk ) noexcept
+{
+    auto * layer = this_t::add_layer( l ) ;
+
+    auto const & points = this_t::lookup_circle_cache( num_segs ) ;
+
+    size_t cur_pos = 0 ;
+    size_t const num_lines_per_circel = points.size() ;
+    size_t const num_lines = num_circles * num_lines_per_circel ;
+
+    // resize lines array
+    {
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        size_t const cur_size = layer->lines.size() ;
+        layer->lines.resize( cur_size + num_lines ) ;
+
+        cur_pos = cur_size ;
+    }
+
+    // remember how many lines are drawn
+    {
+        motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
+        _num_lines += num_lines ;
+    }
+
+    // call user funk for lines
+    {
+        #if 1
+        size_t const num_item = num_lines ;
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_item ),
+            [&] ( motor::concurrent::range_1d<size_t> const & range ) 
+        {
+            for ( size_t i = range.begin(); i < range.end(); ++i )
+            {
+                size_t const cid = i / num_lines_per_circel ;
+                
+                auto const r = funk( cid ) ;
+
+                size_t const pid = i % num_lines_per_circel ;
+
+                if ( pid == num_lines_per_circel - 1 )
+                    layer->lines[ cur_pos + i ] = this_t::line
+                { { r.pos + r.radius * points[ points.size() - 1 ], r.pos + r.radius * points[ 0 ] }, r.color } ;
+                else
+                    layer->lines[ cur_pos + i ] = this_t::line
+                { { r.pos + r.radius * points[ pid ], r.pos + r.radius * points[ pid + 1 ] }, r.color } ;
+            }
+        } ) ;
+        #else
+        for ( size_t i = 0; i < num_circles; ++i )
+        {
+            size_t const idx = cur_pos + ( i * num_lines_per_circel ) ;
+
+            auto const r = funk( i ) ;
+            
+            for ( size_t j = 0; j < points.size() - 1; ++j )
+            {
+                layer->lines[ idx + j ] = this_t::line 
+                    { { r.pos + r.radius * points[ j ], r.pos + r.radius * points[ j + 1 ] }, r.color } ;
+            }
+            layer->lines[ idx + points.size() - 1 ] = this_t::line 
+                { { r.pos + r.radius * points[ points.size() - 1 ], r.pos + r.radius * points[ 0 ] }, r.color } ;
+        }
+        #endif
     }
 }
 
@@ -402,7 +501,7 @@ void_t line_render_2d::prepare_for_rendering( void_t ) noexcept
 
         for( size_t i=0; i<_layers.size(); ++i )
         {
-            auto const & lines = _layers[i].lines ;
+            auto const & lines = _layers[i]->lines ;
 
             _render_data[i].start = start ;
             _render_data[i].num_elems = lines.size() * 2 ;
@@ -454,7 +553,7 @@ void_t line_render_2d::prepare_for_rendering( void_t ) noexcept
                 lstart += lines.size() ;
             }
             
-            _layers[i].lines.clear() ;
+            _layers[i]->lines.clear() ;
         }
         _num_lines = 0 ;
 
@@ -525,9 +624,9 @@ void_t line_render_2d::render( motor::graphics::gen4::frontend_mtr_t fe, size_t 
 }
 
 //**********************************************************************************************************
-line_render_2d::circle_cref_t line_render_2d::lookup_circle_cache( size_t const s ) noexcept 
+line_render_2d::circle_points_cref_t line_render_2d::lookup_circle_cache( size_t const s ) noexcept
 {
-    auto iter = std::find_if( _circle_cache.begin(), _circle_cache.end(), [&]( circle_cref_t c )
+    auto iter = std::find_if( _circle_cache.begin(), _circle_cache.end(), [&]( circle_points_cref_t c )
     {
         return c.size() == s ;
     } ) ;
@@ -588,4 +687,23 @@ void_t line_render_2d::set_view_proj( motor::math::mat4f_cref_t view, motor::mat
 {
     _view = view ;
     _proj = proj ;
+}
+
+//**********************************************************************************************************
+line_render_2d::layer_ptr_t line_render_2d::add_layer( size_t const l ) noexcept
+{
+    motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
+    if ( _layers.size() <= l )
+    {
+        size_t const old_size = _layers.size() ;
+
+        _layers.resize( l + 1 ) ;
+        _render_data.resize( l + 1 ) ;
+
+        for ( size_t i = old_size; i < _layers.size(); ++i )
+        {
+            _layers[i] = motor::memory::global_t::alloc( this_t::layer() ) ;
+        }
+    }
+    return _layers[ l ] ;
 }

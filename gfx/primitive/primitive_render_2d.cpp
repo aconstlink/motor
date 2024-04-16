@@ -56,6 +56,45 @@ void_t primitive_render_2d::draw_tri( size_t const l, motor::math::vec2f_cref_t 
 }
 
 //**********************************************************************************************************
+void_t primitive_render_2d::draw_circles( size_t const layer, size_t const segs,
+    size_t const num_circles, this_t::draw_circles_funk_t funk ) noexcept
+{
+    motor::gfx::tri_render_2d::draw_circles_funk_t tri_funk = [&] ( size_t const i ) 
+    {
+        auto ret = funk( i ) ;
+        return motor::gfx::tri_render_2d::circle_md_t { ret.pos, ret.radius, ret.color } ;
+    } ;
+
+    _tr.draw_circles( layer, segs, num_circles, tri_funk ) ;
+}
+
+//**********************************************************************************************************
+void_t primitive_render_2d::draw_circles_border( size_t const layer, size_t const segs,
+    size_t const num_circles, this_t::draw_circles_funk_t funk ) noexcept
+{
+    motor::gfx::tri_render_2d::draw_circles_funk_t tri_funk = [&] ( size_t const i )
+    {
+        auto ret = funk( i ) ;
+        return motor::gfx::tri_render_2d::circle_md_t { ret.pos, ret.radius, ret.color } ;
+    } ;
+
+    motor::gfx::line_render_2d::draw_circles_funk_t line_funk = [&] ( size_t const i )
+    {
+        auto ret = funk( i ) ;
+        return motor::gfx::line_render_2d::circle_t { ret.pos, ret.radius, ret.border } ;
+    } ;
+
+    _tr.draw_circles( layer, segs, num_circles, tri_funk ) ;
+    _lr.draw_circles( layer + 1, segs, num_circles, line_funk ) ;
+}
+
+//**********************************************************************************************************
+void_t primitive_render_2d::draw_tris( size_t const layer, size_t const num_tris, motor::gfx::tri_render_2d::draw_tris_funk_t funk ) noexcept
+{
+    _tr.draw_tris( layer, num_tris, funk ) ;
+}
+
+//**********************************************************************************************************
 void_t primitive_render_2d::draw_rect( size_t const l, motor::math::vec2f_cref_t p0, 
     motor::math::vec2f_cref_t p1, motor::math::vec2f_cref_t p2, motor::math::vec2f_cref_t p3, motor::math::vec4f_cref_t color, 
     motor::math::vec4f_cref_t border_color ) noexcept 
@@ -66,10 +105,37 @@ void_t primitive_render_2d::draw_rect( size_t const l, motor::math::vec2f_cref_t
 }
 
 //**********************************************************************************************************
-void_t primitive_render_2d::draw_rects( size_t const l, size_t const num_rects, motor::gfx::tri_render_2d::draw_rects_funk_t funk ) noexcept
+void_t primitive_render_2d::draw_rects( size_t const l, size_t const num_rects, this_t::draw_rects_funk_t funk ) noexcept
 {
-    auto const layer = l << 1 ;
-    _tr.draw_rects( l, num_rects, funk ) ;
+    motor::gfx::tri_render_2d::draw_rects_funk_t tri_funk = [&] ( size_t const i ) 
+    {
+        auto ret = funk( i ) ;
+        return motor::gfx::tri_render_2d::rect_md_t {
+            { ret.points[ 0 ], ret.points[ 1 ], ret.points[ 2 ], ret.points[ 3 ] }, ret.color } ;
+    } ;
+
+    _tr.draw_rects( l, num_rects, tri_funk ) ;
+}
+
+//**********************************************************************************************************
+void_t primitive_render_2d::draw_rects_border( size_t const l, size_t const num_rects, this_t::draw_rects_funk_t funk ) noexcept
+{
+    motor::gfx::tri_render_2d::draw_rects_funk_t tri_funk = [&] ( size_t const i )
+    {
+        auto ret = funk( i ) ;
+        return motor::gfx::tri_render_2d::rect_md_t {
+            { ret.points[ 0 ], ret.points[ 1 ], ret.points[ 2 ], ret.points[ 3 ] }, ret.color } ;
+    } ;
+
+    motor::gfx::line_render_2d::draw_rects_funk_t line_funk = [&] ( size_t const i )
+    {
+        auto ret = funk( i ) ;
+        return motor::gfx::line_render_2d::rect_t {
+            { ret.points[ 0 ], ret.points[ 1 ], ret.points[ 2 ], ret.points[ 3 ] }, ret.border } ;
+    } ;
+
+    _tr.draw_rects( l, num_rects, tri_funk ) ;
+    _lr.draw_rects( l + 1, num_rects, line_funk ) ;
 }
 
 //**********************************************************************************************************

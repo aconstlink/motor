@@ -34,16 +34,52 @@ namespace motor
         public:
 
             void_t draw_line( size_t const layer, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, motor::math::vec4f_cref_t color ) noexcept ;
+            
+            
+            
             void_t draw_lines( size_t const layer, size_t const num_lines, motor::gfx::line_render_2d::draw_lines_funk_t ) noexcept ;
 
             void_t draw_tri( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
                 motor::math::vec2f_cref_t p2, motor::math::vec4f_cref_t color ) noexcept ;
 
-            void_t draw_rect( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
-                motor::math::vec2f_cref_t p2, motor::math::vec2f_cref_t p3, motor::math::vec4f_cref_t color, 
+            void_t draw_tris( size_t const layer, size_t const num_tris, motor::gfx::tri_render_2d::draw_tris_funk_t ) noexcept ;
+            
+            struct circle
+            {
+                motor::math::vec2f_t pos ;
+                float_t radius ;
+                motor::math::vec4f_t color ;
+                motor::math::vec4f_t border ;
+            };
+            using circle_t = circle ;
+            using draw_circles_funk_t = std::function< circle_t ( size_t const i ) > ;
+
+            void_t draw_circles( size_t const layer, size_t const segs, 
+                size_t const num_circles, this_t::draw_circles_funk_t ) noexcept ;
+            void_t draw_circles_border( size_t const layer, size_t const segs,
+                size_t const num_circles, this_t::draw_circles_funk_t ) noexcept ;
+
+        public: // all rects
+
+            struct rect
+            {
+                motor::math::vec2f_t points[4] ;
+                motor::math::vec4f_t color ;
+                motor::math::vec4f_t border ;
+            };
+            using rect_t = rect ;
+            using draw_rects_funk_t = std::function< rect_t ( size_t const i ) > ;
+
+            // draw single rect with border
+            void_t draw_rect( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1,
+                motor::math::vec2f_cref_t p2, motor::math::vec2f_cref_t p3, motor::math::vec4f_cref_t color,
                 motor::math::vec4f_cref_t border_color ) noexcept ;
 
-            void_t draw_rects( size_t const l, size_t const num_rects, motor::gfx::tri_render_2d::draw_rects_funk_t ) noexcept ;
+            // draw multi-rects w/o border
+            void_t draw_rects( size_t const l, size_t const num_rects, this_t::draw_rects_funk_t ) noexcept ;
+            void_t draw_rects_border( size_t const l, size_t const num_rects, this_t::draw_rects_funk_t ) noexcept ;
+
+        public:
 
             void_t draw_circle( size_t const, size_t const, motor::math::vec2f_cref_t p0, float_t const r, 
                 motor::math::vec4f_cref_t color, motor::math::vec4f_cref_t border_color ) noexcept ;

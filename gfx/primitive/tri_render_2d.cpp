@@ -43,12 +43,16 @@ tri_render_2d::this_ref_t tri_render_2d::operator = ( this_rref_t rhv ) noexcept
     _proj = std::move( rhv._proj ) ;
     _view = std::move( rhv._view ) ;
 
+    _layers = std::move( rhv._layers ) ;
+
     return *this ;
 }
 
 //**********************************************************************************************************
 tri_render_2d::~tri_render_2d( void_t ) noexcept
 {
+    for ( auto * l : _layers )
+        motor::memory::global::dealloc( l ) ;
 }
 
 //**********************************************************************************************************
@@ -290,14 +294,7 @@ void_t tri_render_2d::release( void_t ) noexcept
 void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1,
     motor::math::vec2f_cref_t p2, motor::math::vec4f_cref_t color ) noexcept
 {
-    {
-        motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
-        if( _layers.size() <= l+1 ) 
-        {
-            _layers.resize( l+1 ) ;
-            _render_data.resize( l+1 ) ;
-        }
-    }
+    auto * layer = this_t::add_layer( l ) ;
 
     this_t::tri_t ln ;
     ln.pts.p0 = p0 ;
@@ -306,8 +303,8 @@ void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor:
     ln.color = color ;
 
     {
-        motor::concurrent::lock_guard_t lk( _layers[l].mtx ) ;
-        _layers[l].tris.emplace_back( std::move( ln ) ) ;
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        layer->tris.emplace_back( std::move( ln ) ) ;
     }
 
     {
@@ -338,32 +335,148 @@ void_t tri_render_2d::draw_circle( size_t const l, size_t const s, motor::math::
 }
 
 //**********************************************************************************************************
-void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_rects_funk_t funk )
+void_t tri_render_2d::draw_circles( size_t const l, size_t const segs, size_t const num_circles, draw_circles_funk_t funk ) noexcept
 {
-    {
-        motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
-        if ( _layers.size() <= l + 1 )
-        {
-            _layers.resize( l + 1 ) ;
-            _render_data.resize( l + 1 ) ;
-        }
-    }
+    auto * layer = this_t::add_layer( l ) ;
+
+    auto const & points = this_t::lookup_circle_cache( segs ) ;
 
     size_t cur_pos = 0 ;
+    size_t const tris_per_circle = points.size() ;
+    size_t const num_tris = num_circles * tris_per_circle ;
 
     {
-        motor::concurrent::lock_guard_t lk( _layers[ l ].mtx ) ;
-        size_t const cur_size = _layers[ l ].tris.size() ;
-        _layers[ l ].tris.resize( cur_size + (num_rects << 1) ) ;
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        size_t const cur_size = layer->tris.size() ;
+        layer->tris.resize( cur_size + num_tris ) ;
         cur_pos = cur_size ;
     }
 
     {
-        auto & tris = _layers[ l ].tris ;
+        auto & tris = layer->tris ;
+
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_circles ),
+            [&] ( motor::concurrent::range_1d<size_t> const & r )
+        {
+            for ( size_t i = r.begin(); i < r.end(); ++i )
+            {
+                size_t idx = cur_pos + ( i * tris_per_circle ) - 1 ;
+
+                auto circ = funk( i ) ;
+
+                for( size_t j=0; j< tris_per_circle - 1; ++j )
+                {
+                    this_t::tri_t tri ;
+
+                    tri.pts.p0 = circ.pos ;
+                    tri.pts.p1 = circ.pos + circ.radius * points[ j ] ;
+                    tri.pts.p2 = circ.pos + circ.radius * points[ j + 1 ] ;
+                    tri.color = circ.color ;
+
+                    tris[ ++idx ] = std::move( tri ) ;
+                }
+
+                {
+                    this_t::tri_t tri ;
+
+                    tri.pts.p0 = circ.pos ;
+                    tri.pts.p1 = circ.pos + circ.radius * points[ points.size()-1 ] ;
+                    tri.pts.p2 = circ.pos + circ.radius * points[ 0 ] ;
+                    tri.color = circ.color ;
+
+                    tris[ ++idx ] = std::move( tri ) ;
+                }
+            }
+        } ) ;
+    }
+
+    {
+        motor::concurrent::lock_guard_t lk( _num_tris_mtx ) ;
+        _num_tris += num_tris ;
+    }
+}
+
+//**********************************************************************************************************
+void_t tri_render_2d::draw_tris( size_t const l, size_t const num_tris, draw_tris_funk_t funk ) noexcept
+{
+    auto * layer = this_t::add_layer( l ) ;
+
+    size_t cur_pos = 0 ;
+
+    {
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        size_t const cur_size = layer->tris.size() ;
+        layer->tris.resize( cur_size + num_tris ) ;
+        cur_pos = cur_size ;
+    }
+
+    {
+        auto & tris = layer->tris ;
 
         #if 1
-        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_rects ), 
-            [&] ( motor::concurrent::range_1d<size_t> const & r ) 
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_tris ),
+            [&] ( motor::concurrent::range_1d<size_t> const & r )
+        {
+            for ( size_t i = r.begin(); i < r.end(); ++i )
+            {
+                size_t const idx = cur_pos + i ;
+
+                auto tri = funk( i ) ;
+
+                {
+                    this_t::tri_t ln ;
+                    ln.pts.p0 = tri.points[ 0 ] ;
+                    ln.pts.p1 = tri.points[ 1 ] ;
+                    ln.pts.p2 = tri.points[ 2 ] ;
+                    ln.color = tri.color ;
+                    tris[ idx ] = std::move( ln ) ;
+                }
+            }
+        } ) ;
+        #else
+        for ( size_t i = 0; i < num_tris; ++i )
+        {
+            size_t const idx = cur_pos + i ;
+
+            auto tri = funk( i ) ;
+
+            {
+                this_t::tri_t ln ;
+                ln.pts.p0 = tri.points[ 0 ] ;
+                ln.pts.p1 = tri.points[ 1 ] ;
+                ln.pts.p2 = tri.points[ 2 ] ;
+                ln.color = tri.color ;
+                tris[ idx ] = std::move( ln ) ;
+            }
+        }
+        #endif
+    }
+
+    {
+        motor::concurrent::lock_guard_t lk( _num_tris_mtx ) ;
+        _num_tris += num_tris ;
+    }
+}
+
+//**********************************************************************************************************
+void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_rects_funk_t funk ) noexcept
+{
+    auto * layer = this_t::add_layer( l ) ;
+
+    size_t cur_pos = 0 ;
+
+    {
+        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        size_t const cur_size = layer->tris.size() ;
+        layer->tris.resize( cur_size + (num_rects << 1) ) ;
+        cur_pos = cur_size ;
+    }
+
+    {
+        auto & tris = layer->tris ;
+
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_rects ),
+            [&] ( motor::concurrent::range_1d<size_t> const & r )
         {
             for ( size_t i = r.begin(); i < r.end(); ++i )
             {
@@ -390,39 +503,12 @@ void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_r
                 }
             }
         } ) ;
-        #else
-        for ( size_t i = 0; i < num_rects; ++i )
-        {
-            size_t const idx = cur_pos + (i<<1) ;
-
-            auto rect = funk( i ) ;
-
-            {
-                this_t::tri_t ln ;
-                ln.pts.p0 = rect.points[ 0 ] ;
-                ln.pts.p1 = rect.points[ 1 ] ;
-                ln.pts.p2 = rect.points[ 2 ] ;
-                ln.color = rect.color ;
-                tris[ idx + 0 ] = std::move( ln ) ;
-            }
-
-            {
-                this_t::tri_t ln ;
-                ln.pts.p0 = rect.points[ 0 ] ;
-                ln.pts.p1 = rect.points[ 2 ] ;
-                ln.pts.p2 = rect.points[ 3 ] ;
-                ln.color = rect.color ;
-                tris[ idx + 1 ] = std::move( ln ) ;
-            }
-        }
-        #endif
     }
 
     {
         motor::concurrent::lock_guard_t lk( _num_tris_mtx ) ;
         _num_tris += num_rects << 1 ;
     }
-
 }
 
 //**********************************************************************************************************
@@ -453,7 +539,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
 
         for( size_t i=0; i<_layers.size(); ++i )
         {
-            auto const & tris = _layers[i].tris ;
+            auto const & tris = _layers[i]->tris ;
 
             _render_data[i].start = start ;
             _render_data[i].num_elems = tris.size() * 3 ;
@@ -499,16 +585,16 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
                     }
                 } ) ;
                 #else
-                for( size_t i=0; i<tris.size();++i)
+                for( size_t j=0; j<tris.size();++j)
                 {
-                    size_t const idx = lstart + i ;
-                    _ao.data_buffer().update< motor::math::vec4f_t >( idx, tris[i].color ) ;
+                    size_t const idx = lstart + j ;
+                    _ao.data_buffer().update< motor::math::vec4f_t >( idx, tris[j].color ) ;
                 }
                 #endif
                 
                 lstart += tris.size() ;
             }
-            _layers[i].tris.clear() ;
+            _layers[i]->tris.clear() ;
         }
         _num_tris = 0 ;
 
@@ -643,4 +729,23 @@ void_t tri_render_2d::set_view_proj( motor::math::mat4f_cref_t view, motor::math
 {
     _view = view ;
     _proj = proj ;
+}
+
+//**********************************************************************************************************
+tri_render_2d::layer_ptr_t tri_render_2d::add_layer( size_t const l ) noexcept
+{
+    motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
+    if ( _layers.size() <= l )
+    {
+        size_t const old_size = _layers.size() ;
+
+        _layers.resize( l + 1 ) ;
+        _render_data.resize( l + 1 ) ;
+
+        for ( size_t i = old_size; i < _layers.size(); ++i )
+        {
+            _layers[ i ] = motor::memory::global_t::alloc( this_t::layer() ) ;
+        }
+    }
+    return _layers[ l ] ;
 }

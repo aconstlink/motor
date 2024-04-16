@@ -80,7 +80,7 @@ namespace motor
             motor_typedef( layer ) ;
 
             motor::concurrent::mutex_t _layers_mtx ;
-            motor::vector< layer_t > _layers ;
+            motor::vector< layer_ptr_t > _layers ;
 
             motor::concurrent::mutex_t _num_tris_mtx ;
             size_t _num_tris = 0 ;
@@ -135,7 +135,7 @@ namespace motor
             void_t init( motor::string_cref_t ) noexcept ;
             void_t release( void_t ) noexcept ;
 
-        public:
+        public: // single-draw
 
             void_t draw( size_t const, motor::math::vec2f_cref_t p0, motor::math::vec2f_cref_t p1, 
                 motor::math::vec2f_cref_t p2, motor::math::vec4f_cref_t color ) noexcept ;
@@ -145,19 +145,39 @@ namespace motor
 
             void_t draw_circle( size_t const, size_t const, motor::math::vec2f_cref_t p0, float_t const r, motor::math::vec4f_cref_t color ) noexcept ;
 
-        public: // multi-draw
+        public: // multi-draw (md)
 
-            using tri_md_t = std::array< motor::math::vec2f_t, 3 > ;
+            struct circle_md
+            {
+                motor::math::vec2f_t pos ;
+                float_t radius ;
+                motor::math::vec4f_t color ;
+            };
+            using circle_md_t = circle_md ;
+
+            using draw_circles_funk_t = std::function< circle_md_t ( size_t const ) > ;
+            void_t draw_circles( size_t const layer, size_t const segs, size_t const num_circles, draw_circles_funk_t ) noexcept ;
+
+            struct tri_md
+            {
+                motor::math::vec2f_t points[3] ;
+                motor::math::vec4f_t color ;
+            };
+
+            using tri_md_t = tri_md ;
+
+            using draw_tris_funk_t = std::function< tri_md_t ( size_t const ) > ;
+            void_t draw_tris( size_t const layer, size_t const num_tris, draw_tris_funk_t ) noexcept ;
 
             struct rect
             {
-                std::array< motor::math::vec2f_t, 4 > points ;
+                motor::math::vec2f_t points[4] ;
                 motor::math::vec4f_t color ;
             };
             using rect_md_t = rect ;
 
             using draw_rects_funk_t = std::function< rect_md_t ( size_t const ) > ;
-            void_t draw_rects( size_t const layer, size_t const num_rects, draw_rects_funk_t ) ;
+            void_t draw_rects( size_t const layer, size_t const num_rects, draw_rects_funk_t ) noexcept ;
 
         public:
 
@@ -178,6 +198,8 @@ namespace motor
             void_t add_variable_set( motor::graphics::render_object_ref_t rc ) noexcept ;
 
             bool_t has_data_for_layer( size_t const l ) const noexcept ;
+
+            layer_ptr_t add_layer( size_t const i ) noexcept ;
         };
         motor_typedef( tri_render_2d ) ;
     }

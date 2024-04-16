@@ -28,10 +28,11 @@ namespace motor
                 using vec_cref_t = vec_t const & ;
                 using points_t = std::array< motor::math::vec2f_t, 2 > ;
 
-                points_t points ;
+                motor::math::vec2f_t points[2] ;
 
                 motor::math::vec4f_t color ;
 
+                #if 0
                 line( void_t ) noexcept {}
                 line( points_t const & points_, motor::math::vec4f_cref_t color_ ) noexcept :
                     points(points_), color(color_) {}
@@ -63,6 +64,7 @@ namespace motor
                     color = std::move( rhv.color ) ;
                     return *this ;
                 }
+                #endif
             };
             motor_typedef( line ) ;
 
@@ -81,7 +83,7 @@ namespace motor
             motor_typedef( layer ) ;
 
             motor::concurrent::mutex_t _layers_mtx ;
-            motor::vector< layer_t > _layers ;
+            motor::vector< layer_ptr_t > _layers ;
 
             motor::concurrent::mutex_t _num_lines_mtx ;
             size_t _num_lines = 0 ;
@@ -149,8 +151,27 @@ namespace motor
         public: // multi-draw
 
             using draw_lines_funk_t = std::function< line_t ( size_t const ) > ;
-
             void_t draw_lines( size_t const layer, size_t const num_lines, draw_lines_funk_t ) noexcept ;
+
+            struct rect
+            {
+                motor::math::vec2f_t points[4] ;
+                motor::math::vec4f_t color ;
+            };
+            using rect_t = rect ;
+            using draw_rects_funk_t = std::function< rect_t ( size_t const ) > ;
+            void_t draw_rects( size_t const layer, size_t const num_rects, draw_rects_funk_t ) noexcept ;
+
+
+            struct circle
+            {
+                motor::math::vec2f_t pos ;
+                float_t radius ;
+                motor::math::vec4f_t color ;
+            };
+            using circle_t = circle ;
+            using draw_circles_funk_t = std::function< circle_t ( size_t const ) > ;
+            void_t draw_circles( size_t const layer, size_t const num_segs, size_t const num_circles, this_t::draw_circles_funk_t ) noexcept ;
 
         public:
 
@@ -165,13 +186,15 @@ namespace motor
 
         private:
 
-            motor_typedefs( motor::vector< motor::math::vec2f_t >, circle ) ;
-            motor::vector< circle_t > _circle_cache ;
-            circle_cref_t lookup_circle_cache( size_t const ) noexcept ;
+            motor_typedefs( motor::vector< motor::math::vec2f_t >, circle_points ) ;
+            motor::vector< circle_points_t > _circle_cache ;
+            circle_points_cref_t lookup_circle_cache( size_t const ) noexcept ;
 
             void_t add_variable_set( motor::graphics::render_object_ref_t rc ) noexcept ;
 
             bool_t has_data_for_layer( size_t const l ) const noexcept ;
+
+            layer_ptr_t add_layer( size_t const i ) noexcept ;
         };
         motor_typedef( line_render_2d ) ;
     }
