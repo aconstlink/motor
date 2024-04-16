@@ -10,8 +10,10 @@
 #include <motor/graphics/variable/variable_set.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
+#include <motor/concurrent/mrsw.hpp>
+
 #include <motor/std/vector>
-#include <array>
+
 namespace motor
 {
     namespace gfx
@@ -24,47 +26,8 @@ namespace motor
 
             struct line
             {
-                using vec_t = motor::math::vec2f_t ;
-                using vec_cref_t = vec_t const & ;
-                using points_t = std::array< motor::math::vec2f_t, 2 > ;
-
                 motor::math::vec2f_t points[2] ;
-
                 motor::math::vec4f_t color ;
-
-                #if 0
-                line( void_t ) noexcept {}
-                line( points_t const & points_, motor::math::vec4f_cref_t color_ ) noexcept :
-                    points(points_), color(color_) {}
-
-                line( line const & rhv ) noexcept 
-                {
-                    points[ 0 ] = rhv.points[ 0 ] ;
-                    points[ 1 ] = rhv.points[ 1 ] ;
-                    color = rhv.color ;
-                }
-                line( line && rhv ) noexcept
-                {
-                    points[ 0 ] = std::move( rhv.points[ 0 ] ) ;
-                    points[ 1 ] = std::move( rhv.points[ 1 ] ) ;
-                    color = std::move( rhv.color ) ;
-                }
-
-                line & operator = ( line const & rhv ) noexcept
-                {
-                    points[ 0 ] = rhv.points[ 0 ] ;
-                    points[ 1 ] = rhv.points[ 1 ] ;
-                    color = rhv.color ;
-                    return *this ;
-                }
-                line & operator = ( line && rhv ) noexcept
-                {
-                    points[ 0 ] = std::move( rhv.points[ 0 ] ) ;
-                    points[ 1 ] = std::move( rhv.points[ 1 ] ) ;
-                    color = std::move( rhv.color ) ;
-                    return *this ;
-                }
-                #endif
             };
             motor_typedef( line ) ;
 
@@ -72,7 +35,7 @@ namespace motor
 
             struct layer
             {
-                motor::concurrent::mutex_t mtx ;
+                motor::concurrent::mrsw_t mtx ;
                 motor::vector< line_t > lines ;
 
                 layer( void_t ) noexcept {}

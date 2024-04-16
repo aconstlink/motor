@@ -301,13 +301,13 @@ void_t line_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0,
     auto * layer = this_t::add_layer( l ) ;
 
     {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
-        layer->lines.emplace_back( this_t::line_t { { p0, p1 }, color } ) ;
+        motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
+        ++_num_lines ;
     }
 
     {
-        motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
-        ++_num_lines ;
+        motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+        layer->lines.emplace_back( this_t::line_t { { p0, p1 }, color } ) ;
     }
 }
 
@@ -341,19 +341,20 @@ void_t line_render_2d::draw_lines( size_t const l, size_t const num_lines, draw_
 
     size_t cur_pos = 0 ;
 
-    // resize lines array
-    {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
-        size_t const cur_size = layer->lines.size() ;
-        layer->lines.resize( cur_size + num_lines ) ;
-
-        cur_pos = cur_size ;
-    }
-
     // remember how many lines are drawn
     {
         motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
         _num_lines += num_lines ;
+    }
+
+    motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+
+    // resize lines array
+    {
+        size_t const cur_size = layer->lines.size() ;
+        layer->lines.resize( cur_size + num_lines ) ;
+
+        cur_pos = cur_size ;
     }
 
     // call user funk for lines
@@ -374,19 +375,20 @@ void_t line_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_
     size_t cur_pos = 0 ;
     size_t const num_lines = num_rects << 2 ;
 
-    // resize lines array
-    {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
-        size_t const cur_size = layer->lines.size() ;
-        layer->lines.resize( cur_size + num_lines ) ;
-
-        cur_pos = cur_size ;
-    }
-
     // remember how many lines are drawn
     {
         motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
         _num_lines += num_lines ;
+    }
+
+    motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+
+    // resize lines array
+    {
+        size_t const cur_size = layer->lines.size() ;
+        layer->lines.resize( cur_size + num_lines ) ;
+
+        cur_pos = cur_size ;
     }
 
     // call user funk for lines
@@ -416,19 +418,20 @@ void_t line_render_2d::draw_circles( size_t const l, size_t const num_segs, size
     size_t const num_lines_per_circel = points.size() ;
     size_t const num_lines = num_circles * num_lines_per_circel ;
 
-    // resize lines array
-    {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
-        size_t const cur_size = layer->lines.size() ;
-        layer->lines.resize( cur_size + num_lines ) ;
-
-        cur_pos = cur_size ;
-    }
-
     // remember how many lines are drawn
     {
         motor::concurrent::lock_guard_t lk( _num_lines_mtx ) ;
         _num_lines += num_lines ;
+    }
+
+    motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+
+    // resize lines array
+    {
+        size_t const cur_size = layer->lines.size() ;
+        layer->lines.resize( cur_size + num_lines ) ;
+
+        cur_pos = cur_size ;
     }
 
     // call user funk for lines

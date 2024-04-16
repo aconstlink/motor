@@ -10,6 +10,8 @@
 #include <motor/graphics/variable/variable_set.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
+#include <motor/concurrent/mrsw.hpp>
+
 #include <motor/std/vector>
 
 #include <array>
@@ -26,20 +28,10 @@ namespace motor
 
             struct tri
             {
-                struct points
-                {
-                    motor::math::vec2f_t p0 ;
-                    motor::math::vec2f_t p1 ;
-                    motor::math::vec2f_t p2 ;
-                };
-
-                union 
-                {
-                    points pts ;
-                    motor::math::vec2f_t array[3] ;
-                };
+                motor::math::vec2f_t points[ 3 ] ;
                 motor::math::vec4f_t color ;
 
+                #if 0
                 tri( void_t ) {}
                 tri( tri const & rhv ) 
                 {
@@ -64,12 +56,13 @@ namespace motor
                         reinterpret_cast<void_cptr_t>(&rhv), sizeof(tri) ) ;
                     return *this ;
                 }
+                #endif
             };
             motor_typedef( tri ) ;
 
             struct layer
             {
-                motor::concurrent::mutex_t mtx ;
+                motor::concurrent::mrsw_t mtx ;
                 motor::vector< tri_t > tris ;
 
                 layer( void_t ) noexcept {}

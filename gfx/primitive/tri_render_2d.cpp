@@ -297,13 +297,13 @@ void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor:
     auto * layer = this_t::add_layer( l ) ;
 
     this_t::tri_t ln ;
-    ln.pts.p0 = p0 ;
-    ln.pts.p1 = p1 ;
-    ln.pts.p2 = p2 ;
+    ln.points[ 0 ] = p0 ;
+    ln.points[ 1 ] = p1 ;
+    ln.points[ 2 ] = p2 ;
     ln.color = color ;
 
     {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
         layer->tris.emplace_back( std::move( ln ) ) ;
     }
 
@@ -346,13 +346,17 @@ void_t tri_render_2d::draw_circles( size_t const l, size_t const segs, size_t co
     size_t const num_tris = num_circles * tris_per_circle ;
 
     {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
-        size_t const cur_size = layer->tris.size() ;
-        layer->tris.resize( cur_size + num_tris ) ;
-        cur_pos = cur_size ;
+        motor::concurrent::lock_guard_t lk( _num_tris_mtx ) ;
+        _num_tris += num_tris ;
     }
 
     {
+        motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+
+        size_t const cur_size = layer->tris.size() ;
+        layer->tris.resize( cur_size + num_tris ) ;
+        cur_pos = cur_size ;
+
         auto & tris = layer->tris ;
 
         motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_circles ),
@@ -368,9 +372,9 @@ void_t tri_render_2d::draw_circles( size_t const l, size_t const segs, size_t co
                 {
                     this_t::tri_t tri ;
 
-                    tri.pts.p0 = circ.pos ;
-                    tri.pts.p1 = circ.pos + circ.radius * points[ j ] ;
-                    tri.pts.p2 = circ.pos + circ.radius * points[ j + 1 ] ;
+                    tri.points[ 0 ] = circ.pos ;
+                    tri.points[ 1 ] = circ.pos + circ.radius * points[ j ] ;
+                    tri.points[ 2 ] = circ.pos + circ.radius * points[ j + 1 ] ;
                     tri.color = circ.color ;
 
                     tris[ ++idx ] = std::move( tri ) ;
@@ -379,20 +383,15 @@ void_t tri_render_2d::draw_circles( size_t const l, size_t const segs, size_t co
                 {
                     this_t::tri_t tri ;
 
-                    tri.pts.p0 = circ.pos ;
-                    tri.pts.p1 = circ.pos + circ.radius * points[ points.size()-1 ] ;
-                    tri.pts.p2 = circ.pos + circ.radius * points[ 0 ] ;
+                    tri.points[ 0 ] = circ.pos ;
+                    tri.points[ 1 ] = circ.pos + circ.radius * points[ points.size()-1 ] ;
+                    tri.points[ 2 ] = circ.pos + circ.radius * points[ 0 ] ;
                     tri.color = circ.color ;
 
                     tris[ ++idx ] = std::move( tri ) ;
                 }
             }
         } ) ;
-    }
-
-    {
-        motor::concurrent::lock_guard_t lk( _num_tris_mtx ) ;
-        _num_tris += num_tris ;
     }
 }
 
@@ -404,13 +403,12 @@ void_t tri_render_2d::draw_tris( size_t const l, size_t const num_tris, draw_tri
     size_t cur_pos = 0 ;
 
     {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+
         size_t const cur_size = layer->tris.size() ;
         layer->tris.resize( cur_size + num_tris ) ;
         cur_pos = cur_size ;
-    }
 
-    {
         auto & tris = layer->tris ;
 
         #if 1
@@ -425,9 +423,9 @@ void_t tri_render_2d::draw_tris( size_t const l, size_t const num_tris, draw_tri
 
                 {
                     this_t::tri_t ln ;
-                    ln.pts.p0 = tri.points[ 0 ] ;
-                    ln.pts.p1 = tri.points[ 1 ] ;
-                    ln.pts.p2 = tri.points[ 2 ] ;
+                    ln.points[ 0 ] = tri.points[ 0 ] ;
+                    ln.points[ 1 ] = tri.points[ 1 ] ;
+                    ln.points[ 2 ] = tri.points[ 2 ] ;
                     ln.color = tri.color ;
                     tris[ idx ] = std::move( ln ) ;
                 }
@@ -466,13 +464,12 @@ void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_r
     size_t cur_pos = 0 ;
 
     {
-        motor::concurrent::lock_guard_t lk( layer->mtx ) ;
+        motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+
         size_t const cur_size = layer->tris.size() ;
         layer->tris.resize( cur_size + (num_rects << 1) ) ;
         cur_pos = cur_size ;
-    }
-
-    {
+    
         auto & tris = layer->tris ;
 
         motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_rects ),
@@ -486,18 +483,18 @@ void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_r
 
                 {
                     this_t::tri_t ln ;
-                    ln.pts.p0 = rect.points[ 0 ] ;
-                    ln.pts.p1 = rect.points[ 1 ] ;
-                    ln.pts.p2 = rect.points[ 2 ] ;
+                    ln.points[ 0 ] = rect.points[ 0 ] ;
+                    ln.points[ 1 ] = rect.points[ 1 ] ;
+                    ln.points[ 2 ] = rect.points[ 2 ] ;
                     ln.color = rect.color ;
                     tris[ idx + 0 ] = std::move( ln ) ;
                 }
 
                 {
                     this_t::tri_t ln ;
-                    ln.pts.p0 = rect.points[ 0 ] ;
-                    ln.pts.p1 = rect.points[ 2 ] ;
-                    ln.pts.p2 = rect.points[ 3 ] ;
+                    ln.points[ 0 ] = rect.points[ 0 ] ;
+                    ln.points[ 1 ] = rect.points[ 2 ] ;
+                    ln.points[ 2 ] = rect.points[ 3 ] ;
                     ln.color = rect.color ;
                     tris[ idx + 1 ] = std::move( ln ) ;
                 }
@@ -557,7 +554,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
                     {
                         for( size_t v=r.begin(); v<r.end(); ++v )
                         {
-                            array[v].pos = tris[ v / 3 ].array[ v % 3 ] ;
+                            array[v].pos = tris[ v / 3 ].points[ v % 3 ] ;
                         }
                     } ) ;
                     #else
