@@ -35,6 +35,9 @@ namespace motor { namespace noise
         gradient_noise( this_rref_t rhv ) noexcept ;
         virtual ~gradient_noise( void_t ) noexcept ;
 
+        this_ref_t operator = ( this_cref_t ) noexcept ;
+        this_ref_t operator = ( this_rref_t ) noexcept ;
+
     private:
 
         float_t lattice( uint_t i0, float_t f1 ) const noexcept ;

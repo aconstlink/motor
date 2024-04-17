@@ -45,6 +45,24 @@ gradient_noise::~gradient_noise( void_t ) noexcept
 }
 
 //***********************************************************************************
+gradient_noise::this_ref_t gradient_noise::operator = ( this_cref_t rhv ) noexcept
+{
+    _pt = rhv._pt ;
+    _noises = rhv._noises ;
+
+    return *this ;
+}
+
+//***********************************************************************************
+gradient_noise::this_ref_t gradient_noise::operator = ( this_rref_t rhv ) noexcept
+{
+    _pt = std::move( rhv._pt ) ;
+    _noises = std::move( rhv._noises ) ;
+
+    return *this ;
+}
+
+//***********************************************************************************
 float_t gradient_noise::lattice( uint_t i0, float_t f1 ) const  noexcept
 {
     motor::math::vec3f_t const n = _noises[_pt.permute_at(i0)] ;

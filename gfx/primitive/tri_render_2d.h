@@ -30,33 +30,6 @@ namespace motor
             {
                 motor::math::vec2f_t points[ 3 ] ;
                 motor::math::vec4f_t color ;
-
-                #if 0
-                tri( void_t ) {}
-                tri( tri const & rhv ) 
-                {
-                    std::memcpy( reinterpret_cast<void_ptr_t>(this),
-                        reinterpret_cast<void_cptr_t>(&rhv), sizeof(tri) ) ;
-                }
-                tri( tri && rhv ) noexcept
-                {
-                    std::memcpy( reinterpret_cast<void_ptr_t>(this),
-                        reinterpret_cast<void_cptr_t>(&rhv), sizeof(tri) ) ;
-                }
-
-                tri & operator = ( tri const & rhv ) noexcept
-                {
-                    std::memcpy( reinterpret_cast<void_ptr_t>(this),
-                        reinterpret_cast<void_cptr_t>(&rhv), sizeof(tri) ) ;
-                    return *this ;
-                }
-                tri & operator = ( tri && rhv ) noexcept
-                {
-                    std::memcpy( reinterpret_cast<void_ptr_t>(this),
-                        reinterpret_cast<void_cptr_t>(&rhv), sizeof(tri) ) ;
-                    return *this ;
-                }
-                #endif
             };
             motor_typedef( tri ) ;
 
