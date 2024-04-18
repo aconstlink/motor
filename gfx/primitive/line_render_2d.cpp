@@ -359,11 +359,15 @@ void_t line_render_2d::draw_lines( size_t const l, size_t const num_lines, draw_
 
     // call user funk for lines
     {
-        for ( size_t i = 0; i < num_lines; ++i )
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_lines ),
+            [&] ( motor::concurrent::range_1d<size_t> const & r )
         {
-            size_t const idx = cur_pos + i ;
-            layer->lines[idx] = funk( i ) ;
-        }
+            for ( size_t i = r.begin(); i < r.end(); ++i )
+            {
+                size_t const idx = cur_pos + i ;
+                layer->lines[ idx ] = funk( i ) ;
+            }
+        } ) ;
     }
 }
 
@@ -393,17 +397,21 @@ void_t line_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_
 
     // call user funk for lines
     {
-        for ( size_t i = 0; i < num_rects; ++i )
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_rects ),
+            [&] ( motor::concurrent::range_1d<size_t> const & range )
         {
-            size_t const idx = cur_pos + ( i << 2 ) ;
+            for ( size_t i = range.begin(); i < range.end(); ++i )
+            {
+                size_t const idx = cur_pos + ( i << 2 ) ;
 
-            auto const r = funk( i ) ;
+                auto const r = funk( i ) ;
 
-            layer->lines[ idx + 0 ] = this_t::line { { r.points[ 0 ], r.points[ 1 ] }, r.color } ;
-            layer->lines[ idx + 1 ] = this_t::line { { r.points[ 1 ], r.points[ 2 ] }, r.color } ;
-            layer->lines[ idx + 2 ] = this_t::line { { r.points[ 2 ], r.points[ 3 ] }, r.color } ;
-            layer->lines[ idx + 3 ] = this_t::line { { r.points[ 3 ], r.points[ 0 ] }, r.color } ;
-        }
+                layer->lines[ idx + 0 ] = this_t::line { { r.points[ 0 ], r.points[ 1 ] }, r.color } ;
+                layer->lines[ idx + 1 ] = this_t::line { { r.points[ 1 ], r.points[ 2 ] }, r.color } ;
+                layer->lines[ idx + 2 ] = this_t::line { { r.points[ 2 ], r.points[ 3 ] }, r.color } ;
+                layer->lines[ idx + 3 ] = this_t::line { { r.points[ 3 ], r.points[ 0 ] }, r.color } ;
+            }
+        } ) ;
     }
 }
 
