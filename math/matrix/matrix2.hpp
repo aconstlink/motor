@@ -6,6 +6,7 @@
 #include "../vector/protos.hpp"
 #include "../vector/vector3.hpp"
 #include "../utility/fn.hpp"
+#include "matrix2x3.hpp"
 
 namespace motor
 {
@@ -25,6 +26,8 @@ namespace motor
             motor_typedefs( vector2< type_t >, vec2 ) ;
             motor_typedefs( vector3< type_t >, vec3 ) ;
             motor_typedefs( vector4< type_t >, vec4 ) ;
+
+            motor_typedefs( matrix2x3< type_t >, mat23 ) ;
 
         public: // ctor
 
@@ -367,7 +370,7 @@ namespace motor
             }
 
             //************************************************************************************
-            this_t operator * ( this_cref_t rhv ) const 
+            this_t operator * ( this_cref_t rhv ) const noexcept
             {
                 this_t mat ;
             
@@ -382,7 +385,7 @@ namespace motor
             } 
 
             //************************************************************************************
-            this_ref_t operator *= ( this_cref_t rhv ) 
+            this_ref_t operator *= ( this_cref_t rhv ) noexcept
             {
                 this_t mat( *this ) ;
 

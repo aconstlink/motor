@@ -33,7 +33,7 @@ namespace motor
             static type_t floor( typec_t x ) {
                 //return (int)x - (int)( (x < T(0)) && ( (int)x != x ) ) ;
                 //return type_t( x > type_t(0) ? int_t(x) : int_t(x - type_t(1)) );
-                return std::floor( x ) ;
+                return type_t( std::floor( x ) ) ;
             }
             static type_t fract( type_t v )
             {
