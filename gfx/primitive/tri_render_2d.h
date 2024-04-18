@@ -37,11 +37,18 @@ namespace motor
             {
                 motor::concurrent::mrsw_t mtx ;
                 motor::vector< tri_t > tris ;
+                size_t num_tris = 0 ;
 
-                layer( void_t ) noexcept {}
-                layer( layer const & rhv ) noexcept { tris = rhv.tris ; }
-                layer( layer && rhv ) noexcept { tris = std::move(rhv.tris) ; }
-                ~layer( void_t ) noexcept {}
+                size_t resize_to_fit_additional( size_t const num ) noexcept
+                {
+                    auto const ret = num_tris ;
+                    if ( ( num_tris + num ) > tris.size() )
+                    {
+                        tris.resize( num_tris + num ) ;
+                    }
+                    num_tris += num ;
+                    return ret ;
+                }
             };
             motor_typedef( layer ) ;
 

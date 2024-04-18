@@ -304,7 +304,8 @@ void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor:
 
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
-        layer->tris.emplace_back( std::move( ln ) ) ;
+        auto const p = layer->resize_to_fit_additional( 1 ) ;
+        layer->tris[ p ] = std::move( ln ) ;
     }
 
     {
@@ -341,7 +342,6 @@ void_t tri_render_2d::draw_circles( size_t const l, size_t const segs, size_t co
 
     auto const & points = this_t::lookup_circle_cache( segs ) ;
 
-    size_t cur_pos = 0 ;
     size_t const tris_per_circle = points.size() ;
     size_t const num_tris = num_circles * tris_per_circle ;
 
@@ -353,10 +353,7 @@ void_t tri_render_2d::draw_circles( size_t const l, size_t const segs, size_t co
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
 
-        size_t const cur_size = layer->tris.size() ;
-        layer->tris.resize( cur_size + num_tris ) ;
-        cur_pos = cur_size ;
-
+        auto const cur_pos = layer->resize_to_fit_additional( num_tris ) ;
         auto & tris = layer->tris ;
 
         motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_circles ),
@@ -400,15 +397,10 @@ void_t tri_render_2d::draw_tris( size_t const l, size_t const num_tris, draw_tri
 {
     auto * layer = this_t::add_layer( l ) ;
 
-    size_t cur_pos = 0 ;
-
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
 
-        size_t const cur_size = layer->tris.size() ;
-        layer->tris.resize( cur_size + num_tris ) ;
-        cur_pos = cur_size ;
-
+        auto const cur_pos = layer->resize_to_fit_additional( num_tris ) ;
         auto & tris = layer->tris ;
 
         #if 1
@@ -461,15 +453,10 @@ void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_r
 {
     auto * layer = this_t::add_layer( l ) ;
 
-    size_t cur_pos = 0 ;
-
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
 
-        size_t const cur_size = layer->tris.size() ;
-        layer->tris.resize( cur_size + (num_rects << 1) ) ;
-        cur_pos = cur_size ;
-    
+        auto const cur_pos = layer->resize_to_fit_additional( num_rects << 1 ) ;
         auto & tris = layer->tris ;
 
         motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_rects ),
@@ -536,15 +523,16 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
 
         for( size_t i=0; i<_layers.size(); ++i )
         {
+            size_t const num_tris = _layers[ i ]->num_tris ;
             auto const & tris = _layers[i]->tris ;
 
             _render_data[i].start = start ;
-            _render_data[i].num_elems = tris.size() * 3 ;
+            _render_data[i].num_elems = num_tris * 3 ;
 
             // copy vertices
             {
                 //size_t tmp = sizeof( this_t::vertex) ;
-                size_t const num_verts = tris.size() * 3 ;
+                size_t const num_verts = num_tris * 3 ;
                 _go.vertex_buffer().update<this_t::vertex>( start, start+num_verts, 
                     [&]( this_t::vertex * array, size_t const ne )
                 {
@@ -572,7 +560,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
             // copy color data
             {
                 #if 1
-                motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>(0, tris.size()),
+                motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>(0, num_tris ),
                     [&]( motor::concurrent::range_1d<size_t> const & r )
                 {
                     for( size_t l=r.begin(); l<r.end(); ++l )
@@ -582,16 +570,16 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
                     }
                 } ) ;
                 #else
-                for( size_t j=0; j<tris.size();++j)
+                for( size_t j=0; j< num_tris;++j)
                 {
                     size_t const idx = lstart + j ;
                     _ao.data_buffer().update< motor::math::vec4f_t >( idx, tris[j].color ) ;
                 }
                 #endif
                 
-                lstart += tris.size() ;
+                lstart += num_tris ;
             }
-            _layers[i]->tris.clear() ;
+            _layers[ i ]->num_tris = 0 ;
         }
         _num_tris = 0 ;
 
