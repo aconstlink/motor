@@ -13,6 +13,7 @@
 #include <motor/concurrent/mrsw.hpp>
 
 #include <motor/std/vector>
+#include <motor/std/vector_pod>
 
 namespace motor
 {
@@ -36,12 +37,7 @@ namespace motor
             struct layer
             {
                 motor::concurrent::mrsw_t mtx ;
-                motor::vector< line_t > lines ;
-
-                layer( void_t ) noexcept {}
-                layer( layer const & rhv ) noexcept { lines = rhv.lines ; }
-                layer( layer && rhv ) noexcept { lines = std::move(rhv.lines) ; }
-                ~layer( void_t ) noexcept {}
+                motor::vector_pod< line_t > lines ;
             };
             motor_typedef( layer ) ;
 

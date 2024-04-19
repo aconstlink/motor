@@ -307,7 +307,9 @@ void_t line_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0,
 
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
-        layer->lines.emplace_back( this_t::line_t { { p0, p1 }, color } ) ;
+        layer->lines[ layer->lines.resize_by( 1 ) ] = this_t::line_t { { p0, p1 }, color } ;
+
+        //layer->lines.emplace_back( this_t::line_t { { p0, p1 }, color } ) ;
     }
 }
 

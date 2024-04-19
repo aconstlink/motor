@@ -15,6 +15,8 @@ set( sources
     "histogram.hpp"
     "ring.hpp"
     "ring_buffer"
+    "vector_pod.hpp"
+    "vector_pod"
     )
 
 motor_vs_src_dir( sources )

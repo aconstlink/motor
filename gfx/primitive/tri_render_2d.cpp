@@ -304,8 +304,7 @@ void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor:
 
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
-        auto const p = layer->resize_to_fit_additional( 1 ) ;
-        layer->tris[ p ] = std::move( ln ) ;
+        layer->tris[ layer->tris.resize_by( 1 ) ] = std::move( ln ) ;
     }
 
     {
@@ -353,7 +352,7 @@ void_t tri_render_2d::draw_circles( size_t const l, size_t const segs, size_t co
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
 
-        auto const cur_pos = layer->resize_to_fit_additional( num_tris ) ;
+        auto const cur_pos = layer->tris.resize_by( num_tris ) ;
         auto & tris = layer->tris ;
 
         motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_circles ),
@@ -400,7 +399,7 @@ void_t tri_render_2d::draw_tris( size_t const l, size_t const num_tris, draw_tri
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
 
-        auto const cur_pos = layer->resize_to_fit_additional( num_tris ) ;
+        auto const cur_pos = layer->tris.resize_by( num_tris ) ;
         auto & tris = layer->tris ;
 
         #if 1
@@ -456,7 +455,7 @@ void_t tri_render_2d::draw_rects( size_t const l, size_t const num_rects, draw_r
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
 
-        auto const cur_pos = layer->resize_to_fit_additional( num_rects << 1 ) ;
+        auto const cur_pos = layer->tris.resize_by( num_rects << 1 ) ;
         auto & tris = layer->tris ;
 
         motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_rects ),
@@ -523,7 +522,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
 
         for( size_t i=0; i<_layers.size(); ++i )
         {
-            size_t const num_tris = _layers[ i ]->num_tris ;
+            size_t const num_tris = _layers[ i ]->tris.size() ;
             auto const & tris = _layers[i]->tris ;
 
             _render_data[i].start = start ;
@@ -579,7 +578,7 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
                 
                 lstart += num_tris ;
             }
-            _layers[ i ]->num_tris = 0 ;
+            _layers[ i ]->tris.clear() ;
         }
         _num_tris = 0 ;
 

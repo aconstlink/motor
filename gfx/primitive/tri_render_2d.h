@@ -13,6 +13,7 @@
 #include <motor/concurrent/mrsw.hpp>
 
 #include <motor/std/vector>
+#include <motor/std/vector_pod.hpp>
 
 #include <array>
 
@@ -32,23 +33,12 @@ namespace motor
                 motor::math::vec4f_t color ;
             };
             motor_typedef( tri ) ;
+            using tris_t = motor::vector_pod< tri > ;
 
             struct layer
             {
                 motor::concurrent::mrsw_t mtx ;
-                motor::vector< tri_t > tris ;
-                size_t num_tris = 0 ;
-
-                size_t resize_to_fit_additional( size_t const num ) noexcept
-                {
-                    auto const ret = num_tris ;
-                    if ( ( num_tris + num ) > tris.size() )
-                    {
-                        tris.resize( num_tris + num ) ;
-                    }
-                    num_tris += num ;
-                    return ret ;
-                }
+                tris_t tris ;
             };
             motor_typedef( layer ) ;
 
