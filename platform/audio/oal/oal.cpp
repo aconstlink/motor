@@ -287,14 +287,19 @@ struct motor::platform::oal_backend::pimpl
             gc.frequency = frequency ;
         }
 
+        // configure fft what you hear buffers
         {
             // frequency window
-            size_t const size = 1 << 10 ;
+            size_t const window_size = 1 << 10 ;
 
-            gc.samples.resize( size ) ;
-            gc.frequencies.resize( size >> 1 ) ;
-            std::memset( gc.frequencies.data(), 0, sizeof( float_t ) * size >> 1 ) ;
-            gc.complex_frequencies.resize( size ) ;
+            gc.samples.resize( window_size ) ;
+            gc.complex_frequencies.resize( window_size ) ;
+
+            // spans only the positive half in the frequency spectrum
+            size_t const positive_size = ( window_size >> 1 ) + 1 ;
+
+            gc.frequencies.resize( positive_size ) ;
+            std::memset( gc.frequencies.data(), 0, sizeof( float_t ) * positive_size ) ;
         }
 
         {
@@ -456,71 +461,107 @@ struct motor::platform::oal_backend::pimpl
 
         // compute the frequency bands using the fft
         {
-            size_t const num_samples = _gc->samples.size() ;
-            for( size_t i = 0; i < _gc->samples.size(); ++i )
+            using complex_t = this_file::global_capture::fft_t::complex_t ;
+
+            auto const & audio_samples = _gc->samples ;
+
+            // positive and negative halfs of the frequency domain
+            auto & positive_negative = _gc->complex_frequencies ;
+
+            // positive half of the frequency domain
+            auto & positive_half = _gc->frequencies ;
+
+            // #1 - prepare complex frequencies
             {
-                _gc->complex_frequencies[ i ] = this_file::global_capture::fft_t::complex_t( _gc->samples[ i ], 0.0f ) ;
-            }
-            this_file::global_capture::fft_t::compute( _gc->complex_frequencies ) ;
-
-            float_t const div = 2.0f / float_t( num_samples ) ;
-
-            float_t v = 0.0f ;
-
-            for( size_t i = 0; i < num_samples >> 1; ++i )
-            {
-                float_t const a = std::abs( _gc->complex_frequencies[ i ] ) ;
-
-                _gc->frequencies[ i ] = a * a ;
+                size_t const num_samples = audio_samples.size() ;
                 
-                _gc->frequencies[ i ] *= 1.0f / ( num_samples ) ;
-
-                // for db calculation
-                //_frequencies[ i ] = 10.0f * std::log10( _frequencies[ i ] ) ;
-                //_gc->frequencies[ i ] = (_gc->frequencies[ i ] < (1.0f * div)) ? 0.0f : _gc->frequencies[ i ] ;
+                for ( size_t i = 0; i < num_samples; ++i )
+                {
+                    positive_negative[ i ] = complex_t( audio_samples[ i ], 0.0f ) ;
+                }
             }
 
-            #define COMPUTE_INTEGRAL 1
-            #define COMPUTE_MAXVALUE 0
-
-            for ( size_t i = 0; i < num_samples >> 1; ++i )
+            // #2 - compute the fft
+            // this gives the positive and negative frequencies
+            // the first half are the positive frequencies
+            // the second half are the negative frequencies
             {
-                #if COMPUTE_INTEGRAL
+                this_file::global_capture::fft_t::compute( positive_negative ) ;
+            }
 
-                v += _gc->frequencies[ i ] ;
+            // #3 - prepare the positive half only for further processing
+            
+            // SUB 1
+            // https://de.mathworks.com/help/matlab/ref/fft.html
+            // This does not scale well to different volume levels!
+            // + I am not able to properly adapt the matlab stuff to my values.
+            #if 0
+            
+            {
+                size_t const num_samples = audio_samples.size() ;
+                float_t const divisor = float_t( num_samples  ) ;
+                size_t const num_items = ( audio_samples.size() >> 1 ) + 1 ;
 
-                #elif COMPUTE_MAXVALUE
+                // unit is seconds. trying to scale fft values so those are 
+                // not too small.
+                float_t const mult = float_t( num_samples ) / float_t( motor::audio::to_number( _gc->frequency ) ) ;
 
-                v = std::max( v, _gc->frequencies[ i ] ) ;
-
-                #endif
+                for ( size_t i = 0; i < num_items; ++i )
+                {
+                    positive_half[ i ] = std::abs( (positive_negative[ i ] / ( mult *2.0f))/divisor ) ;
+                    
+                }
+                
+                for ( size_t i = 1; i < num_items-1; ++i )
+                {
+                    positive_half[ i ] *= 2.0f ;
+                }
             }
             
-            v = std::max( 1.0f, v ) ;
+            #else
 
-            for ( size_t i = 0; i < num_samples >> 1; ++i )
+            // SUB 2
+            // use my way of scaling the frequencies which is dividing them by
+            // the integral/sum of all frequencies so the value is naturally 
+            // scaled so its summation will always equal 1!
+            // The nice thing here is that volume is ruled out this way!
+
             {
-                _gc->frequencies[ i ] /= v ;
+                size_t const num_samples = audio_samples.size() ;
+                size_t const positive_half_items = num_samples >> 1 ;
+
+                float_t v = 0.0f ;
+
+                for ( size_t i = 0; i < positive_half_items; ++i )
+                {
+                    float_t const a = std::abs( positive_negative[ i ] ) ;
+
+                    // a^2 : smooth out noise
+                    positive_half[ i ] = a * a ;
+
+                    // ... and accumulate
+                    v += positive_half[ i ] ;
+                }
+
+                v = std::max( 1.0f, v ) ;
+
+                // divide and scale
+                for ( size_t i = 0; i < positive_half_items; ++i )
+                {
+                    positive_half[ i ] /= v ;
+                }
+
+                // test if sumed up to 1.0
+                #if 0
+                v = 0.0f ;
+                for ( size_t i = 0; i < positive_half_items; ++i )
+                {
+                    v += positive_half[ i ] ;
+                }
+                #endif
             }
 
-            // test if sumed up to 1.0
-            #if 0
-            v = 0.0f ;
-            for ( size_t i = 0; i < num_samples >> 1; ++i )
-            {
-                v += _gc->frequencies[ i ] ;
-            }
             #endif
-
-            // the zero frequency should not receive the multiplier 2
-            //_gc->frequencies[ 0 ] /= 2.0f ;
-            int bp = 0 ;
-            // band width
-            {
-                //float_t const sampling_rate = float_t( motor::audio::to_number( _gc->frequency ) ) ;
-                //float_t const buffer_window = float_t( _gc->samples.size() ) ;
-                //float_t const mult = float_t( sampling_rate ) / float_t( buffer_window ) ;
-            }
         }
 
         //motor::log::global_t::status("Count : " + std::to_string(count) ) ;
