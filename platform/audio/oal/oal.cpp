@@ -289,7 +289,7 @@ struct motor::platform::oal_backend::pimpl
 
         {
             // frequency window
-            size_t const size = 1 << 11 ;
+            size_t const size = 1 << 10 ;
 
             gc.samples.resize( size ) ;
             gc.frequencies.resize( size >> 1 ) ;
@@ -465,22 +465,56 @@ struct motor::platform::oal_backend::pimpl
 
             float_t const div = 2.0f / float_t( num_samples ) ;
 
+            float_t v = 0.0f ;
+
             for( size_t i = 0; i < num_samples >> 1; ++i )
             {
                 float_t const a = std::abs( _gc->complex_frequencies[ i ] ) ;
 
-                _gc->frequencies[ i ] = a * div ;
-
-                _gc->frequencies[ i ] *= _gc->frequencies[ i ] ;
+                _gc->frequencies[ i ] = a * a ;
+                
+                _gc->frequencies[ i ] *= 1.0f / ( num_samples ) ;
 
                 // for db calculation
                 //_frequencies[ i ] = 10.0f * std::log10( _frequencies[ i ] ) ;
                 //_gc->frequencies[ i ] = (_gc->frequencies[ i ] < (1.0f * div)) ? 0.0f : _gc->frequencies[ i ] ;
-
             }
-            // the zero frequency should not receive the multiplier 2
-            _gc->frequencies[ 0 ] /= 2.0f ;
 
+            #define COMPUTE_INTEGRAL 1
+            #define COMPUTE_MAXVALUE 0
+
+            for ( size_t i = 0; i < num_samples >> 1; ++i )
+            {
+                #if COMPUTE_INTEGRAL
+
+                v += _gc->frequencies[ i ] ;
+
+                #elif COMPUTE_MAXVALUE
+
+                v = std::max( v, _gc->frequencies[ i ] ) ;
+
+                #endif
+            }
+            
+            v = std::max( 1.0f, v ) ;
+
+            for ( size_t i = 0; i < num_samples >> 1; ++i )
+            {
+                _gc->frequencies[ i ] /= v ;
+            }
+
+            // test if sumed up to 1.0
+            #if 0
+            v = 0.0f ;
+            for ( size_t i = 0; i < num_samples >> 1; ++i )
+            {
+                v += _gc->frequencies[ i ] ;
+            }
+            #endif
+
+            // the zero frequency should not receive the multiplier 2
+            //_gc->frequencies[ 0 ] /= 2.0f ;
+            int bp = 0 ;
             // band width
             {
                 //float_t const sampling_rate = float_t( motor::audio::to_number( _gc->frequency ) ) ;
@@ -700,7 +734,7 @@ struct motor::platform::oal_backend::pimpl
             float_t const buffer_window = float_t( _gc->samples.size() ) ;
             float_t const band_width = float_t( sampling_rate ) / float_t( buffer_window ) ;
 
-            cap.set_band_width( size_t( band_width ) ) ;
+            cap.set_band_width( size_t( motor::math::fn<float_t>::floor(band_width) ) ) ;
         }
     }
 
