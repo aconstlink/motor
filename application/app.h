@@ -135,6 +135,10 @@ namespace motor
             struct audio_data 
             {
                 bool_t first_frame ;
+
+                float_t sec_dt ;
+                size_t micro_dt ;
+                size_t milli_dt ;
             } ;
             motor_typedef( audio_data ) ;
 

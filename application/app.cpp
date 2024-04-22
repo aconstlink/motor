@@ -194,8 +194,11 @@ bool_t app::carrier_update( void_t ) noexcept
     {
         bool_t const exec = _carrier->audio_system()->on_audio( [&]( motor::audio::frontend_ptr_t fptr )
         {
-            this_t::audio_data ad {_first_audio};
-            this->on_audio( fptr, ad ) ;
+            size_t const micro_dt = _update_interval.count() ;
+            size_t const milli_dt = micro_dt / 1000 ;
+            float_t const sec_dt = float_t( double_t( _update_interval.count() ) / 1000000.0 ) ;
+
+            this->on_audio( fptr, this_t::audio_data { _first_audio, sec_dt, micro_dt, milli_dt } ) ;
         } )  ;
 
         this_t::after_audio(0) ;
