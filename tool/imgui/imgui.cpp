@@ -668,7 +668,7 @@ void_t imgui::update( window_data_cref_t data ) noexcept
 }
 
 //****
-void_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexcept
+bool_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -751,7 +751,11 @@ void_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexce
         }
     }
 
+    bool_t const is_over_ui = io.WantCaptureMouse ;
+
     ImGui::SetCurrentContext( old_ctx ) ;
+
+    return is_over_ui ;
 }
 
 //****

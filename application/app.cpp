@@ -152,13 +152,16 @@ bool_t app::carrier_update( void_t ) noexcept
 
     if( this_t::before_device( dt_micro ) )
     {
+        bool_t mouse_over_ui = false ;
+
         {
             for( auto & d : _windows )
             {
                 if ( d.is_mouse_over )
                 {
                     d.imgui->update( _dev_ascii ) ;
-                    d.imgui->update( _dev_mouse ) ;
+                    auto const over_ui = d.imgui->update( _dev_mouse ) ;
+                    mouse_over_ui |= over_ui ;
                 }
             }
         }
@@ -167,7 +170,8 @@ bool_t app::carrier_update( void_t ) noexcept
             this_t::device_data_in_t dat = 
             {
                 _dev_mouse,
-                _dev_ascii
+                _dev_ascii,
+                mouse_over_ui
             } ;
             this->on_device( dat ) ;
         }

@@ -146,6 +146,8 @@ namespace motor
             {
                 motor::controls::three_device_mtr_t mouse ;
                 motor::controls::ascii_device_mtr_t ascii ;
+
+                bool_t mouse_over_ui ;
             };
             motor_typedef( device_data ) ;
 

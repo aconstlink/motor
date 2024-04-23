@@ -81,7 +81,7 @@ namespace motor
             motor_typedef( window_data ) ;
 
             void_t update( window_data_cref_t ) noexcept ;
-            void_t update( motor::controls::three_device_borrow_t::mtr_t ) noexcept ;
+            bool_t update( motor::controls::three_device_borrow_t::mtr_t ) noexcept ;
             void_t update( motor::controls::ascii_device_borrow_t::mtr_t ) noexcept ;
 
             // Returns an id that can be used to render the passed image.
