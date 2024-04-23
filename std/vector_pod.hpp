@@ -65,8 +65,14 @@ namespace motor{ namespace mstd {
 
             if ( _capacity < num_elems )
             {
+                auto * new_mem = motor::memory::global_t::alloc_raw<T>( num_elems ) ;
+                if ( _ptr != nullptr )
+                {
+                    std::memcpy( new_mem, _ptr, sizeof( T ) * _capacity ) ;
+                }
                 motor::memory::global::dealloc_raw( _ptr ) ;
-                _ptr = motor::memory::global_t::alloc_raw<T>( num_elems ) ;
+                _ptr = new_mem ;
+
                 _capacity = num_elems ;
             }
             _size = num_elems ;
