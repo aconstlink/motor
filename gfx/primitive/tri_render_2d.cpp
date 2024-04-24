@@ -304,7 +304,7 @@ void_t tri_render_2d::draw( size_t const l, motor::math::vec2f_cref_t p0, motor:
 
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
-        layer->tris[ layer->tris.resize_by( 1 ) ] = std::move( ln ) ;
+        layer->tris[ layer->tris.resize_by( 1, 1000 ) ] = std::move( ln ) ;
     }
 
     {

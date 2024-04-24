@@ -59,30 +59,30 @@ namespace motor{ namespace mstd {
             _size = 0 ;
         }
 
-        size_t resize( size_t const num_elems ) noexcept
+        size_t resize( size_t const num_elems, size_t const grow = 10 ) noexcept
         {
             size_t const ret = _size ;
 
             if ( _capacity < num_elems )
             {
-                auto * new_mem = motor::memory::global_t::alloc_raw<T>( num_elems ) ;
+                _capacity = num_elems + grow ;
+
+                auto * new_mem = motor::memory::global_t::alloc_raw<T>( _capacity ) ;
                 if ( _ptr != nullptr )
                 {
-                    std::memcpy( new_mem, _ptr, sizeof( T ) * _capacity ) ;
+                    std::memcpy( new_mem, _ptr, sizeof( T ) * _size ) ;
                 }
                 motor::memory::global::dealloc_raw( _ptr ) ;
                 _ptr = new_mem ;
-
-                _capacity = num_elems ;
             }
             _size = num_elems ;
 
             return ret ;
         }
 
-        size_t resize_by( size_t const num_elems ) noexcept
+        size_t resize_by( size_t const num_elems, size_t const grow = 10 ) noexcept
         {
-            return this_t::resize( _size + num_elems ) ;
+            return this_t::resize( _size + num_elems, grow ) ;
         }
 
         T const & operator [] ( size_t const i ) const noexcept
