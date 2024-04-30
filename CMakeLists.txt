@@ -127,6 +127,7 @@ list( APPEND subdirs
     "controls"
     "msl"
     
+    "network"
     "graphics"
     "audio"
     

@@ -1,0 +1,456 @@
+
+#include "win32_net_module.h"
+#include <motor/network/convert.hpp>
+
+#include <motor/log/global.h>
+
+#include <array>
+
+using namespace motor::platform ;
+using namespace motor::platform::win32 ;
+
+//*****************************************************************
+win32_net_module::win32_net_module( void_t ) noexcept
+{
+    WSAData data ;
+    auto const res = WSAStartup( MAKEWORD( 2, 2 ), &data ) ;
+    if ( res != 0 )
+    {
+        motor::log::global::error( "[win32_net_module::initialize] : WSAStartup" ) ;
+    }
+    else _is_init = true ;
+}
+
+//*****************************************************************
+win32_net_module::win32_net_module( this_rref_t rhv ) noexcept
+{
+    _tcp_clients = std::move( rhv._tcp_clients ) ;
+    _is_init = rhv._is_init ;
+    rhv._is_init = false ;
+}
+
+//*****************************************************************
+win32_net_module::~win32_net_module( void_t ) noexcept
+{
+    this_t::release_all_tcp() ;
+    if ( _is_init ) WSACleanup() ;
+}
+
+//*****************************************************************
+motor::network::socket_id_t win32_net_module::create_tcp_client(
+    motor::network::create_tcp_client_info_rref_t info_in ) noexcept
+{
+    SOCKET s = INVALID_SOCKET ;
+    addrinfo * result = NULL ;
+    addrinfo * ptr = NULL ;
+    addrinfo hints ;
+
+    {
+        ZeroMemory( &hints, sizeof( hints ) );
+        hints.ai_family = AF_UNSPEC;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+    }
+
+    // Resolve the server address and port 
+    {
+        auto const res = getaddrinfo( info_in.bp.address.to_string().c_str(),
+            std::to_string( info_in.bp.port ).c_str(), &hints, &result );
+
+        if ( res != 0 )
+        {
+            motor::log::global::error( "[win32_net_module::create_tcp_client] : getaddrinfo" ) ;
+            motor::log::global::error( "[win32_net_module::create_tcp_client] : WSAGetLastError " +
+                motor::to_string( WSAGetLastError() ) ) ;
+            return motor::network::socket_id_t( -1 ) ;
+        }
+    }
+
+    for ( ptr = result; ptr != NULL; ptr = ptr->ai_next )
+    {
+        s = socket( ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol ) ;
+        if ( s == INVALID_SOCKET )
+        {
+            motor::log::global::error( "[win32_net_module::create_tcp_client] : socket" ) ;
+            motor::log::global::error( "[win32_net_module::create_tcp_client] : WSAGetLastError " +
+                motor::to_string( WSAGetLastError() ) ) ;
+            return motor::network::socket_id_t( -1 ) ;
+        }
+
+        // Connect to server.
+        auto const res = connect( s, ptr->ai_addr, (int) ptr->ai_addrlen );
+        if ( res == SOCKET_ERROR )
+        {
+            closesocket( s );
+            s = INVALID_SOCKET;
+            continue;
+        }
+
+        break;
+    }
+
+    freeaddrinfo( result );
+
+    if ( s == INVALID_SOCKET )
+    {
+        motor::log::global::error( "[win32_net_module::create_tcp_client] : connect" ) ;
+        motor::log::global::error( "[win32_net_module::create_tcp_client] : WSAGetLastError " +
+            motor::to_string( WSAGetLastError() ) ) ;
+
+        return motor::network::socket_id_t( -1 ) ;
+    }
+
+    {
+        DWORD timeout_ms = 1000 ;
+        auto const res = setsockopt( s, SOL_SOCKET, SO_RCVTIMEO, (char_cptr_t) &timeout_ms, sizeof DWORD );
+        motor::log::global_t::error( res != 0, "[win32_net_module::recv] : setsockopt SO_RCVTIMEO" ) ;
+    }
+
+    {
+        uint_t max_packet_size ;
+        int len = sizeof( uint_t ) ;
+        auto res = getsockopt( s, SOL_SOCKET, SO_MAX_MSG_SIZE, (char *) (&max_packet_size), &len )  ;
+        motor::log::global_t::error( res != 0, "[win32_net_module::recv] : getsockopt SO_MAX_MSG_SIZE" ) ;
+    }
+
+    motor::network::socket_id_t const sid = this_t::create_tcp_client_id( s ) ;
+    
+    // start sender and receiver
+    {
+        this_t::tcp_client_data_ptr_t tcpd = _tcp_clients[ sid ] ;
+        this_t::start_tcp_sender( tcpd, info_in.send_handler ) ;
+        this_t::start_tcp_receiver( tcpd, info_in.recv_handler ) ;
+    }
+
+    return sid ;
+}
+
+//*****************************************************************
+motor::network::socket_id_t win32_net_module::create_tcp_server(
+    motor::network::create_tcp_server_info_rref_t info_in ) noexcept
+{
+    if ( info_in.handler == nullptr )
+    {
+        motor::log::global_t::error("[win32_net_module] : server handler required") ;
+        return motor::network::socket_id_t( -1 ) ;
+    }
+
+    addrinfo * result = NULL;
+    addrinfo hints;
+
+    ZeroMemory( &hints, sizeof( hints ) );
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_flags = AI_PASSIVE;
+
+    {
+        // Resolve the server address and port
+        auto const res = getaddrinfo( NULL, std::to_string( info_in.bp.port ).c_str(), &hints, &result );
+        if ( res != 0 )
+        {
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : getaddrinfo" ) ;
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : WSAGetLastError " +
+                motor::to_string( WSAGetLastError() ) ) ;
+            return motor::network::socket_id_t( -1 ) ;
+        }
+    }
+
+    SOCKET s = INVALID_SOCKET ;
+
+    // Create server socket
+    {
+        s = socket( result->ai_family, result->ai_socktype, result->ai_protocol );
+        if ( s == INVALID_SOCKET )
+        {
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : socket" ) ;
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : WSAGetLastError " +
+                motor::to_string( WSAGetLastError() ) ) ;
+            return motor::network::socket_id_t( -1 ) ;
+        }
+    }
+
+    // bind to endpoint
+    {
+        auto const res = bind( s, result->ai_addr, (int) result->ai_addrlen );
+        if ( res == SOCKET_ERROR )
+        {
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : socket" ) ;
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : WSAGetLastError " +
+                motor::to_string( WSAGetLastError() ) ) ;
+            return motor::network::socket_id_t( -1 ) ;
+        }
+    }
+
+    // start listening for incoming connections
+    {
+        auto const res = listen( s, SOMAXCONN );
+        if ( res == SOCKET_ERROR )
+        {
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : listen" ) ;
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : WSAGetLastError " +
+                motor::to_string( WSAGetLastError() ) ) ;
+            return motor::network::socket_id_t( -1 ) ;
+        }
+    }
+
+    // do non-blocking mode
+    {
+        u_long mode = 1;  // 1 to enable non-blocking socket
+        auto const res = ioctlsocket( s, FIONBIO, &mode );
+        if ( res != 0 )
+        {
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : ioctlsocket" ) ;
+            motor::log::global::error( "[win32_net_module::create_tcp_server] : WSAGetLastError " +
+                motor::to_string( WSAGetLastError() ) ) ;
+        }
+    }
+
+    freeaddrinfo( result );
+
+    motor::network::socket_id_t const sid = this_t::create_tcp_server_id( s ) ;
+
+    // thread for accepting, handshaking and recv/send
+    {
+        this_t::tcp_server_data_ptr_t tcpd = _tcp_servers[ sid ] ;
+        tcpd->port = info_in.bp.port ;
+        tcpd->handler = motor::move( info_in.handler ) ;
+
+        tcpd->t = std::thread( [=] ( void_t )
+        {
+            motor::string_t const log_start = "[TCP server " + info_in.name + "] : " ;
+            motor::log::global::status( log_start + "online and accepting incoming connections." ) ;
+
+            tcpd->running = true ;
+
+            while ( tcpd->running )
+            {
+                sockaddr_in addr ;
+                int_t addr_sib = sizeof( sockaddr_in ) ;
+
+                SOCKET s = accept( tcpd->s, (sockaddr *) &addr, &addr_sib );
+                if ( s != INVALID_SOCKET )
+                {
+                    motor::network::ipv4::binding_point const bp = {
+                        uint_t( ntohs( addr.sin_port ) ),
+                        motor::network::ipv4::address {
+                            addr.sin_addr.S_un.S_un_b.s_b1,
+                            addr.sin_addr.S_un.S_un_b.s_b2,
+                            addr.sin_addr.S_un.S_un_b.s_b3,
+                            addr.sin_addr.S_un.S_un_b.s_b4 }
+                    } ;
+                    motor::log::global::status( log_start + "client connected via " + bp.to_string() ) ;
+
+                    
+                    auto const cid = tcpd->get_client_id( this_t::tcp_server_data_t::client_info { s, bp } ) ;
+                    auto const ares = tcpd->handler->on_accept( cid, bp.address ) ;
+                    if ( ares == motor::network::accept_result::no_accept )
+                    {
+                        motor::log::global::status( log_start + "client rejected via " + bp.to_string() ) ;
+                        tcpd->invalidate_client( cid ) ;
+                    }
+                }
+                else if ( s == INVALID_SOCKET )
+                {
+                    auto const res = WSAGetLastError() ;
+                    if ( res == WSAEWOULDBLOCK )
+                    {}
+                    else
+                    {
+                        motor::log::global::error( "[win32_net_module::server_thread] : accept" ) ;
+                        motor::log::global::error( "[win32_net_module::server_thread] : WSAGetLastError " +
+                            motor::to_string(res) ) ;
+                    }
+                }
+
+                {
+                    // handle clients
+                    size_t idx = 0 ;
+                    for ( auto & ci : tcpd->clients )
+                    {
+                        // send
+                        {
+                            byte_cptr_t buffer = nullptr ;
+                            size_t sib = 0 ;
+
+                            {
+                                auto const res = tcpd->handler->on_send( idx, buffer, sib ) ;
+                                // handle res here
+                            }
+
+                            auto const has_sent = send( ci.s, (const char *) buffer, int( sib), 0 ) ;
+                            if ( has_sent == SOCKET_ERROR )
+                            {
+                                motor::log::global::error( "[win32_net_module::server_thread] : send" ) ;
+                                motor::log::global::error( "[win32_net_module::server_thread] : WSAGetLastError " +
+                                    motor::to_string( has_sent ) ) ;
+                            }
+                            if ( has_sent != sib )
+                            {
+                                // need to fix here. need to call on_send multiple times
+                                motor::log::global_t::error("[win32 tcp_server] : has_sent != sib") ;
+                            }
+
+                        }
+                            // receive
+
+                        ++idx ;
+                    }
+                }
+
+
+                std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ;
+            }
+        } ) ;
+    }
+
+    return sid ;
+}
+
+//*****************************************************************
+bool_t win32_net_module::start_tcp_sender( this_t::tcp_client_data_ptr_t tcpd, motor::network::send_funk_t send_funk ) noexcept
+{
+    tcpd->send_funk = std::move( send_funk ) ;
+
+    tcpd->send_thread = std::thread( [=] ( void )
+    {
+        motor::log::global_t::status("[win32_net_module] : start sender") ;
+
+        size_t to_be_send = 0 ;
+        size_t cur_buffer_idx = 0 ;
+        size_t const num_buffers = 3 ;
+        byte_t send_stuff[ num_buffers * motor::network::send_buffer_sib ] ;
+
+        while ( true )
+        {
+            //memset( cur_buffer.data(), 0, cur_buffer.size() ) ;
+
+            size_t cur_send_sib = 0 ;
+
+            byte_ptr_t cur_ptr = send_stuff + cur_buffer_idx * motor::network::send_buffer_sib ;
+            auto res = tcpd->send_funk( cur_ptr, to_be_send, motor::network::send_buffer_sib ) ;
+
+            cur_send_sib += to_be_send ;
+
+            if ( res == motor::network::transmit_result::have_more )
+            {
+                // flush the buffer array
+                if ( ++cur_buffer_idx == num_buffers )
+                {
+                    int const num_bytes = motor::network::send_buffer_sib * num_buffers ;
+                    auto const has_sent = send( tcpd->s, (const char *) send_stuff, num_bytes, 0 ) ;
+                    if ( has_sent != cur_send_sib )
+                    {
+                        motor::log::global_t::status( "[win32_net_module::send] : has_sent != num_bytes" ) ;
+                    }
+
+                    cur_buffer_idx = 0 ;
+                    cur_send_sib = 0 ;
+                }
+                continue ;
+            }
+
+            if ( cur_send_sib != 0 )
+            {
+                auto const has_sent = send( tcpd->s, (const char *) cur_ptr, (int) cur_send_sib, 0 ) ;
+                if ( has_sent != cur_send_sib )
+                {
+                    motor::log::global_t::status( "[win32_net_module::send] : has_sent != num_bytes" ) ;
+                }
+                
+            }
+        }
+    } ) ;
+
+    return true ;
+}
+
+//*****************************************************************
+bool_t win32_net_module::start_tcp_receiver( this_t::tcp_client_data_ptr_t tcpd, motor::network::recv_funk_t recv_funk ) noexcept
+{
+    tcpd->recv_funk = std::move( recv_funk ) ;
+
+    tcpd->recv_thread = std::thread( [=] ( void )
+    {
+        motor::log::global_t::status( "[win32_net_module] : start receiver" ) ;
+
+        while ( true )
+        {
+            size_t const buflen = 2048 ;
+            char_t buffer[ buflen ] ;
+
+            auto const received = recvfrom( tcpd->s, buffer, buflen, 0, NULL, NULL );
+
+            // closed
+            if ( received == 0 ) break ;
+
+            // timeout and others
+            if ( received == -1 ) continue ;
+
+            auto const res = tcpd->recv_funk( (byte_cptr_t) buffer, received ) ;
+            if ( res == motor::network::receive_result::close ) break  ;
+        }
+
+    } ) ;
+
+    return true ;
+}
+
+//*****************************************************************
+size_t win32_net_module::create_tcp_client_id( SOCKET s ) noexcept
+{
+    std::lock_guard< std::mutex > lk( _mtx_tcp_clients ) ;
+    
+    for ( size_t i=0; i< _tcp_clients.size(); ++i )
+    {
+        if ( _tcp_clients[i]->s == INVALID_SOCKET )
+        {
+            auto & tcpd = *_tcp_clients[ i ] ;
+
+            tcpd.s = s ;
+            
+            return i ;
+        }
+    }
+
+    size_t const id = _tcp_clients.size() ;
+    _tcp_clients.resize( _tcp_clients.size() + 1 ) ;
+    _tcp_clients[ id ] = motor::memory::global_t::alloc( tcp_client_data( s ),
+        "[win32_net_module] : tcp data" ) ;
+
+    return id ;
+}
+
+//*****************************************************************
+size_t win32_net_module::create_tcp_server_id( SOCKET s ) noexcept
+{
+    std::lock_guard< std::mutex > lk( _mtx_tcp_servers ) ;
+
+    for ( size_t i = 0; i < _tcp_servers.size(); ++i )
+    {
+        if ( _tcp_servers[ i ]->s == INVALID_SOCKET )
+        {
+            auto & tcpd = *_tcp_servers[ i ] ;
+
+            tcpd.s = s ;
+
+            return i ;
+        }
+    }
+
+    size_t const id = _tcp_servers.size() ;
+    _tcp_servers.resize( _tcp_servers.size() + 1 ) ;
+    _tcp_servers[ id ] = motor::memory::global_t::alloc( tcp_server_data( s ),
+        "[win32_net_module] : tcp data" ) ;
+
+    return id ;
+}
+
+//*****************************************************************
+void_t win32_net_module::release_all_tcp( void_t ) noexcept
+{
+    for ( auto * ptr : _tcp_clients )
+    {
+
+    }
+}

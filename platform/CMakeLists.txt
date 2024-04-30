@@ -31,7 +31,7 @@ if( MOTOR_TARGET_OS_WIN )
     ###################################################
     # controls
     list( APPEND sources ${controls_win32_sources} )
-    set( os_libs winmm.lib xinput )
+    list( APPEND os_libs winmm xinput )
 
     if( MOTOR_COMPILER_MSC )
         # warning C4005 : '__useHeader' : macro redefinition 
@@ -50,6 +50,25 @@ elseif( MOTOR_TARGET_OS_LIN )
       "controls/linux/xlib_module.cpp")
   list( APPEND sources ${controls_linux_sources} )
 endif()
+
+##
+## Network Section
+##
+
+if( MOTOR_TARGET_OS_WIN )
+  set( network_win32_sources
+    "network/win32/win32_net_module.h"
+    "network/win32/win32_net_module.cpp"
+    )
+
+  list( APPEND sources ${network_win32_sources} )
+  list( APPEND os_libs winmm Ws2_32 )
+
+elseif( MOTOR_TARGET_OS_LIN )
+  message( "Platform requires linux network implementation" )
+endif()
+
+list( APPEND sources "network/network_module_creator.hpp" )
 
 ##
 ## Graphics Section
@@ -130,7 +149,7 @@ elseif( MOTOR_WINDOW_SYSTEM_XLIB )
     "application/xlib/xlib_carrier.cpp"
     
      )
-    set( os_libs ${X11_LIBRARIES} )
+    list( APPEND os_libs ${X11_LIBRARIES} )
 
 else()
     message( FATAL_ERROR "Window System: No Os specified." )
@@ -174,6 +193,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::application
   PUBLIC motor::audio
   PUBLIC motor::profiling
+  PUBLIC motor::network
 
   # make oal optional
   PRIVATE OpenAL

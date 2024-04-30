@@ -15,6 +15,9 @@ set( sources
     "arena.hpp"
 
     "observer.hpp"
+
+    "utility/uint8_msb_stream.hpp"
+    "utility/uint8_split_merge.hpp"
     )
 
 motor_vs_src_dir( sources )
