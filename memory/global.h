@@ -385,5 +385,12 @@ namespace motor
 
         T & operator * ( void_t ) noexcept { return *_mtr ; }
         T const & operator * ( void_t ) const noexcept { return *_mtr ; }
+
+        T * move( void_t ) noexcept
+        {
+            auto * ret = _mtr ;
+            _mtr = nullptr ;
+            return ret ;
+        }
     };
 }

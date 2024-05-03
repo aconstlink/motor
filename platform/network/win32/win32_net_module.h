@@ -79,18 +79,14 @@ namespace motor { namespace platform { namespace win32
 
         struct tcp_client_data
         {
-            SOCKET s ;
-            std::thread send_thread ;
-            std::thread recv_thread ;
+            SOCKET s ;            
+            std::thread t ;
 
-            motor::network::send_funk_t send_funk ;
-            motor::network::recv_funk_t recv_funk ;
+            motor::network::iclient_handler_mtr_t handler ;
 
             tcp_client_data( void_t ) noexcept : s( INVALID_SOCKET  ){}
             tcp_client_data( SOCKET s_ ) noexcept : s( s_ ) {}
-            tcp_client_data( tcp_client_data && rhv ) noexcept : s( rhv.s ), send_thread( std::move( rhv.send_thread ) ),
-                recv_thread( std::move( rhv.recv_thread ) ),
-                send_funk( std::move( rhv.send_funk) ) , recv_funk( std::move( rhv.recv_funk ) )
+            tcp_client_data( tcp_client_data && rhv ) noexcept : s( rhv.s ), handler( motor::move( rhv.handler ) )
             { rhv.s = INVALID_SOCKET ;}
 
             ~tcp_client_data( void_t ) noexcept { assert( s == INVALID_SOCKET ) ; }
@@ -100,10 +96,7 @@ namespace motor { namespace platform { namespace win32
                 assert( s == INVALID_SOCKET ) ;
 
                 s = rhv.s ;
-                send_thread = std::move( rhv.send_thread ) ;
-                recv_thread = std::move( rhv.recv_thread ) ;
-                send_funk = std::move( rhv.send_funk ) ;
-                recv_funk = std::move( rhv.recv_funk ) ;
+                handler = motor::move( rhv.handler ) ;
                 return *this ;
             }
         };
@@ -128,9 +121,6 @@ namespace motor { namespace platform { namespace win32
             motor::network::create_tcp_server_info_rref_t ) noexcept ;
 
     private:
-
-        bool_t start_tcp_sender( this_t::tcp_client_data_ptr_t, motor::network::send_funk_t ) noexcept ;
-        bool_t start_tcp_receiver( this_t::tcp_client_data_ptr_t, motor::network::recv_funk_t ) noexcept ;
 
         size_t create_tcp_client_id( SOCKET ) noexcept ;
         size_t create_tcp_server_id( SOCKET ) noexcept ;

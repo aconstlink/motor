@@ -95,7 +95,7 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
     if ( _observer->on_alloc( sib, managed ) > 500000 )
     {
         _observer->swap_and_clear() ;
-        //std::cout << "[MOTOR_MEMORY_OBSERVER] : swap and clear" << std::endl ;
+        std::cout << "[MOTOR_MEMORY_OBSERVER] : swap and clear" << std::endl ;
     }
 #endif
 

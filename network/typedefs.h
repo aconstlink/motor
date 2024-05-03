@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <motor/std/string>
+
 #include <motor/memory/global.h>
 #include <motor/memory/allocator.hpp>
 
@@ -24,6 +26,20 @@ namespace motor
             no_accept
         };
 
+        enum class connect_result
+        {
+            established,
+            failed
+        };
+
+        static motor::string_t to_string( connect_result const res ) noexcept
+        {
+            static char const * const __connect_result_strings[] =
+            { "established", "failed" } ;
+
+            return __connect_result_strings[ size_t( res ) ] ;
+        }
+
         enum class receive_result
         {
             ok,
@@ -32,11 +48,14 @@ namespace motor
 
         enum class transmit_result
         {
-            proceed,
-            break_now,
+            ok,
+            have_nothing,
+            
             have_more,
-            break_after
+            
         };
+
+        
 
 
         static const size_t send_buffer_sib = 2048 ;

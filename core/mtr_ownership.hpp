@@ -108,7 +108,7 @@ namespace motor
             {
                 auto * tmp = _ptr ;
                 _ptr = nullptr ;
-                return _ptr ;
+                return tmp ;
             }
 
             // get the managed pointer

@@ -112,4 +112,11 @@ namespace motor { namespace network { namespace ipv4 {
     };
     motor_typedef( binding_point ) ;
 
+    struct binding_point_host
+    {
+        motor::string_t service ;
+        motor::string_t host ;
+    };
+    motor_typedef( binding_point_host ) ;
+
 } } }

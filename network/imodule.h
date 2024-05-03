@@ -33,12 +33,26 @@ namespace motor{ namespace network
     };
     motor_typedef( create_tcp_server_info )  ;
 
+    class iclient_handler
+    {
+    public:
+
+        virtual void_t on_connect( motor::network::connect_result const ) noexcept = 0 ;
+        virtual void_t on_close( void_t ) noexcept = 0 ;
+
+        virtual motor::network::receive_result on_receive(
+            byte_cptr_t, size_t const ) noexcept = 0 ;
+
+        virtual motor::network::transmit_result on_send(
+             byte_cptr_t & buffer, size_t & num_sib ) noexcept = 0 ;
+    };
+    motor_typedef( iclient_handler ) ;
+
     struct create_tcp_client_info
     {
         motor::string_t name ;
-        motor::network::ipv4::binding_point_t bp ;
-        send_funk_t send_handler ;
-        recv_funk_t recv_handler ;
+        motor::network::ipv4::binding_point_host_t bp ;
+        iclient_handler_mtr_safe_t handler ;
     };
     motor_typedef( create_tcp_client_info )  ;
 
