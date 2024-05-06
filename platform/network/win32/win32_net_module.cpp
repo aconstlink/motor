@@ -185,26 +185,60 @@ motor::network::socket_id_t win32_net_module::create_tcp_server(
                             byte_cptr_t buffer = nullptr ;
                             size_t sib = 0 ;
 
+                            // send as long as there is data to be sent.
+                            while ( true )
                             {
                                 auto const res = tcpd->handler->on_send( idx, buffer, sib ) ;
-                                // handle res here
-                            }
 
-                            auto const has_sent = send( ci.s, (const char *) buffer, int( sib), 0 ) ;
-                            if ( has_sent == SOCKET_ERROR )
-                            {
-                                motor::log::global::error( "[win32_net_module::server_thread] : send" ) ;
-                                motor::log::global::error( "[win32_net_module::server_thread] : WSAGetLastError " +
-                                    motor::to_string( has_sent ) ) ;
-                            }
-                            if ( has_sent != sib )
-                            {
-                                // need to fix here. need to call on_send multiple times
-                                motor::log::global_t::error("[win32 tcp_server] : has_sent != sib") ;
-                            }
+                                if ( res == motor::network::transmit_result::have_nothing ) break ;
+                                
+                                // do the actual send operation
+                                {
+                                    auto const has_sent = send( ci.s, (const char *) buffer, int( sib ), 0 ) ;
+                                    if ( has_sent == SOCKET_ERROR )
+                                    {
+                                        motor::log::global::error( "[win32_net_module::server_thread] : send" ) ;
+                                        motor::log::global::error( "[win32_net_module::server_thread] : WSAGetLastError " +
+                                            motor::to_string( has_sent ) ) ;
+                                    }
+                                    if ( has_sent != sib )
+                                    {
+                                        // need to fix here. need to call on_send multiple times
+                                        motor::log::global_t::error( "[win32 tcp_server] : has_sent != sib" ) ;
+                                    }
+                                }
 
+                                if ( res == motor::network::transmit_result::ok ) break ;
+                            }
                         }
-                            // receive
+                            
+                        // receive
+                        {
+                            size_t const buflen = 2048 ;
+                            char_t buffer[ buflen ] ;
+
+                            sockaddr in_addr ;
+                            int len = 0 ;
+
+                            auto const received = recvfrom( ci.s, buffer, buflen, 0, &in_addr, &len );
+
+                            // closed
+                            if ( received == 0 )
+                            {
+                                tcpd->handler->on_close( idx ) ;
+                                break ;
+                            }
+
+                            // timeout and others
+                            if ( received == -1 )
+                            {
+                                //std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ;
+                                continue ;
+                            }
+
+                            auto const res = tcpd->handler->on_receive( idx, (byte_cptr_t) buffer, received ) ;
+                            if ( res == motor::network::receive_result::close ) break  ;
+                        }
 
                         ++idx ;
                     }
