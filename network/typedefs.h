@@ -28,14 +28,16 @@ namespace motor
 
         enum class connect_result
         {
+            initial,
             established,
+            closed,
             failed
         };
 
         static motor::string_t to_string( connect_result const res ) noexcept
         {
             static char const * const __connect_result_strings[] =
-            { "established", "failed" } ;
+            { "initial", "established", "closed", "failed" } ;
 
             return __connect_result_strings[ size_t( res ) ] ;
         }
@@ -49,13 +51,14 @@ namespace motor
         enum class transmit_result
         {
             ok,
-            have_nothing,
-            
-            have_more,
-            
+            failed
         };
 
-        
+        enum class user_decision
+        {
+            keep_going,
+            shutdown
+        };
 
 
         static const size_t send_buffer_sib = 2048 ;

@@ -15,7 +15,7 @@ add_library( ${THIS_TARGET} INTERFACE )
 # it need to be used in the target property CXX_STANDARD
 set( MOTOR_CXX_STANDARD 17 )
 
-message( ${CMAKE_CXX_COMPILER_ID} )
+#message( ${CMAKE_CXX_COMPILER_ID} )
  
 # Microsoft compiler
 set( MOTOR_COMPILER_MSC OFF )
@@ -45,7 +45,7 @@ if( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" )
       set( MOTOR_COMPILER_MSC_17 on )
       set( MOTOR_CXX_STANDARD 17 )
     else()
-      message( FATAL "MSVC Compiler not yet supported" )
+      message( STATUS "MSVC Version > 1938" )
       set( MOTOR_COMPILER_MSC_17 on )
       set( MOTOR_CXX_STANDARD 17 )
     endif()

@@ -22,3 +22,6 @@
 [submodule "externals/epezent/implot"]
 	path = externals/epezent/implot
 	url = https://github.com/epezent/implot.git
+[submodule "externals/nlohmann/json"]
+	path = externals/nlohmann/json
+	url = https://github.com/nlohmann/json.git

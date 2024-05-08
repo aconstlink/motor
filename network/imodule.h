@@ -37,14 +37,15 @@ namespace motor{ namespace network
     {
     public:
 
-        virtual void_t on_connect( motor::network::connect_result const ) noexcept = 0 ;
-        virtual void_t on_close( void_t ) noexcept = 0 ;
+        virtual motor::network::user_decision on_connect( motor::network::connect_result const, size_t const tries ) noexcept = 0 ;
+        virtual motor::network::user_decision on_sync( void_t ) noexcept = 0 ;
+        virtual motor::network::user_decision on_update( void_t ) noexcept = 0 ;
 
-        virtual motor::network::receive_result on_receive(
-            byte_cptr_t, size_t const ) noexcept = 0 ;
+        virtual void_t on_receive( byte_cptr_t, size_t const ) noexcept = 0 ;
+        virtual void_t on_received( void_t ) noexcept = 0 ;
 
-        virtual motor::network::transmit_result on_send(
-             byte_cptr_t & buffer, size_t & num_sib ) noexcept = 0 ;
+        virtual void_t on_send( byte_cptr_t & buffer, size_t & num_sib ) noexcept = 0 ;
+        virtual void_t on_sent( motor::network::transmit_result const ) noexcept = 0 ;
     };
     motor_typedef( iclient_handler ) ;
 
@@ -62,7 +63,8 @@ namespace motor{ namespace network
 
         virtual socket_id_t create_tcp_client( motor::network::create_tcp_client_info_rref_t ) noexcept = 0 ;
         virtual socket_id_t create_tcp_server( motor::network::create_tcp_server_info_rref_t ) noexcept = 0 ;
-       
+
+        virtual void_t update( void_t ) noexcept = 0 ;
     };
     motor_typedef( imodule ) ;
 } }

@@ -62,6 +62,9 @@ namespace motor { namespace social { namespace twitch
 
     };
 
+    using tags_t = motor::hash_map< motor::string_t, motor::string_t > ;
+    using tags_cref_t = tags_t const & ;
+
     class irc_parser
     {
         motor_this_typedefs( irc_parser ) ;
@@ -72,8 +75,6 @@ namespace motor { namespace social { namespace twitch
 
     private: // working on 
 
-        using tags_t = motor::hash_map< motor::string_t, motor::string_t > ;
-
         struct command
         {
             motor::string_t name ;
@@ -83,8 +84,9 @@ namespace motor { namespace social { namespace twitch
         struct message_line
         {
             motor::string_t irc_message ;
-            tags_t tags ;
+            motor::social::twitch::tags_t tags ;
             // prefix
+            motor::string_t user ;
             command com ;
         };
 
@@ -230,6 +232,10 @@ namespace motor { namespace social { namespace twitch
                             size_t const p1 = end ;
 
                             motor::string_t const user = ircm.substr( p0, p1 - p0 ) ;
+                            if( line.tags.find("display-name") == line.tags.end() )
+                            {
+                                line.tags["display-name"] = user ;
+                            }
                         }
                     }
 
@@ -267,7 +273,7 @@ namespace motor { namespace social { namespace twitch
         }
 
         using for_each_command_funk_t = std::function< bool_t ( motor::social::twitch::irc_command const, 
-            motor::string_in_t param  ) > ;
+            motor::social::twitch::tags_cref_t tags, motor::string_in_t param  ) > ;
 
         void_t for_each( for_each_command_funk_t funk ) const noexcept
         {
@@ -275,7 +281,7 @@ namespace motor { namespace social { namespace twitch
             {
                 irc_command const c = motor::social::twitch::from_string( line.com.name ) ;
                 if( c == motor::social::twitch::irc_command::invalid ) continue ;
-                auto const res = funk( c, line.com.param ) ;
+                auto const res = funk( c, line.tags, line.com.param ) ;
                 if( !res ) break ;
             }
         }

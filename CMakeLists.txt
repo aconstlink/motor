@@ -79,6 +79,7 @@ add_subdirectory( "externals/epezent" )
 add_subdirectory( "externals/lua" )
 add_subdirectory( "externals/nothings" )
 add_subdirectory( "externals/aconstlink" )
+add_subdirectory( "externals/nlohmann" )
 
 ################################################################
 # SECTION: find externals

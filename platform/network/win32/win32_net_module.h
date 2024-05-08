@@ -79,13 +79,16 @@ namespace motor { namespace platform { namespace win32
 
         struct tcp_client_data
         {
-            SOCKET s ;            
+            SOCKET s ;
             std::thread t ;
+            motor::string_t name ;
+            motor::network::ipv4::binding_point_host bp ;
+
+            bool_t used = true ;
 
             motor::network::iclient_handler_mtr_t handler ;
 
             tcp_client_data( void_t ) noexcept : s( INVALID_SOCKET  ){}
-            tcp_client_data( SOCKET s_ ) noexcept : s( s_ ) {}
             tcp_client_data( tcp_client_data && rhv ) noexcept : s( rhv.s ), handler( motor::move( rhv.handler ) )
             { rhv.s = INVALID_SOCKET ;}
 
@@ -96,6 +99,10 @@ namespace motor { namespace platform { namespace win32
                 assert( s == INVALID_SOCKET ) ;
 
                 s = rhv.s ;
+                rhv.s = INVALID_SOCKET ;
+                t = std::move( rhv.t ) ;
+                used = rhv.used ;
+                rhv.used = false ;
                 handler = motor::move( rhv.handler ) ;
                 return *this ;
             }
@@ -120,10 +127,14 @@ namespace motor { namespace platform { namespace win32
         virtual motor::network::socket_id_t create_tcp_server( 
             motor::network::create_tcp_server_info_rref_t ) noexcept ;
 
+        virtual void_t update( void_t ) noexcept ;
+
     private:
 
-        size_t create_tcp_client_id( SOCKET ) noexcept ;
+        size_t create_tcp_client_id( void_t ) noexcept ;
         size_t create_tcp_server_id( SOCKET ) noexcept ;
+
+        SOCKET connect_client( motor::network::ipv4::binding_point_host const & bp ) const noexcept ;
 
         void_t release_all_tcp( void_t ) noexcept ;
     };
