@@ -2,7 +2,7 @@
 #pragma once
 
 #include <motor/core/macros/typedef.h>
-
+#include <cstring>
 namespace motor{ namespace mstd {
 
     template< typename T >

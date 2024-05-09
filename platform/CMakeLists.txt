@@ -65,7 +65,13 @@ if( MOTOR_TARGET_OS_WIN )
   list( APPEND os_libs winmm Ws2_32 )
 
 elseif( MOTOR_TARGET_OS_LIN )
-  message( "Platform requires linux network implementation" )
+  set( network_unix_sources
+  "network/unix/unix_net_module.h"
+  "network/unix/unix_net_module.cpp"
+  )
+
+  list( APPEND sources ${network_unix_sources} )
+  #list( APPEND os_libs *** )
 endif()
 
 list( APPEND sources "network/network_module_creator.hpp" )
