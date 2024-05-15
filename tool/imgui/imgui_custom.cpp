@@ -61,7 +61,7 @@ bool motor::tool::imgui_custom::ListBox(const char* label, int* current_item, in
 }
 
 bool motor::tool::imgui_custom::ListBox(const char* label, int* current_item, int* hovered_item, size_t & double_clicked, 
-                motor::vector<std::pair<motor::string_t, bool_t> > & items, size_t & item_edited, int height_in_items )
+                motor::vector<std::pair<motor::string_t, bool> > & items, size_t & item_edited, int height_in_items )
 {
     bool_t any_selected = false ;
 
@@ -127,7 +127,7 @@ bool motor::tool::imgui_custom::ListBox(const char* label, int* current_item, in
 }
 
 bool motor::tool::imgui_custom::ListBoxWithInputInt( const char* label, int* selected_item, int* hovered_item, size_t & double_clicked, 
-    motor::vector< std::pair< motor::string_t, int_t > > & items, size_t & item_edited, bool_t & value_changed, int height_items )
+    motor::vector< std::pair< motor::string_t, int > > & items, size_t & item_edited, bool & value_changed, int height_items )
 {
     bool_t selected = false ;
     bool_t hovered = false ;
@@ -208,7 +208,7 @@ bool motor::tool::imgui_custom::ListBoxWithInputInt( const char* label, int* sel
     return selected ;
 }
 
-bool motor::tool::imgui_custom::Selectable(const char* label, bool* p_selected, bool_t * p_hovered, ImGuiSelectableFlags flags , const ImVec2& size_arg )
+bool motor::tool::imgui_custom::Selectable(const char* label, bool* p_selected, bool * p_hovered, ImGuiSelectableFlags flags , const ImVec2& size_arg )
 {
     ImGuiWindow* window = GetCurrentWindow();
     if (window->SkipItems)

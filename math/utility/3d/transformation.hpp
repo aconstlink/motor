@@ -54,7 +54,7 @@ namespace motor
 
                 transformation( vec2_cref_t pos ) noexcept
                 {
-                    this_t::translate_by( pos ) ;
+                    this_t::set_translation( motor::math::vec3f_t( pos, 0.0f ) ) ;
                 }
 
                 transformation( vec3f_cref_t scale, euler_angle_cref_t axis, vec3f_cref_t translation ) noexcept

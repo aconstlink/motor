@@ -473,7 +473,7 @@ Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t 
 
     XSelectInput( _display, wnd, 
         ExposureMask | StructureNotifyMask | ResizeRedirectMask | SubstructureRedirectMask | KeyPressMask | KeyReleaseMask | 
-        PointerMotionMask | ButtonPressMask | ButtonReleaseMask | VisibilityChangeMask ) ;
+        PointerMotionMask | ButtonPressMask | ButtonReleaseMask | VisibilityChangeMask | EnterWindowMask  | LeaveWindowMask ) ;
 
     // prepare per window data
     //this_t::store_this_ptr_in_atom( display, wnd ) ;

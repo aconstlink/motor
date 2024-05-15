@@ -98,8 +98,10 @@ namespace motor
             //************************************************************************************
             static this_t make_rotation_matrix( vec2_cref_t cos_sin ) noexcept
             {
-                set_row( 0, vec2_t( cos_sin.x(), -cos_sin.y() ) ) ;
-                set_row( 1, vec2_t( cos_sin.y(), cos_sin.x() ) ) ;
+                this_t ret ;
+                ret.set_row( 0, vec2_t( cos_sin.x(), -cos_sin.y() ) ) ;
+                ret.set_row( 1, vec2_t( cos_sin.y(), cos_sin.x() ) ) ;
+                return ret ;
             }
 
             static this_t make_rotation_matrix( float_t const angle ) noexcept

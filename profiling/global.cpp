@@ -14,7 +14,7 @@ global::global( void_t ) noexcept
 }
 
 //******************************************************
-global::global( this_rref_t rhv ) noexcept
+global::global( this_rref_t /*rhv*/ ) noexcept
 {
 }
 

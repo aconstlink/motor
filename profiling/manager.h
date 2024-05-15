@@ -40,7 +40,7 @@ namespace motor{ namespace profiling {
 
         void_t swap_data_points( void_t ) noexcept
         {
-            _dp_ridx = ++_dp_ridx % 2 ;
+            _dp_ridx = (++_dp_ridx) % 2 ;
         }
 
     private:
