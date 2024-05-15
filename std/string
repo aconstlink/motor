@@ -24,5 +24,14 @@ namespace motor
     motor::string_t to_string( T s ) noexcept
     {
         return motor::from_std( std::to_string( s ) ) ;
-    }
+    }    
 }
+
+template<>
+struct std::hash<motor::string_t>
+{
+    std::size_t operator()( motor::string_cref_t s) const noexcept
+    {
+        return std::hash< std::string >{}( std::string( s.c_str(), s.size() ) ) ;
+    }
+};
