@@ -178,61 +178,67 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 
         while( (num_events = XPending(_display)) != 0 )
         {
+            XEvent event ;
+            XNextEvent( _display, &event ) ;
+
             for( auto & wd : _xlib_windows )
             {
-                XEvent event ;
-                if( XCheckWindowEvent( _display, wd.hwnd, KeyPressMask | KeyReleaseMask | 
-                  PointerMotionMask | ButtonPressMask | ButtonReleaseMask | ExposureMask | VisibilityChangeMask | StructureNotifyMask | 
-                    SubstructureRedirectMask | ResizeRedirectMask , &event ) )
+                switch( event.type )
                 {
-                    motor::log::global_t::status( "[message]" ) ;
-                    switch( event.type )
-                    {
-                    case Expose:
-                        motor::log::global_t::status("application expose") ;
-                        break ;
+                case Expose:
+                    motor::log::global_t::status("application expose") ;
+                    break ;
 
-                    case DestroyNotify:
+                case DestroyNotify:
                     {
                         int bp = 0 ;
                     }
-                        break ;
+                    break ;
 
-                    case UnmapNotify:
-                        break ;
+                case UnmapNotify:
+                    break ;
 
-                    
-                    case ResizeRequest:
+                case ResizeRequest:
                     {
                         XResizeRequestEvent evt = event.xresizerequest ;
                         wd.width = evt.width ;
                         wd.height = evt.height ;
                         this_t::send_resize( wd ) ;
                     }
-                        break ;
-                    
-                    }
-                }
-            }
-
-            // handling close message
-            {
-                XEvent event ;
-                XNextEvent( _display, &event ) ;
-                switch( event.type )
-                {
-                case ClientMessage:
-                {
-                    auto const & e = (XClientMessageEvent const &)event ;
-                    if( e.data.l[0] == XInternAtom( _display, "WM_DELETE_WINDOW", True ) )
+                    break ;
+                case EnterNotify:
                     {
-                        _destroy_queue.emplace_back( e.window ) ;
+                        motor::application::mouse_message_t mm ;
+                        mm.state = motor::application::mouse_message_t::state_type::enter ; ;
+                        wd.wnd->foreach_out( [&] ( motor::application::iwindow_message_listener_mtr_t l )
+                        {
+                            l->on_message( mm ) ;
+                        } ) ;
+                        break ;
+                    }
+
+                case LeaveNotify:
+                    {
+                        motor::application::mouse_message_t mm ;
+                        mm.state = motor::application::mouse_message_t::state_type::leave ; ;
+                        wd.wnd->foreach_out( [&] ( motor::application::iwindow_message_listener_mtr_t l )
+                        {
+                            l->on_message( mm ) ;
+                        } ) ;
+                        break ;
+                    }
+                case ClientMessage:
+                    {
+                        auto const & e = (XClientMessageEvent const &)event ;
+                        if( e.data.l[0] == XInternAtom( _display, "WM_DELETE_WINDOW", True ) )
+                        {
+                            _destroy_queue.emplace_back( e.window ) ;
+                        }
+                        break ;
                     }
                 }
-                break ;
-                } 
-                _device_module->handle_input_event( event ) ;
             }
+            _device_module->handle_input_event( event ) ;
             //XSync( _display, True ) ;
         }
 
