@@ -186,7 +186,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                 switch( event.type )
                 {
                 case Expose:
-                    motor::log::global_t::status("application expose") ;
+                    //motor::log::global_t::status("application expose") ;
                     break ;
 
                 case DestroyNotify:
@@ -198,14 +198,15 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                 case UnmapNotify:
                     break ;
 
-                case ResizeRequest:
+                case ConfigureNotify:
                     {
-                        XResizeRequestEvent evt = event.xresizerequest ;
+                        XConfigureEvent evt = event.xconfigure ;
                         wd.width = evt.width ;
                         wd.height = evt.height ;
                         this_t::send_resize( wd ) ;
                     }
                     break ;
+
                 case EnterNotify:
                     {
                         motor::application::mouse_message_t mm ;
@@ -478,7 +479,7 @@ Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t 
     }
 
     XSelectInput( _display, wnd, 
-        ExposureMask | StructureNotifyMask | ResizeRedirectMask | SubstructureRedirectMask | KeyPressMask | KeyReleaseMask | 
+        ExposureMask | StructureNotifyMask | SubstructureRedirectMask | SubstructureNotifyMask | KeyPressMask | KeyReleaseMask | 
         PointerMotionMask | ButtonPressMask | ButtonReleaseMask | VisibilityChangeMask | EnterWindowMask  | LeaveWindowMask ) ;
 
     // prepare per window data
