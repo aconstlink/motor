@@ -97,6 +97,7 @@ namespace motor { namespace social { namespace twitch
         irc_parser( void_t ) noexcept {}
         irc_parser( motor::string_cref_t raw_msg ) noexcept : _raw_msg( raw_msg ) {}
         irc_parser( motor::string_rref_t raw_msg ) noexcept : _raw_msg( std::move( raw_msg ) ) {}
+        irc_parser( this_cref_t rhv ) noexcept : _raw_msg( rhv._raw_msg ) {}
         irc_parser( this_rref_t rhv ) noexcept : _raw_msg( std::move( rhv._raw_msg ) ) {}
         ~irc_parser( void_t ) noexcept {}
 
