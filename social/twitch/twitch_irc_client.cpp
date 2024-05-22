@@ -487,8 +487,7 @@ void_t twitch_irc_bot::update( void_t ) noexcept
             _ps = motor::social::twitch::program_state::need_refresh ;
             break ;
         case motor::social::twitch::validation_process_result::ok:
-            //_ps = motor::social::twitch::program_state::need_login ;
-            _ps = motor::social::twitch::program_state::need_refresh ;
+            _ps = motor::social::twitch::program_state::need_login ;
             break ;
         }
         break ;
