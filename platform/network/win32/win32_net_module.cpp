@@ -412,9 +412,20 @@ motor::network::socket_id_t win32_net_module::create_tcp_client(
                         auto const has_sent = send( tcpd->s, (const char *) buffer, (int) sib, 0 ) ;
                         if ( has_sent == SOCKET_ERROR )
                         {
-                            tres = motor::network::transmit_result::failed ;
+                            auto const lerr = WSAGetLastError() ;
+                            motor::log::global::error( "[win32_net_module::create_tcp_server] : send" ) ;
+                            motor::log::global::error( "[win32_net_module::create_tcp_server] : WSAGetLastError " +
+                                motor::to_string( lerr ) ) ;
+
+                            if( lerr == WSAECONNRESET )
+                            {
+                                tres = motor::network::transmit_result::connection_reset ;
+                            }
+                            else 
+                                tres = motor::network::transmit_result::failed ;
+                            
                         }
-                        if ( has_sent != sib )
+                        else if ( has_sent != sib )
                         {
                             motor::log::global_t::status( "[win32_net_module::send] : has_sent != num_bytes" ) ;
                             tres = motor::network::transmit_result::failed ;

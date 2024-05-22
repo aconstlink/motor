@@ -51,7 +51,8 @@ namespace motor
         enum class transmit_result
         {
             ok,
-            failed
+            failed,
+            connection_reset
         };
 
         enum class user_decision
