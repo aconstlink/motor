@@ -650,7 +650,8 @@ motor::network::user_decision twitch_irc_bot::on_connect( motor::network::connec
     }
     else if ( res == motor::network::connect_result::closed )
     {
-        _ps = motor::social::twitch::program_state::need_login ;
+        if( _ps == motor::social::twitch::program_state::bot_is_online )
+            _ps = motor::social::twitch::program_state::need_login ;
     }
 
     return motor::network::user_decision::keep_going ;
