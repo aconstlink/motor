@@ -5,7 +5,7 @@
 
 motor is a software framework for real-time interactive audio/visual applications and is a personal endeavour into real-time engine coding. 
 
-Sample code using the engine can be found in the [sample suites](https://github.com/aconstlink/motor_suites) repository. The engine itself does not contain any sample code!
+Sample code using the engine can be found in the [sample suites](https://github.com/aconstlink/motor_suites) repository. The engine itself does not contain any sample code! I also stream my progress regularly on [Twitch](https://www.twitch.tv/aconstlink) and I also conserve on [YouTube](https://www.youtube.com/@aconstlink).
 
 ## Platform Prerequisites
 
