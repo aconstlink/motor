@@ -8,6 +8,28 @@
 
 using namespace motor::social::twitch ;
 
+namespace this_file
+{
+    using namespace motor::core::types ;
+    bool_t check_for_status( nlohmann::json const & data )
+    {
+        if ( data.contains( "status" ) )
+        {
+            size_t const code = data[ "status" ] ;
+            motor::string_t msg ;
+            if ( data.contains( "message" ) )
+            {
+                msg = data[ "message" ] ;
+            }
+            motor::log::global_t::status( "Twitch Response Contains Status Code: " ) ;
+            motor::log::global_t::status( "[" + motor::to_string( code ) + "] : " + msg ) ;
+
+            return true ;
+        }
+        return false ;
+    }
+}
+
 //*************************************************************
 twitch_irc_bot::twitch_irc_bot( motor::io::database_mtr_safe_t db ) noexcept :
     _db( motor::move( db ) )
@@ -43,11 +65,63 @@ twitch_irc_bot::~twitch_irc_bot( void_t ) noexcept
 {
 }
 
+//*************************************************************
+bool_t twitch_irc_bot::send_curl( motor::string_in_t curl, motor::string_in_t file_name, 
+    motor::string_out_t response, bool_t const clear ) const noexcept
+{
+    // perform curl command
+    {
+        auto const com = curl + " -s -o " + file_name ;
+        auto const sys_res = std::system( com.c_str() ) ;
+
+        if ( sys_res != 0 )
+        {
+            return false ;
+        }
+    }
+
+    // read content and load response
+    {
+        std::ifstream myfile( file_name.c_str() ) ;
+        std::string line;
+        if ( myfile.is_open() )
+        {
+            while ( std::getline ( myfile, line ) )
+            {
+                response += line ;
+            }
+            myfile.close();
+        }
+    }
+
+    // clear content
+    if( clear )
+    {
+        std::ofstream ofs;
+        ofs.open( file_name.c_str(), std::ofstream::out | std::ofstream::trunc );
+        ofs.close();
+    }
+
+    return true ;
+}
+
 //**********************************************************************************
 validation_process_result twitch_irc_bot::validate_token( login_data_cref_t ld ) const noexcept
 {
     motor::log::global_t::status( "Validating User Token" ) ;
 
+    motor::string_t response ;
+
+    #if 1
+    auto const curl_validate_com =
+        "curl -X GET https://id.twitch.tv/oauth2/validate "
+        "-H \"Authorization: OAuth " + ld.user_token + "\" " ;
+    if( !this_t::send_curl( curl_validate_com, "validate", response, true ) )
+    {
+        return motor::social::twitch::validation_process_result::curl_failed ;
+    }
+
+    #else
     auto const curl_validate_com =
         "curl -X GET https://id.twitch.tv/oauth2/validate "
         "-H \"Authorization: OAuth " + ld.user_token + "\" "
@@ -59,38 +133,17 @@ validation_process_result twitch_irc_bot::validate_token( login_data_cref_t ld )
     {
         return motor::social::twitch::validation_process_result::curl_failed ;
     }
-
-    // investigate response
+    // read content
     {
-        std::string response ;
-
-        // read content
+        std::ifstream myfile( "validate" );
+        std::string line;
+        if ( myfile.is_open() )
         {
-            std::ifstream myfile( "validate" );
-            std::string line;
-            if ( myfile.is_open() )
+            while ( std::getline ( myfile, line ) )
             {
-                while ( std::getline ( myfile, line ) )
-                {
-                    response += line ;
-                }
-                myfile.close();
+                response += line ;
             }
-        }
-
-        // parse json
-        {
-            nlohmann::json data = nlohmann::json::parse( response ) ;
-
-            if ( data.contains( "status" ) && data.contains( "message" ) )
-            {
-                size_t const code = data[ "status" ] ;
-                motor::string_t const msg = data[ "message" ] ;
-
-                motor::log::global_t::status( "Twitch IRC Bot token validation failed: " ) ;
-                motor::log::global_t::status( "[" + motor::to_string( code ) + "] : " + msg ) ;
-                return motor::social::twitch::validation_process_result::invalid_access_token ;
-            }
+            myfile.close();
         }
     }
 
@@ -99,6 +152,30 @@ validation_process_result twitch_irc_bot::validate_token( login_data_cref_t ld )
         std::ofstream ofs ;
         ofs.open( "validate", std::ofstream::out | std::ofstream::trunc );
         ofs.close();
+    }
+
+    #endif
+
+    // investigate response
+    {
+        nlohmann::json data = nlohmann::json::parse( response ) ;
+
+        #if 1
+        if( this_file::check_for_status( data ) )
+        {
+            return motor::social::twitch::validation_process_result::invalid_access_token ;
+        }
+        #else
+        if ( data.contains( "status" ) && data.contains( "message" ) )
+        {
+            size_t const code = data[ "status" ] ;
+            motor::string_t const msg = data[ "message" ] ;
+
+            motor::log::global_t::status( "Twitch IRC Bot token validation failed: " ) ;
+            motor::log::global_t::status( "[" + motor::to_string( code ) + "] : " + msg ) ;
+            return motor::social::twitch::validation_process_result::invalid_access_token ;
+        }
+        #endif
     }
 
     return motor::social::twitch::validation_process_result::ok ;
@@ -378,7 +455,9 @@ bool_t twitch_irc_bot::load_credentials( this_t::login_data_out_t ld ) const noe
             
             if ( !json.contains( "client_id" ) || 
                 !json.contains( "channel_name" ) ||
-                !json.contains( "nick_name" ) )
+                !json.contains( "nick_name" ) ||
+                !json.contains( "broadcaster_id" ) ||
+                !json.contains( "bot_id" ) )
             {
                 motor::log::global_t::error( "client_id, channel name or nick name missing." ) ;
                 ret = false ;
@@ -410,6 +489,8 @@ bool_t twitch_irc_bot::load_credentials( this_t::login_data_out_t ld ) const noe
             ld.client_id = json[ "client_id" ] ;
             ld.channel_name = json[ "channel_name" ] ;
             ld.nick_name = json[ "nick_name" ] ;
+            ld.broadcaster_id = json["broadcaster_id"] ;
+            ld.bot_id = json[ "bot_id" ] ;
 
             ret = true ;
         }
@@ -429,7 +510,9 @@ void_t twitch_irc_bot::write_credentials( this_t::login_data_in_t ld ) const noe
         { "scopes", _login_data.scopes },
         { "device_code", _login_data.device_code },
         { "nick_name", _login_data.nick_name },
-        { "channel_name", _login_data.channel_name }
+        { "channel_name", _login_data.channel_name },
+        { "broadcaster_id", _login_data.broadcaster_id },
+        { "bot_id", _login_data.bot_id }
         } ).dump() ;
 
     _db->store( motor::io::location_t( "twitch.credentials" ), content.c_str(), content.size() ).
@@ -555,6 +638,7 @@ void_t twitch_irc_bot::update( void_t ) noexcept
         switch ( res )
         {
         case motor::social::twitch::refresh_process_result::ok:
+            this_t::write_credentials( _login_data ) ;
             _ps = motor::social::twitch::program_state::need_login ;
             break ;
         case motor::social::twitch::refresh_process_result::curl_failed: break ;
@@ -639,6 +723,46 @@ void_t twitch_irc_bot::send_response( motor::string_rref_t v ) noexcept
 }
 
 //**********************************************************************************
+void_t twitch_irc_bot::send_announcement( motor::string_in_t msg ) noexcept
+{
+}
+
+//**********************************************************************************
+bool_t twitch_irc_bot::send_message( motor::string_in_t msg ) noexcept
+{
+    motor::string_t response ;
+
+    auto const curl_validate_com =
+        "curl -X POST https://api.twitch.tv/helix/chat/messages "
+        "-H \"Authorization: Bearer " + _login_data.user_token + "\" "
+        "-H \"Client-Id: " + _login_data.client_id + "\" "
+        "-H \"Content-Type: application/json\" "
+        "-d \"{"
+        "\\\"broadcaster_id\\\":\\\""+_login_data.broadcaster_id+"\\\","
+        "\\\"sender_id\\\":\\\"" + _login_data.bot_id + "\\\","
+        "\\\"message\\\":\\\"" + msg + "\\\""
+        "}\"" ;
+
+    if ( !this_t::send_curl( curl_validate_com, "send_message", response, true ) )
+    {
+        motor::log::global_t::error("[send_message] : curl unavailable.") ;
+        return false ;
+    }
+
+    //motor::log::global_t::status( response ) ;
+    
+    // json validate
+    {
+        nlohmann::json data = nlohmann::json::parse( response ) ;
+        if( this_file::check_for_status( data ) )
+        {
+            return false ;
+        }
+    }
+    return true ;
+}
+
+//**********************************************************************************
 motor::network::user_decision twitch_irc_bot::on_connect( motor::network::connect_result const res, size_t const tried ) noexcept
 {
     motor::log::global_t::status( "Connection : " + motor::network::to_string( res ) ) ;
@@ -718,21 +842,21 @@ void_t twitch_irc_bot::on_received( void_t ) noexcept
             {
                 auto const user = tags.find( "display-name" ) ;
                 
-                motor::string_t tokens[5] ;
+                motor::string_t tokens[ 9 ] ;
 
                 {
                     size_t idx = size_t(-1) ;
-                    size_t p0 = 0 ;
+                    size_t p0 = 1 ;
                     while ( true )
                     {
                         size_t const p1 = param.find_first_of( ' ', p0 ) ;
                         tokens[++idx] = param.substr( p0, p1 - p0 ) ;
-                        if( p1 == std::string::npos || idx == 4 ) break ;
+                        if( p1 == std::string::npos || idx == 7 ) break ;
                         p0 = p1 + 1 ;
                     }
                 }
-                
-                auto const com = param.substr( 1, param.size() - 1 ) ;
+
+                auto const com = tokens[0] ; //param.substr( 1, param.size() - 1 ) ;
                 if ( com == "echo" )
                 {
                     if ( user != tags.end() )
@@ -740,25 +864,12 @@ void_t twitch_irc_bot::on_received( void_t ) noexcept
                 }
                 else
                 {
-                    _commands.emplace_back( this_t::command { user->second, com, { "", "", "", "" } } ) ;
-                }
-
-                #if 0
-                else if ( com == "commands" )
-                {
+                    _commands.emplace_back( this_t::command { user->second, com,
+                        { tokens[ 1 ], tokens[ 2 ], tokens[ 3 ], tokens[ 4 ],
+                        tokens[ 5 ], tokens[ 6 ], tokens[ 7 ], tokens[ 8 ] }
+                        } ) ;
                     
-                    
-                    //data_out = "PRIVMSG #aconstlink : !commands !echo !discord \n" ;
                 }
-                else if ( com == "discord" )
-                {
-                    data_out = "PRIVMSG #aconstlink : https://discord.gg/z7yfXYBY\r\n" ;
-                }
-                else
-                {
-                    data_out = "PRIVMSG #aconstlink : NotLikeThis unrecognized command. Try !commands\r\n" ;
-                }
-                #endif
             }
         }
         else if ( c == motor::social::twitch::irc_command::part )

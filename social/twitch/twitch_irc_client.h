@@ -167,6 +167,8 @@ namespace motor { namespace social { namespace twitch {
 
         struct login_data
         {
+            motor::string_t broadcaster_id ;
+            motor::string_t bot_id ;
             motor::string_t channel_name ;
             motor::string_t nick_name ;
             motor::string_t user_token ;
@@ -190,7 +192,7 @@ namespace motor { namespace social { namespace twitch {
         {
             motor::string_t user ;
             motor::string_t name ;
-            motor::string_t params[4] ;
+            motor::string_t params[ 9 ] ;
         };
 
         motor_typedefs( motor::vector< command >, commands ) ;
@@ -239,11 +241,19 @@ namespace motor { namespace social { namespace twitch {
         // do the update loop. Drives the state-machine.
         void_t update( void_t ) noexcept ;
 
-    public: // user send/recv section
+        bool_t send_curl( motor::string_in_t curl, motor::string_in_t file_name, 
+            motor::string_out_t response, bool_t const clear ) const noexcept ;
+        
+    public: // user send/recv section IRC
 
         bool_t swap_commands( this_t::commands_inout_t ) noexcept ;
         void_t send_response( motor::string_in_t ) noexcept ;
         void_t send_response( motor::string_rref_t ) noexcept ;
+
+    public: // via curl and twitch endpoints
+
+        void_t send_announcement( motor::string_in_t msg ) noexcept ; 
+        bool_t send_message( motor::string_in_t msg ) noexcept ;
 
     public: // network interface
 
