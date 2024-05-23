@@ -198,6 +198,7 @@ namespace motor { namespace social { namespace twitch {
         };
         motor_typedef( login_data ) ;
 
+        motor::io::location_t _conf_file ;
         login_data_t _login_data ;
 
         device_code_response _dcr ;
@@ -278,7 +279,7 @@ namespace motor { namespace social { namespace twitch {
     public: // network interface
 
         //**********************************************************************************
-        twitch_irc_bot( motor::io::database_mtr_safe_t db ) noexcept ;
+        twitch_irc_bot( motor::io::database_mtr_safe_t db, motor::io::location_in_t ) noexcept ;
         twitch_irc_bot( this_cref_t ) = delete ;
         twitch_irc_bot( this_rref_t ) noexcept ;
 

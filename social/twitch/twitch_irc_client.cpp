@@ -31,8 +31,8 @@ namespace this_file
 }
 
 //*************************************************************
-twitch_irc_bot::twitch_irc_bot( motor::io::database_mtr_safe_t db ) noexcept :
-    _db( motor::move( db ) )
+twitch_irc_bot::twitch_irc_bot( motor::io::database_mtr_safe_t db, motor::io::location_in_t conf_file ) noexcept :
+    _db( motor::move( db ) ), _conf_file( conf_file )
 {
     assert( _db != nullptr ) ;
 
@@ -43,6 +43,14 @@ twitch_irc_bot::twitch_irc_bot( motor::io::database_mtr_safe_t db ) noexcept :
         {
             motor::log::global::error( "curl required. Please install curl." ) ;
             exit( 1 ) ;
+        }
+    }
+
+    // create confidential file
+    {
+        if( conf_file.as_string().empty() )
+        {
+            _conf_file = motor::io::location_t("twitch.confidential") ;
         }
     }
 
@@ -58,6 +66,7 @@ twitch_irc_bot::twitch_irc_bot( this_rref_t rhv ) noexcept
     _commands = std::move( rhv._commands ) ;
     _outs = std::move( rhv._outs  ) ;
     _ps = rhv._ps ;
+    _conf_file = std::move( rhv._conf_file ) ;
 }
 
 //*************************************************************
@@ -190,14 +199,21 @@ motor::social::twitch::refresh_process_result twitch_irc_bot::refresh_token( log
 
     #if 1
     {
-        auto const curl_com =
+        auto const curl_com_conf =
             "curl -X POST https://id.twitch.tv/oauth2/token "
             "-H \"Content-Type: application/x-www-form-urlencoded\" "
             "-d \"grant_type=refresh_token&refresh_token=" + ld.refresh_token +
             "&client_id=" + ld.client_id +
             "&client_secret=" + ld.client_secret + "\" " ;
 
-        if ( !this_t::send_curl( curl_com, "refresh_token", response, true ) )
+        auto const curl_com_pub =
+            "curl -X POST https://id.twitch.tv/oauth2/token "
+            "-H \"Content-Type: application/x-www-form-urlencoded\" "
+            "-d \"grant_type=refresh_token&refresh_token=" + ld.refresh_token +
+            "&client_id=" + ld.client_id + "\" " ;
+
+        if ( !this_t::send_curl( ld.client_secret.empty() ? curl_com_pub : curl_com_conf, 
+            "refresh_token", response, true ) )
         {
             return motor::social::twitch::refresh_process_result::curl_failed ;
         }
@@ -531,7 +547,7 @@ bool_t twitch_irc_bot::load_credentials( this_t::login_data_out_t ld ) const noe
 {
     bool_t ret = false ;
 
-    _db->load( motor::io::location( "twitch.credentials" ) ).wait_for_operation(
+    _db->load( _conf_file ).wait_for_operation(
         [&] ( char_cptr_t buf, size_t const sib, motor::io::result const res )
     {
         if ( res == motor::io::result::ok )
@@ -599,14 +615,14 @@ void_t twitch_irc_bot::write_credentials( this_t::login_data_in_t ld ) const noe
         { "channel_name", _login_data.channel_name },
         { "broadcaster_id", _login_data.broadcaster_id },
         { "bot_id", _login_data.bot_id }
-        } ).dump() ;
+        } ).dump(1) ;
 
-    _db->store( motor::io::location_t( "twitch.credentials" ), content.c_str(), content.size() ).
+    _db->store( _conf_file, content.c_str(), content.size() ).
         wait_for_operation( [&] ( motor::io::result const res )
     {
         if ( res == motor::io::result::ok )
         {
-            motor::log::global_t::error( "New Twitch Tokens written to : twitch.credentials" ) ;
+            motor::log::global_t::status( "New Twitch Tokens written to : " + _conf_file.as_string() ) ;
         }
         else
         {
@@ -768,6 +784,7 @@ motor::social::twitch::initial_process_result twitch_irc_bot::load_credentials_f
         !this_t::validate_credentials( _login_data ) )
     {
         motor::log::global_t::status( "[twitch_irc_bot] : Twitch Client ID missing." ) ;
+        this_t::write_credentials( _login_data ) ;
         return motor::social::twitch::initial_process_result::credentials_failed ;
     }
 
