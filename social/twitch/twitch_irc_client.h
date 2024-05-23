@@ -139,6 +139,24 @@ namespace motor { namespace social { namespace twitch {
         ok
     };
 
+    enum class announcement_color
+    {
+        primary,
+        blue,
+        green,
+        orange,
+        purple,
+        num_announcement_colors
+    };
+
+    static motor::string_t to_string( motor::social::twitch::announcement_color const c ) noexcept
+    {
+        size_t const max_entries = size_t( motor::social::twitch::announcement_color::num_announcement_colors ) ;
+
+        static char const * __announcement_color_strings[] = { "primary", "blue", "green", "orange", "purple" } ;
+        return __announcement_color_strings[ size_t(c) < max_entries ? size_t(c) : 0 ] ;
+    }
+
     class MOTOR_SOCIAL_API twitch_irc_bot : public motor::network::iclient_handler
     {
         motor_this_typedefs( twitch_irc_bot ) ;
@@ -252,7 +270,9 @@ namespace motor { namespace social { namespace twitch {
 
     public: // via curl and twitch endpoints
 
-        void_t send_announcement( motor::string_in_t msg ) noexcept ; 
+        bool_t send_announcement( motor::string_in_t msg, 
+            motor::social::twitch::announcement_color const c = 
+            motor::social::twitch::announcement_color::primary ) noexcept ;
         bool_t send_message( motor::string_in_t msg ) noexcept ;
 
     public: // network interface

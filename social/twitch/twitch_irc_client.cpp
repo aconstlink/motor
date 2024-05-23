@@ -186,6 +186,24 @@ motor::social::twitch::refresh_process_result twitch_irc_bot::refresh_token( log
 {
     motor::log::global_t::status( "Refreshing User Token" ) ;
 
+    motor::string_t response ;
+
+    #if 1
+    {
+        auto const curl_com =
+            "curl -X POST https://id.twitch.tv/oauth2/token "
+            "-H \"Content-Type: application/x-www-form-urlencoded\" "
+            "-d \"grant_type=refresh_token&refresh_token=" + ld.refresh_token +
+            "&client_id=" + ld.client_id +
+            "&client_secret=" + ld.client_secret + "\" " ;
+
+        if ( !this_t::send_curl( curl_com, "refresh_token", response, true ) )
+        {
+            return motor::social::twitch::refresh_process_result::curl_failed ;
+        }
+    }
+
+    #else
     {
         auto const curl_refresh_com =
             "curl -X POST https://id.twitch.tv/oauth2/token "
@@ -205,34 +223,39 @@ motor::social::twitch::refresh_process_result twitch_irc_bot::refresh_token( log
         {
             return motor::social::twitch::refresh_process_result::curl_failed ;
         }
-    }
 
-    std::string response ;
-
-    // read content
-    {
-        std::ifstream myfile( "refresh_token" ) ;
-        std::string line;
-        if ( myfile.is_open() )
+        // read content
         {
-            while ( std::getline ( myfile, line ) )
+            std::ifstream myfile( "refresh_token" ) ;
+            std::string line;
+            if ( myfile.is_open() )
             {
-                response += line ;
+                while ( std::getline ( myfile, line ) )
+                {
+                    response += line ;
+                }
+                myfile.close();
             }
-            myfile.close();
+        }
+
+        // clear content
+        {
+            std::ofstream ofs;
+            ofs.open( "refresh_token", std::ofstream::out | std::ofstream::trunc );
+            ofs.close();
         }
     }
-
-    // clear content
-    {
-        std::ofstream ofs;
-        ofs.open( "refresh_token", std::ofstream::out | std::ofstream::trunc );
-        ofs.close();
-    }
+    #endif
 
     // json validate
     {
         nlohmann::json data = nlohmann::json::parse( response ) ;
+        #if 1
+        if( this_file::check_for_status(data) )
+        {
+            return motor::social::twitch::refresh_process_result::invalid_token ;
+        }
+        #else
         if ( data.contains( "status" ) )
         {
             size_t const code = data[ "status" ] ;
@@ -247,6 +270,7 @@ motor::social::twitch::refresh_process_result twitch_irc_bot::refresh_token( log
             //return motor::social::twitch::refresh_process_result::invalid_client_id ;
             return motor::social::twitch::refresh_process_result::invalid_token ;
         }
+        #endif
 
         if ( data.contains( "access_token" ) )
         {
@@ -268,6 +292,21 @@ motor::social::twitch::device_code_process_result twitch_irc_bot::request_device
 {
     motor::log::global_t::status( "Requesting Device Code" ) ;
 
+    #if 1
+    motor::string_t response ;
+    {
+        auto const curl_com =
+            "curl --location https://id.twitch.tv/oauth2/device "
+            "--form \"client_id=" + ld.client_id + "\" "
+            "--form \"scopes=" + ld.scopes + "\" " ;
+
+        if ( !this_t::send_curl( curl_com, "data_code_flow_request", response, true ) )
+        {
+            return motor::social::twitch::device_code_process_result::curl_failed ;
+        }
+    }
+
+    #else
     auto const curl_request_com =
         "curl --location https://id.twitch.tv/oauth2/device "
         "--form \"client_id=" + ld.client_id + "\" "
@@ -302,11 +341,18 @@ motor::social::twitch::device_code_process_result twitch_irc_bot::request_device
         ofs.open( "data_code_flow_request", std::ofstream::out | std::ofstream::trunc );
         ofs.close();
     }
+    #endif
 
     // json 
     {
         nlohmann::json data = nlohmann::json::parse( response ) ;
 
+        #if 1
+        if( this_file::check_for_status(data ) )
+        {
+            return motor::social::twitch::device_code_process_result::device_code_request_failed ;
+        }
+        #else
         if ( data.contains( "status" ) )
         {
             size_t const code = data[ "status" ] ;
@@ -320,6 +366,7 @@ motor::social::twitch::device_code_process_result twitch_irc_bot::request_device
 
             return motor::social::twitch::device_code_process_result::device_code_request_failed ;
         }
+        #endif
 
         if ( data.contains( "device_code" ) )
         {
@@ -352,6 +399,22 @@ motor::social::twitch::request_user_token_result twitch_irc_bot::request_user_to
 {
     motor::log::global_t::status( "Requesting User Token" ) ;
 
+    #if 1 
+    motor::string_t response ;
+    {
+        auto const curl_com =
+            "curl --location https://id.twitch.tv/oauth2/token "
+            "--form \"client_id=" + ld.client_id + "\" "
+            "--form \"scopes=" + ld.scopes + "\" "
+            "--form \"device_code=" + ld.device_code + "\" "
+            "--form \"grant_type=urn:ietf:params:oauth:grant-type:device_code\" " ;
+
+        if ( !this_t::send_curl( curl_com, "user_access_token", response, true ) )
+        {
+            return motor::social::twitch::request_user_token_result::curl_failed ;
+        }
+    }
+    #else
     auto const curl_request_com =
         "curl --location https://id.twitch.tv/oauth2/token "
         "--form \"client_id=" + ld.client_id + "\" "
@@ -388,12 +451,34 @@ motor::social::twitch::request_user_token_result twitch_irc_bot::request_user_to
         ofs.open( "user_access_token", std::ofstream::out | std::ofstream::trunc );
         ofs.close();
     }
+    #endif
 
     // json 
     if ( !response.empty() )
     {
         nlohmann::json data = nlohmann::json::parse( response ) ;
 
+        #if 1
+        if( this_file::check_for_status(data) )
+        {
+            auto const msg = data[ "message" ] ;
+
+            if ( msg == "authorization_pending" )
+            {
+                return motor::social::twitch::request_user_token_result::pending ;
+            }
+            else if ( msg == "invalid device code" )
+            {
+                return motor::social::twitch::request_user_token_result::invalid_device_code ;
+            }
+            else if ( msg == "missing device_code" )
+            {
+                return motor::social::twitch::request_user_token_result::invalid_device_code ;
+            }
+
+            return motor::social::twitch::request_user_token_result::request_failed ;
+        }
+        #else
         if ( data.contains( "status" ) )
         {
             size_t const code = data[ "status" ] ;
@@ -422,6 +507,7 @@ motor::social::twitch::request_user_token_result twitch_irc_bot::request_user_to
 
             return motor::social::twitch::request_user_token_result::request_failed ;
         }
+        #endif
 
         if ( data.contains( "access_token" ) )
         {
@@ -723,8 +809,40 @@ void_t twitch_irc_bot::send_response( motor::string_rref_t v ) noexcept
 }
 
 //**********************************************************************************
-void_t twitch_irc_bot::send_announcement( motor::string_in_t msg ) noexcept
+bool_t twitch_irc_bot::send_announcement( motor::string_in_t msg, 
+    motor::social::twitch::announcement_color const c ) noexcept
 {
+    motor::string_t response ;
+
+    auto const curl_validate_com =
+        "curl -X POST \"https://api.twitch.tv/helix/chat/announcements?broadcaster_id="
+            +_login_data.broadcaster_id+"&moderator_id="+_login_data.bot_id+"\" "
+        "-H \"Authorization: Bearer " + _login_data.user_token + "\" "
+        "-H \"Client-Id: " + _login_data.client_id + "\" "
+        "-H \"Content-Type: application/json\" "
+        "-d \"{"        
+        "\\\"message\\\":\\\"" + msg + "\\\","
+        "\\\"color\\\":\\\"" + motor::social::twitch::to_string( c ) + "\\\""
+        "}\"" ;
+
+    if ( !this_t::send_curl( curl_validate_com, "send_message", response, true ) )
+    {
+        motor::log::global_t::error( "[send_message] : curl unavailable." ) ;
+        return false ;
+    }
+
+    //motor::log::global_t::status( response ) ;
+
+    // json validate
+    if( !response.empty() )
+    {
+        nlohmann::json data = nlohmann::json::parse( response ) ;
+        if ( this_file::check_for_status( data ) )
+        {
+            return false ;
+        }
+    }
+    return true ;
 }
 
 //**********************************************************************************
