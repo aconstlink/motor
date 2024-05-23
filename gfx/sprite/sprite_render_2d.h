@@ -10,7 +10,10 @@
 #include <motor/graphics/variable/variable_set.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
+#include <motor/concurrent/mrsw.hpp>
+
 #include <motor/std/vector>
+#include <motor/std/vector_pod>
 
 #include <motor/math/matrix/matrix2.hpp>
 
@@ -35,18 +38,21 @@ namespace motor
                 motor::math::vec2f_t pivot ;
                 motor::math::vec4f_t color ;
 
-                size_t slot = 0 ;
+                size_t slot ;
             };
             motor_typedef( sprite ) ;
 
             struct layer
             {
-                motor::vector< sprite_t > sprites ;
+                motor::concurrent::mrsw_t mtx ;
+                motor::vector_pod< sprite_t > sprites ;
             };
             motor_typedef( layer ) ;
 
-            motor::vector< layer_t > _layers ;
+            motor::concurrent::mutex_t _layers_mtx ;
+            motor::vector< layer_ptr_t > _layers ;
 
+            motor::concurrent::mutex_t _num_sprites_mtx ;
             size_t _num_sprites = 0 ;
 
         private: // graphics
@@ -177,6 +183,10 @@ namespace motor
             void_t prepare_for_rendering( void_t ) noexcept ;
             void_t prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
             void_t render( motor::graphics::gen4::frontend_mtr_t fe, size_t const ) noexcept ;
+
+        private:
+
+            layer_ptr_t add_layer( size_t const i ) noexcept ;
         };
         motor_typedef( sprite_render_2d ) ;
 

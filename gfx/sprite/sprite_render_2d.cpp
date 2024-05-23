@@ -376,22 +376,20 @@ void_t sprite_render_2d::draw( size_t const l, motor::math::vec2f_cref_t pos, mo
     motor::math::vec2f_cref_t scale, motor::math::vec4f_cref_t uv_rect, 
     size_t const slot, motor::math::vec2f_cref_t pivot, motor::math::vec4f_cref_t color ) noexcept 
 {
-    if( _layers.size() < l+1 ) 
+    auto * layer = this_t::add_layer( l ) ;
+
     {
-        _layers.resize( l+1 ) ;
+        motor::concurrent::lock_guard_t lk( _num_sprites_mtx ) ;
+        ++_num_sprites ;
     }
 
-    this_t::sprite_t d ;
-    d.pos = pos ;
-    d.frame = frame ;
-    d.scale = scale ;
-    d.uv_rect = uv_rect ;
-    d.slot = slot ;
-    d.pivot = pivot ;
-    d.color = color ;
-
-    _layers[l].sprites.emplace_back( std::move( d ) ) ;
-    ++_num_sprites ;
+    {
+        motor::concurrent::mrsw_t::writer_lock_t lk( layer->mtx ) ;
+        layer->sprites[ layer->sprites.resize_by( 1, 1000 ) ] = this_t::sprite_t 
+        { 
+            pos, frame, scale, uv_rect, pivot, color, slot
+        } ;
+    }
 }
 
 //**********************************************************************************************************
@@ -423,7 +421,7 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
 
         for( size_t i=0; i<_layers.size(); ++i )
         {
-            auto const & sprites = _layers[i].sprites ;
+            auto const & sprites = _layers[i]->sprites ;
             
             // number of render calls for this layer
             size_t const num_render = sprites.size() / _max_quads ; 
@@ -503,7 +501,7 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
 
         for( size_t l=0; l<_layers.size(); ++l )
         {
-            auto const & sprites = _layers[l].sprites ;
+            auto const & sprites = _layers[l]->sprites ;
             
             for( size_t i=0; i<sprites.size(); ++i )
             {
@@ -529,14 +527,12 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
                 _ao.data_buffer().update< motor::math::vec4f_t >( idx + 5, 
                     sprites[i].color ) ;
 
-                
-
                 //_ao.data_buffer().update< motor::math::vec4f_t >( idx + 3, 
                     //  motor::math::vec4f_t( sprites[i].pos, sprites[i].scale ) ) ;
             }
             lstart += sprites.size() * sizeof_data ;
             
-            _layers[l].sprites.clear() ;
+            _layers[l]->sprites.clear() ;
         }
         
         pe.data_realloc = _ao.data_buffer().get_sib() > bsib ;
@@ -616,4 +612,22 @@ void_t sprite_render_2d::set_view_proj( motor::math::mat4f_cref_t view, motor::m
     _view = view ;
     _proj = proj ;
     _reset_view_proj = true ;
+}
+
+//**********************************************************************************************************
+sprite_render_2d::layer_ptr_t sprite_render_2d::add_layer( size_t const l ) noexcept
+{
+    motor::concurrent::lock_guard_t lk( _layers_mtx ) ;
+    if ( _layers.size() <= l )
+    {
+        size_t const old_size = _layers.size() ;
+
+        _layers.resize( l + 1 ) ;
+
+        for ( size_t i = old_size; i < _layers.size(); ++i )
+        {
+            _layers[ i ] = motor::memory::global_t::alloc( this_t::layer() ) ;
+        }
+    }
+    return _layers[ l ] ;
 }
