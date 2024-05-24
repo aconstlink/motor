@@ -611,7 +611,7 @@ void_t twitch_irc_bot::update( void_t ) noexcept
         data_out =
             "PASS oauth:" + _login_data.access_token + "\r\n"
             "NICK "+ _login_data.nick_name + "\r\n"
-            "JOIN " + _login_data.channel_name + "\r\n"
+            "JOIN #" + _login_data.channel_name + "\r\n"
             "CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands\r\n" ;
 
         _login_tp = clk_t::now() ;
@@ -676,6 +676,49 @@ void_t twitch_irc_bot::send_response( motor::string_rref_t v ) noexcept
 {
     std::lock_guard< std::mutex > lk( _mtx_outs ) ;
     _outs.emplace_back( std::move( v ) ) ;
+}
+
+//**********************************************************************************
+motor::string_t twitch_irc_bot::get_user_id( motor::string_in_t user_name ) const noexcept 
+{
+    motor::string_t ret ;
+
+    {
+        motor::string_t response ;
+
+        auto const curl_com =
+            "curl -X GET \"https://api.twitch.tv/helix/users?login=" + user_name + "\" "
+
+            "-H \"Authorization: Bearer " + _login_data.access_token + "\" "
+            "-H \"Client-Id: " + _login_data.client_id + "\" " ;
+
+        if ( !this_t::send_curl( curl_com, "get_user_id", response, true ) )
+        {
+            motor::log::global_t::error( "[send_message] : curl unavailable." ) ;
+            return ret ;
+        }
+
+        // json validate
+        if ( !response.empty() )
+        {
+            nlohmann::json root = nlohmann::json::parse( response ) ;
+            if ( this_file::check_for_status( root ) )
+            {
+                return ret ;
+            }
+
+            if( root.contains("data") )
+            {
+                auto const data = root["data"] ;
+                
+                if( data.size() > 0 && data[0].contains("id" ) )
+                {
+                    ret = data[0]["id"] ;
+                }
+            }
+        }
+    }
+    return ret ;
 }
 
 //**********************************************************************************
@@ -794,11 +837,14 @@ void_t twitch_irc_bot::on_receive( byte_cptr_t buffer, size_t const sib ) noexce
 void_t twitch_irc_bot::on_received( void_t ) noexcept
 {
     parser.parse( data_in ) ;
-
+    
     if ( _ps == motor::social::twitch::program_state::login_pending )
     {
+        _login_data.broadcaster_id = this_t::get_user_id( _login_data.broadcaster_name ) ;
+        _login_data.bot_id = this_t::get_user_id( _login_data.bot_name ) ;
+
         _ps = motor::social::twitch::program_state::bot_is_online ;
-        data_out = "PRIVMSG #aconstlink : HeyGuys " + _login_data.nick_name + " is online.\r\n" ;
+        //data_out = "PRIVMSG #aconstlink : HeyGuys " + _login_data.nick_name + " is online.\r\n" ;
     }
 
     parser.for_each( [&] ( motor::social::twitch::irc_command const c,

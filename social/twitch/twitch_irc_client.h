@@ -291,11 +291,15 @@ namespace motor { namespace social { namespace twitch {
         void_t send_response( motor::string_rref_t ) noexcept ;
 
     public: // via curl and twitch endpoints
-
+        
         bool_t send_announcement( motor::string_in_t msg, 
             motor::social::twitch::announcement_color const c = 
             motor::social::twitch::announcement_color::primary ) noexcept ;
         bool_t send_message( motor::string_in_t msg ) noexcept ;
+
+    private: // via curl and twitch endpoints private
+
+        motor::string_t get_user_id( motor::string_in_t user_name ) const noexcept ;
 
     public: // network interface
 
