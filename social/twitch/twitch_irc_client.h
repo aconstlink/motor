@@ -185,16 +185,37 @@ namespace motor { namespace social { namespace twitch {
 
         struct login_data
         {
-            motor::string_t broadcaster_id ;
-            motor::string_t bot_id ;
+        public:
+
+            motor::string_t broadcaster_name ;
+            motor::string_t bot_name ;
             motor::string_t channel_name ;
             motor::string_t nick_name ;
-            motor::string_t user_token ;
-            motor::string_t refresh_token ;
+
             motor::string_t client_id ;
             motor::string_t client_secret ;
-            motor::string_t scopes ;
+            motor::vector< motor::string_t >  scopes ;
+
+        public:
+
             motor::string_t device_code ;
+            motor::string_t access_token ;
+            motor::string_t refresh_token ;
+            motor::string_t bot_id ;
+            motor::string_t broadcaster_id ;
+
+
+        public:
+
+            motor::string_t scopes_to_string( void_t ) const noexcept
+            {
+                motor::string_t ret ;
+                for ( auto const & s : scopes )
+                {
+                    ret += s + " " ;
+                }
+                return ret.substr( 0, ret.size() - 1 ) ;
+            }
         };
         motor_typedef( login_data ) ;
 

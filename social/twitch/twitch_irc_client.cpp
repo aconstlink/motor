@@ -121,70 +121,23 @@ validation_process_result twitch_irc_bot::validate_token( login_data_cref_t ld )
 
     motor::string_t response ;
 
-    #if 1
+    
     auto const curl_validate_com =
         "curl -X GET https://id.twitch.tv/oauth2/validate "
-        "-H \"Authorization: OAuth " + ld.user_token + "\" " ;
+        "-H \"Authorization: OAuth " + ld.access_token + "\" " ;
     if( !this_t::send_curl( curl_validate_com, "validate", response, true ) )
     {
         return motor::social::twitch::validation_process_result::curl_failed ;
     }
 
-    #else
-    auto const curl_validate_com =
-        "curl -X GET https://id.twitch.tv/oauth2/validate "
-        "-H \"Authorization: OAuth " + ld.user_token + "\" "
-        "-s -o validate" ;
-
-    auto const sys_res = std::system( curl_validate_com.c_str() ) ;
-
-    if ( sys_res != 0 )
-    {
-        return motor::social::twitch::validation_process_result::curl_failed ;
-    }
-    // read content
-    {
-        std::ifstream myfile( "validate" );
-        std::string line;
-        if ( myfile.is_open() )
-        {
-            while ( std::getline ( myfile, line ) )
-            {
-                response += line ;
-            }
-            myfile.close();
-        }
-    }
-
-    // clear content
-    {
-        std::ofstream ofs ;
-        ofs.open( "validate", std::ofstream::out | std::ofstream::trunc );
-        ofs.close();
-    }
-
-    #endif
-
     // investigate response
     {
         nlohmann::json data = nlohmann::json::parse( response ) ;
-
-        #if 1
+        
         if( this_file::check_for_status( data ) )
         {
             return motor::social::twitch::validation_process_result::invalid_access_token ;
         }
-        #else
-        if ( data.contains( "status" ) && data.contains( "message" ) )
-        {
-            size_t const code = data[ "status" ] ;
-            motor::string_t const msg = data[ "message" ] ;
-
-            motor::log::global_t::status( "Twitch IRC Bot token validation failed: " ) ;
-            motor::log::global_t::status( "[" + motor::to_string( code ) + "] : " + msg ) ;
-            return motor::social::twitch::validation_process_result::invalid_access_token ;
-        }
-        #endif
     }
 
     return motor::social::twitch::validation_process_result::ok ;
@@ -290,7 +243,7 @@ motor::social::twitch::refresh_process_result twitch_irc_bot::refresh_token( log
 
         if ( data.contains( "access_token" ) )
         {
-            ld.user_token = data[ "access_token" ] ;
+            ld.access_token = data[ "access_token" ] ;
         }
 
         if ( data.contains( "refresh_token" ) )
@@ -314,7 +267,7 @@ motor::social::twitch::device_code_process_result twitch_irc_bot::request_device
         auto const curl_com =
             "curl --location https://id.twitch.tv/oauth2/device "
             "--form \"client_id=" + ld.client_id + "\" "
-            "--form \"scopes=" + ld.scopes + "\" " ;
+            "--form \"scopes=" + ld.scopes_to_string() + "\" " ;
 
         if ( !this_t::send_curl( curl_com, "data_code_flow_request", response, true ) )
         {
@@ -421,7 +374,7 @@ motor::social::twitch::request_user_token_result twitch_irc_bot::request_user_to
         auto const curl_com =
             "curl --location https://id.twitch.tv/oauth2/token "
             "--form \"client_id=" + ld.client_id + "\" "
-            "--form \"scopes=" + ld.scopes + "\" "
+            "--form \"scopes=" + ld.scopes_to_string() + "\" "
             "--form \"device_code=" + ld.device_code + "\" "
             "--form \"grant_type=urn:ietf:params:oauth:grant-type:device_code\" " ;
 
@@ -527,7 +480,7 @@ motor::social::twitch::request_user_token_result twitch_irc_bot::request_user_to
 
         if ( data.contains( "access_token" ) )
         {
-            ld.user_token = data[ "access_token" ] ;
+            ld.access_token = data[ "access_token" ] ;
         }
         if ( data.contains( "refresh_token" ) )
         {
@@ -545,88 +498,173 @@ motor::social::twitch::request_user_token_result twitch_irc_bot::request_user_to
 //**********************************************************************************
 bool_t twitch_irc_bot::load_credentials( this_t::login_data_out_t ld ) const noexcept
 {
-    bool_t ret = false ;
+    motor::string_t content ;
 
-    _db->load( _conf_file ).wait_for_operation(
-        [&] ( char_cptr_t buf, size_t const sib, motor::io::result const res )
+    // load file
     {
-        if ( res == motor::io::result::ok )
+        _db->load( _conf_file ).wait_for_operation(
+            [&] ( char_cptr_t buf, size_t const sib, motor::io::result const res )
         {
-            auto const content = std::string( buf, sib ) ;
-            auto const json = nlohmann::json::parse( content ) ;
-            
-            if ( !json.contains( "client_id" ) || 
-                !json.contains( "channel_name" ) ||
-                !json.contains( "nick_name" ) ||
-                !json.contains( "broadcaster_id" ) ||
-                !json.contains( "bot_id" ) )
+            if ( res == motor::io::result::ok )
             {
-                motor::log::global_t::error( "client_id, channel name or nick name missing." ) ;
-                ret = false ;
-                return ;
+                content = motor::string_t( buf, sib ) ;
             }
+        } ) ;
+    }
 
-            if ( json.contains( "access_token" ) )
-            {
-                ld.user_token = json[ "access_token" ] ;
-            }
-            if ( json.contains( "refresh_token" ) )
-            {
-                ld.refresh_token = json[ "refresh_token" ] ;
-            }
-            
-            if ( json.contains( "client_secret" ) )
-            {
-                ld.client_secret = json[ "client_secret" ] ;
-            }
-            if ( json.contains( "scopes" ) )
-            {
-                ld.scopes = json[ "scopes" ] ;
-            }
-            if ( json.contains( "device_code" ) )
-            {
-                ld.device_code = json[ "device_code" ] ;
-            }
+    // parse json
+    if ( !content.empty() )
+    {
+        auto const json = nlohmann::json::parse( content ) ;
 
-            ld.client_id = json[ "client_id" ] ;
-            ld.channel_name = json[ "channel_name" ] ;
-            ld.nick_name = json[ "nick_name" ] ;
-            ld.broadcaster_id = json["broadcaster_id"] ;
-            ld.bot_id = json[ "bot_id" ] ;
-
-            ret = true ;
+        if ( !json.contains( "required" ) )
+        {
+            motor::log::global_t::error( "missing required json object" ) ;
+            exit( 1 ) ;
         }
-    } ) ;
-    return ret ;
+
+        // handle required data
+        {
+            nlohmann::json const required = json[ "required" ] ;
+
+            bool_t valid = true ;
+            valid = valid || required.contains( "broadcaster_name" ) ;
+            valid = valid || required.contains( "client_id" ) ;
+            valid = valid || required.contains( "scopes" ) &&
+                required[ "scopes" ].is_array() ;
+
+            if ( !valid )
+            {
+                motor::log::global_t::error( "missing required json data" ) ;
+                exit( 1 ) ;
+            }
+
+            ld.client_id = required[ "client_id" ] ;
+            ld.broadcaster_name = required[ "broadcaster_name" ] ;
+
+
+            auto const scopes = required[ "scopes" ] ;
+            ld.scopes.reserve( scopes.size() ) ;
+
+            for ( auto const & s : scopes )
+            {
+                if ( s.is_string() )
+                {
+                    ld.scopes.emplace_back( motor::string_t( s ) ) ;
+                }
+            }
+
+            // print the scopes array as a string.
+            {
+                motor::log::global::status( ld.scopes_to_string() ) ;
+            }
+}
+
+        if ( json.contains( "optional" ) )
+        {
+            nlohmann::json const optional = json[ "optional" ] ;
+
+            if ( optional.contains( "bot_name" ) )
+            {
+                ld.bot_name = optional[ "bot_name" ] ;
+            }
+
+            if ( ld.bot_name.empty() )
+            {
+                ld.bot_name = ld.broadcaster_name ;
+            }
+
+            if ( optional.contains( "channel_name" ) )
+            {
+                ld.channel_name = optional[ "channel_name" ] ;
+            }
+
+            if ( ld.channel_name.empty() )
+            {
+                ld.channel_name = ld.broadcaster_name ;
+            }
+
+            if ( optional.contains( "nick_name" ) )
+            {
+                ld.nick_name = optional[ "nick_name" ] ;
+            }
+
+            if ( ld.nick_name.empty() )
+            {
+                ld.nick_name = ld.broadcaster_name ;
+            }
+
+            if ( optional.contains( "client_secret" ) )
+            {
+                ld.client_secret = optional[ "client_secret" ] ;
+            }
+        }
+        else
+        {
+            ld.bot_name = ld.broadcaster_name ;
+            ld.channel_name = ld.broadcaster_name ;
+            ld.nick_name = ld.broadcaster_name ;
+        }
+
+        if ( json.contains( "internal" ) )
+        {
+            nlohmann::json const jdata = json[ "internal" ] ;
+
+            if ( jdata.contains( "access_token" ) )
+                ld.access_token = jdata[ "access_token" ] ;
+            if ( jdata.contains( "device_code" ) )
+                ld.device_code = jdata[ "device_code" ] ;
+            if ( jdata.contains( "refresh_token" ) )
+                ld.refresh_token = jdata[ "refresh_token" ] ;
+        }
+    }
+
+    return !content.empty() ;
 }
 
 //**********************************************************************************
 void_t twitch_irc_bot::write_credentials( this_t::login_data_in_t ld ) const noexcept
 {
-    std::string const content = nlohmann::json (
+    nlohmann::json const output_data =
     {
-        { "access_token", _login_data.user_token },
-        { "refresh_token", _login_data.refresh_token },
-        { "client_id", _login_data.client_id },
-        { "client_secret", _login_data.client_secret },
-        { "scopes", _login_data.scopes },
-        { "device_code", _login_data.device_code },
-        { "nick_name", _login_data.nick_name },
-        { "channel_name", _login_data.channel_name },
-        { "broadcaster_id", _login_data.broadcaster_id },
-        { "bot_id", _login_data.bot_id }
-        } ).dump(1) ;
+        {
+            "required",
+            {
+                { "broadcaster_name", ld.broadcaster_name },
+                { "client_id", ld.client_id },
+                { "scopes", ld.scopes }
+            }
+        },
+        {
+            "optional",
+            {
+                { "bot_name", ld.bot_name },
+                { "channel_name", ld.channel_name },
+                { "nick_name", ld.nick_name },
+                { "client_secret", ld.client_secret }
+            }
+        },
+        {
+            "internal",
+            {
+                { "access_token", ld.access_token },
+                { "device_code", ld.device_code },
+                { "refresh_token", ld.refresh_token },
+            }
+        }
+    } ;
 
-    _db->store( _conf_file, content.c_str(), content.size() ).
-        wait_for_operation( [&] ( motor::io::result const res )
+    std::string dump = output_data.dump( 4 ) ;
+
+    _db->store( _conf_file, dump.c_str(), dump.size() ).wait_for_operation( [&] ( motor::io::result const res )
     {
         if ( res == motor::io::result::ok )
         {
-            motor::log::global_t::status( "New Twitch Tokens written to : " + _conf_file.as_string() ) ;
+            motor::log::global_t::status( "[Twitch IRC Bot] : data written to : " + _conf_file.as_string() ) ;
         }
         else
         {
-            motor::log::global_t::error( "failed to write new tokens" ) ;
+            motor::log::global_t::error( "[Twitch IRC Bot] : failed to write data to file : " + _conf_file.as_string() ) ;
         }
     } ) ;
 }
@@ -756,7 +794,7 @@ void_t twitch_irc_bot::update( void_t ) noexcept
     case motor::social::twitch::program_state::need_login:
     {
         data_out =
-            "PASS oauth:" + _login_data.user_token + "\r\n"
+            "PASS oauth:" + _login_data.access_token + "\r\n"
             "NICK "+ _login_data.nick_name + "\r\n"
             "JOIN " + _login_data.channel_name + "\r\n"
             "CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands\r\n" ;
@@ -788,7 +826,7 @@ motor::social::twitch::initial_process_result twitch_irc_bot::load_credentials_f
         return motor::social::twitch::initial_process_result::credentials_failed ;
     }
 
-    if ( _login_data.user_token.empty() )
+    if ( _login_data.access_token.empty() )
     {
         return motor::social::twitch::initial_process_result::no_token ;
     }
@@ -834,7 +872,7 @@ bool_t twitch_irc_bot::send_announcement( motor::string_in_t msg,
     auto const curl_validate_com =
         "curl -X POST \"https://api.twitch.tv/helix/chat/announcements?broadcaster_id="
             +_login_data.broadcaster_id+"&moderator_id="+_login_data.bot_id+"\" "
-        "-H \"Authorization: Bearer " + _login_data.user_token + "\" "
+        "-H \"Authorization: Bearer " + _login_data.access_token + "\" "
         "-H \"Client-Id: " + _login_data.client_id + "\" "
         "-H \"Content-Type: application/json\" "
         "-d \"{"        
@@ -869,7 +907,7 @@ bool_t twitch_irc_bot::send_message( motor::string_in_t msg ) noexcept
 
     auto const curl_validate_com =
         "curl -X POST https://api.twitch.tv/helix/chat/messages "
-        "-H \"Authorization: Bearer " + _login_data.user_token + "\" "
+        "-H \"Authorization: Bearer " + _login_data.access_token + "\" "
         "-H \"Client-Id: " + _login_data.client_id + "\" "
         "-H \"Content-Type: application/json\" "
         "-d \"{"
