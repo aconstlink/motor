@@ -729,7 +729,7 @@ bool_t twitch_irc_bot::send_announcement( motor::string_in_t msg,
 
     auto const curl_validate_com =
         "curl -X POST \"https://api.twitch.tv/helix/chat/announcements?broadcaster_id="
-            +_login_data.broadcaster_id+"&moderator_id="+_login_data.bot_id+"\" "
+            +_login_data.broadcaster_id+"&moderator_id="+_login_data.broadcaster_id+"\" "
         "-H \"Authorization: Bearer " + _login_data.access_token + "\" "
         "-H \"Client-Id: " + _login_data.client_id + "\" "
         "-H \"Content-Type: application/json\" "
@@ -939,7 +939,7 @@ void_t twitch_irc_bot::on_send( byte_cptr_t & buffer, size_t & num_sib ) noexcep
         std::lock_guard< std::mutex > lk( _mtx_outs ) ;
         for( auto const & o : _outs )
         {
-            data_out += "PRIVMSG " + _login_data.channel_name + " : " + o + "\r\n" ;
+            data_out += "PRIVMSG #" + _login_data.channel_name + " : " + o + "\r\n" ;
         }
         _outs.clear() ;
     }

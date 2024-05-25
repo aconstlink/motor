@@ -8,6 +8,13 @@
 #include <array>
 #include <cstring>
 
+#include <sys/ioctl.h>
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <netinet/in.h>
+#include <errno.h>
+
 using namespace motor::platform ;
 using namespace motor::platform::unx ;
 
@@ -58,7 +65,7 @@ motor::network::socket_id_t unix_net_module::create_tcp_server(
         {
             int const err = errno ;
             motor::log::global::error( "[unix_net_module::create_tcp_server] : getaddrinfo" ) ;
-            motor::log::global::error( "[unix_net_module::create_tcp_server] : WSAGetLastError " +
+            motor::log::global::error( "[unix_net_module::create_tcp_server] : " +
                 motor::to_string( err ) ) ;
             return motor::network::socket_id_t( -1 ) ;
         }
@@ -73,7 +80,7 @@ motor::network::socket_id_t unix_net_module::create_tcp_server(
         {
             int const err = errno ;
             motor::log::global::error( "[unix_net_module::create_tcp_server] : socket" ) ;
-            motor::log::global::error( "[unix_net_module::create_tcp_server] : WSAGetLastError " +
+            motor::log::global::error( "[unix_net_module::create_tcp_server] : " +
                 motor::to_string( err ) ) ;
             return motor::network::socket_id_t( -1 ) ;
         }
@@ -86,7 +93,7 @@ motor::network::socket_id_t unix_net_module::create_tcp_server(
         {
             int const err = errno ;
             motor::log::global::error( "[unix_net_module::create_tcp_server] : socket" ) ;
-            motor::log::global::error( "[unix_net_module::create_tcp_server] : WSAGetLastError " +
+            motor::log::global::error( "[unix_net_module::create_tcp_server] : " +
                 motor::to_string( err ) ) ;
             return motor::network::socket_id_t( -1 ) ;
         }
@@ -99,7 +106,7 @@ motor::network::socket_id_t unix_net_module::create_tcp_server(
         {
             int const err = errno ;
             motor::log::global::error( "[unix_net_module::create_tcp_server] : listen" ) ;
-            motor::log::global::error( "[unix_net_module::create_tcp_server] : WSAGetLastError " +
+            motor::log::global::error( "[unix_net_module::create_tcp_server] : " +
                 motor::to_string( err ) ) ;
             return motor::network::socket_id_t( -1 ) ;
         }
@@ -280,19 +287,19 @@ SOCKET unix_net_module::connect_client( motor::network::ipv4::binding_point_host
         {
             int const err = errno ;
             motor::log::global::error( "[unix_net_module::connect_client] : getaddrinfo" ) ;
-            motor::log::global::error( "[unix_net_module::connect_client] : WSAGetLastError " +
+            motor::log::global::error( "[unix_net_module::connect_client] : " +
                 motor::to_string( err ) ) ;
             return motor::network::socket_id_t( -1 ) ;
         }
 
         for ( ptr = result; ptr != NULL; ptr = ptr->ai_next )
         {
-            s = socket( ptr->ai_family, ptr->ai_socktype | SOCK_NONBLOCK, ptr->ai_protocol ) ;
+            s = socket( ptr->ai_family, ptr->ai_socktype /*| SOCK_NONBLOCK*/, ptr->ai_protocol ) ;
             if ( s == INVALID_SOCKET )
             {
                 int const err = errno ;
                 motor::log::global::error( "[unix_net_module::connect_client] : socket" ) ;
-                motor::log::global::error( "[unix_net_module::connect_client] : WSAGetLastError " +
+                motor::log::global::error( "[unix_net_module::connect_client] : " +
                     motor::to_string( err ) ) ;
                 return motor::network::socket_id_t( -1 ) ;
             }
@@ -302,6 +309,10 @@ SOCKET unix_net_module::connect_client( motor::network::ipv4::binding_point_host
             if ( con_res == -1 )
             {
                 int const err = errno ;
+                if( err == EINPROGRESS )
+                {
+                    
+                }
                 close( s );
                 s = INVALID_SOCKET;
                 continue;
@@ -316,7 +327,7 @@ SOCKET unix_net_module::connect_client( motor::network::ipv4::binding_point_host
     {
         int const err = errno ;
         motor::log::global::error( "[unix_net_module::connect_client] : connect" ) ;
-        motor::log::global::error( "[unix_net_module::connect_client] : WSAGetLastError " +
+        motor::log::global::error( "[unix_net_module::connect_client] : " +
             motor::to_string( err ) ) ;
 
         return motor::network::socket_id_t( -1 ) ;
@@ -338,16 +349,17 @@ SOCKET unix_net_module::connect_client( motor::network::ipv4::binding_point_host
     }
     #endif
 
-    #if 0
+    #if 1
     // do non-blocking mode
     {
         u_long mode = 1;  // 1 to enable non-blocking socket
-        auto const res = ioctlsocket( s, FIONBIO, &mode );
-        if ( res != 0 )
+        auto const res = ioctl( s, FIONBIO, &mode );
+        if ( res < 0 )
         {
-            motor::log::global::error( "[unix_net_module::connect_client] : ioctlsocket" ) ;
-            motor::log::global::error( "[unix_net_module::connect_client] : WSAGetLastError " +
-                motor::to_string( WSAGetLastError() ) ) ;
+            auto const err = errno ;
+            motor::log::global::error( "[unix_net_module::connect_client] : ioctl FIONBIO" ) ;
+            motor::log::global::error( "[unix_net_module::connect_client] : " +
+                motor::to_string( err ) ) ;
         }
     }
     #endif
