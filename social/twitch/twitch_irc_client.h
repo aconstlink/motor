@@ -333,4 +333,5 @@ namespace motor { namespace social { namespace twitch {
         //**********************************************************************************
         virtual void_t on_sent( motor::network::transmit_result const ) noexcept ;
     };
+    motor_typedef( twitch_irc_bot ) ;
 } } }
