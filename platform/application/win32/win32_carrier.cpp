@@ -15,6 +15,7 @@
 #endif
 
 #include "../../audio/oal/oal.h"
+#include "../../network/network_module_creator.hpp"
 
 #include <motor/concurrent/global.h>
 
@@ -47,6 +48,7 @@ win32_carrier::win32_carrier( void_t ) noexcept
 {
     this_t::create_and_register_device_modules() ;
     this_t::create_and_register_audio_backend() ;
+    this_t::create_and_register_network_modules() ;
 
     motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ; 
     motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::brand_string() ) ;
@@ -72,6 +74,7 @@ win32_carrier::win32_carrier( motor::application::app_mtr_safe_t app ) noexcept 
 {
     this_t::create_and_register_device_modules() ;
     this_t::create_and_register_audio_backend() ;
+    this_t::create_and_register_network_modules() ;
 
     motor::log::global_t::status( "[win32::cpuv] : : " + motor::platform::cpu_id_t::vendor_string() ) ;
     motor::log::global_t::status( "[win32::cpub]: " + motor::platform::cpu_id_t::brand_string() ) ;
@@ -483,6 +486,12 @@ void_t win32_carrier::create_and_register_audio_backend( void_t ) noexcept
         "[win32_carrier] : created oal backend and passed to carrier audio system." ) ;
 
     motor::audio::system::controller( this->get_audio_system() ).start( motor::move( bend ) ) ;
+}
+
+//***********************************************************************
+void_t win32_carrier::create_and_register_network_modules( void_t ) noexcept 
+{
+    this_t::network_system()->add_module( motor::platform::network_module_creator::create() ) ;
 }
 
 //***********************************************************************

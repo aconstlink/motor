@@ -119,6 +119,7 @@ namespace motor
                 bool_t find_window_info( Window hwnd, find_window_info_funk_t ) noexcept ;
 
                 void_t create_and_register_device_modules( void_t ) noexcept ;
+                void_t create_and_register_network_modules( void_t ) noexcept ;
             };
             motor_typedef( xlib_carrier ) ;
         }

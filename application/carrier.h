@@ -11,6 +11,7 @@
 
 #include <motor/controls/system.h>
 #include <motor/audio/system.h>
+#include <motor/network/system.h>
 
 #include <thread>
 
@@ -37,6 +38,7 @@ namespace motor
 
             motor::controls::system_ptr_t _dev_system = nullptr ;
             motor::audio::system_ptr_t _audio_system = nullptr ;
+            motor::network::system_ptr_t _network_system = nullptr ;
 
         public:
 
@@ -53,6 +55,7 @@ namespace motor
             void_t update_device_system( void_t ) noexcept ;
 
             motor::audio::system_ptr_t audio_system( void_t ) noexcept ;
+            motor::network::system_ptr_t network_system( void_t ) noexcept ;
 
         public: // window creation interface
 
@@ -62,6 +65,7 @@ namespace motor
 
             motor::controls::system_ptr_t get_dev_system( void_t ) noexcept ;
             motor::audio::system_ptr_t get_audio_system( void_t ) noexcept ;
+            motor::network::system_ptr_t get_network_system( void_t ) noexcept ;
 
         private:
 

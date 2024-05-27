@@ -601,3 +601,9 @@ void_t xlib_carrier::create_and_register_device_modules( void_t ) noexcept
     _device_module = motor::shared( motor::platform::xlib::xlib_module_t(), "[xlib] : device module" ) ;
     this_t::get_dev_system()->add_module( motor::share( _device_module ) ) ;
 }
+
+//***********************************************************************
+void_t xlib_carrier::create_and_register_network_modules( void_t ) noexcept 
+{
+    this_t::network_system()->add_module( motor::platform::network_module_creator::create() ) ;
+}

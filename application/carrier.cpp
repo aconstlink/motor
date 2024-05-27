@@ -16,6 +16,8 @@ carrier::carrier( void_t ) noexcept
         "[carrier] : device system" ) ;
     _audio_system = motor::memory::global_t::alloc( motor::audio::system_t(), 
         "[carrier] : audio system" ) ;
+    _network_system = motor::memory::global_t::alloc( motor::network::system_t(),
+        "[carrier] : network system" ) ;
 }
 
 //******************************************************
@@ -28,6 +30,7 @@ carrier::carrier( this_rref_t rhv ) noexcept
 
     _dev_system = motor::move( rhv._dev_system ) ;
     _audio_system = motor::move( rhv._audio_system ) ;
+    _network_system = motor::move( rhv._network_system ) ;
 }
 
 //******************************************************
@@ -42,6 +45,7 @@ carrier::~carrier( void_t ) noexcept
     motor::memory::global_t::dealloc( _sd ) ;
     motor::memory::global_t::dealloc( _dev_system ) ;
     motor::memory::global_t::dealloc( _audio_system ) ;
+    motor::memory::global_t::dealloc( _network_system ) ;
 
     motor::memory::release_ptr( _app ) ;
 }
@@ -136,6 +140,12 @@ motor::audio::system_ptr_t carrier::get_audio_system( void_t ) noexcept
 }
 
 //******************************************************
+motor::network::system_ptr_t carrier::get_network_system( void_t ) noexcept 
+{
+    return _network_system ;
+}
+
+//******************************************************
 void_t carrier::update_device_system( void_t ) noexcept 
 {
     _dev_system->update() ;
@@ -151,4 +161,10 @@ motor::controls::system_mtr_t carrier::device_system( void_t ) noexcept
 motor::audio::system_ptr_t carrier::audio_system( void_t ) noexcept 
 {
     return _audio_system ;
+}
+
+//******************************************************
+motor::network::system_ptr_t carrier::network_system( void_t ) noexcept 
+{
+    return _network_system ;
 }

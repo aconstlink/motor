@@ -17,6 +17,9 @@
 #include <motor/audio/frontend.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
+#include <motor/network/ipv4_address.hpp>
+#include <motor/network/imodule.h>
+
 #include <motor/tool/imgui/imgui.h>
 #include <motor/tool/imgui/engine_profiling.h>
 
@@ -37,6 +40,7 @@ namespace motor
         public:
 
             using window_id_t = size_t ;
+            using client_id_t = size_t ;
 
         private:
 
@@ -85,6 +89,17 @@ namespace motor
             bool_t _closed = false ;
             bool_t _first_audio = true ;
             bool_t _shutdown_called = false ;
+
+        private: // netork
+
+            class _app_client_handler_wrapper ;
+            struct network_store
+            {
+                motor::network::socket_id_t sid ;
+                motor::network::imodule_mtr_t mod ;
+                _app_client_handler_wrapper * wrapper ;
+            };
+            motor::vector< network_store > _networks ;
 
         public: // profiling 
 
@@ -171,6 +186,11 @@ namespace motor
             };
             motor_typedef( profile_data ) ;
 
+            struct network_data
+            {
+            };
+            motor_typedef( network_data ) ;
+
         public:
 
             virtual void_t on_init( void_t ) noexcept {} ;
@@ -187,6 +207,8 @@ namespace motor
 
             virtual void_t on_profile( profile_data_in_t ) noexcept { }
 
+            virtual void_t on_network( network_data_in_t ) noexcept { }
+
         public:
 
             virtual void_t on_render( this_t::window_id_t const, motor::graphics::gen4::frontend_ptr_t, 
@@ -194,10 +216,10 @@ namespace motor
 
             virtual bool_t on_tool( this_t::window_id_t const, motor::application::app::tool_data_ref_t ) noexcept { return false ; }
 
-        public: // window specific
-
             virtual void_t on_event( window_id_t const, 
                 motor::application::window_message_listener::state_vector_cref_t ) noexcept{}
+
+        public: // window stuff
 
             window_id_t create_window( motor::application::window_info_cref_t ) noexcept ;
 
@@ -243,6 +265,10 @@ namespace motor
                 bool_t shutdown( void_t ) noexcept { return _app->carrier_shutdown() ; }
                 bool_t has_closed( void_t ) noexcept { return _app->_closed ; }
             };
+
+        protected:
+
+            void_t create_tcp_client( motor::string_in_t name, motor::network::ipv4::binding_point_host_in_t, motor::network::iclient_handler_mtr_rref_t ) noexcept ;
 
         private: 
 

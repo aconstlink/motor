@@ -132,7 +132,7 @@ motor::network::socket_id_t win32_net_module::create_tcp_server(
         tcpd->t = std::thread( [=] ( void_t )
         {
             motor::string_t const log_start = "[TCP server " + info_in.name + "] : " ;
-            motor::log::global::status( log_start + "online and accepting incoming connections." ) ;
+            motor::log::global::status( log_start + "online and accepting incoming connections at " + motor::to_string(info_in.bp.port) ) ;
 
             tcpd->running = true ;
 

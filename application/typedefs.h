@@ -11,5 +11,11 @@ namespace motor
     namespace application
     {
         using namespace motor::core::types ;
+
+        enum class network_client_type
+        {
+            udp,
+            tcp
+        };
     }
 }
