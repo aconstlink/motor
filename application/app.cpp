@@ -8,6 +8,84 @@
 
 using namespace motor::application ;
 
+class motor::application::app::_app_client_handler_wrapper : public motor::network::iclient_handler
+{
+    motor::network::iclient_handler_mtr_t _handler ;
+    motor::application::app_ptr_t _app ;
+
+    bool_t _shutdown = false ;
+
+public:
+
+    _app_client_handler_wrapper( motor::application::app_ptr_t owner, motor::network::iclient_handler_ptr_t hnd ) noexcept :
+        _handler( hnd ), _app( owner ) {}
+
+    _app_client_handler_wrapper( _app_client_handler_wrapper && rhv ) noexcept :
+        _handler( motor::move( rhv._handler ) ), _app( motor::move( rhv._app ) ) {}
+
+    virtual ~_app_client_handler_wrapper( void_t ) noexcept
+    {
+        motor::memory::release_ptr( _handler ) ;
+    }
+
+    virtual motor::network::user_decision on_connect( motor::network::connect_result const res, size_t const tries ) noexcept
+    {
+        auto const ret_res = _handler->on_connect( res, tries ) ;
+        if ( ret_res == motor::network::user_decision::shutdown )
+        {
+            _app->remove( this ) ;
+        }
+        return ret_res ;
+    }
+
+    virtual motor::network::user_decision on_sync( void_t ) noexcept
+    {
+        auto const ret_res = _handler->on_sync() ;
+        if ( ret_res == motor::network::user_decision::shutdown )
+        {
+            _app->remove( this ) ;
+        }
+        return ret_res ;
+    }
+
+    virtual motor::network::user_decision on_update( void_t ) noexcept
+    {
+        auto const ret_res = _handler->on_update() ;
+        if ( ret_res == motor::network::user_decision::shutdown ||
+            _shutdown )
+        {
+            _app->remove( this ) ;
+            return motor::network::user_decision::shutdown ;
+        }
+        return ret_res ;
+    }
+
+    virtual void_t on_receive( byte_cptr_t buffer, size_t const sib ) noexcept
+    {
+        _handler->on_receive( buffer, sib ) ;
+    }
+
+    virtual void_t on_received( void_t ) noexcept
+    {
+        _handler->on_received() ;
+    }
+
+    virtual void_t on_send( byte_cptr_t & buffer, size_t & num_sib ) noexcept
+    {
+        _handler->on_send( buffer, num_sib ) ;
+    }
+
+    virtual void_t on_sent( motor::network::transmit_result const res ) noexcept
+    {
+        _handler->on_sent( res ) ;
+    }
+
+    void_t shutdown( void_t ) noexcept
+    {
+        _shutdown = true ;
+    }
+};
+
 //**************************************************************************************************************
 app::app( void_t ) noexcept
 {
@@ -329,25 +407,36 @@ bool_t app::carrier_shutdown( void_t ) noexcept
         _shutdown_called = true ;
     }
     
-    for( auto & d : _destruction_queue ) 
     {
-        if( !this_t::clear_out_window_data( d ) ) 
+        for ( auto & d : _destruction_queue )
         {
-            return false ;
+            if ( !this_t::clear_out_window_data( d ) )
+            {
+                return false ;
+            }
         }
+
+        _destruction_queue.clear() ;
+
+        for ( auto & d : _windows )
+        {
+            if ( !this_t::clear_out_window_data( d ) )
+            {
+                return false ;
+            }
+        }
+
+        _windows.clear() ;
     }
 
-    _destruction_queue.clear() ;
-
-    for( auto & d : _windows ) 
+    // clear out network clients
     {
-        if( !this_t::clear_out_window_data( d ) ) 
+        for( auto & ns : _networks )
         {
-            return false ;
+            ns.wrapper->shutdown() ;
+            motor::memory::release_ptr( motor::move( ns.wrapper ) ) ;
         }
     }
-
-    _windows.clear() ;
 
     return true ;
 }
@@ -562,65 +651,6 @@ void_t app::display_profiling_data( void_t ) noexcept
     _engine_profiling.display() ;
 }
 
-class motor::application::app::_app_client_handler_wrapper : public motor::network::iclient_handler
-{
-    motor::network::iclient_handler_mtr_t _handler ;
-    motor::application::app_ptr_t _app ;
-
-public:
-
-    _app_client_handler_wrapper( motor::application::app_ptr_t owner, motor::network::iclient_handler_ptr_t hnd ) noexcept :
-        _handler( hnd ), _app( owner ) {}
-
-    _app_client_handler_wrapper( _app_client_handler_wrapper && rhv ) noexcept : 
-        _handler( motor::move(rhv._handler) ), _app( motor::move(rhv._app) ) {}
-
-    ~_app_client_handler_wrapper( void_t ) noexcept
-    {
-        motor::memory::release_ptr( _handler ) ;
-    }
-    
-    virtual motor::network::user_decision on_connect( motor::network::connect_result const res, size_t const tries ) noexcept
-    {
-        if ( res == motor::network::connect_result::closed )
-        {
-            // need to remove from network list
-            //_app->remove...
-        }
-        return _handler->on_connect( res, tries ) ;
-    }
-
-    virtual motor::network::user_decision on_sync( void_t ) noexcept
-    {
-        return _handler->on_sync() ;
-    }
-
-    virtual motor::network::user_decision on_update( void_t ) noexcept
-    {
-        return _handler->on_update() ;
-    }
-
-    virtual void_t on_receive( byte_cptr_t buffer, size_t const sib ) noexcept
-    {
-        _handler->on_receive( buffer, sib ) ;
-    }
-
-    virtual void_t on_received( void_t ) noexcept
-    {
-        _handler->on_received() ;
-    }
-
-    virtual void_t on_send( byte_cptr_t & buffer, size_t & num_sib ) noexcept
-    {
-        _handler->on_send( buffer, num_sib ) ;
-    }
-
-    virtual void_t on_sent( motor::network::transmit_result const res ) noexcept
-    {
-        _handler->on_sent( res ) ;
-    }
-};
-
 //**********************************************************************
 void_t app::create_tcp_client( motor::string_in_t name, motor::network::ipv4::binding_point_host_in_t bp, 
     motor::network::iclient_handler_mtr_rref_t handler ) noexcept 
@@ -629,15 +659,31 @@ void_t app::create_tcp_client( motor::string_in_t name, motor::network::ipv4::bi
     {
          _app_client_handler_wrapper * wrapper = motor::shared( 
              _app_client_handler_wrapper( this, motor::move(handler) ),
-        "[app::create_tcp_client] : network_handler_wrapper" ) ;
+        "[app::create_tcp_client] : network_client_handler_wrapper" ) ;
 
         auto const sid = mod->create_tcp_client( { name, bp, motor::share( wrapper ) } ) ;
 
         if( sid != motor::network::socket_id_t( -1 ) )
         {
-            _networks.emplace_back( this_t::network_store{ sid, motor::share(mod), wrapper } ) ;
+            std::lock_guard< std::mutex > lk( _mtx_networks ) ;
+            _networks.emplace_back( this_t::network_store{ sid, wrapper } ) ;
             return true ;
         }
         return false ;
     } ) ;
+}
+
+//**********************************************************************
+void_t app::remove( _app_client_handler_wrapper * handler ) noexcept 
+{
+    std::lock_guard< std::mutex > lk( _mtx_networks ) ;
+
+    auto const iter = std::find_if( _networks.begin(), _networks.end(), [&]( this_t::network_store const & d )
+    {
+        return d.wrapper == handler ;
+    } ) ;
+
+    if( iter == _networks.end() ) return ;
+    motor::memory::release_ptr( iter->wrapper ) ;
+    _networks.erase( iter ) ;
 }

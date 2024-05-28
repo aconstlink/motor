@@ -85,6 +85,7 @@ namespace motor { namespace platform { namespace win32
             motor::network::ipv4::binding_point_host bp ;
 
             bool_t used = true ;
+            bool_t run = true ;
 
             motor::network::iclient_handler_mtr_t handler ;
 
@@ -117,7 +118,7 @@ namespace motor { namespace platform { namespace win32
         win32_net_module( void_t ) noexcept ;
         win32_net_module( this_cref_t ) = delete ;
         win32_net_module( this_rref_t ) noexcept ;
-        ~win32_net_module( void_t ) noexcept ;
+        virtual ~win32_net_module( void_t ) noexcept ;
 
     public: // interface
 
@@ -134,7 +135,7 @@ namespace motor { namespace platform { namespace win32
         size_t create_tcp_client_id( void_t ) noexcept ;
         size_t create_tcp_server_id( SOCKET ) noexcept ;
 
-        SOCKET connect_client( motor::network::ipv4::binding_point_host const & bp ) const noexcept ;
+        SOCKET connect_client( motor::network::ipv4::binding_point_host const & bp, motor::network::connect_result & ) const noexcept ;
 
         void_t release_all_tcp( void_t ) noexcept ;
     };

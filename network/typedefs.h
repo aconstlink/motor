@@ -30,6 +30,7 @@ namespace motor
         {
             initial,
             established,
+            refused,
             closed,
             failed
         };
@@ -37,7 +38,7 @@ namespace motor
         static motor::string_t to_string( connect_result const res ) noexcept
         {
             static char const * const __connect_result_strings[] =
-            { "initial", "established", "closed", "failed" } ;
+            { "initial", "established", "refused", "closed", "failed" } ;
 
             return __connect_result_strings[ size_t( res ) ] ;
         }
@@ -61,6 +62,12 @@ namespace motor
             shutdown
         };
 
+        enum class server_decision
+        {
+            keep_going,
+            shutdown,
+            shutdown_client
+        };
 
         static const size_t send_buffer_sib = 2048 ;
 
