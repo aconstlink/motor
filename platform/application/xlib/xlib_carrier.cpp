@@ -1,5 +1,7 @@
 #include "xlib_carrier.h"
 
+#include "../../network/network_module_creator.hpp"
+
 #include <motor/graphics/render_engine.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
@@ -121,7 +123,8 @@ xlib_carrier::xlib_carrier( void_t ) noexcept
 {
     connect_display() ;
 
-    this_t::create_and_register_device_modules() ;    
+    this_t::create_and_register_device_modules() ;
+    this_t::create_and_register_network_modules() ;
 }
 
 //***********************************************************************
@@ -129,6 +132,7 @@ xlib_carrier::xlib_carrier( motor::application::app_mtr_safe_t app ) noexcept : 
 {
     connect_display() ;
     this_t::create_and_register_device_modules() ;
+    this_t::create_and_register_network_modules() ;
 }
 
 //**********************************************************************
