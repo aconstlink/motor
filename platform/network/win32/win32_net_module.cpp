@@ -531,6 +531,7 @@ motor::network::socket_id_t win32_net_module::create_tcp_client(
             if ( tcpd->s != INVALID_SOCKET )
             {
                 closesocket( tcpd->s ) ;
+                tcpd->s = INVALID_SOCKET ;
                 tcpd->handler->on_connect( motor::network::connect_result::closed, 0 ) ;
             }
 

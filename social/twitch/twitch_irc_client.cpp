@@ -72,6 +72,7 @@ twitch_irc_bot::twitch_irc_bot( this_rref_t rhv ) noexcept
 //*************************************************************
 twitch_irc_bot::~twitch_irc_bot( void_t ) noexcept
 {
+    motor::memory::release_ptr( _db ) ;
 }
 
 //*************************************************************
@@ -784,11 +785,35 @@ bool_t twitch_irc_bot::send_message( motor::string_in_t msg ) noexcept
     
     // json validate
     {
-        nlohmann::json data = nlohmann::json::parse( response ) ;
-        if( this_file::check_for_status( data ) )
+        nlohmann::json res = nlohmann::json::parse( response ) ;
+        if( this_file::check_for_status( res ) )
         {
             return false ;
         }
+        if( res.contains("data") && res["data"].is_array() )
+        {
+            for( auto const & d : res["data"] )
+            {
+                if ( d.contains("is_sent") && d[ "is_sent" ].is_boolean() )
+                {
+                    if( !d[ "is_sent" ] ) motor::log::global::error( "IRC message not send" ) ;
+                }
+
+                if ( d.contains("code") )
+                {
+                    motor::log::global::status( "Twitch send message code: " + d["code"] ) ;
+                }
+            }
+        }
+        if( res.contains("drop_reason") )
+        {
+            auto const d = res["drop_reason"] ;
+            if ( d.contains( "code" ) )
+            {
+                motor::log::global::status( "Twitch send message code: " + d[ "code" ] ) ;
+            }
+        }
+        
     }
     return true ;
 }

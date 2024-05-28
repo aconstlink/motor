@@ -285,7 +285,7 @@ namespace motor { namespace social { namespace twitch {
             motor::string_out_t response, bool_t const clear ) const noexcept ;
         
     public: // user send/recv section IRC
-
+        
         bool_t swap_commands( this_t::commands_inout_t ) noexcept ;
         void_t send_response( motor::string_in_t ) noexcept ;
         void_t send_response( motor::string_rref_t ) noexcept ;
