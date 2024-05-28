@@ -406,9 +406,12 @@ bool_t twitch_irc_bot::load_credentials( this_t::login_data_out_t ld ) const noe
                 ld.nick_name = optional[ "nick_name" ] ;
             }
 
+            // at this point, nick_name will either be
+            // the broadcaster_name or
+            // the bot_name
             if ( ld.nick_name.empty() )
             {
-                ld.nick_name = ld.broadcaster_name ;
+                ld.nick_name = ld.bot_name ;
             }
 
             if ( optional.contains( "client_secret" ) )
