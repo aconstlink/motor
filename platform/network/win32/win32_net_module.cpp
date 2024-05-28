@@ -498,11 +498,14 @@ motor::network::socket_id_t win32_net_module::create_tcp_client(
                         // closed
                         if ( received == 0 )
                         {
-                            tcpd->handler->on_connect( motor::network::connect_result::closed, 0 ) ;
-                            closesocket( tcpd->s ) ;
-                            tcpd->s = INVALID_SOCKET ;
-                            tcpd->run = false ;
-                            break ;
+                            auto const con_res = tcpd->handler->on_connect( motor::network::connect_result::closed, 0 ) ;
+                            if( con_res == motor::network::user_decision::shutdown )
+                            {
+                                closesocket( tcpd->s ) ;
+                                tcpd->s = INVALID_SOCKET ;
+                                tcpd->run = false ;
+                                break ;
+                            }
                         }
 
                         // timeout and others
