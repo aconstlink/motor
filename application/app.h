@@ -93,13 +93,17 @@ namespace motor
         private: // netork
 
             class _app_client_handler_wrapper ;
+            friend class _app_client_handler_wrapper ;
+
             struct network_store
             {
                 motor::network::socket_id_t sid ;
-                motor::network::imodule_mtr_t mod ;
                 _app_client_handler_wrapper * wrapper ;
             };
             motor::vector< network_store > _networks ;
+
+            std::mutex _mtx_networks ;
+            void_t remove( _app_client_handler_wrapper * ) noexcept ;
 
         public: // profiling 
 

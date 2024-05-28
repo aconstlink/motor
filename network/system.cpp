@@ -17,6 +17,10 @@ system::system( this_rref_t rhv ) noexcept
 //*******************************************************************
 system::~system( void_t ) noexcept 
 {
+    for( auto * mod : _mods )
+    {
+        motor::memory::release_ptr( mod ) ;
+    }
 }
 
 //*******************************************************************

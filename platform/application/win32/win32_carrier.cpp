@@ -147,18 +147,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             }
 
             // test window destruction
-            // also do 
-            // -> wgl context destruction
             {
-                for( auto iter=_destroy_queue.begin(); iter != _destroy_queue.end(); )
-                {
-                    // have to wait until all users of the window are ready. 
-                    if( this_t::handle_destroyed_hwnd( *iter ) )
-                    {
-                        iter = _destroy_queue.erase( iter ) ; continue ;
-                    }
-                    ++iter ;
-                }
+                this_t::handle_destroyed() ;
             }
 
             #if MOTOR_GRAPHICS_WGL
@@ -444,7 +434,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
         }
     }
 
-    assert( _destroy_queue.size() == 0 ) ;
+    // in case while broke earlier.
+    this_t::handle_destroyed() ;
 
     for( auto const & d : _win32_windows )
     {
@@ -1039,6 +1030,20 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
     {
         d.sv.vsync_msg_changed = true ;
         d.sv.vsync_msg = states.vsync_msg ;
+    }
+}
+
+//*******************************************************************************************
+void_t win32_carrier::handle_destroyed( void_t ) noexcept 
+{
+    for ( auto iter = _destroy_queue.begin(); iter != _destroy_queue.end(); )
+    {
+        // have to wait until all users of the window are ready. 
+        if ( this_t::handle_destroyed_hwnd( *iter ) )
+        {
+            iter = _destroy_queue.erase( iter ) ; continue ;
+        }
+        ++iter ;
     }
 }
 

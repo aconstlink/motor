@@ -180,6 +180,8 @@ motor::network::socket_id_t win32_net_module::create_tcp_server(
                     size_t idx = 0 ;
                     for ( auto & ci : tcpd->clients )
                     {
+                        if( ci.s == INVALID_SOCKET ) continue ;
+
                         // send
                         {
                             byte_cptr_t buffer = nullptr ;
@@ -197,9 +199,21 @@ motor::network::socket_id_t win32_net_module::create_tcp_server(
                                     auto const has_sent = send( ci.s, (const char *) buffer, int( sib ), 0 ) ;
                                     if ( has_sent == SOCKET_ERROR )
                                     {
+                                        auto const err_code = WSAGetLastError() ;
+
                                         motor::log::global::error( "[win32_net_module::server_thread] : send" ) ;
                                         motor::log::global::error( "[win32_net_module::server_thread] : WSAGetLastError " +
-                                            motor::to_string( has_sent ) ) ;
+                                            motor::to_string( err_code ) ) ;
+
+                                        switch( err_code )
+                                        {
+                                        case WSAENOTCONN: 
+                                        case WSAESHUTDOWN:
+                                        case WSAETIMEDOUT:
+                                            ci.s = INVALID_SOCKET ;
+                                            break ;
+
+                                        }
                                     }
                                     if ( has_sent != sib )
                                     {
@@ -226,24 +240,53 @@ motor::network::socket_id_t win32_net_module::create_tcp_server(
                             if ( received == 0 )
                             {
                                 tcpd->handler->on_close( idx ) ;
+                                auto const cs_res = closesocket( ci.s ) ;
+                                if ( cs_res == SOCKET_ERROR )
+                                {
+                                    auto const err_code = WSAGetLastError() ;
+                                    motor::log::global::error( "[win32_net_module::server_thread] : send" ) ;
+                                    motor::log::global::error( "[win32_net_module::server_thread] : WSAGetLastError " +
+                                        motor::to_string( err_code ) ) ;
+                                }
+                                ci.s = INVALID_SOCKET ;
                                 break ;
                             }
 
                             // timeout and others
-                            if ( received == -1 )
+                            if ( received != -1 )
                             {
-                                //std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ;
-                                continue ;
+                                auto const res = tcpd->handler->on_receive( idx, (byte_cptr_t) buffer, received ) ;
+                                if ( res == motor::network::receive_result::close ) break  ;
                             }
+                        }
 
-                            auto const res = tcpd->handler->on_receive( idx, (byte_cptr_t) buffer, received ) ;
-                            if ( res == motor::network::receive_result::close ) break  ;
+                        // update
+                        {
+                            auto const res = tcpd->handler->on_update( idx ) ;
+                            switch( res ) 
+                            {
+                            case motor::network::server_decision::keep_going: break ;
+                            case motor::network::server_decision::shutdown: break ;
+                            case motor::network::server_decision::shutdown_client: 
+                            {
+                                auto const cs_res = closesocket( ci.s ) ;
+                                if( cs_res == SOCKET_ERROR )
+                                {
+                                    auto const err_code = WSAGetLastError() ;
+                                    motor::log::global::error( "[win32_net_module::server_thread] : send" ) ;
+                                    motor::log::global::error( "[win32_net_module::server_thread] : WSAGetLastError " +
+                                        motor::to_string( err_code ) ) ;
+                                }
+                                motor::log::global::status( "[win32_net_module] : socket closed" ) ;
+                                ci.s = INVALID_SOCKET ;
+                                break ;
+                            }
+                            }
                         }
 
                         ++idx ;
                     }
                 }
-
 
                 std::this_thread::sleep_for( std::chrono::milliseconds( 5 ) ) ;
             }
@@ -254,8 +297,10 @@ motor::network::socket_id_t win32_net_module::create_tcp_server(
 }
 
 //*****************************************************************
-SOCKET win32_net_module::connect_client( motor::network::ipv4::binding_point_host const & bp ) const noexcept
+SOCKET win32_net_module::connect_client( motor::network::ipv4::binding_point_host const & bp, motor::network::connect_result & res_out ) const noexcept
 {
+    res_out = motor::network::connect_result::failed ;
+
     SOCKET s = INVALID_SOCKET ;
     addrinfo * result = NULL ;
     addrinfo * ptr = NULL ;
@@ -294,9 +339,22 @@ SOCKET win32_net_module::connect_client( motor::network::ipv4::binding_point_hos
             }
 
             // Connect to server.
-            auto const con_res = connect( s, ptr->ai_addr, (int) ptr->ai_addrlen );
+            auto const con_res = connect( s, ptr->ai_addr, (int) ptr->ai_addrlen ) ;
             if ( con_res == SOCKET_ERROR )
             {
+                auto const con_wsa_res = WSAGetLastError() ;
+
+                if( con_wsa_res == WSAECONNREFUSED )
+                {
+                    res_out = motor::network::connect_result::refused ;
+                }
+                else 
+                {
+                    motor::log::global::error( "[win32_net_module::connect_client] : connect" ) ;
+                    motor::log::global::error( "[win32_net_module::connect_client] : WSAGetLastError " +
+                        motor::to_string( con_wsa_res ) ) ;
+                }
+
                 closesocket( s );
                 s = INVALID_SOCKET;
                 continue;
@@ -309,10 +367,6 @@ SOCKET win32_net_module::connect_client( motor::network::ipv4::binding_point_hos
 
     if ( s == INVALID_SOCKET )
     {
-        motor::log::global::error( "[win32_net_module::connect_client] : connect" ) ;
-        motor::log::global::error( "[win32_net_module::connect_client] : WSAGetLastError " +
-            motor::to_string( WSAGetLastError() ) ) ;
-
         return motor::network::socket_id_t( -1 ) ;
     }
 
@@ -342,6 +396,7 @@ SOCKET win32_net_module::connect_client( motor::network::ipv4::binding_point_hos
         }
     }
 
+    res_out = motor::network::connect_result::established ;
     return s ;
 }
 
@@ -371,19 +426,14 @@ motor::network::socket_id_t win32_net_module::create_tcp_client(
             motor::network::connect_result connection_state = motor::network::connect_result::initial ;
 
             size_t connection_tryouts = 0 ;
-
-            while ( true )
+            
+            while ( tcpd->run )
             {
                 // try connect loop
                 {
                     if ( tcpd->s == INVALID_SOCKET )
                     {
-                        tcpd->s = this_t::connect_client( tcpd->bp ) ;
-
-                        if ( tcpd->s == INVALID_SOCKET )
-                            connection_state = motor::network::connect_result::failed ;
-                        else
-                            connection_state = motor::network::connect_result::established ;
+                        tcpd->s = this_t::connect_client( tcpd->bp, connection_state ) ;
 
                         auto const what_to_do = tcpd->handler->on_connect( connection_state, ++connection_tryouts ) ;
                         if ( what_to_do == motor::network::user_decision::shutdown )
@@ -451,6 +501,7 @@ motor::network::socket_id_t win32_net_module::create_tcp_client(
                             tcpd->handler->on_connect( motor::network::connect_result::closed, 0 ) ;
                             closesocket( tcpd->s ) ;
                             tcpd->s = INVALID_SOCKET ;
+                            tcpd->run = false ;
                             break ;
                         }
 
@@ -463,6 +514,7 @@ motor::network::socket_id_t win32_net_module::create_tcp_client(
                         if( received < buflen ) break ;
                     }
 
+                    if( !tcpd->run ) break ;
                     if( tcpd->s == INVALID_SOCKET ) continue ;
 
                     if( something_received ) tcpd->handler->on_received() ;
@@ -476,12 +528,17 @@ motor::network::socket_id_t win32_net_module::create_tcp_client(
                 #endif
             }
 
-            if( tcpd->s != INVALID_SOCKET )
+            if ( tcpd->s != INVALID_SOCKET )
             {
                 closesocket( tcpd->s ) ;
                 tcpd->handler->on_connect( motor::network::connect_result::closed, 0 ) ;
+            }
+
+            {
                 motor::release( motor::move( tcpd->handler ) ) ;
                 tcpd->used = false ;
+
+                motor::log::global_t::status("[win32_net_module] : client shutdown") ;
             }
         } ) ;
     }
@@ -548,8 +605,15 @@ size_t win32_net_module::create_tcp_server_id( SOCKET s ) noexcept
 //*****************************************************************
 void_t win32_net_module::release_all_tcp( void_t ) noexcept
 {
-    for ( auto * ptr : _tcp_clients )
+    for ( auto * tcpd : _tcp_clients )
     {
-
+        if( tcpd->run )
+        {
+            tcpd->run = false ;
+            if( tcpd->t.joinable() )
+                tcpd->t.join() ;
+        }
+        motor::memory::release_ptr( tcpd->handler ) ;
+        motor::memory::global_t::dealloc( tcpd ) ;
     }
 }

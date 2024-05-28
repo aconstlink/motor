@@ -22,6 +22,8 @@ namespace motor{ namespace network
 
         virtual motor::network::transmit_result on_send(
             motor::network::client_id_t const, byte_cptr_t & buffer, size_t & num_sib ) noexcept = 0 ;
+
+        virtual motor::network::server_decision on_update( motor::network::client_id_t const ) noexcept = 0 ;
     };
     motor_typedef( iserver_handler ) ;
 
@@ -33,8 +35,13 @@ namespace motor{ namespace network
     };
     motor_typedef( create_tcp_server_info )  ;
 
-    class iclient_handler
+    class MOTOR_NETWORK_API iclient_handler
     {
+
+    public:
+
+        virtual ~iclient_handler( void_t ) noexcept  {}
+
     public:
 
         virtual motor::network::user_decision on_connect( motor::network::connect_result const, size_t const tries ) noexcept = 0 ;
@@ -59,6 +66,10 @@ namespace motor{ namespace network
 
     class MOTOR_NETWORK_API imodule
     {
+    public:
+
+        virtual ~imodule( void_t ) noexcept {}
+
     public:
 
         virtual socket_id_t create_tcp_client( motor::network::create_tcp_client_info_rref_t ) noexcept = 0 ;
