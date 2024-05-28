@@ -606,10 +606,13 @@ size_t win32_net_module::create_tcp_server_id( SOCKET s ) noexcept
 //*****************************************************************
 void_t win32_net_module::release_all_tcp( void_t ) noexcept
 {
+    motor::log::global::status("[win32_net_module] : Shutting down tcp client") ;
+
     for ( auto * tcpd : _tcp_clients )
     {
         if( tcpd->run )
         {
+            
             tcpd->run = false ;
             if( tcpd->t.joinable() )
                 tcpd->t.join() ;
@@ -617,4 +620,5 @@ void_t win32_net_module::release_all_tcp( void_t ) noexcept
         motor::memory::release_ptr( tcpd->handler ) ;
         motor::memory::global_t::dealloc( tcpd ) ;
     }
+    motor::log::global::status("[win32_net_module] : All tcp clients shutdown") ;
 }

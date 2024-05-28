@@ -5,6 +5,7 @@
 
 #include <fstream>
 #include <string>
+#include <sstream>
 
 using namespace motor::social::twitch ;
 
@@ -801,7 +802,7 @@ bool_t twitch_irc_bot::send_message( motor::string_in_t msg ) noexcept
 
                 if ( d.contains("code") )
                 {
-                    motor::log::global::status( "Twitch send message code: " + d["code"] ) ;
+                    motor::log::global::status( "Twitch send message code: " + motor::string_t( d["code"] ) ) ;
                 }
             }
         }
@@ -810,11 +811,205 @@ bool_t twitch_irc_bot::send_message( motor::string_in_t msg ) noexcept
             auto const d = res["drop_reason"] ;
             if ( d.contains( "code" ) )
             {
-                motor::log::global::status( "Twitch send message code: " + d[ "code" ] ) ;
+                motor::log::global::status( "Twitch send message code: " + motor::string_t( d[ "code" ] ) ) ;
             }
         }
-        
     }
+    return true ;
+}
+
+//**********************************************************************************
+void_t twitch_irc_bot::get_all_followers( this_t::followers_out_t followers ) const noexcept 
+{
+    std::lock_guard< std::mutex > lk( _mtx_followers ) ;
+    followers = _followers ;
+}
+
+//**********************************************************************************
+void_t twitch_irc_bot::get_latest_followers( this_t::followers_out_t followers ) const noexcept 
+{
+    std::lock_guard< std::mutex > lk( _mtx_followers ) ;
+    followers = _latest_followers ;
+}
+
+//**********************************************************************************
+bool_t twitch_irc_bot::get_latest_followers_priv( followers_out_t followers ) const noexcept 
+{
+    if ( _login_data.broadcaster_id.empty() ) return false ;
+
+    motor::string_t response ;
+
+    {
+        auto const curl_validate_com =
+            "curl -X GET \"https://api.twitch.tv/helix/channels/followers?broadcaster_id=" + _login_data.broadcaster_id + "&first=5\" "
+            "-H \"Authorization: Bearer " + _login_data.access_token + "\" "
+            "-H \"Client-Id: " + _login_data.client_id + "\" " ;
+
+        if ( !this_t::send_curl( curl_validate_com, "send_message", response, true ) )
+        {
+            motor::log::global_t::error( "[send_message] : curl unavailable." ) ;
+            return false ;
+        }
+    }
+
+    nlohmann::json res = nlohmann::json::parse( response ) ;
+    if ( this_file::check_for_status( res ) )
+    {
+        return false ;
+    }
+
+    if ( !res.contains( "total" ) ) return true ;
+
+    size_t const num_followers = res[ "total" ] ;
+    if ( num_followers == 0 ) return true ;
+
+    followers.reserve( std::min( size_t(5), num_followers ) ) ;
+
+    if ( res.contains( "data" ) && res[ "data" ].is_array() )
+    {
+        for ( auto const & d : res[ "data" ] )
+        {
+            this_t::follower f ;
+
+            if ( d.contains( "user_id" ) )
+            {
+                f.id = d[ "user_id" ] ;
+            }
+
+            if ( d.contains( "user_name" ) )
+            {
+                f.name = d[ "user_name" ] ;
+            }
+
+            followers.emplace_back( std::move(f) ) ;
+        }
+    }
+
+    return true ;
+}
+
+//**********************************************************************************
+bool_t twitch_irc_bot::get_all_followers_priv( this_t::followers_out_t followers ) const noexcept 
+{
+    if( _login_data.broadcaster_id.empty() ) return false ;
+
+    motor::string_t response ;
+
+    {
+        auto const curl_validate_com =
+            "curl -X GET \"https://api.twitch.tv/helix/channels/followers?broadcaster_id=" + _login_data.broadcaster_id + "\" "
+            "-H \"Authorization: Bearer " + _login_data.access_token + "\" "
+            "-H \"Client-Id: " + _login_data.client_id + "\" " ;
+
+        if ( !this_t::send_curl( curl_validate_com, "send_message", response, true ) )
+        {
+            motor::log::global_t::error( "[send_message] : curl unavailable." ) ;
+            return false ;
+        }
+    }
+
+    // json validate
+    {
+        nlohmann::json res = nlohmann::json::parse( response ) ;
+        if ( this_file::check_for_status( res ) )
+        {
+            return false ;
+        }
+
+        if( res.contains("code") )
+        {
+            int bp = 0 ;
+        }
+
+        if( !res.contains( "total" ) ) return true ;
+
+        size_t const num_followers = res[ "total" ] ;
+        if( num_followers == 0 ) return true ;
+        followers.reserve( num_followers ) ;
+
+        size_t counter = 0 ;
+        do 
+        {
+            if ( res.contains( "data" ) && res[ "data" ].is_array() )
+            {
+                for ( auto const & d : res[ "data" ] )
+                {
+                    this_t::follower f ;
+
+                    if ( d.contains( "followed_at" ) )
+                    {
+                        #if 0
+                        auto s = std::string( d[ "followed_at" ] ) ;
+
+                        size_t const posT = s.find_first_of( 'T' ) ;
+                        std::istringstream years( s.substr( 0, posT ) );
+                        std::istringstream time( s.substr( posT + 1, ( s.size() - 1 ) - ( posT + 1 ) ) );
+
+                        std::tm tyears {};
+                        std::tm ttime {};
+
+
+                        years >> std::get_time( &tyears, "%Y-%m-%d" );
+                        time >> std::get_time( &ttime, "%H:%M:%S" );
+
+                        int bp = 0 ;
+                        #endif
+                    }
+
+                    if ( d.contains( "user_id" ) )
+                    {
+                        f.id = d[ "user_id" ] ;
+                    }
+
+                    if ( d.contains( "user_name" ) )
+                    {
+                        f.name = d[ "user_name" ] ;
+                    }
+
+                    followers.emplace_back( std::move( f ) ) ;
+                }
+            }
+
+            if ( !res.contains( "pagination" ) || !res[ "pagination" ].contains("cursor") ) break ;
+
+            // next page
+            {
+                auto const page = res[ "pagination" ] ;
+                motor::string_t const cursor = page[ "cursor" ] ;
+
+                auto const curl_validate_com =
+                    "curl -X GET \"https://api.twitch.tv/helix/channels/followers?broadcaster_id=" + _login_data.broadcaster_id + "&after="+cursor+"\" "
+                    "-H \"Authorization: Bearer " + _login_data.access_token + "\" "
+                    "-H \"Client-Id: " + _login_data.client_id + "\" " ;
+
+                response.clear() ;
+                if ( !this_t::send_curl( curl_validate_com, "send_message", response, true ) )
+                {
+                    motor::log::global_t::error( "[send_message] : curl unavailable." ) ;
+                    return false ;
+                }
+
+                res = nlohmann::json::parse( response ) ;
+                if ( this_file::check_for_status( res ) )
+                {
+                    break ;
+                }
+            }
+
+        } while ( counter < 1000 );
+    }
+
+    #if 0
+    if( sorted ) 
+    {
+        std::sort( followers.begin(), followers.end(), 
+            [&]( this_t::follower const & a, this_t::follower const & b )
+        {
+            return a.time_stamp > b.time_stamp ;
+        } ) ;
+    }
+    #endif
+
     return true ;
 }
 
@@ -848,6 +1043,30 @@ motor::network::user_decision twitch_irc_bot::on_sync( void_t ) noexcept
 motor::network::user_decision twitch_irc_bot::on_update( void_t ) noexcept
 {
     this_t::update() ;
+
+    this_t::followers_t followers ;
+
+    if( (clk_t::now() - _followers_tp) > std::chrono::seconds(10) )
+    {
+        this_t::get_all_followers_priv( followers ) ;
+        _followers_tp = clk_t::now() ;
+
+        {
+            std::lock_guard< std::mutex > lk( _mtx_followers ) ;
+            _followers = std::move( followers ) ;
+        }
+    }
+
+    followers.clear() ;
+
+    if( (clk_t::now() - _latest_followers_tp) > std::chrono::seconds(1) )
+    {
+        this_t::get_latest_followers_priv( followers ) ;
+        _latest_followers_tp = clk_t::now() ;
+
+        std::lock_guard< std::mutex > lk( _mtx_followers ) ;
+        _latest_followers = followers ;
+    }
 
     return motor::network::user_decision::keep_going ;
 }

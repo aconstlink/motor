@@ -239,6 +239,21 @@ namespace motor { namespace social { namespace twitch {
 
         motor_typedefs( motor::vector< motor::string_t >, out_messages ) ;
 
+    public: // follower
+
+        struct follower
+        {
+            motor::string_t id ;
+            motor::string_t name ;
+            size_t time_stamp ;
+        };
+        motor_typedefs( motor::vector< follower >, followers ) ;
+        followers_t _followers ;
+        mutable std::mutex _mtx_followers ;
+        clk_t::time_point _followers_tp ;
+        clk_t::time_point _latest_followers_tp ;
+        followers_t _latest_followers ;
+
     private:
 
         std::mutex _mtx_commands ;
@@ -296,6 +311,14 @@ namespace motor { namespace social { namespace twitch {
             motor::social::twitch::announcement_color const c = 
             motor::social::twitch::announcement_color::primary ) noexcept ;
         bool_t send_message( motor::string_in_t msg ) noexcept ;
+
+        void_t get_all_followers( this_t::followers_out_t ) const noexcept ;
+        void_t get_latest_followers( this_t::followers_out_t ) const noexcept ;
+
+    private:
+
+        bool_t get_latest_followers_priv( followers_out_t followers ) const noexcept ;
+        bool_t get_all_followers_priv( followers_out_t followers ) const noexcept ;
 
     private: // via curl and twitch endpoints private
 
