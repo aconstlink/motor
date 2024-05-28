@@ -41,6 +41,7 @@ namespace motor { namespace noise
         uint_t permute_at( uint_t const i0, uint_t const i1, uint_t const i2 ) const noexcept ;
         uint_t get_num_entries( void_t ) const noexcept ;
         uint_t get_bit( void_t ) const noexcept ;
+        uint_t get_upper_bound( void_t ) const noexcept ;
 
     private:
 

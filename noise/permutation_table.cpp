@@ -10,7 +10,7 @@ permutation_table::permutation_table( uint_t const seed, uint_t const bit, uint_
     _seed = seed == 0 ? 6273 : seed ;
     _bit = bit < 3 ? 8 : bit ;
 
-    _upper_bound = ( 1 << _bit ) - 1 ;
+    _upper_bound = this_t::get_upper_bound() ;
 
     _indices.resize( this_t::get_num_entries() ) ;
 
@@ -109,6 +109,12 @@ uint_t permutation_table::get_num_entries( void_t ) const noexcept
 uint_t permutation_table::get_bit( void_t ) const noexcept
 { 
     return _bit ; 
+}
+
+//***********************************************************************************
+uint_t permutation_table::get_upper_bound( void_t ) const noexcept 
+{
+    return ( 1 << _bit ) - 1 ;
 }
 
 //***********************************************************************************
