@@ -70,6 +70,8 @@ namespace motor
 
             struct window_data
             {
+                this_t::window_id_t wid ;
+
                 motor::application::window_mtr_t wnd = nullptr ;
                 motor::application::window_message_listener_mtr_t lst = nullptr ;
                 motor::graphics::ifrontend_ptr_t fe = nullptr ;
@@ -80,10 +82,16 @@ namespace motor
                 bool_t is_mouse_over = false ;
             };
 
+            std::mutex _mtx_wid ;
+            this_t::window_id_t _wid = size_t(-1) ;
+
             std::mutex _mtx_windows ;
             motor::vector< window_data > _windows ;
-            motor::vector< window_data > _windows2 ;
+            //motor::vector< window_data > _windows2 ;
 
+            // window creation queue mutex
+            std::mutex _mtx_window_cq ;
+            motor::vector< window_data > _creation_queue ;
             motor::vector< window_data > _destruction_queue ;
 
             bool_t _closed = false ;
@@ -279,9 +287,6 @@ namespace motor
             bool_t carrier_init( motor::application::carrier_ptr_t ) noexcept ;
             bool_t carrier_update( void_t ) noexcept ;
             bool_t carrier_shutdown( void_t ) noexcept ;
-
-            size_t push_windows( void_t ) noexcept ;
-            void_t pop_windows( void_t ) noexcept ;
 
         private: // system specific update code
 

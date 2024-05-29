@@ -128,29 +128,56 @@ app::window_id_t app::create_window( motor::application::window_info_cref_t wi )
 
     wnd->send_message( motor::application::show_message_t( {true} ) ) ;
 
-    size_t ret = size_t(-1) ;
+    size_t wid = size_t( -1 ) ;
+
     {
-        std::lock_guard< std::mutex > lk( _mtx_windows ) ;
-
-        ret = _windows.size() ;
-
-        _windows.emplace_back( this_t::window_data
-            { static_cast<motor::application::window_ptr_t>(wnd), msgl, nullptr, 
-                motor::shared( motor::tool::imgui_t( motor::to_string(ret) ) ) } ) ;
+        std::lock_guard< std::mutex > lk( _mtx_wid ) ;
+        wid = ++_wid ;
     }
 
-    return ret ;
+    // put new window into creation queue
+    {
+        std::lock_guard< std::mutex > lk( _mtx_window_cq ) ;
+        _creation_queue.emplace_back( this_t::window_data
+            { wid, static_cast<motor::application::window_ptr_t>( wnd ), msgl, nullptr,
+            motor::shared( motor::tool::imgui_t( motor::to_string( wid ) ) ) } ) ;
+    }
+
+    return wid ;
 }
 
 //**************************************************************************************************************
 void_t app::send_window_message( this_t::window_id_t const wid, 
     std::function< void_t ( this_t::window_view & ) > funk ) 
 {
-    if( wid >= _windows.size() ) return ;
+    {
+        std::lock_guard< std::mutex > lk( _mtx_windows ) ;
+        auto const iter = std::find_if(_windows.begin(), _windows.end(), [&]( this_t::window_data const & wd )
+        {
+            return wd.wid == wid ;
+        } ) ;
 
-    std::lock_guard< std::mutex > lk( _mtx_windows ) ;
-    this_t::window_view accessor( _windows[wid].wnd ) ;
-    funk( accessor ) ;
+        if( iter != _windows.end() ) 
+        {
+            this_t::window_view accessor( iter->wnd ) ;
+            funk( accessor ) ;
+            return ;
+        }
+    }
+    {
+        std::lock_guard< std::mutex > lk( _mtx_window_cq ) ;
+        auto const iter = std::find_if( _creation_queue.begin(), _creation_queue.end(), [&] ( this_t::window_data const & wd )
+        {
+            return wd.wid == wid ;
+        } ) ;
+
+        if ( iter != _creation_queue.end() )
+        {
+            this_t::window_view accessor( iter->wnd ) ;
+            funk( accessor ) ;
+            return ;
+        }
+    }
 }
 
 //**************************************************************************************************************
@@ -176,20 +203,26 @@ bool_t app::carrier_update( void_t ) noexcept
         _tp_platform = this_t::platform_clock_t::now() ;
     }
 
-    // do window message updates -> on_event
     {
-        this_t::push_windows() ;
-        
-        for( auto iter=_windows2.begin() ; iter!=_windows2.end(); )
+        std::lock_guard< std::mutex > lk( _mtx_window_cq ) ;
+        _windows.reserve( _windows.size() + _creation_queue.size() ) ;
+        for( auto & wd : _creation_queue )
         {
-            size_t const i = std::distance( _windows2.begin(), iter ) ;
+            _windows.emplace_back( std::move( wd ) ) ;
+        }
+        _creation_queue.clear() ;
+    }
 
+    // do window message updates -> on_event
+    {        
+        for( auto iter=_windows.begin() ; iter!=_windows.end(); )
+        {
             auto & d = *iter ;
 
             motor::application::window_message_listener_t::state_vector_t sv ;
             if( d.lst->swap_and_reset( sv ) )
             {
-                this->on_event( i, sv ) ;
+                this->on_event( iter->wid, sv ) ;
 
                 if( sv.create_changed )
                 {
@@ -199,7 +232,7 @@ bool_t app::carrier_update( void_t ) noexcept
                 if( sv.close_changed )
                 {
                     _destruction_queue.emplace_back( *iter ) ;
-                    iter = _windows2.erase( iter ) ;
+                    iter = _windows.erase( iter ) ;
 
                     continue ;
                 }
@@ -221,12 +254,9 @@ bool_t app::carrier_update( void_t ) noexcept
                         d.is_mouse_over = false ;
                     }
                 }
-                
             }
             ++iter ;
         }
-        
-        this_t::pop_windows() ;
     }
 
     if( this_t::before_device( dt_micro ) )
@@ -319,9 +349,8 @@ bool_t app::carrier_update( void_t ) noexcept
             dat.micro_dt = _render_residual.count() ;
             dat.sec_dt = float_t( double_t(_render_residual.count()) / 1000000.0 ) ;
             dat.milli_dt = dat.micro_dt / 1000 ;
-
-            size_t i = 0 ;
-            for( auto & d : _windows2 )
+            
+            for( auto & d : _windows )
             {
                 dat.first_frame = d.first_frame ;
                 d.first_frame = false ;
@@ -331,14 +360,14 @@ bool_t app::carrier_update( void_t ) noexcept
                 {
                     if( auto * fe = dynamic_cast<motor::graphics::gen4::frontend_ptr_t>(d.fe); fe != nullptr ) 
                     {
-                        this->on_render( i, fe, dat ) ;
+                        this->on_render( d.wid, fe, dat ) ;
 
                         if( this_t::before_tool( dt_micro ) )
                         {
                             d.imgui->execute( [&] ( void_t )
                             {
                                 this_t::tool_data_t td ;
-                                if( this->on_tool( i, td ) )
+                                if( this->on_tool( d.wid, td ) )
                                 {
                                     this_t::display_engine_stats() ;
                                     d.imgui->render( fe ) ;
@@ -350,7 +379,6 @@ bool_t app::carrier_update( void_t ) noexcept
                     }
                     re->leave_frame() ;
                 }
-                ++i ;
             }
         }
 
@@ -372,6 +400,18 @@ bool_t app::carrier_update( void_t ) noexcept
                 continue ;
             }
             iter = _destruction_queue.erase( iter ) ;
+        }
+    }
+
+    {
+        for ( auto iter = _creation_queue.begin(); iter != _creation_queue.end(); )
+        {
+            if ( !this_t::clear_out_window_data( *iter ) )
+            {
+                ++iter ;
+                continue ;
+            }
+            iter = _creation_queue.erase( iter ) ;
         }
     }
 
@@ -439,25 +479,6 @@ bool_t app::carrier_shutdown( void_t ) noexcept
     }
 
     return true ;
-}
-
-//**************************************************************************************************************
-size_t app::push_windows( void_t ) noexcept 
-{
-    std::lock_guard< std::mutex > lk( _mtx_windows ) ;
-    _windows2 = std::move( _windows ) ;
-    return _windows2.size() ;
-}
-
-//**************************************************************************************************************
-void_t app::pop_windows( void_t ) noexcept 
-{
-    // merge back
-    {
-        std::lock_guard< std::mutex > lk( _mtx_windows ) ;
-        if( _windows.size() == 0 ) _windows = std::move( _windows2 ) ;
-        else {for( auto & d : _windows2 ) _windows.emplace_back( std::move(d) ) ;}
-    }
 }
 
 //**************************************************************************************************************
@@ -566,67 +587,61 @@ bool_t app::after_update( size_t const iter )
     return true ;
 }
 
-//***
+//************************************************************************
 bool_t app::before_physics( std::chrono::microseconds const & dt ) noexcept
 {
     _physics_residual += dt ;
     return _physics_residual >= _physics_interval ;
 }
 
+//************************************************************************
 bool_t app::after_physics( size_t const iter ) 
 {
     _physics_residual -= iter * _physics_interval ;
     return true ;
 }
 
-//***
+//************************************************************************
 bool_t app::before_render( std::chrono::microseconds const & dt ) noexcept
 {
     _render_residual += dt ;
     
-    size_t windows = this_t::push_windows() ;
+    size_t windows = _windows.size() ;
 
     // check if async system is ready
-    for( auto & d : _windows2 )
+    for( auto & d : _windows )
     {
         if( d.fe != nullptr && d.fe->can_enter_frame() )
             --windows ;
     }
 
-    if( windows != 0 )
-    {
-        this_t::pop_windows() ;
-    }
-
     return windows == 0 ;
 }
 
-//***
+//************************************************************************
 bool_t app::after_render( size_t const ) noexcept
 {
     //++_render_count ;
     _render_residual = decltype(_render_residual)(0) ;
 
-    this_t::pop_windows() ;
-
     return true ;
 }
 
-//***
+//************************************************************************
 bool_t app::before_audio( std::chrono::microseconds const & dt ) noexcept
 {
     _audio_residual += dt ;
     return _audio_residual >= _audio_interval ;
 }
 
-//***
+//************************************************************************
 void_t app::after_audio( size_t const ) noexcept
 {
     _physics_residual = std::chrono::microseconds( 0 ) ;
     _first_audio = false ;
 }
 
-//***
+//************************************************************************
 void_t app::display_engine_stats( void_t ) noexcept
 {    
     if ( ImGui::IsKeyReleased( ImGuiKey_F2 ) )
@@ -645,13 +660,13 @@ void_t app::display_engine_stats( void_t ) noexcept
     }
 }
 
-//***
+//************************************************************************
 void_t app::display_profiling_data( void_t ) noexcept
 {
     _engine_profiling.display() ;
 }
 
-//**********************************************************************
+//************************************************************************
 void_t app::create_tcp_client( motor::string_in_t name, motor::network::ipv4::binding_point_host_in_t bp, 
     motor::network::iclient_handler_mtr_rref_t handler ) noexcept 
 {
@@ -673,7 +688,7 @@ void_t app::create_tcp_client( motor::string_in_t name, motor::network::ipv4::bi
     } ) ;
 }
 
-//**********************************************************************
+//************************************************************************
 void_t app::remove( _app_client_handler_wrapper * handler ) noexcept 
 {
     std::lock_guard< std::mutex > lk( _mtx_networks ) ;
