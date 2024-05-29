@@ -971,6 +971,8 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
 
     if( states.resize_changed )
     {
+        UINT flags = 0 ;
+
         motor::application::resize_message_cref_t msg = states.resize_msg ;
 
         RECT rc, wr ;
@@ -992,6 +994,10 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
             rc.left = x ;
             rc.top = y ;
         }
+        else
+        {
+            flags |= SWP_NOMOVE ;
+        }
 
         if( msg.resize )
         {
@@ -1001,11 +1007,21 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
             rc.right = x + width ;
             rc.bottom = y + height ;
         }
+        else
+        {
+            flags |= SWP_NOSIZE ;
+        }
 
         int_t const w = width + difx ;
         int_t const h = height + dify ;
 
-        SetWindowPos( d.hwnd, NULL, x, y, width, height, 0 ) ;
+        // SWP_NOACTIVATE : the window should not activate if  
+        //  another window controls the size/position
+        // SWP_NOZORDER : Do not z over any other window.
+        // SWP_NOREDRAW : Optimization
+        // SWP_NOREPOSITION : Parent z order not changing
+        SetWindowPos( d.hwnd, NULL, x, y, width, height, 
+            SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOZORDER | flags ) ;
     }
 
     if( states.cursor_msg_changed )
