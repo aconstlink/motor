@@ -21,7 +21,7 @@ if( TARGET alrecord )
   if( MOTOR_TARGET_OS_WIN )
 
     if( MOTOR_COMPILER_MSC )
-      set( unwanted_compiler_options "/wd4204" "/wd4018" )
+      set( unwanted_compiler_options "/wd4204" "/wd4018" "/wd4060")
       target_compile_options( alrecord PRIVATE ${unwanted_compiler_options} )
     endif()
 
