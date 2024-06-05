@@ -30,6 +30,22 @@ sprite_render_2d::sprite_render_2d( this_rref_t rhv ) noexcept
 }
 
 //**********************************************************************************************************
+sprite_render_2d::this_ref_t sprite_render_2d::operator = ( this_rref_t rhv ) noexcept
+{
+    _rs = std::move( rhv._rs ) ;
+    _ao = std::move( rhv._ao ) ;
+    _ro = std::move( rhv._ro ) ;
+    _go = std::move( rhv._go ) ;
+    _so = std::move( rhv._so ) ;
+    _layers = std::move( rhv._layers ) ;
+
+    _name = std::move( rhv._name ) ;
+    _image_name = std::move( rhv._image_name ) ;
+
+    return *this ;
+}
+
+//**********************************************************************************************************
 sprite_render_2d::~sprite_render_2d( void_t ) noexcept
 {
     for ( auto * layer : _layers )
@@ -39,7 +55,7 @@ sprite_render_2d::~sprite_render_2d( void_t ) noexcept
 }
 
 //**********************************************************************************************************
-void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t image_name ) noexcept 
+sprite_render_2d::this_ref_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t image_name ) noexcept
 {
     _name = name ;
     _image_name = image_name ;
@@ -87,7 +103,6 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
                 array[ base + 2 ].pos = motor::math::vec2f_t( +0.5f, +0.5f ) ;
                 array[ base + 3 ].pos = motor::math::vec2f_t( +0.5f, -0.5f ) ;
             }
-            
         } );
 
         auto ib = motor::graphics::index_buffer_t().
@@ -107,8 +122,6 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
                 array[ bi + 4 ] = bv + 2 ;
                 array[ bi + 5 ] = bv + 3 ;
             }
-
-            
         } ) ;
 
         _go = motor::graphics::geometry_object_t( name + ".geometry",
@@ -363,6 +376,8 @@ void_t sprite_render_2d::init( motor::string_cref_t name, motor::string_cref_t i
         
         _ro = std::move( rc ) ;
     }
+
+    return *this ;
 }
 
 //**********************************************************************************************************
@@ -398,13 +413,15 @@ void_t sprite_render_2d::draw( size_t const l, motor::math::vec2f_cref_t pos, mo
 }
 
 //**********************************************************************************************************
-void_t sprite_render_2d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+sprite_render_2d::this_ref_t sprite_render_2d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 {
     fe->configure<motor::graphics::geometry_object_t>( &_go ) ;
     fe->configure<motor::graphics::shader_object_t>( &_so ) ;
     fe->configure<motor::graphics::array_object_t>( &_ao) ;
     fe->configure<motor::graphics::render_object_t>( &_ro ) ;
     fe->configure<motor::graphics::state_object_t>( &_rs ) ;
+
+    return *this ;
 }
 
 //**********************************************************************************************************

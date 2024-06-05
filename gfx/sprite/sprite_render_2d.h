@@ -160,8 +160,9 @@ namespace motor
             sprite_render_2d( this_cref_t ) = delete ;
             sprite_render_2d( this_rref_t ) noexcept;
             ~sprite_render_2d( void_t ) noexcept;
+            this_ref_t operator =( this_rref_t ) noexcept ;
 
-            void_t init( motor::string_cref_t, motor::string_cref_t ) noexcept ;
+            this_ref_t init( motor::string_cref_t, motor::string_cref_t ) noexcept ;
             void_t release( void_t ) noexcept ;
 
         public:
@@ -177,7 +178,7 @@ namespace motor
 
         public:
 
-            void_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
+            this_ref_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept ;
 
             // copy all data to the gpu buffer and transmit the data
             void_t prepare_for_rendering( void_t ) noexcept ;

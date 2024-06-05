@@ -18,69 +18,95 @@ using namespace motor::tool ;
 struct sprite_editor::sprite_render_pimpl
 {
     bool_t initialized = false ;
-    motor::graphics::framebuffer_object_res_t fb ;
-    motor::gfx::sprite_render_2d_res_t sr ;
+    motor::graphics::framebuffer_object_t fb ;
+    motor::gfx::sprite_render_2d_t sr ;
     motor::gfx::pinhole_camera_t cam ;
-    motor::graphics::image_object_res_t sheets ;
+    motor::graphics::image_object_t sheets ;
 
     motor::graphics::image_t::dims_t dims ;
 
-    motor::graphics::state_object_res_t so ;
+    motor::graphics::state_object_t so ;
 };
 
+//********************************************************************************************
 sprite_editor::sprite_editor( void_t ) noexcept 
 {
+    _mod_reg = motor::format::global::register_default_modules(
+        motor::shared( motor::format::module_registry_t(), "mod registry" ) ) ;
+
     _srp = motor::memory::global_t::alloc< sprite_editor::sprite_render_pimpl >() ;
+    _srp->sr = std::move( motor::gfx::sprite_render_2d_t()
+        .init( "sprite_editor.sprite_render_2d", "sprite_editor.sheets" ) ) ;
 }
 
-sprite_editor::sprite_editor( motor::io::database_res_t db ) noexcept 
+//********************************************************************************************
+sprite_editor::sprite_editor( motor::io::database_mtr_safe_t db ) noexcept 
 {
     _db = db ;
+    _mod_reg = motor::format::global::register_default_modules(
+        motor::shared( motor::format::module_registry_t(), "mod registry" ) ) ;
+
     _srp = motor::memory::global_t::alloc< sprite_editor::sprite_render_pimpl >() ;
+    _srp->sr = std::move( motor::gfx::sprite_render_2d_t()
+        .init( "sprite_editor.sprite_render_2d", "sprite_editor.sheets" ) ) ;
 }
 
+//********************************************************************************************
 sprite_editor::sprite_editor( this_rref_t rhv ) noexcept 
 {
-    _db = std::move( rhv._db ) ;
+    _db = motor::move( rhv._db ) ;
     _sprite_sheets = std::move( rhv._sprite_sheets ) ;
     _loads = std::move( rhv._loads ) ;
-    motor_move_member_ptr( _srp, rhv ) ;
+    _mod_reg = motor::move( rhv._mod_reg ) ;
+    _srp = motor::move( rhv._srp ) ;
 }
 
-sprite_editor::~sprite_editor( void_t ) noexcept 
+//********************************************************************************************
+sprite_editor::this_ref_t sprite_editor::operator = ( this_rref_t rhv ) noexcept
 {
+    _db = motor::move( rhv._db ) ;
+    _sprite_sheets = std::move( rhv._sprite_sheets ) ;
+    _loads = std::move( rhv._loads ) ;
+    
+    motor::memory::release_ptr( _mod_reg ) ;
+    _mod_reg = motor::move( rhv._mod_reg ) ;
+
     motor::memory::global_t::dealloc( _srp ) ;
-}
-
-sprite_editor::this_ref_t sprite_editor::operator = ( this_rref_t rhv ) noexcept 
-{
-    _db = std::move( rhv._db ) ;
-    _sprite_sheets = std::move( rhv._sprite_sheets ) ;
-    _loads = std::move( rhv._loads ) ;
+    _srp = motor::move( rhv._srp ) ;
 
     return *this ;
 }
 
-// ****
-void_t sprite_editor::add_sprite_sheet( motor::ntd::string_cref_t name, 
-                motor::io::location_cref_t loc ) noexcept 
+//********************************************************************************************
+sprite_editor::~sprite_editor( void_t ) noexcept 
+{
+    for ( auto & ss : _sprite_sheets )
+    {
+        motor::memory::release_ptr( ss.img ) ;
+    }
+
+    motor::memory::global_t::dealloc( _srp ) ;
+    motor::memory::release_ptr( _mod_reg ) ;
+    motor::memory::release_ptr( motor::move( _db ) ) ;
+}
+
+//********************************************************************************************
+void_t sprite_editor::add_sprite_sheet( motor::string_cref_t name, motor::io::location_cref_t loc ) noexcept 
 {
     this_t::load_item_t ss ;
     ss.disp_name = name ;
     ss.name = "motor.tool.sprite_editor." + name ;
     ss.loc = loc ;
 
-    motor::format::module_registry_res_t mod_reg = motor::format::global_t::registry() ;
-    ss.fitem = mod_reg->import_from( loc, _db ) ;
+    ss.fitem = _mod_reg->import_from( loc, _db ) ;
 
+    std::lock_guard< std::mutex > lk( _mtx_loads ) ;
     _loads.emplace_back( std::move( ss ) ) ;
 }
 
-// ****
-void_t sprite_editor::store( motor::io::database_res_t db ) noexcept 
+//********************************************************************************************
+void_t sprite_editor::store( motor::io::database_mtr_safe_t db ) noexcept 
 {
-    motor::format::module_registry_res_t mod_reg = motor::format::global_t::registry() ;
-
     motor::format::motor_document doc ;
         
     for( auto const & tss : _sprite_sheets )
@@ -124,126 +150,147 @@ void_t sprite_editor::store( motor::io::database_res_t db ) noexcept
         doc.sprite_sheets.emplace_back( ss ) ;
     }
         
-    auto item = mod_reg->export_to( ss_loc, db, 
-        motor::format::motor_item_res_t( motor::format::motor_item_t( std::move( doc ) ) ) ) ;
+    auto item = _mod_reg->export_to( ss_loc, db, 
+        motor::shared( motor::format::motor_item_t( std::move( doc ) ) ) ) ;
 
-    motor::format::status_item_res_t r =  item.get() ;
+    item.get() ;
 }
 
-// ****
-void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept 
+//********************************************************************************************
+void_t sprite_editor::on_update( void_t ) noexcept
 {
     // checking future items
+    decltype( _loads ) loads ;
+
     {
-        auto loads = std::move(_loads) ;
-        for( auto & item : loads )
-        {
-            auto const res = item.fitem.wait_for( std::chrono::milliseconds(0) ) ;
-            if( res != std::future_status::ready )
-            {
-                _loads.emplace_back( std::move( item ) ) ;
-                continue ;
-            }
-
-            motor::format::item_res_t ir = item.fitem.get() ;
-            if( motor::format::item_res_t::castable<motor::format::image_item_res_t>(ir) )
-            {
-                motor::format::image_item_res_t ii = ir ;
-
-                motor::graphics::image_t img = *ii->img ;
-                
-                auto iter = std::find_if( _sprite_sheets.begin(), _sprite_sheets.end(), [&]( this_t::sprite_sheet_cref_t sh )
-                {
-                    return sh.name == item.name ;
-                } ) ;
-
-                if( iter != _sprite_sheets.end() )
-                {
-                    iter->dims = motor::math::vec2ui_t( img.get_dims() ) ;
-
-                    iter->img = motor::graphics::image_object_t( iter->name, std::move( img ) )
-                        .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::clamp_border )
-                        .set_wrap( motor::graphics::texture_wrap_mode::wrap_t, motor::graphics::texture_wrap_type::clamp_border )
-                        .set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::nearest )
-                        .set_filter( motor::graphics::texture_filter_mode::mag_filter, motor::graphics::texture_filter_type::nearest );
-
-                    iter->zoom = -0.5f ;
-                    imgui.async().configure( iter->img ) ;
-                }
-            }
-            else if( motor::format::item_res_t::castable<motor::format::motor_item_res_t>(ir) )
-            {
-                motor::format::motor_item_res_t ni = ir ;
-                ss_loc = item.loc ;
-
-                motor::format::motor_document_t doc = ni->doc ;
-                
-                for( auto const & ss : doc.sprite_sheets )
-                {
-                    this_t::sprite_sheet_t tss ;
-                    tss.name = ss.name ;
-                    tss.dname = ss.name ;
-                    tss.dims = motor::math::vec2ui_t( 1 ) ;
-
-                    // load image
-                    {
-                        this_t::load_item_t li ;
-                        li.disp_name = ss.name ;
-                        li.name = ss.name ;
-                        li.loc = ss.image.src ; //motor::io::location_t::from_path( motor::io::path_t( ss.image.src ) ) ; 
-                        
-                        motor::format::module_registry_res_t mod_reg = motor::format::global_t::registry() ;
-                        li.fitem = mod_reg->import_from( li.loc, _db ) ;
-
-                        _loads.emplace_back( std::move( li ) ) ;
-
-                        tss.img_loc = ss.image.src ;
-                    }
-
-                    for( auto const & s : ss.sprites )
-                    {
-                        this_t::sprite_sheet_t::sprite_t ts ;
-                        ts.name = s.name ;
-                        ts.bound_idx = tss.bounds.size() ;
-                        ts.pivot_idx = tss.anim_pivots.size() ;
-
-                        tss.sprites.emplace_back( std::move( ts ) ) ;
-                        tss.bounds.emplace_back( s.animation.rect ) ;
-                        tss.anim_pivots.emplace_back( s.animation.pivot ) ;
-                    }
-
-                    for( auto const & a : ss.animations )
-                    {
-                        this_t::sprite_sheet::animation_t ta ;
-                        ta.name = a.name ;
-                        for( auto const & f : a.frames )
-                        {
-                            this_t::sprite_sheet_t::animation_frame_t taf ;
-                            taf.duration = f.duration ;
-                            auto const iter = std::find_if( tss.sprites.begin(), tss.sprites.end(), [&]( this_t::sprite_sheet_t::sprite_cref_t s )
-                            {
-                                return s.name == f.sprite ;
-                            }) ;
-                            taf.sidx = std::distance( tss.sprites.begin(), iter ) ;
-
-                            if( taf.sidx < tss.sprites.size() ) ta.frames.emplace_back( std::move( taf ) ) ;
-                        }
-                        tss.animations.emplace_back( std::move( ta ) ) ;
-                    }
-
-                    if( ss.animations.size() == 0 )
-                    {
-                        this_t::sprite_sheet::animation_t ta ;
-                        ta.name = "empty" ;
-                        tss.animations.emplace_back( std::move( ta ) ) ;
-                    }
-
-                    _sprite_sheets.emplace_back( std::move( tss ) ) ;
-                }
-            }
-        }
+        std::lock_guard< std::mutex > lk( _mtx_loads ) ;
+        loads = std::move( _loads ) ;
     }
 
+    for ( auto & item : loads )
+    {
+        auto const res = item.fitem.wait_for( std::chrono::milliseconds( 0 ) ) ;
+        if ( res != std::future_status::ready )
+        {
+            std::lock_guard< std::mutex > lk( _mtx_loads ) ;
+            _loads.emplace_back( std::move( item ) ) ;
+            continue ;
+        }
+
+        motor::format::item_mtr_t ir = item.fitem.get() ;
+        
+        // imported image
+        if ( auto ii = dynamic_cast<motor::format::image_item_mtr_t>( ir ); ii != nullptr )
+        {
+            motor::graphics::image_t img = std::move( *ii->img ) ;
+
+            auto iter = std::find_if( _sprite_sheets.begin(), _sprite_sheets.end(), [&] ( this_t::sprite_sheet_cref_t sh )
+            {
+                return sh.name == item.name ;
+            } ) ;
+
+            if ( iter != _sprite_sheets.end() )
+            {
+                iter->dims = motor::math::vec2ui_t( img.get_dims() ) ;
+
+                iter->img = motor::shared( std::move( motor::graphics::image_object_t( iter->name, std::move( img ) )
+                    .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::clamp_border )
+                    .set_wrap( motor::graphics::texture_wrap_mode::wrap_t, motor::graphics::texture_wrap_type::clamp_border )
+                    .set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::nearest )
+                    .set_filter( motor::graphics::texture_filter_mode::mag_filter, motor::graphics::texture_filter_type::nearest ) ) ) ;
+
+                iter->zoom = -0.5f ;
+            }
+            else 
+            {
+                motor::log::global::error("[Sprite Editor] : no sprite sheet for image : " + item.name ) ;
+            }
+
+            motor::memory::release_ptr( ii->img ) ;
+        }
+
+        // imported motor file
+        else if ( auto ni = dynamic_cast<motor::format::motor_item_mtr_t>( ir ); ni != nullptr )
+        {
+            ss_loc = item.loc ;
+
+            motor::format::motor_document_t doc = ni->doc ;
+
+            for ( auto const & ss : doc.sprite_sheets )
+            {
+                this_t::sprite_sheet_t tss ;
+                tss.name = ss.name ;
+                tss.dname = ss.name ;
+                tss.dims = motor::math::vec2ui_t( 1 ) ;
+
+                // load image
+                {
+                    this_t::load_item_t li ;
+                    li.disp_name = ss.name ;
+                    li.name = ss.name ;
+                    li.loc = ss.image.src ; //motor::io::location_t::from_path( motor::io::path_t( ss.image.src ) ) ; 
+
+                    li.fitem = _mod_reg->import_from( li.loc, _db ) ;
+
+                    {
+                        std::lock_guard< std::mutex > lk( _mtx_loads ) ;
+                        _loads.emplace_back( std::move( li ) ) ;
+                    }
+
+                    tss.img_loc = ss.image.src ;
+                    tss.img = nullptr ;
+                    tss.img_configured = false ;
+                }
+
+                for ( auto const & s : ss.sprites )
+                {
+                    this_t::sprite_sheet_t::sprite_t ts ;
+                    ts.name = s.name ;
+                    ts.bound_idx = tss.bounds.size() ;
+                    ts.pivot_idx = tss.anim_pivots.size() ;
+
+                    tss.sprites.emplace_back( std::move( ts ) ) ;
+                    tss.bounds.emplace_back( s.animation.rect ) ;
+                    tss.anim_pivots.emplace_back( s.animation.pivot ) ;
+                }
+
+                for ( auto const & a : ss.animations )
+                {
+                    this_t::sprite_sheet::animation_t ta ;
+                    ta.name = a.name ;
+                    for ( auto const & f : a.frames )
+                    {
+                        this_t::sprite_sheet_t::animation_frame_t taf ;
+                        taf.duration = f.duration ;
+                        auto const iter = std::find_if( tss.sprites.begin(), tss.sprites.end(), [&] ( this_t::sprite_sheet_t::sprite_cref_t s )
+                        {
+                            return s.name == f.sprite ;
+                        } ) ;
+                        taf.sidx = std::distance( tss.sprites.begin(), iter ) ;
+
+                        if ( taf.sidx < tss.sprites.size() ) ta.frames.emplace_back( std::move( taf ) ) ;
+                    }
+                    tss.animations.emplace_back( std::move( ta ) ) ;
+                }
+
+                if ( ss.animations.size() == 0 )
+                {
+                    this_t::sprite_sheet::animation_t ta ;
+                    ta.name = "empty" ;
+                    tss.animations.emplace_back( std::move( ta ) ) ;
+                }
+
+                _sprite_sheets.emplace_back( std::move( tss ) ) ;
+            }
+        }
+
+        motor::memory::release_ptr( ir ) ;
+    }
+}
+
+//********************************************************************************************
+void_t sprite_editor::on_tool( motor::graphics::gen4::frontend_ptr_t fe, motor::tool::imgui_ptr_t imgui ) noexcept
+{
     if( !_srp->initialized )
     {
         _srp->cam = motor::gfx::pinhole_camera_t() ;
@@ -256,8 +303,9 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
         {
             motor::graphics::framebuffer_object_t fb( "sprite_editor.framebuffer" ) ;
             fb.set_target( motor::graphics::color_target_type::rgba_uint_8 ).resize( 512, 512 ) ;
-            _srp->fb = motor::graphics::framebuffer_object_res_t( std::move( fb ) ) ;
-            imgui.async().configure( _srp->fb ) ;
+            
+            _srp->fb = motor::graphics::framebuffer_object_t( std::move( fb ) ) ;
+            fe->configure<motor::graphics::framebuffer_object>( &_srp->fb) ;
         }
 
         // make image with all sprite sheet layers
@@ -268,10 +316,10 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
             // load each slice into the image
             for( auto & ss : _sprite_sheets )
             {
-                if( ss.img.is_valid() ) img.append( ss.img->image() ) ;
+                if( ss.img != nullptr ) img.append( ss.img->image() ) ;
             }
 
-            motor::graphics::image_object_res_t ires = motor::graphics::image_object_t( 
+            motor::graphics::image_object_t image = motor::graphics::image_object_t( 
                 "sprite_editor.sheets", std::move( img ) )
                 .set_type( motor::graphics::texture_type::texture_2d_array )
                 .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::repeat )
@@ -279,22 +327,16 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 .set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::nearest )
                 .set_filter( motor::graphics::texture_filter_mode::mag_filter, motor::graphics::texture_filter_type::nearest );
 
-            imgui.async().configure( ires ) ;
-
-            _srp->sheets = std::move( ires ) ;
+            _srp->sheets = std::move( image ) ;
+            fe->configure<motor::graphics::image_object_t>( &(_srp->sheets) ) ;
         }
 
-        // init sprite_render
+        // configure sprite_render
         {
-            motor::graphics::async_views_t asyncs( {imgui.async()} ) ;
-            motor::gfx::sprite_render_2d_t spr ;
-            
-            spr.init( "sprite_editor.sprite_render_2d", "sprite_editor.sheets",  asyncs ) ;
-            //spr.set_texture( "sprite_editor.sheets" ) ;
-
-            _srp->sr = motor::gfx::sprite_render_2d_res_t( std::move( spr ) ) ;
+            _srp->sr.configure( fe ) ;
         }
         
+        // state object
         {
             motor::graphics::state_object_t so = motor::graphics::state_object_t(
                 "sprite_editor.root_render_state" ) ;
@@ -322,8 +364,8 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 rss.view_s.ss.vp = motor::math::vec4ui_t( 0,0, 512,512) ;
                 so.add_render_state_set( rss ) ;
             }
-            _srp->so = motor::graphics::state_object_res_t( std::move( so ) ) ;
-            imgui.async().configure( _srp->so ) ;
+            _srp->so = std::move( so ) ;
+            fe->configure<motor::graphics::state_object>( &( _srp->so) ) ;
         }
 
         _srp->initialized = true ;
@@ -332,22 +374,31 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
     // the order of the sprite sheets need to be preserved, so the 
     // data in the image needs to be cleared before any other
     // new image layer is appended 
-    if( _srp->sheets->image().get_dims().z() < _sprite_sheets.size() )
+    if( _srp->sheets.image().get_dims().z() < _sprite_sheets.size() )
     {
-        auto & image = _srp->sheets->image() ;
+        auto & image = _srp->sheets.image() ;
         image.clear_data() ;
+
         for( size_t i=0; i<_sprite_sheets.size(); ++i )
         {
             auto const & ss = _sprite_sheets[i] ;
-            if( !ss.img.is_valid() ) continue ;
+            if( ss.img == nullptr ) continue ;
 
             image.append( ss.img->image() ) ;
         }
 
         if( image.get_dims().z() > 0 )
         {
-            imgui.async().configure( _srp->sheets ) ;
+            fe->configure<motor::graphics::image_object>( &( _srp->sheets ) ) ;
             _srp->dims = image.get_dims() ;
+        }
+    }
+
+    for( auto & ss : _sprite_sheets )
+    {
+        if ( !ss.img_configured )
+        {
+            fe->configure<motor::graphics::image_object>( ss.img ) ;
         }
     }
 
@@ -374,7 +425,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
         {
             if( ImGui::Button( "Export" ) )
             {
-                this_t::store( _db ) ;
+                this_t::store( motor::unique( _db ) ) ;
             }
 
             if( _cur_mode == this_t::mode::pivot )
@@ -399,7 +450,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
             ImGui::SetNextItemWidth( ImGui::GetWindowWidth() * 0.3f ) ;
             ImGui::LabelText( "", "Sprite Sheets" ) ;
 
-            motor::ntd::vector< const char * > names( _sprite_sheets.size() ) ;
+            motor::vector< const char * > names( _sprite_sheets.size() ) ;
             for( size_t i=0; i<_sprite_sheets.size(); ++i ) names[i] = _sprite_sheets[i].dname.c_str() ;
         
             ImGui::SetNextItemWidth( ImGui::GetWindowWidth() * 0.3f ) ;
@@ -423,12 +474,12 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
             // bounding boxes in the list
             {
                 size_t i = 0 ;
-                motor::ntd::vector< motor::ntd::string_t > names( _sprite_sheets[_cur_item].sprites.size() ) ;
+                motor::vector< motor::string_t > names( _sprite_sheets[_cur_item].sprites.size() ) ;
                 for( auto const & s : _sprite_sheets[_cur_item].sprites )
                 {
                     auto const & b = _sprite_sheets[_cur_item].bounds[s.bound_idx] ;
-                    names[i] = std::to_string(i) + "( " + std::to_string(b.x()) + ", " + std::to_string(b.y()) + ", "
-                        + std::to_string(b.z()) + ", " + std::to_string(b.w()) + " )";
+                    names[i] = motor::to_string(i) + "( " + motor::to_string(b.x()) + ", " + motor::to_string(b.y()) + ", "
+                        + motor::to_string(b.z()) + ", " + motor::to_string(b.w()) + " )";
                     names[i] = s.name ;
                     ++i ;
                 }
@@ -464,7 +515,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 }
                 if( hovered != -1 )
                 {
-                    //motor::log::global_t::status( std::to_string(hovered) ) ;
+                    //motor::log::global_t::status( motor::to_string(hovered) ) ;
                     _cur_hovered = size_t(hovered) ;
                 }
             }
@@ -476,10 +527,10 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
             // animations in the list
             {
                 size_t i = 0 ;
-                motor::ntd::vector< motor::ntd::string_t > names( _sprite_sheets[_cur_item].animations.size() ) ;
+                motor::vector< motor::string_t > names( _sprite_sheets[_cur_item].animations.size() ) ;
                 for( auto const & a : cur_sheet.animations )
                 {
-                    names[i] = a.name + "##" + std::to_string(i) ;
+                    names[i] = a.name + "##" + motor::to_string(i) ;
                     ++i ;
                 }
 
@@ -506,14 +557,14 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 auto & cur_ani = animations[_cur_sel_ani] ;
 
                 size_t i = 0 ;
-                motor::ntd::vector< std::pair< motor::ntd::string_t, bool_t > > names( cur_ani.frames.size() ) ;
-                motor::ntd::vector< size_t > ids( cur_ani.frames.size() ) ;
+                motor::vector< std::pair< motor::string_t, bool_t > > names( cur_ani.frames.size() ) ;
+                motor::vector< size_t > ids( cur_ani.frames.size() ) ;
                 for( auto const & f : cur_ani.frames )
                 {
                     if( f.sidx == size_t(-1) ) continue ;
 
                     auto const & s = cur_sheet.sprites[ f.sidx ] ;
-                    names[i].first = s.name + "##frame_" + std::to_string(i) ;
+                    names[i].first = s.name + "##frame_" + motor::to_string(i) ;
                     names[i].second = false ;
                     ids[i] = f.sidx ;
                     ++i ;
@@ -574,10 +625,10 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
             // animations in the list
             {
                 size_t i = 0 ;
-                motor::ntd::vector< motor::ntd::string_t > names( _sprite_sheets[_cur_item].animations.size() ) ;
+                motor::vector< motor::string_t > names( _sprite_sheets[_cur_item].animations.size() ) ;
                 for( auto const & a : cur_sheet.animations )
                 {
-                    names[i] = a.name + "##" + std::to_string(i) ;
+                    names[i] = a.name + "##" + motor::to_string(i) ;
                     ++i ;
                 }
 
@@ -598,7 +649,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                         auto iter = animations.begin() ;
                         while( iter != animations.end() )
                         {
-                            a.name = "new animation " + std::to_string( number++ ) ;
+                            a.name = "new animation " + motor::to_string( number++ ) ;
 
                             iter = std::find_if( animations.begin(), animations.end(), [&]( motor::tool::sprite_editor_t::sprite_sheet_t::animation_cref_t a_ )
                             {
@@ -649,14 +700,14 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 auto & cur_ani = animations[_cur_sel_ani] ;
 
                 size_t i = 0 ;
-                motor::ntd::vector< std::pair< motor::ntd::string_t, int_t > > names_values( cur_ani.frames.size() ) ;
-                motor::ntd::vector< size_t > ids( cur_ani.frames.size() ) ;
+                motor::vector< std::pair< motor::string_t, int_t > > names_values( cur_ani.frames.size() ) ;
+                motor::vector< size_t > ids( cur_ani.frames.size() ) ;
                 for( auto const & f : cur_ani.frames )
                 {
                     if( f.sidx == size_t(-1) ) continue ;
 
                     auto const & s = cur_sheet.sprites[ f.sidx ] ;
-                    names_values[i].first = s.name + "##frame_" + std::to_string(i) ;
+                    names_values[i].first = s.name + "##frame_" + motor::to_string(i) ;
                     names_values[i].second = f.duration ;
                     ids[i] = f.sidx ;
                     ++i ;
@@ -762,7 +813,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y ) * 
                     motor::math::vec2f_t( 0.99f, 0.99f ) ;
             
-            this_t::handle_mouse( imgui, _cur_item ) ;
+            this_t::handle_mouse( _cur_item ) ;
 
             if( ImGui::BeginTabItem("Bounds") )
             {
@@ -774,7 +825,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 if( this_t::handle_rect( _bounds_drag_info, res ) )
                 {
                     this_t::sprite_sheet_t::sprite_t ts ;
-                    ts.name = std::to_string( ss.sprites.size() ) ;
+                    ts.name = motor::to_string( ss.sprites.size() ) ;
                     ts.bound_idx = ss.bounds.size() ;
                     ts.pivot_idx = ss.anim_pivots.size() ;
                     ss.sprites.emplace_back( std::move( ts ) ) ;
@@ -833,7 +884,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 }
 
                 // bounds in animation
-                motor::ntd::vector< motor::math::vec4ui_t > bounds ;
+                motor::vector< motor::math::vec4ui_t > bounds ;
                 if( _cur_sel_ani != size_t(-1) && _sprite_sheets[_cur_item].animations.size() > 0 )
                 {
                     auto const & sheet = _sprite_sheets[_cur_item] ;
@@ -988,7 +1039,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 }
 
                 // bounds in animation
-                motor::ntd::vector< motor::math::vec4ui_t > bounds ;
+                motor::vector< motor::math::vec4ui_t > bounds ;
                 if( _cur_sel_ani != size_t(-1) && _sprite_sheets[_cur_item].animations.size() > 0 )
                 {
                     auto const & sheet = _sprite_sheets[_cur_item] ;
@@ -1106,7 +1157,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
         ImGui::Begin( buf ) ;
         if( _cur_sel_ani != size_t(-1) )
         {
-            ImGui::Image( imgui.texture( "sprite_editor.framebuffer.0" ),
+            ImGui::Image( imgui->texture( "sprite_editor.framebuffer.0" ),
                 ImGui::GetContentRegionAvail() ) ;
         }
         else
@@ -1117,7 +1168,7 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
         ImGui::End() ;
     }
 
-    if( _cur_mode == this_t::mode::pivot && !_play_animation)
+    if( _cur_mode == this_t::mode::pivot && !_play_animation )
     {
         auto & cur_sheet = _sprite_sheets[_cur_item] ;
         auto & cur_ani = cur_sheet.animations[_cur_sel_ani] ;
@@ -1135,19 +1186,20 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
             motor::math::vec4f_t const rect = motor::math::vec4f_t( b ) / motor::math::vec4f_t( _srp->dims.xy(), _srp->dims.xy() ) ;
             motor::math::vec2f_t const pivot = motor::math::vec2f_t( p2 ) / motor::math::vec2f_t( _srp->dims.xy() ) ;
 
-            _srp->sr->draw( 0, motor::math::vec2f_t(), motor::math::mat2f_t().identity(), 
+            _srp->sr.draw( 0, motor::math::vec2f_t(), motor::math::mat2f_t().identity(), 
                     motor::math::vec2f_t(3000.0f), rect, _cur_item, pivot, 
                 motor::math::vec4f_t(1.0f,1.0f,1.0f,0.3f) ) ;
         }
 
-        imgui.async().use( _srp->fb ) ;
-        imgui.async().push( _srp->so ) ;
-        _srp->sr->set_view_proj( _srp->cam.mat_view(), _srp->cam.mat_proj() ) ;
-        _srp->sr->prepare_for_rendering() ;
-        _srp->sr->render( 0 ) ;
-        imgui.async().pop( motor::graphics::backend::pop_type::render_state ) ;
-
-        imgui.async().unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
+        fe->use( &(_srp->fb) ) ;
+        fe->push( &( _srp->so ) ) ;
+        {
+            _srp->sr.set_view_proj( _srp->cam.mat_view(), _srp->cam.mat_proj() ) ;
+            _srp->sr.prepare_for_rendering() ;
+            _srp->sr.render( fe, 0 ) ;
+        }
+        fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+        fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
     }
     else if( _cur_mode == this_t::mode::animation || _play_animation )
     {
@@ -1212,26 +1264,27 @@ void_t sprite_editor::do_tool( motor::tool::imgui_view_t imgui ) noexcept
                 motor::math::vec2f_t const pivot = motor::math::vec2f_t( p2 ) / motor::math::vec2f_t( _srp->dims.xy() ) ;
             
 
-                _srp->sr->draw( 0, motor::math::vec2f_t(), motor::math::mat2f_t().identity(), 
+                _srp->sr.draw( 0, motor::math::vec2f_t(), motor::math::mat2f_t().identity(), 
                     motor::math::vec2f_t(3000.0f), rect, _cur_item, pivot, motor::math::vec4f_t(1.0f) ) ;
 
             
-                imgui.async().use( _srp->fb ) ;
-                imgui.async().push( _srp->so ) ;
-                _srp->sr->set_view_proj( _srp->cam.mat_view(), _srp->cam.mat_proj() ) ;
-                _srp->sr->prepare_for_rendering() ;
-                _srp->sr->render( 0 ) ;
-                imgui.async().pop( motor::graphics::backend::pop_type::render_state ) ;
-
-                imgui.async().unuse( motor::graphics::backend::unuse_type::framebuffer ) ;
-
+                fe->use( &( _srp->fb ) ) ;
+                fe->push( &( _srp->so ) ) ;
+                {
+                    _srp->sr.set_view_proj( _srp->cam.mat_view(), _srp->cam.mat_proj() ) ;
+                    _srp->sr.prepare_for_rendering() ;
+                    _srp->sr.prepare_for_rendering( fe ) ;
+                    _srp->sr.render( fe, 0 ) ;
+                }
+                fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer ) ;
             }
         }
     }
-    
 }
 
-void_t sprite_editor::handle_mouse( motor::tool::imgui_view_t imgui, int_t const selected ) 
+//********************************************************************************************
+void_t sprite_editor::handle_mouse( int_t const selected ) 
 {
     ImGuiIO& io = ImGui::GetIO() ;
     auto & ss = _sprite_sheets[_cur_item] ;
@@ -1321,7 +1374,8 @@ void_t sprite_editor::handle_mouse( motor::tool::imgui_view_t imgui, int_t const
     
 }
 
-void_t sprite_editor::handle_mouse_drag_for_bounds( this_t::rect_drag_info_ref_t info, motor::ntd::vector< motor::math::vec4ui_t > & rects ) 
+//********************************************************************************************
+void_t sprite_editor::handle_mouse_drag_for_bounds( this_t::rect_drag_info_ref_t info, motor::vector< motor::math::vec4ui_t > & rects ) 
 {
     ImGuiIO& io = ImGui::GetIO() ;
     auto & ss = _sprite_sheets[_cur_item] ;
@@ -1436,6 +1490,7 @@ void_t sprite_editor::handle_mouse_drag_for_bounds( this_t::rect_drag_info_ref_t
     }
 }
 
+//********************************************************************************************
 void_t sprite_editor::handle_mouse_drag_for_anim_pivot( int_t const selection ) 
 {
     ImGuiIO& io = ImGui::GetIO() ;
@@ -1492,7 +1547,8 @@ void_t sprite_editor::handle_mouse_drag_for_anim_pivot( int_t const selection )
     }
 }
 
-void_t sprite_editor::show_image( motor::tool::imgui_view_t imgui, int_t const selected ) 
+//********************************************************************************************
+void_t sprite_editor::show_image( motor::tool::imgui_ptr_t imgui, int_t const selected )
 {
     _screen_pos_image = motor::math::vec2f_t(
         ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y ) ;
@@ -1523,7 +1579,7 @@ void_t sprite_editor::show_image( motor::tool::imgui_view_t imgui, int_t const s
     auto const uv_rect = motor::math::vec4f_t( 0.0f,0.0f,1.0f,1.0f ) + 
         (wrect - irect) / motor::math::vec4f_t( idims, idims ) ;
 
-    ImGui::Image( imgui.texture( ss.name ), 
+    ImGui::Image( imgui->texture( ss.name ), 
         ImVec2( crdims.x(), crdims.y() ), 
         ImVec2( uv_rect.x(), uv_rect.y()), 
         ImVec2( uv_rect.z(), uv_rect.w()),
@@ -1531,7 +1587,7 @@ void_t sprite_editor::show_image( motor::tool::imgui_view_t imgui, int_t const s
         ImVec4( 1, 1, 1, 1) ) ;
 }
 
-
+//********************************************************************************************
 bool_t sprite_editor::handle_rect( this_t::rect_drag_info_ref_t info, motor::math::vec4ui_ref_t res  ) 
 {
     if( _bounds_drag_info.mouse_down_drag ) return false;
@@ -1582,6 +1638,7 @@ bool_t sprite_editor::handle_rect( this_t::rect_drag_info_ref_t info, motor::mat
     return false ;
 }
 
+//********************************************************************************************
 motor::math::vec4ui_t sprite_editor::rearrange_mouse_rect( motor::math::vec4ui_cref_t vin ) const 
 {
     uint_t const x0 = std::min( vin.x(), vin.z() ) ;
@@ -1593,6 +1650,7 @@ motor::math::vec4ui_t sprite_editor::rearrange_mouse_rect( motor::math::vec4ui_c
     return motor::math::vec4ui_t( x0, y0, x1, y1 ) ;
 }
 
+//********************************************************************************************
 motor::math::vec4f_t sprite_editor::compute_cur_view_rect( int_t const selection ) const 
 {
     auto & ss = _sprite_sheets[ selection ] ;
@@ -1604,6 +1662,7 @@ motor::math::vec4f_t sprite_editor::compute_cur_view_rect( int_t const selection
         motor::math::vec4f_t( ss.origin, ss.origin ) ;
 }
 
+//********************************************************************************************
 motor::math::vec4f_t sprite_editor::image_rect_to_window_rect( int_t const selection, 
                 motor::math::vec4f_cref_t image_rect ) const
 {
@@ -1671,7 +1730,7 @@ void_t sprite_editor::draw_rect_info( motor::math::vec4f_cref_t rect, motor::mat
     ImGui::EndTooltip() ;
 }
 
-size_t sprite_editor::draw_rects( motor::ntd::vector< motor::math::vec4ui_t > const & rects, size_t const selected, size_t const hovered,
+size_t sprite_editor::draw_rects( motor::vector< motor::math::vec4ui_t > const & rects, size_t const selected, size_t const hovered,
         motor::math::vec4ui_cref_t color, motor::math::vec4ui_cref_t over_color) 
 {
     size_t ret = size_t( -1 ) ;
@@ -1699,7 +1758,7 @@ size_t sprite_editor::draw_rects( motor::ntd::vector< motor::math::vec4ui_t > co
     return ret ;
 }
 
-void_t sprite_editor::draw_points( motor::ntd::vector< motor::math::vec2ui_t > const & points, 
+void_t sprite_editor::draw_points( motor::vector< motor::math::vec2ui_t > const & points, 
     motor::math::vec4ui_cref_t color ) 
 {
     for( size_t i=0; i<points.size(); ++i )

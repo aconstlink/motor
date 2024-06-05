@@ -3,10 +3,14 @@
 #include "imgui.h"
 
 #include <motor/graphics/object/image_object.h>
+#include <motor/graphics/frontend/gen4/frontend.hpp>
+
 #include <motor/format/future_item.hpp>
+#include <motor/format/module_registry.hpp>
+
 #include <motor/io/database.h>
-#include <motor/ntd/string.hpp>
-#include <motor/ntd/vector.hpp>
+#include <motor/std/string>
+#include <motor/std/vector>
 
 #include <array>
 
@@ -32,14 +36,19 @@ namespace motor
         private:
 
             motor::io::location_t ss_loc ;
-            motor::io::database_res_t _db ;
+            motor::io::database_mtr_t _db ;
+            motor::format::module_registry_mtr_t _mod_reg ;
 
             struct sprite_sheet
             {
                 motor::string_t dname ;
                 motor::string_t name ;
                 motor::io::location_t img_loc ;
-                motor::graphics::image_object_res_t img ;
+
+                // do not know if this is even required anymore.
+                // only the image data is actually required.
+                motor::graphics::image_object_mtr_t img ;
+                bool_t img_configured ;
 
                 // image dimensions
                 motor::math::vec2ui_t dims ;
@@ -166,6 +175,7 @@ namespace motor
             } ;
             motor_typedef( load_item ) ;
 
+            std::mutex _mtx_loads ;
             motor::vector< load_item_t > _loads ;
 
         private:
@@ -177,7 +187,7 @@ namespace motor
         public:
 
             sprite_editor( void_t ) noexcept ;
-            sprite_editor( motor::io::database_res_t ) noexcept ;
+            sprite_editor( motor::io::database_mtr_safe_t ) noexcept ;
             sprite_editor( this_cref_t ) = delete ;
             sprite_editor( this_rref_t ) noexcept ;
             ~sprite_editor( void_t ) noexcept ;
@@ -188,18 +198,19 @@ namespace motor
             void_t add_sprite_sheet( motor::string_cref_t name, 
                 motor::io::location_cref_t loc ) noexcept ;
 
-            void_t do_tool( motor::tool::imgui_view_t ) noexcept ;
+            void_t on_update( void_t ) noexcept ;
+            void_t on_tool( motor::graphics::gen4::frontend_ptr_t, motor::tool::imgui_ptr_t ) noexcept ;
 
-            void_t store( motor::io::database_res_t db ) noexcept ;
+            void_t store( motor::io::database_mtr_safe_t db ) noexcept ;
 
         private:
 
-            void_t handle_mouse( motor::tool::imgui_view_t imgui, int_t const selected ) ;
+            void_t handle_mouse( int_t const selected ) ;
             void_t handle_mouse_drag_for_bounds( this_t::rect_drag_info_ref_t, motor::vector< motor::math::vec4ui_t > & ) ;
             void_t handle_mouse_drag_for_anim_pivot( int_t const ) ;
 
             // show the selected image in the content region
-            void_t show_image( motor::tool::imgui_view_t imgui, int_t const selected ) ;
+            void_t show_image( motor::tool::imgui_ptr_t imgui, int_t const selected ) ;
 
             // handle the rect the user draws with the mouse
             bool_t handle_rect( this_t::rect_drag_info_ref_t, motor::math::vec4ui_ref_t ) ;
@@ -263,6 +274,6 @@ namespace motor
             void_t display_animations_and_frames( void_t ) noexcept ;
 
         };
-        motor_res_typedef( sprite_editor ) ;
+        motor_typedef( sprite_editor ) ;
     }
 }

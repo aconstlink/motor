@@ -188,7 +188,8 @@ namespace motor
 
             struct tool_data
             {
-                //motor::tool::imgui_view_t imgui ;
+                motor::graphics::gen4::frontend_ptr_t fe ;
+                motor::tool::imgui_ptr_t imgui ;
             };
             motor_typedef( tool_data ) ;
 

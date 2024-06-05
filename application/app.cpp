@@ -366,7 +366,7 @@ bool_t app::carrier_update( void_t ) noexcept
                         {
                             d.imgui->execute( [&] ( void_t )
                             {
-                                this_t::tool_data_t td ;
+                                this_t::tool_data_t td { fe, d.imgui } ;
                                 if( this->on_tool( d.wid, td ) )
                                 {
                                     this_t::display_engine_stats() ;

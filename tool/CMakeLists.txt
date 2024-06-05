@@ -8,8 +8,8 @@ set( sources
 
     "imgui/imgui.h"
     "imgui/imgui.cpp"
-    #"imgui/sprite_editor.h"
-    #"imgui/sprite_editor.cpp"
+    "imgui/sprite_editor.h"
+    "imgui/sprite_editor.cpp"
     "imgui/custom_widgets.h"
     "imgui/custom_widgets.cpp"
     "imgui/imgui_custom.h"
@@ -40,6 +40,8 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::memory
   PUBLIC motor::log
   PUBLIC motor::profiling
+  PUBLIC motor::gfx
+  PUBLIC motor::format
     )
 
 if( MOTOR_COMPILER_GNU )
