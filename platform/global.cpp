@@ -1,6 +1,12 @@
 
 #include "global.h"
 
+// required for deinit //
+#include <motor/io/global.h>
+#include <motor/log/global.h>
+#include <motor/concurrent/global.h>
+#include <motor/profiling/global.h>
+//////////////////////////
 
 #if defined( MOTOR_GRAPHICS_WGL )
 
@@ -64,9 +70,16 @@ motor::application::carrier_mtr_safe_t global::create_carrier( motor::applicatio
 }
 
 //********************************************************************************
-int_t global::create_and_exec_carrier( motor::application::app_mtr_safe_t app ) noexcept 
+int_t global::create_and_exec_carrier_( motor::application::app_mtr_safe_t app ) noexcept
 {
-    auto r = this_t::create_carrier( std::move( app ) )->exec() ;
+    auto ptr = this_t::create_carrier( motor::move( app ) ) ;
+    auto const r = ptr->exec() ;
+    motor::memory::release_ptr( motor::move( ptr ) ) ;
+
+    motor::concurrent::global::deinit() ;
+    motor::log::global::deinit() ;
+    motor::profiling::global::deinit() ;
+    motor::io::global::deinit() ;    
 
     return r ;
 }
