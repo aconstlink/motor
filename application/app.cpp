@@ -440,33 +440,33 @@ bool_t app::clear_out_window_data( window_data & d ) noexcept
 
 //**************************************************************************************************************
 bool_t app::carrier_shutdown( void_t ) noexcept 
+// this function is supposed to be called repeatedly, 
+// until it returns true!
 {
     if( !_shutdown_called ) 
     {
         this->on_shutdown() ;
         _shutdown_called = true ;
+
+        for( auto & d : _windows ) 
+        {
+            _destruction_queue.emplace_back( std::move( d ) ) ;
+        }
+        _windows.clear() ;
     }
     
     {
-        for ( auto & d : _destruction_queue )
+        for ( auto iter = _destruction_queue.begin(); iter != _destruction_queue.end(); )
         {
-            if ( !this_t::clear_out_window_data( d ) )
+            if ( !this_t::clear_out_window_data( *iter ) )
             {
-                return false ;
+                ++iter ;
+                continue ;
             }
+            iter = _destruction_queue.erase( iter ) ;
         }
 
-        _destruction_queue.clear() ;
-
-        for ( auto & d : _windows )
-        {
-            if ( !this_t::clear_out_window_data( d ) )
-            {
-                return false ;
-            }
-        }
-
-        _windows.clear() ;
+        if ( _destruction_queue.size() > 0 ) return false ;
     }
 
     // clear out network clients
