@@ -327,9 +327,25 @@ database::database( motor::io::path_cref_t base, motor::io::path_cref_t name,
 }
 
 //******************************************************************
-database::database( this_rref_t rhv )
+database::database( this_rref_t rhv ) noexcept
 {
-    *this = std::move( rhv ) ;
+    this_t::join_update() ;
+    auto const need_run = rhv.join_update() ;
+
+    _db = motor::move( rhv._db ) ;
+
+    motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
+    
+    if( _db != nullptr )
+    {
+        for ( auto & rec : _db->records )
+        {
+            rec.cache->change_database( this ) ;
+        }
+    }
+
+    if( need_run )
+        this_t::spawn_update() ;
 }
 
 //******************************************************************
@@ -1012,13 +1028,15 @@ void_t database::spawn_update( void_t ) noexcept
 }
 
 //******************************************************************
-void_t database::join_update( void_t ) noexcept 
+bool_t database::join_update( void_t ) noexcept 
 {
     if( _update_thread.joinable() ) 
     { 
         _isleep.interrupt() ; 
         _update_thread.join() ; 
         _isleep.reset() ;
+        return true ;
     }
+    return false ;
 }
 

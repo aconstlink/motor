@@ -111,7 +111,7 @@ namespace motor
                 motor::io::path_cref_t name = "db" ) ;
 
             database( this_cref_t ) = delete ;
-            database( this_rref_t rhv ) ;
+            database( this_rref_t rhv ) noexcept ;
             ~database( void_t ) ;
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept ;
@@ -175,7 +175,7 @@ namespace motor
         private: // monitor
             
             void_t spawn_update( void_t ) noexcept ;
-            void_t join_update( void_t ) noexcept ;
+            bool_t join_update( void_t ) noexcept ;
 
         private:
 
