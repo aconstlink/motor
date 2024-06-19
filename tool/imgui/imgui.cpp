@@ -893,11 +893,23 @@ void_t imgui::update( motor::controls::ascii_device_borrow_t::mtr_t dev ) noexce
                 if( ks == ks_t::pressed )
                     io.AddInputCharacter( '_' ) ;
             }
-            else if( key_t(i) == key_t::minus) 
+            else if( key_t(i) == key_t::minus ) 
             {
                 ii = ImGuiKey_Minus ;
                 if( ks == ks_t::pressed )
                     io.AddInputCharacter( '-' ) ;
+            }
+            else if( key_t(i) == key_t::point )
+            {
+                ii = ImGuiKey_Period ;
+                if ( ks == ks_t::pressed )
+                    io.AddInputCharacter( '.' ) ;
+            }
+            else if ( key_t( i ) == key_t::komma )
+            {
+                ii = ImGuiKey_Comma ;
+                if ( ks == ks_t::pressed )
+                    io.AddInputCharacter( ',' ) ;
             }
             else if( key_t(i) == key_t::plus) 
             {

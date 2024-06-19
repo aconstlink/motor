@@ -110,6 +110,8 @@ namespace this_file
         case VK_ADD: return ascii_key_t::num_add ;
         case VK_SUBTRACT: return ascii_key_t::num_sub ;
         case VK_MENU: return ascii_key_t::context ;
+        case VK_OEM_PERIOD: return ascii_key_t::point ;
+        case VK_OEM_COMMA: return ascii_key_t::komma ;
         case 0xBD: return ascii_key_t::minus ;
         case 0xBB: return ascii_key_t::plus ;
 
