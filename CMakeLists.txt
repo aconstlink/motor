@@ -143,6 +143,7 @@ list( APPEND subdirs
     "geometry"
     "noise"
     "social"
+    "scene"
     #"physics"
     #"profile"
     #${subdirs_header_only}
