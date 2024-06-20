@@ -27,6 +27,10 @@ set( sources
     "motor/motor_structs.h"
     "motor/motor_module.h"
     "motor/motor_module.cpp"
+
+    "aseprite/aseprite_structs.h"
+    "aseprite/aseprite_module.h"
+    "aseprite/aseprite_module.cpp"
     )
 
 motor_vs_src_dir( sources )
@@ -37,6 +41,7 @@ add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 target_link_libraries( ${cur_lib_name}
   PRIVATE stb
   PRIVATE rapidxml
+  PRIVATE nlohmann_json
   PUBLIC motor::font
   PUBLIC motor::msl
   PUBLIC motor::audio

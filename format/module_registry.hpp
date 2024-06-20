@@ -21,14 +21,9 @@ namespace motor
 
             struct data
             {
-                data( void_t ) {}
-                data( data const & rhv ) : ext( rhv.ext ), fac(rhv.fac) {}
-                data( data && rhv ) : ext( std::move(rhv.ext) ), fac(std::move(rhv.fac)) {}
-                ~data( void_t ) {}
-                data& operator = ( data const& rhv ) { ext = rhv.ext ; fac = rhv.fac ; return *this ; }
-                data& operator = ( data && rhv ) { ext = std::move(rhv.ext) ; fac = std::move(rhv.fac) ; return *this ; }
                 motor::string_t ext ;
-                motor::format::imodule_factory_mtr_t fac ;
+                motor::string_t fmt ;
+                motor::format::imodule_factory_mtr_t fac = nullptr ;
             };
             motor_typedef( data ) ;
             motor_typedefs( motor::vector< data_t >, factories ) ;
@@ -61,14 +56,16 @@ namespace motor
 
         public:
 
-            bool_t register_import_factory( motor::vector< motor::string_t > const & exts, motor::format::imodule_factory_mtr_safe_t fac ) noexcept
+            //**********************************************************************************
+            bool_t register_import_factory( motor::vector< motor::string_t > const & exts, motor::string_cref_t fmt, motor::format::imodule_factory_mtr_safe_t fac ) noexcept
             {
-                for( auto const & ext : exts )
+                for ( auto const & ext : exts )
                 {
                     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
 
                     this_t::data_t d ;
                     d.ext = ext ;
+                    d.fmt = fmt ;
                     d.fac = motor::share( fac ) ;
 
                     // add to the front so newer modules will be preferred.
@@ -80,6 +77,13 @@ namespace motor
                 return true ;
             }
 
+            //**********************************************************************************
+            bool_t register_import_factory( motor::vector< motor::string_t > const & exts, motor::format::imodule_factory_mtr_safe_t fac ) noexcept
+            {
+                return this_t::register_import_factory( exts, "", fac ) ;
+            }
+
+            //**********************************************************************************
             bool_t register_export_factory( motor::vector< motor::string_t > const& exts, motor::format::imodule_factory_mtr_safe_t fac ) noexcept
             {
                 for( auto const& ext : exts )
@@ -101,29 +105,13 @@ namespace motor
 
         public:
 
-            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db ) noexcept
-            {
-                motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
-
-                auto fac = this_t::borrow_import_factory( loc ) ;
-                if( fac == nullptr )
-                {
-                    return std::async( std::launch::deferred, [=] ( void_t ) -> item_mtr_t
-                    {
-                        motor::log::global_t::warning( "Can not create factory for extension : " + loc.extension() ) ;
-                        return motor::shared( motor::format::status_item_t( "Can not create factory for extension : " + loc.extension() ) ) ;
-                    } ) ;
-                }
-                
-                return fac->borrow_module( loc.extension() )->import_from( loc, db ) ;
-            }
-
-            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db, 
+            //**********************************************************************************
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::string_cref_t fmt, motor::io::database_mtr_t db, 
                 motor::property::property_sheet_mtr_safe_t ps ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
 
-                auto fac = this_t::borrow_import_factory( loc ) ;
+                auto fac = this_t::borrow_import_factory( loc, fmt ) ;
                 if( fac == nullptr )
                 {
                     return std::async( std::launch::deferred, [&] ( void_t ) -> item_mtr_t
@@ -136,6 +124,38 @@ namespace motor
                 return fac->borrow_module( loc.extension() )->import_from( loc, std::move( db ), std::move( ps ) ) ;
             }
 
+            //**********************************************************************************
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
+                motor::property::property_sheet_mtr_safe_t ps ) noexcept
+            {
+                return this_t::import_from( loc, "", db, ps ) ;
+            }
+
+            //**********************************************************************************
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::string_cref_t fmt, motor::io::database_mtr_t db ) noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( _ac ) ;
+
+                auto fac = this_t::borrow_import_factory( loc, fmt ) ;
+                if ( fac == nullptr )
+                {
+                    return std::async( std::launch::deferred, [=] ( void_t ) -> item_mtr_t
+                    {
+                        motor::log::global_t::warning( "Can not create factory for extension : " + loc.extension() ) ;
+                        return motor::shared( motor::format::status_item_t( "Can not create factory for extension : " + loc.extension() ) ) ;
+                    } ) ;
+                }
+
+                return fac->borrow_module( loc.extension() )->import_from( loc, db ) ;
+            }
+
+            //**********************************************************************************
+            motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db ) noexcept
+            {
+                return this_t::import_from( loc, "", db ) ;
+            }
+
+            //**********************************************************************************
             motor::format::future_item_t export_to( motor::io::location_cref_t loc, motor::io::database_mtr_t db, 
                 motor::format::item_mtr_safe_t what ) noexcept
             {
@@ -156,11 +176,11 @@ namespace motor
 
         private:
 
-            motor::format::imodule_factory_mtr_t borrow_import_factory( motor::io::location_cref_t loc ) const noexcept
+            motor::format::imodule_factory_mtr_t borrow_import_factory( motor::io::location_cref_t loc, motor::string_cref_t fmt ) const noexcept
             {
                 auto iter = std::find_if( _imports.begin(), _imports.end(), [&] ( this_t::data_cref_t d ) 
                 { 
-                    return d.ext == loc.extension(false) ;
+                    return d.ext == loc.extension(false) && d.fmt == fmt ;
                 } ) ;
 
                 if( iter == _imports.end() ) return nullptr ;
