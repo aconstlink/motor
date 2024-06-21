@@ -129,7 +129,7 @@ size_t group::find_index( node_ptr_t nptr ) const noexcept
 //*******************************************************************
 motor::scene::result group::add_child( node_mtr_safe_t nptr ) noexcept
 {
-    if( nptr == nullptr ) 
+    if( nptr == nullptr || nptr == this ) 
         return motor::scene::invalid_argument ;
 
     auto found = std::find( _children.begin(), _children.end(), nptr.mtr() ) ;

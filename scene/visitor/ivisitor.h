@@ -11,28 +11,17 @@ namespace motor
     {
         class MOTOR_SCENE_API ivisitor
         {
-        public: // group / decorator
+        public: 
+
+            virtual ~ivisitor( void_t ) noexcept {}
 
             virtual motor::scene::result visit( motor::scene::node_ptr_t ) noexcept = 0 ;
             virtual motor::scene::result post_visit( motor::scene::node_ptr_t ) noexcept = 0 ;
-
             virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept = 0 ;
             virtual motor::scene::result post_visit( motor::scene::group_ptr_t ) noexcept  = 0 ;
-
-            virtual motor::scene::result visit( motor::scene::transform_3d_ptr_t ) noexcept = 0 ;
-            virtual motor::scene::result post_visit( motor::scene::transform_3d_ptr_t ) noexcept = 0 ;
-
-            virtual motor::scene::result visit( motor::scene::render_state_ptr_t ) noexcept = 0 ;
-            virtual motor::scene::result post_visit( motor::scene::render_state_ptr_t ) noexcept = 0 ;
-
             virtual motor::scene::result visit( motor::scene::decorator_ptr_t ) noexcept = 0 ;
             virtual motor::scene::result post_visit( motor::scene::decorator_ptr_t ) noexcept = 0 ;
-
-        public: // leaf
-
             virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept = 0 ;
-            virtual motor::scene::result visit( motor::scene::renderable_ptr_t ) noexcept = 0 ;
-            virtual motor::scene::result visit( motor::scene::camera_ptr_t ) noexcept  = 0 ;
 
         };
     }

@@ -13,11 +13,8 @@ namespace motor
         motor_class_proto_typedefs( logic_group ) ;
         motor_class_proto_typedefs( logic_decorator ) ;
 
-        motor_class_proto_typedefs( transform_3d ) ;
-        motor_class_proto_typedefs( renderable ) ;
-        motor_class_proto_typedefs( render_state ) ;
-        motor_class_proto_typedefs( camera ) ;
 
         motor_class_proto_typedefs( ivisitor ) ;
+        motor_class_proto_typedefs( icomponent ) ;
     }
 }

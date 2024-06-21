@@ -1,6 +1,6 @@
 
 #include "node.h"
-
+#include "../component/icomponent.h"
 
 using namespace motor::scene ;
 
@@ -16,18 +16,25 @@ node::node( node::this_ptr_t parent_ptr ) noexcept  : _parent(parent_ptr)
 node::node( this_rref_t rhv ) noexcept
 {
     _parent = motor::move( rhv._parent ) ;
+    _components = std::move( rhv._components ) ;
 }
 
 //*******************************************************************
 node::this_ref_t node::operator = ( this_rref_t rhv ) noexcept
 {
     _parent = motor::move( rhv._parent ) ;
+    _components = std::move( rhv._components ) ;
     return *this ;
 }
 
 //*******************************************************************
 node::~node( void_t ) noexcept
-{}
+{
+    for( auto * comp : _components ) 
+    {
+        motor::memory::release_ptr( comp ) ;
+    }
+}
 
 //*******************************************************************
 motor::scene::result node::apply( motor::scene::ivisitor_ptr_t ) noexcept

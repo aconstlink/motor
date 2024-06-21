@@ -23,6 +23,15 @@ set( sources
     "node/leaf/logic_leaf.cpp"
 
     "visitor/ivisitor.h"
+    "visitor/visitor.h"
+    "visitor/log_visitor.h"
+    "visitor/log_visitor.cpp"
+    "visitor/code_exe_visitor.h"
+    "visitor/code_exe_visitor.cpp"
+
+    "component/icomponent.h"
+    "component/code_component.h"
+    "component/code_component.cpp"
     )
 
 motor_vs_src_dir( sources )

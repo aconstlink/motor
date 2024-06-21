@@ -5,6 +5,8 @@
 #include "../result.h"
 #include "../protos.h"
 
+#include <motor/std/vector>
+
 namespace motor
 {
     namespace scene
@@ -18,6 +20,8 @@ namespace motor
             /// every node has a parent node
             /// if no parent exists, it is the root
             this_ptr_t _parent = nullptr ;
+
+            std::vector< motor::scene::icomponent_mtr_t > _components ;
 
         public:
 
@@ -38,6 +42,54 @@ namespace motor
 
             //virtual motor::scene::result replace( this_ptr_t which_ptr, this_ptr_t with_ptr ) = 0 ;
             //virtual motor::scene::result detach( this_ptr_t which_ptr ) = 0 ;
+
+        public: // component 
+
+            template< typename T >
+            T * borrow_component( void_t ) const noexcept
+            {
+                for ( auto * comp : _components )
+                {
+                    if ( auto * ret = dynamic_cast<T*>( comp ); ret != nullptr )
+                    {
+                        return ret ;
+                    }
+                }
+                return nullptr ;
+            }
+
+            template< typename T >
+            bool_t borrow_component( T * & ret ) const noexcept
+            {
+                for ( auto * comp : _components )
+                {
+                    if ( ret = dynamic_cast<T *>( comp ); ret != nullptr )
+                    {
+                        return true ;
+                    }
+                }
+                return false ;
+            }
+
+            template< typename T >
+            bool_t add_component( motor::core::mtr_safe<T> comp ) noexcept
+            {
+                auto iter = std::find_if( _components.begin(), _components.end(), 
+                [&] ( motor::scene::icomponent_ptr_t comp_in ) 
+                {
+                    return comp_in == comp || (dynamic_cast<T *>( comp_in ) != nullptr) ;
+                } ) ;
+
+                if ( iter != _components.end() ) 
+                {
+                    motor::release( comp ) ;
+                    return false ;
+                }
+
+                _components.emplace_back( motor::move( comp ) ) ;
+
+                return true ;
+            }
 
         public:
 
