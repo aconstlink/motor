@@ -31,6 +31,9 @@ namespace motor
             node( this_cref_t ) = delete ;
             virtual ~node( void_t ) noexcept ;
 
+            this_ref_t operator = ( this_cref_t ) = delete ;
+            this_ref_t operator = ( this_rref_t ) noexcept ;
+
         public: // parent
 
             /// returns the parent node.
@@ -93,10 +96,38 @@ namespace motor
 
         public:
 
+            // helps traversing the tree
+            // use this call to access the apply() function.
+            class MOTOR_SCENE_API traverser
+            {
+            private:
+
+                node_ptr_t _traverse ;
+
+            public:
+
+                traverser( node_ptr_t begin ) noexcept ;
+                void_t apply( motor::scene::ivisitor_ptr_t ) noexcept ;
+            };
+
+            // for nodes to be called
+            class derived_apply
+            {
+            private:
+
+                node_ptr_t _traverse ;
+
+            public:
+
+                derived_apply( node_ptr_t begin ) noexcept ;
+                motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
+            };
+
+        protected:
+
             virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
 
-            this_ref_t operator = ( this_cref_t ) = delete ;
-            this_ref_t operator = ( this_rref_t ) noexcept ;
+            
 
         public:
 

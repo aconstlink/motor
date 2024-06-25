@@ -15,7 +15,7 @@ namespace motor
 
         public:
 
-            virtual void_t execute( motor::scene::node_mtr_t ) noexcept = 0 ;
+            virtual ~icomponent( void_t ) noexcept {}
         };
     }
 }

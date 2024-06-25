@@ -10,7 +10,8 @@ namespace motor
             failed,
             invalid_argument,
 
-            repeat
+            repeat,
+            no_descent
         };
 
         static bool success( result r ) { return r == ok ; }

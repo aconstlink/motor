@@ -34,5 +34,5 @@ motor::scene::result leaf::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
     {
         motor::log::global::error( "[vzt_scene::leaf::apply] : visit" ) ;
     }
-    return vptr->post_visit( this ) ;
+    return res ;
 }

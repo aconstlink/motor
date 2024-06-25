@@ -32,6 +32,7 @@ set( sources
     "component/icomponent.h"
     "component/code_component.h"
     "component/code_component.cpp"
+    "component/name_component.hpp"
     )
 
 motor_vs_src_dir( sources )

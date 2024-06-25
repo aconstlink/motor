@@ -29,12 +29,6 @@ motor::scene::result log_visitor::visit( motor::scene::node_ptr_t ) noexcept
 }
 
 //*********************************************************************
-motor::scene::result log_visitor::post_visit( motor::scene::node_ptr_t ) noexcept
-{
-    return motor::scene::ok ;
-}
-
-//*********************************************************************
 motor::scene::result log_visitor::visit( motor::scene::group_ptr_t )  noexcept
 {
     this_t::print( "> group" ) ;
@@ -43,7 +37,7 @@ motor::scene::result log_visitor::visit( motor::scene::group_ptr_t )  noexcept
 }
 
 //*********************************************************************
-motor::scene::result log_visitor::post_visit( motor::scene::group_ptr_t ) noexcept
+motor::scene::result log_visitor::post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept
 {
     --_indent ;
     this_t::print( "< group" ) ;
@@ -59,7 +53,7 @@ motor::scene::result log_visitor::visit( motor::scene::decorator_ptr_t ) noexcep
 }
 
 //*********************************************************************
-motor::scene::result log_visitor::post_visit( motor::scene::decorator_ptr_t ) noexcept
+motor::scene::result log_visitor::post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept
 {
     --_indent ;
     this_t::print( "< decorator" ) ;
@@ -70,12 +64,5 @@ motor::scene::result log_visitor::post_visit( motor::scene::decorator_ptr_t ) no
 motor::scene::result log_visitor::visit( motor::scene::leaf_ptr_t ) noexcept
 {
     this_t::print( "> leaf" ) ;
-    return motor::scene::ok ;
-}
-
-//*********************************************************************
-motor::scene::result log_visitor::post_visit( motor::scene::leaf_ptr_t ) noexcept
-{
-    this_t::print( "< leaf" ) ;
     return motor::scene::ok ;
 }

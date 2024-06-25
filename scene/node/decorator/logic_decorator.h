@@ -22,9 +22,6 @@ namespace motor
 
             void_t set_decorated( motor::scene::node_mtr_safe_t ) noexcept ;
 
-        public:
-
-            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
         };
         motor_typedef( logic_decorator ) ;
     }

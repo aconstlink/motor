@@ -37,13 +37,13 @@ decorator::~decorator( void_t ) noexcept
 //*************************************************************************
 motor::scene::result decorator::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    motor::scene::result r = vptr->visit( this ) ;
-    if( motor::scene::success(r) )
+    motor::scene::result const r = vptr->visit( this ) ;
+    if( motor::scene::success( r ) )
     {
-        r = traverse_decorated( vptr ) ;
+        traverse_decorated( vptr ) ;
     }
     
-    return vptr->post_visit(this) ;
+    return vptr->post_visit( this, r ) ;
 }
 
 //*************************************************************************
@@ -121,7 +121,7 @@ motor::scene::result decorator::traverse_decorated( motor::scene::ivisitor_ptr_t
     while( r == motor::scene::result::repeat )
     {
         if( _decorated == nullptr ) break ;
-        r = _decorated->apply(ptr) ;
+        r = motor::scene::node_t::derived_apply( _decorated ).apply(ptr) ;
     }
     return r ;
 }

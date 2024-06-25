@@ -15,11 +15,10 @@ namespace motor
             virtual ~code_exe_visitor( void_t ) noexcept {}
 
             virtual motor::scene::result visit( motor::scene::node_ptr_t ) noexcept ;
-            virtual motor::scene::result post_visit( motor::scene::node_ptr_t ) noexcept ;
             virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept ;
-            virtual motor::scene::result post_visit( motor::scene::group_ptr_t ) noexcept ;
+            virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const  ) noexcept ;
             virtual motor::scene::result visit( motor::scene::decorator_ptr_t ) noexcept ;
-            virtual motor::scene::result post_visit( motor::scene::decorator_ptr_t ) noexcept ;
+            virtual motor::scene::result post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept ;
             virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept ;
         };
         motor_typedef( code_exe_visitor ) ;

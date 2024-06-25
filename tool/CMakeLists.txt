@@ -23,6 +23,9 @@ set( sources
     "imgui/player_controller.cpp"
     "imgui/engine_profiling.h"
     "imgui/engine_profiling.cpp"
+
+    "imgui/imgui_node_visitor.h"
+    "imgui/imgui_node_visitor.cpp"
     )
 
 motor_vs_src_dir( sources )
@@ -42,6 +45,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::profiling
   PUBLIC motor::gfx
   PUBLIC motor::format
+  PUBLIC motor::scene
     )
 
 if( MOTOR_COMPILER_GNU )

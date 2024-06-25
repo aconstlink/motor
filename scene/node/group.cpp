@@ -46,7 +46,7 @@ motor::scene::result group::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 motor::scene::result group::apply( motor::scene::ivisitor_ptr_t vptr, 
     traverse_predicate_t pred ) noexcept
 {
-    motor::scene::result r = vptr->visit( this ) ;
+    motor::scene::result const r = vptr->visit( this ) ;
 
     switch( r ) 
     {
@@ -54,11 +54,10 @@ motor::scene::result group::apply( motor::scene::ivisitor_ptr_t vptr,
         traverse_children( vptr, pred ) ;
         break ;
     default:
-        motor::log::global_t::warning("[group_node::apply] : unsupported case") ;
         break ;
     }
     
-    return vptr->post_visit(this) ;
+    return vptr->post_visit( this, r ) ;
 }
 
 //*******************************************************************
@@ -169,7 +168,7 @@ void_t group::traverse_children( motor::scene::ivisitor_ptr_t ptr,
         while( r == motor::scene::repeat )
         {
             auto * nptr = _children[i] ;
-            r = nptr->apply( ptr ) ;
+            r = motor::scene::node_t::derived_apply(nptr).apply( ptr ) ;
         }               
     }
 }

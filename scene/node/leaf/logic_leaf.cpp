@@ -31,7 +31,7 @@ motor::scene::result logic_leaf::apply( motor::scene::ivisitor_ptr_t vptr ) noex
         motor::log::global_t::warning( "[vzt_scene::logic_leaf::apply] : visit" ) ;
     }
     
-    return vptr->post_visit( this ) ;
+    return res ;
 }
 
 //*************************************************************************

@@ -1,8 +1,33 @@
 
 #include "node.h"
 #include "../component/icomponent.h"
+#include "../visitor/ivisitor.h"
 
 using namespace motor::scene ;
+
+//*******************************************************************
+node::traverser::traverser( node_ptr_t begin ) noexcept :_traverse( begin )
+{
+}
+
+//*******************************************************************
+void_t node::traverser::apply( motor::scene::ivisitor_ptr_t v ) noexcept
+{
+    v->on_start() ;
+    _traverse->apply( v ) ;
+    v->on_finish() ;
+}
+
+//*******************************************************************
+node::derived_apply::derived_apply( node_ptr_t begin ) noexcept :_traverse( begin )
+{
+}
+
+//*******************************************************************
+motor::scene::result node::derived_apply::apply( motor::scene::ivisitor_ptr_t v ) noexcept
+{
+    return _traverse->apply( v ) ;
+}
 
 //*******************************************************************
 node::node( void_t ) noexcept
@@ -37,9 +62,9 @@ node::~node( void_t ) noexcept
 }
 
 //*******************************************************************
-motor::scene::result node::apply( motor::scene::ivisitor_ptr_t ) noexcept
+motor::scene::result node::apply( motor::scene::ivisitor_ptr_t v ) noexcept
 {
-    return motor::scene::result::ok ;
+    return v->visit( this ) ;
 }
 
 //*******************************************************************

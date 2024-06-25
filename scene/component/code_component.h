@@ -24,7 +24,7 @@ namespace motor
 
             code_component( funk_t f ) noexcept : _funk( f ) {}
             virtual ~code_component( void_t ) noexcept {}
-            virtual void_t execute( motor::scene::node_mtr_t ) noexcept ;
+            void_t execute( motor::scene::node_mtr_t ) noexcept ;
         };
         motor_typedef( code_component ) ;
     }
