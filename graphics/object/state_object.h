@@ -27,17 +27,22 @@ namespace motor
 
         public:
 
-            state_object( void_t ) {}
-            state_object( motor::string_cref_t name )
+            state_object( void_t ) noexcept {}
+            state_object( motor::string_cref_t name ) noexcept
                 : _name( name ) {}
 
-            state_object( this_cref_t rhv ) : object( rhv )
+            state_object( motor::graphics::render_state_sets_rref_t rss ) noexcept 
+            {
+                _states.emplace_back( std::move( rss ) ) ;
+            }
+
+            state_object( this_cref_t rhv ) noexcept  : object( rhv )
             {
                 _name = rhv._name ;
                 _states = rhv._states ;
             }
 
-            state_object( this_rref_t rhv ) : object( std::move( rhv ) )
+            state_object( this_rref_t rhv ) noexcept : object( std::move( rhv ) )
             {
                 _name = std::move( rhv._name ) ;
                 _states = std::move( rhv._states ) ;
@@ -81,8 +86,6 @@ namespace motor
                 _states[ n ] = s ;
                 return *this ;
             }
-
-            
 
             this_ref_t add_render_state_set( motor::graphics::render_state_sets_cref_t rs )
             {

@@ -62,7 +62,10 @@
     typedef x & x ## _inout_t ;                                         \
     typedef x & x ## _ref_t ;                                           \
     typedef x * & x ## _mtr_ref_t ;                                           \
-    typedef x * && x ## _mtr_rref_t
+    typedef x * && x ## _mtr_rref_t ;                                     \
+    typedef motor::core::mtr_safe< x > x ## _mtr_safe_t ;     \
+    typedef motor::core::mtr_safe< x > x ## _safe_t ;         \
+    typedef motor::core::mtr_borrow< x > x ## _borrow_t 
 
 #define motor_struct_proto_typedefs(x)                                     \
     struct x ;                                                          \
