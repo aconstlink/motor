@@ -16,13 +16,13 @@ namespace motor
         using namespace motor::core::types ;
 
         
-        motor_class_proto_typedefs( isignal ) ;
-        motor_class_proto_typedefs( islot ) ;
+        motor_class_proto_typedefs( ioutput_slot ) ;
+        motor_class_proto_typedefs( iinput_slot ) ;
 
         template< typename T >
-        class signal ;
+        class output_slot ;
 
         template< typename T >
-        class slot ;
+        class input_slot ;
     }
 }
