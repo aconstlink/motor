@@ -18,7 +18,7 @@ namespace motor
 
         public:
 
-            typedef std::function< void_t ( this_mtr_t ) > task_funk_t ;
+            typedef std::function< void_t ( this_ptr_t ) > task_funk_t ;
             motor_typedefs( motor::vector< this_mtr_t >, tasks ) ;
 
         private: // user execution function
@@ -91,9 +91,19 @@ namespace motor
                 return *this ;
             }
 
+            void_t set_funk( this_t::task_funk_t f ) noexcept
+            {
+                _funk = f ;
+            }
+
         public: // this is what the user should use only
 
             this_mtr_safe_t in_between( this_mtr_safe_t other ) noexcept
+            {
+                return this_t::inbetween( other ) ;
+            }
+
+            this_mtr_safe_t inbetween( this_mtr_safe_t other ) noexcept
             {
                 other->inc_incoming() ;
                 _inbetweens.emplace_back( other ) ;

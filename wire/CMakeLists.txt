@@ -10,6 +10,8 @@ set( SOURCES ${SOURCES}
     "node/node.h"
     "node/node.cpp"
 
+    "slot/islot.h"
+    "slot/islot.cpp"
     "slot/input_slot.h"
     "slot/input_slot.cpp"
     "slot/output_slot.h"

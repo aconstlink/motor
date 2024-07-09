@@ -16,6 +16,7 @@ namespace motor
         using namespace motor::core::types ;
 
         
+        motor_class_proto_typedefs( inode ) ;
         motor_class_proto_typedefs( ioutput_slot ) ;
         motor_class_proto_typedefs( iinput_slot ) ;
 

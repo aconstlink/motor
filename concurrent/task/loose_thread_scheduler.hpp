@@ -89,6 +89,15 @@ namespace motor
 
             void_t deinit( void_t ) noexcept
             {
+                // need to wait for all futures to complete.
+                {
+                    for ( auto & f : _futures )
+                    {
+                        f.wait() ;
+                    }
+                    _futures.clear() ;
+                }
+
                 motor::memory::global_t::dealloc( _sd ) ;
                 _sd = nullptr ;
 

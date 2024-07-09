@@ -2,24 +2,23 @@
 
 #pragma once
 
-#include "../api.h"
-#include "../typedefs.h"
+#include "islot.h"
 
 namespace motor
 {
     namespace wire
     {
-        class MOTOR_WIRE_API iinput_slot
+        class MOTOR_WIRE_API iinput_slot : public islot
         {
             motor_this_typedefs( iinput_slot ) ;
 
         public:
-
             
             virtual ~iinput_slot( void_t ) noexcept ;
 
         public:
 
+            virtual void_t exchange( void_t ) noexcept = 0 ;
             virtual void_t disconnect( bool_t const propagate = true ) noexcept = 0 ;
             virtual void_t disconnect( motor::wire::ioutput_slot_ptr_t, bool_t const propagate = true  ) noexcept = 0 ;
             virtual bool_t connect( motor::wire::ioutput_slot_mtr_safe_t, bool_t const propagate = true ) noexcept = 0 ;
@@ -54,11 +53,21 @@ namespace motor
                 }
             }
 
+            virtual void_t exchange( void_t ) noexcept
+            {
+                if( _output_slot != nullptr ) 
+                {
+                    _value = _output_slot->get_value() ;
+                }
+            }
+
             virtual void_t disconnect( bool_t const propagate = true ) noexcept
             {
                 if ( _output_slot == nullptr ) return ;
                 if ( propagate ) _output_slot->disconnect( this ) ;
                 motor::memory::release_ptr( motor::move( _output_slot ) ) ;
+
+                _value = T( 0 ) ;
             }
 
             virtual void_t disconnect( motor::wire::ioutput_slot_ptr_t sig, bool_t const propagate = true ) noexcept
@@ -85,6 +94,18 @@ namespace motor
 
                 motor::release( s ) ;
                 return false ;
+            }
+
+        public:
+
+            T get_value( void_t ) noexcept
+            {
+                return _value ;
+            }
+
+            void_t set_value( T const v ) noexcept
+            {
+                _value = v ;
             }
         };
     }
