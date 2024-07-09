@@ -18,7 +18,10 @@ namespace motor
 
         public:
 
-            typedef std::function< void_t ( this_ptr_t ) > task_funk_t ;
+            struct task_funk_param {};
+            motor_typedef( task_funk_param ) ;
+
+            typedef std::function< void_t ( task_funk_param_in_t ) > task_funk_t ;
             motor_typedefs( motor::vector< this_mtr_t >, tasks ) ;
 
         private: // user execution function
@@ -45,17 +48,19 @@ namespace motor
 
         private: //
 
-            tasks_t _inbetweens ;
-            tasks_t _thens ;
+            tasks_t _ins ;
+            tasks_t _outs;
 
         public:
 
-            task( void_t ) noexcept : _inbetweens( tasks_t::allocator_type("inbetweens")), _thens( tasks_t::allocator_type("thens"))
+            task( void_t ) noexcept : _ins( tasks_t::allocator_type("incomings")), 
+                _outs( tasks_t::allocator_type("outgoings") )
             {
-                _funk = [=]( this_mtr_t ){} ;
+                _funk = [=]( this_t::task_funk_param_in_t ){} ;
             }
 
-            task( task_funk_t f ) noexcept: _inbetweens( tasks_t::allocator_type("inbetweens")), _thens( tasks_t::allocator_type("thens"))
+            task( task_funk_t f ) noexcept: _ins( tasks_t::allocator_type("incomings")), 
+                _outs( tasks_t::allocator_type("outgoings"))
             {
                 _funk = f ;
             }
@@ -64,19 +69,19 @@ namespace motor
             task( this_rref_t rhv ) noexcept
             {
                 _funk = std::move( rhv._funk ) ;
-                _inbetweens = std::move( rhv._inbetweens ) ;
-                _thens = std::move( rhv._thens ) ;
+                _ins = std::move( rhv._ins ) ;
+                _outs = std::move( rhv._outs ) ;
                 _incomings = rhv._incomings ;
             }
 
             ~task( void_t ) noexcept
             {
-                for( auto & t : _inbetweens )
+                for( auto & t : _ins )
                 {
                     motor::memory::release_ptr( t ) ;
                 }
 
-                for( auto & t : _thens )
+                for( auto & t : _outs )
                 {
                     motor::memory::release_ptr( t ) ;
                 }
@@ -85,8 +90,8 @@ namespace motor
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
                 _funk = std::move( rhv._funk ) ;
-                _inbetweens = std::move( rhv._inbetweens ) ;
-                _thens = std::move( rhv._thens ) ;
+                _ins = std::move( rhv._ins ) ;
+                _outs = std::move( rhv._outs ) ;
                 _incomings = rhv._incomings ;
                 return *this ;
             }
@@ -96,25 +101,65 @@ namespace motor
                 _funk = f ;
             }
 
-        public: // this is what the user should use only
+        private:
 
-            this_mtr_safe_t in_between( this_mtr_safe_t other ) noexcept
+            bool_t add_incoming( this_mtr_t ptr ) noexcept
             {
-                return this_t::inbetween( other ) ;
+                auto iter = std::find( _ins.begin(), _ins.end(), ptr ) ;
+                if ( iter != _ins.end() ) return false ;
+
+                this_t::inc_incoming() ;
+                _ins.push_back( motor::memory::copy_ptr( ptr ) ) ;
+                return true ;
             }
 
-            this_mtr_safe_t inbetween( this_mtr_safe_t other ) noexcept
+            void_t disconnect_incoming( this_ptr_t ptr ) noexcept
             {
-                other->inc_incoming() ;
-                _inbetweens.emplace_back( other ) ;
-                return other ;
+                auto iter = std::find( _ins.begin(), _ins.end(), ptr ) ;
+                if ( iter == _ins.end() ) return ;
+
+                _ins.erase( iter ) ;
+                motor::memory::release_ptr( ptr ) ;
+                this_t::dec_incoming() ;
             }
+
+            void_t disconnect_outgoing( this_ptr_t ptr ) noexcept
+            {
+                auto iter = std::find( _outs.begin(), _outs.end(), ptr ) ;
+                if ( iter == _outs.end() ) return ;
+
+                _outs.erase( iter ) ;
+                motor::memory::release_ptr( ptr ) ;
+            }
+
+        public: // this is what the user should use only 
 
             this_mtr_safe_t then( this_mtr_safe_t other ) noexcept
             {
-                other->inc_incoming() ;
-                _thens.emplace_back( other ) ;
+                other->add_incoming( this ) ;
+                _outs.emplace_back( other ) ;
                 return other ;
+            }
+
+            void_t disconnect( void_t ) noexcept
+            {
+                // disconnect from all incomings
+                for( auto * ptr : _ins )
+                {
+                    // disconnect this from ptr
+                    ptr->disconnect_outgoing( this ) ;
+                    motor::memory::release_ptr( ptr ) ;
+                }
+                _ins.clear() ;
+
+                // disconnect from all outgoings
+                for ( auto * ptr : _outs )
+                {
+                    // disconnect this from ptr
+                    ptr->disconnect_incoming( this ) ;
+                    motor::memory::release_ptr( ptr ) ;
+                }
+                _outs.clear() ;
             }
             
         public: // accessor
@@ -138,33 +183,22 @@ namespace motor
             };
             friend struct scheduler_accessor ;
 
+            struct cleaner_accessor
+            {
+                static void_t move_out_all( this_mtr_t t, motor::vector< this_mtr_t > & tasks ) noexcept
+                {
+                    t->move_out_all( tasks ) ;
+                }
+            };
+            friend struct cleaner_accessor ;
+
         private:
 
             void_t schedule( motor::vector< this_mtr_t > & tasks ) noexcept
             {
-                tasks.reserve( tasks.capacity() + _inbetweens.size() + _thens.size() ) ;
+                tasks.reserve( tasks.capacity() + _outs.size() ) ;
 
-                if( _inbetweens.size() == 0 )
-                {
-                    for( auto & t : _thens ) tasks.emplace_back( motor::memory::copy_ptr(t) ) ;
-                    return ;
-                }
-
-                for( auto & c : _inbetweens )
-                {
-                    for( auto & t : _thens ) 
-                    {
-                        c->then( motor::share(t) ) ;
-                    }
-                    tasks.emplace_back( motor::memory::copy_ptr(c) ) ;
-                }
-
-                // t is not scheduled yet it is
-                // delayed to the children
-                for( auto & t : _thens ) 
-                {
-                    t->dec_incoming() ; 
-                }
+                for ( auto & t : _outs ) tasks.emplace_back( motor::memory::copy_ptr( t ) ) ;
             }
 
             bool_t will_execute( void_t ) noexcept
@@ -179,7 +213,10 @@ namespace motor
             {
                 if( _incomings != 0 ) return false ;
 
-                _funk( this_res ) ;
+                this_t::task_funk_param_t p ;
+                _funk( p ) ;
+
+                _incomings = _ins.size() ;
 
                 return true ;
             }
@@ -187,6 +224,16 @@ namespace motor
             bool_t resume( void_t ) noexcept
             {
                 return this_t::dec_incoming() ;
+            }
+
+            void_t move_out_all( motor::vector< this_mtr_t > & tasks ) noexcept
+            {
+                tasks.reserve( tasks.capacity() + _ins.size() + _outs.size() )  ;
+                for ( auto & t : _ins ) tasks.emplace_back( t ) ;
+                for ( auto & t : _outs ) tasks.emplace_back( t ) ;
+                _incomings = 0 ;
+                _outs.clear() ;
+                _ins.clear() ;
             }
         };
         motor_typedef( task ) ;

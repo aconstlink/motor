@@ -45,11 +45,12 @@ namespace motor
                 T end = start + per_task ;
                 range_t const lr( start, end ) ;
 
-                motor::concurrent::global_t::schedule( motor::concurrent::global_t::make_task( [&, lr]( motor::concurrent::task_mtr_t )
+                motor::concurrent::global_t::schedule( motor::shared( 
+                    motor::concurrent::task_t( [&, lr]( motor::concurrent::task_t::task_funk_param_in_t )
                 {
                     f( lr ) ;
                     --sem_counter ;
-                } ), motor::concurrent::schedule_type::pool ) ;
+                } ) ), motor::concurrent::schedule_type::pool ) ;
 
                 start = end ;
             }
@@ -59,11 +60,12 @@ namespace motor
                 T end = start + rest_task ;
                 range_t lr( start, end ) ;
 
-                motor::concurrent::global_t::schedule( motor::concurrent::global_t::make_task( [&]( motor::concurrent::task_mtr_t )
+                motor::concurrent::global_t::schedule( motor::shared( 
+                    motor::concurrent::task_t( [&]( motor::concurrent::task_t::task_funk_param_in_t )
                 {
                     f( lr ) ;
                     --sem_counter ;
-                } ), motor::concurrent::schedule_type::pool );
+                } ) ), motor::concurrent::schedule_type::pool );
             }
 
             motor::concurrent::global_t::yield( [&]( void_t )

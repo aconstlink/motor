@@ -137,7 +137,7 @@ motor::concurrent::task_ptr_t inode::task( void_t ) noexcept
 //*****************************************************
 motor::concurrent::task_t::task_funk_t inode::make_task_funk( void_t ) noexcept
 {
-    return [=] ( motor::concurrent::task_ptr_t ) 
+    return [=] ( motor::concurrent::task_t::task_funk_param_in_t ) 
     {
         this->execute() ;
     } ;

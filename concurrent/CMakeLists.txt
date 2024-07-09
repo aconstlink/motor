@@ -21,6 +21,7 @@ set( sources
     "task/task.hpp"
     "task/loose_thread_scheduler.hpp"
     "task/fixed_thread_scheduler.hpp"
+    "task/task_disconnector.hpp"
     )
     
 if( MOTOR_TARGET_OS_WIN )
