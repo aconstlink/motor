@@ -25,3 +25,6 @@
 [submodule "externals/nlohmann/json"]
 	path = externals/nlohmann/json
 	url = https://github.com/nlohmann/json.git
+[submodule "externals/nelarius/imnodes"]
+	path = externals/nelarius/imnodes
+	url = https://github.com/Nelarius/imnodes.git

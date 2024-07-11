@@ -15,6 +15,7 @@
 
 #include <imgui.h>
 #include <implot.h>
+#include <imnodes.h>
 
 namespace motor
 {
@@ -28,6 +29,7 @@ namespace motor
 
             ImGuiContext* _ctx = nullptr ;
             ImPlotContext * _ip_ctx = nullptr ;
+            ImNodesContext * _in_ctx = nullptr ;
 
             struct vertex 
             { 
