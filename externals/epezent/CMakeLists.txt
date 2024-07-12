@@ -32,7 +32,7 @@ target_link_libraries( implot
     PRIVATE ct_motor_build_library_type )
 
 set_target_properties( implot PROPERTIES LINKER_LANGUAGE CXX )
-set_target_properties( implot PROPERTIES FOLDER "motor/externals" )
+set_target_properties( implot PROPERTIES FOLDER "motor/externals/imgui" )
 target_include_directories( implot 
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/implot>
   PUBLIC $<INSTALL_INTERFACE:"include/implot"> ) 

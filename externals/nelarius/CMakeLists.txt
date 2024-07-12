@@ -37,7 +37,7 @@ target_link_libraries( imnodes
     PRIVATE ct_motor_build_library_type )
 
 set_target_properties( imnodes PROPERTIES LINKER_LANGUAGE CXX )
-set_target_properties( imnodes PROPERTIES FOLDER "motor/externals" )
+set_target_properties( imnodes PROPERTIES FOLDER "motor/externals/imgui" )
 target_include_directories( imnodes 
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imnodes>
   PUBLIC $<INSTALL_INTERFACE:"include/imnodes"> ) 

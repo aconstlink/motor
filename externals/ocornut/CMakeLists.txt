@@ -45,7 +45,7 @@ target_link_libraries( imgui
     PRIVATE ct_motor_build_library_type )
 
 set_target_properties( imgui PROPERTIES LINKER_LANGUAGE CXX )
-set_target_properties( imgui PROPERTIES FOLDER "motor/externals" )
+set_target_properties( imgui PROPERTIES FOLDER "motor/externals/imgui" )
 target_include_directories( imgui 
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imgui>
   PUBLIC $<INSTALL_INTERFACE:"include/imgui"> ) 
