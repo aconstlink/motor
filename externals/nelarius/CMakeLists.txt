@@ -17,7 +17,7 @@ set( SOURCES
 
 #add_definitions( -DIMGUI_DEFINE_MATH_OPERATORS )
 
-add_library( imnodes STATIC ${SOURCES} )
+add_library( imnodes ${MOTOR_LIBRARY_BUILD_TYPE} ${SOURCES} )
 
 # fix the dll-hell. The self provided imconfig.h 
 # sets the IMGUI_API properly for dll export/import
