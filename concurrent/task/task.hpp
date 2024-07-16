@@ -5,7 +5,9 @@
 #include "../typedefs.h"
 #include "../sync_object.hpp"
 
+#include <motor/std/hash_map>
 #include <motor/std/vector>
+
 #include <atomic>
 
 namespace motor
@@ -191,6 +193,114 @@ namespace motor
                 }
             };
             friend struct cleaner_accessor ;
+
+
+            struct tier_builder
+            {
+                struct tier
+                {
+                    tasks_t tasks ;
+
+                    bool_t has_tasks( void_t ) const noexcept { return tasks.size() != 0 ; }
+                };
+                motor_typedefs( motor::vector< tier >, tiers ) ;
+                tiers_t tiers ;
+
+                struct build_result
+                {
+                    tiers_t tiers ;
+                    size_t num_tasks = 0 ;
+                    bool_t has_cylce = false ;
+                };
+                motor_typedef( build_result ) ;
+
+                static void_t build( this_mtr_t start, build_result_out_t res ) noexcept
+                {
+                    size_t id = 0 ;
+                    motor::hash_map< this_mtr_t, size_t > ids ;
+
+                    size_t cur_tier = 0 ;
+
+                    tiers_ref_t tiers = res.tiers ;
+                    tiers.clear() ;
+
+                    tiers.push_back( tier{ {start} } ) ;
+                    ids[start] = id++ ;
+
+                    while( tiers[cur_tier].has_tasks() )
+                    {
+                        tiers.resize( tiers.size() + 1 ) ;
+
+                        for( auto * t : tiers[cur_tier].tasks )
+                        {
+                            for( auto * t2 : t->_outs )
+                            {
+                                // self check
+                                {
+                                    auto iter = ids.find( t2 ) ;
+                                    if( iter != ids.end() ) continue ;
+                                }
+
+                                // check if candidate for tier
+                                {
+                                    bool_t complete = true ;
+                                    for ( auto * input_task : t2->_ins )
+                                    {
+                                        auto iter = ids.find( input_task ) ;
+                                        if ( iter == ids.end() )
+                                        {
+                                            complete = false ;
+                                            break ;
+                                        }
+                                    }
+
+                                    if ( !complete ) continue ;
+                                }
+
+                                // if candidate, check cycles
+                                {
+                                    bool_t has_cycle = false ;
+                                    for ( auto * output_task : t2->_outs )
+                                    {
+                                        auto iter = ids.find( output_task ) ;
+                                        if ( iter != ids.end() )
+                                        {
+                                            has_cycle = true ;
+                                            break ;
+                                        }
+                                    }
+
+                                    if( has_cycle ) 
+                                    {
+                                        //motor::log::global_t::status("graph has cycle.") ;
+                                        res.has_cylce = true ;
+                                        continue ;
+                                    }
+                                }
+
+                                tiers[cur_tier+1].tasks.push_back( t2 ) ;
+                                ids[ t2 ] = id++ ;
+                                ++res.num_tasks ;
+                            }
+                        }
+
+                        ++cur_tier ;
+                    }
+                }
+
+                using output_slots_funk_t = std::function< void_t ( this_mtr_t, tasks_cref_t outs ) > ;
+                static void_t output_slot_walk( build_result_in_t res, output_slots_funk_t f ) noexcept 
+                {
+                    for( auto const & tiEr : res.tiers )
+                    {
+                        for( auto * t : tiEr.tasks )
+                        {
+                            f( t, t->_outs ) ;
+                        }
+                    }
+                }
+            };
+            motor_typedef( tier_builder ) ;
 
         private:
 

@@ -24,6 +24,9 @@ set( sources
     "imgui/engine_profiling.h"
     "imgui/engine_profiling.cpp"
 
+    "imgui/imnodes_wire.h"
+    "imgui/imnodes_wire.cpp"
+
     "imgui/imgui_node_visitor.h"
     "imgui/imgui_node_visitor.cpp"
     )
@@ -47,6 +50,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::gfx
   PUBLIC motor::format
   PUBLIC motor::scene
+  PUBLIC motor::wire
     )
 
 if( MOTOR_COMPILER_GNU )
