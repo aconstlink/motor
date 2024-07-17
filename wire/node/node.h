@@ -20,11 +20,13 @@ namespace motor
         {
             motor_this_typedefs( inode ) ;
 
+        public:
+
+            motor_typedefs( motor::vector< this_mtr_t >, nodes ) ;
+
         private:
 
             motor::concurrent::task_mtr_t _task ;
-
-            using nodes_t = motor::vector< this_mtr_t > ;
 
             motor::concurrent::mrsw_t _mtx_in ;
             motor::concurrent::mrsw_t _mtx_out ;
@@ -72,6 +74,119 @@ namespace motor
             motor::concurrent::task_ptr_t task( void_t ) noexcept ;
 
             motor::concurrent::task_t::task_funk_t make_task_funk( void_t ) noexcept ;
+
+        public:
+
+            struct tier_builder
+            {
+                struct tier
+                {
+                    nodes_t nodes ;
+
+                    bool_t has_nodes( void_t ) const noexcept { return nodes.size() != 0 ; }
+                };
+                motor_typedefs( motor::vector< tier >, tiers ) ;
+                tiers_t tiers ;
+
+                struct build_result
+                {
+                    tiers_t tiers ;
+                    size_t num_nodes = 0 ;
+                    bool_t has_cylce = false ;
+                };
+                motor_typedef( build_result ) ;
+
+                static void_t build( this_mtr_t start, build_result_out_t res ) noexcept
+                {
+                    size_t id = 0 ;
+                    motor::hash_map< this_mtr_t, size_t > ids ;
+
+                    size_t cur_tier = 0 ;
+
+                    tiers_ref_t tiers = res.tiers ;
+                    tiers.clear() ;
+                    res.num_nodes = 1 ;
+
+                    tiers.push_back( tier { { start } } ) ;
+                    ids[ start ] = id++ ;
+
+
+                    while ( tiers[ cur_tier ].has_nodes() )
+                    {
+                        tiers.resize( tiers.size() + 1 ) ;
+
+                        for ( auto * n : tiers[ cur_tier ].nodes )
+                        {
+                            for ( auto * n2 : n->_outgoing )
+                            {
+                                // self check
+                                {
+                                    auto iter = ids.find( n2 ) ;
+                                    if ( iter != ids.end() ) continue ;
+                                }
+
+                                // check if candidate for tier
+                                {
+                                    bool_t complete = true ;
+                                    for ( auto * incoming_node : n2->_incoming )
+                                    {
+                                        auto iter = ids.find( incoming_node ) ;
+                                        if ( iter == ids.end() )
+                                        {
+                                            complete = false ;
+                                            break ;
+                                        }
+                                    }
+
+                                    if ( !complete ) continue ;
+                                }
+
+                                // if candidate, check cycles
+                                {
+                                    bool_t has_cycle = false ;
+                                    for ( auto * outgoing_node : n2->_outgoing )
+                                    {
+                                        auto iter = ids.find( outgoing_node ) ;
+                                        if ( iter != ids.end() )
+                                        {
+                                            has_cycle = true ;
+                                            break ;
+                                        }
+                                    }
+
+                                    if ( has_cycle )
+                                    {
+                                        //motor::log::global_t::status("graph has cycle.") ;
+                                        res.has_cylce = true ;
+                                        continue ;
+                                    }
+                                }
+
+                                tiers[ cur_tier + 1 ].nodes.push_back( n2 ) ;
+                                ids[ n2 ] = id++ ;
+                                ++res.num_nodes ;
+                            }
+                        }
+
+                        ++cur_tier ;
+                    }
+                }
+
+                using output_slots_funk_t = std::function< void_t ( this_mtr_t, nodes_cref_t outs ) > ;
+                static void_t output_slot_walk( build_result_in_t res, output_slots_funk_t f ) noexcept
+                {
+                    for ( auto const & tiEr : res.tiers )
+                    {
+                        for ( auto * n : tiEr.nodes )
+                        {
+                            f( n, n->_outgoing ) ;
+                        }
+                    }
+                }
+            };
+            motor_typedef( tier_builder ) ;
+
+            friend struct tier_builder ;
         };
         motor_typedef( inode ) ;
 

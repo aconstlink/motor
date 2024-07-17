@@ -104,12 +104,14 @@ namespace this_file
         case VK_SHIFT: return ascii_key_t::shift_left ;
         case VK_LSHIFT: return ascii_key_t::shift_left ;
         case VK_RSHIFT: return ascii_key_t::shift_right ;
+        case VK_MENU:
+        case VK_LMENU: return ascii_key_t::alt_left ;
+        case VK_RMENU: return ascii_key_t::alt_right ;
         case VK_CONTROL: return ascii_key_t::ctrl_left ;
         case VK_LCONTROL: return ascii_key_t::ctrl_left ;
         case VK_RCONTROL: return ascii_key_t::ctrl_right ;
         case VK_ADD: return ascii_key_t::num_add ;
         case VK_SUBTRACT: return ascii_key_t::num_sub ;
-        case VK_MENU: return ascii_key_t::context ;
         case VK_OEM_PERIOD: return ascii_key_t::point ;
         case VK_OEM_COMMA: return ascii_key_t::komma ;
         case 0xBD: return ascii_key_t::minus ;
