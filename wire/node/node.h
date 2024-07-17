@@ -31,9 +31,12 @@ namespace motor
             nodes_t _incoming ;
             nodes_t _outgoing ;
              
+            motor::string_t _name ;
+
         public:
 
             inode( void_t ) noexcept ;
+            inode( motor::string_in_t ) noexcept ;
             inode( this_rref_t ) noexcept ;
             inode( this_cref_t ) = delete ;
             virtual ~inode( void_t ) noexcept ;
@@ -43,6 +46,8 @@ namespace motor
             motor::concurrent::task_mtr_safe_t get_task( void_t ) noexcept ;
 
             void_t disconnect( void_t ) noexcept ;
+
+            motor::string_cref_t name( void_t ) const noexcept ;
 
         public:
 
@@ -85,6 +90,7 @@ namespace motor
         public:
 
             node( funk_t f ) noexcept : _funk( f ) {}
+            node( motor::string_in_t n, funk_t f ) noexcept : inode(n), _funk( f ) {}
             node( this_rref_t rhv ) noexcept : inode( std::move( rhv ) ), _funk( std::move( rhv._funk ) ) {}
             virtual ~node( void_t ) noexcept {}
 

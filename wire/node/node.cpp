@@ -12,8 +12,16 @@ inode::inode( void_t ) noexcept
 }
 
 //*****************************************************
+inode::inode( motor::string_in_t n) noexcept : _name( n ) 
+{
+    _task = motor::shared( motor::concurrent::task_t( this_t::make_task_funk() ),
+        "wire node task" ) ;
+}
+
+//*****************************************************
 inode::inode( this_rref_t rhv ) noexcept : _incoming( std::move( rhv._incoming ) ), 
-    _outgoing( std::move( rhv._outgoing ) ), _task( motor::move( rhv._task ) )
+    _outgoing( std::move( rhv._outgoing ) ), _task( motor::move( rhv._task ) ), 
+    _name( std::move(rhv._name) )
 {
     _task->set_funk( this_t::make_task_funk() ) ;
 }
@@ -72,6 +80,12 @@ void_t inode::disconnect( void_t ) noexcept
         }
         _outgoing.clear() ;
     }
+}
+
+//*****************************************************
+motor::string_cref_t inode::name( void_t ) const noexcept 
+{
+    return _name ;
 }
 
 //*****************************************************
