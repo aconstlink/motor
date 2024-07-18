@@ -16,6 +16,28 @@ imnodes_wire::~imnodes_wire( void_t ) noexcept
 }
 
 //*******************************************************
+void_t imnodes_wire::begin( void_t ) noexcept 
+{
+    ImNodes::BeginNodeEditor();
+}
+
+//*******************************************************
+void_t imnodes_wire::end( bool_t const force_mini_map ) noexcept 
+{
+    if( force_mini_map ) ImNodes::MiniMap();
+    ImNodes::EndNodeEditor();
+
+    {
+        int_t link_id = 0 ;
+        if ( ImNodes::IsLinkDestroyed( &link_id ) )
+        {
+            int bp = 0 ;
+        }
+
+    }
+}
+
+//*******************************************************
 void_t imnodes_wire::build( motor::wire::inode_mtr_t start ) noexcept 
 {
     {
@@ -29,8 +51,10 @@ void_t imnodes_wire::build( motor::wire::inode_mtr_t start ) noexcept
     }
 
     {
-        ImVec2 cur_pos( 0.0f, 0.0f ) ;//= ImGui::GetCursorPos() ; 
+        _num_columns = _tb_results.tiers.size() ;
+    }
 
+    {
         // 
         {
             motor::hash_map< motor::wire::inode_mtr_t, int_t > nodes_to_ids ;
@@ -41,23 +65,26 @@ void_t imnodes_wire::build( motor::wire::inode_mtr_t start ) noexcept
             {
                 int_t nid = 0 ;
 
+                uint_t column = 0 ;
                 for ( auto & tier : _tb_results.tiers )
                 {
+                    uint_t row = 0 ;
                     for ( auto * n : tier.nodes )
                     {
-                        _nodes.emplace_back( this_t::node { n->name(), cur_pos } );
+                        _nodes.emplace_back( this_t::node 
+                            { 
+                                nid, n->name(), ImVec2( 0.0f, 0.0f ), 
+                                motor::math::vec2ui_t( column, row ) } ) ;
+
                         nodes_to_ids[ n ] = nid ;
 
                         ImVec2 const dims = ImVec2( 100, 200 ) ;// ImNodes::GetNodeDimensions( nid ) ;
 
-                        cur_pos.y += dims.y * 2.0f ;
-
                         ++nid ;
+                        ++row ;
                     }
 
-                    ImVec2 const dims( 50.0f, 1.0f ) ;
-                    cur_pos.x += dims.x * 3.0f ;
-                    cur_pos.y = 0.0f ;
+                    ++column ;
                 }
             }
 
@@ -77,19 +104,21 @@ void_t imnodes_wire::build( motor::wire::inode_mtr_t start ) noexcept
                         int_t const in_id = num_nodes + oid * 2 + 0 ;
 
                         _links.emplace_back( this_t::link {tid, in_id, out_id} ) ;
-
-                        //ImNodes::Link( link_id++, in_id, out_id ) ;
                     }
                 } ) ;
             }
         }
     }
+
+    _inital_set = false ;
 }
 
 //*******************************************************
 int_t imnodes_wire::visualize( int_t id ) noexcept 
 {
     int_t nid = id ;
+
+    ImVec2 cur_pos( 0, 0 ) ;
 
     // #1 : place nodes
     {
@@ -120,23 +149,47 @@ int_t imnodes_wire::visualize( int_t id ) noexcept
 
             ImNodes::EndNode();
 
-            if( !n.inital_set )
-            {
-                ImNodes::SetNodeGridSpacePos( nid, n.pos ) ;
-                n.inital_set = true ;
-            }
-            else 
-            {
-                n.pos = ImNodes::GetNodeGridSpacePos( nid ) ;
-            }
-            
-            
+            n.pos = ImNodes::GetNodeGridSpacePos( nid ) ;
+            n.id = nid ;
             
             ++nid ;
         }
     }
 
-    // #2 : make links
+    // #2 : do initial placement
+    {
+        if( !_inital_set )
+        {
+            motor::vector< float_t > max_width_per_column( _num_columns ) ;
+            motor::vector< size_t > num_nodes_per_column( _num_columns ) ;
+            for( size_t i=0; i<_num_columns; ++i ) num_nodes_per_column[i] = 0 ;
+
+            for ( auto & n : _nodes )
+            {
+                ImVec2 const dims = ImNodes::GetNodeDimensions( n.id ) ;
+                auto const old_width = max_width_per_column[n.matrix_pos.x()]  ;
+                max_width_per_column[n.matrix_pos.x()] = std::max( old_width, dims.x * 1.5f ) ;
+                ++num_nodes_per_column[n.matrix_pos.x()] ;
+            }
+
+            float_t y = 0.0f ;
+
+            for( auto & n : _nodes )
+            {
+                float_t x = 0.0f ;
+                for( size_t i=0; i<n.matrix_pos.x(); ++i  ) x += max_width_per_column[i] ;
+
+                if( n.matrix_pos.y() == 0 ) y = 0.0f ;                
+
+                ImNodes::SetNodeGridSpacePos( n.id, ImVec2( x, y ) ) ;
+                y+= ImNodes::GetNodeDimensions( n.id ).y * 1.5f ;
+            }
+
+            _inital_set = true ;
+        }
+    }
+
+    // #3 : make links
     {
         int_t link_id = -1 ;
         for( auto & link : _links)

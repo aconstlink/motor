@@ -87,6 +87,9 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
 
+    auto * old_in = ImNodes::GetCurrentContext() ;
+    ImNodes::SetCurrentContext( _in_ctx ) ;
+
     // geometry
     {
         // @see struct vertex in the header
@@ -317,10 +320,21 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
 
     {
         this_t::do_default_imgui_init() ;
-
         ImGui::StyleColorsDark() ;
     }
 
+    // imnodes init
+    {
+        ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
+        ImNodesIO & io = ImNodes::GetIO();
+        io.LinkDetachWithModifierClick.Modifier = &ImGui::GetIO().KeyCtrl;
+        io.MultipleSelectModifier.Modifier = &ImGui::GetIO().KeyCtrl;
+
+        ImNodesStyle & style = ImNodes::GetStyle();
+        style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
+    }
+
+    ImNodes::SetCurrentContext( old_in ) ;
     ImGui::SetCurrentContext( old_ctx ) ;
 }
 
@@ -743,6 +757,10 @@ bool_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexce
             {
                 //io.MouseDown[ 2 ] = true ;
                 io.AddMouseButtonEvent( 2, true ) ;
+            }
+            else if ( mouse.is_released( device_type_t::button::middle ) )
+            {
+                io.AddMouseButtonEvent( 2, false ) ;
             }
         }
 

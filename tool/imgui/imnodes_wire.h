@@ -4,6 +4,7 @@
 #include "../typedefs.h"
 
 #include <motor/wire/node/node.h>
+#include <motor/math/vector/vector2.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
@@ -20,10 +21,14 @@ namespace motor
 
             struct node
             {
+                int_t id ;
                 motor::string_t name ;
                 ImVec2 pos ;
 
-                bool_t inital_set = false ;
+                // nodes are positioned in a matrix style,
+                // so this is its matrix position
+                // x, y : column, row
+                motor::math::vec2ui_t matrix_pos ;
             } ;
 
             struct link
@@ -32,6 +37,9 @@ namespace motor
                 int_t a ;
                 int_t b ;
             };
+
+            bool_t _inital_set = false ;
+            size_t _num_columns = 0 ;
 
         private:
 
@@ -45,7 +53,9 @@ namespace motor
             ~imnodes_wire( void_t ) noexcept ;
 
         public:
-
+            
+            void_t begin( void_t ) noexcept ;
+            void_t end( bool_t const force_mini_map = false ) noexcept ;
             void_t build( motor::wire::inode_mtr_t start ) noexcept ;
 
             int_t visualize( int_t id ) noexcept ;
