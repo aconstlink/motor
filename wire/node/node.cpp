@@ -57,6 +57,11 @@ motor::concurrent::task_mtr_safe_t inode::get_task( void_t ) noexcept
 //*****************************************************
 void_t inode::disconnect( void_t ) noexcept
 {
+    // disconnect task
+    {
+        _task->disconnect() ;
+    }
+
     // handle incoming
     // need to remove this from their outgoing
     {
