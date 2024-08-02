@@ -9,6 +9,7 @@ set( SOURCES ${SOURCES}
     "manager.cpp"
     "node/node.h"
     "node/node.cpp"
+    "node/node_disconnector.hpp"
 
     "slot/islot.h"
     "slot/islot.cpp"

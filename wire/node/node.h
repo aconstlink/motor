@@ -77,6 +77,15 @@ namespace motor
 
         public:
 
+            struct cleaner_accessor
+            {
+                static void_t move_out_all( this_mtr_t t, motor::vector< this_mtr_t > & nodes ) noexcept
+                {
+                    t->move_out_all( nodes ) ;
+                }
+            };
+            friend struct cleaner_accessor ;
+
             struct tier_builder
             {
                 struct tier
@@ -187,6 +196,18 @@ namespace motor
             motor_typedef( tier_builder ) ;
 
             friend struct tier_builder ;
+
+        private:
+
+            void_t move_out_all( motor::vector< this_mtr_t > & nodes ) noexcept
+            {
+                nodes.reserve( nodes.capacity() + _incoming.size() + _outgoing.size() )  ;
+                for ( auto & t : _incoming ) nodes.emplace_back( t ) ;
+                for ( auto & t : _outgoing ) nodes.emplace_back( t ) ;
+                _outgoing.clear() ;
+                _incoming.clear() ;
+            }
+
         };
         motor_typedef( inode ) ;
 
