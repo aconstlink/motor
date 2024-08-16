@@ -29,7 +29,7 @@ namespace motor
             {
                 _properties = std::move( rhv._properties ) ;
             }
-            ~property_sheet( void_t )
+            ~property_sheet( void_t ) noexcept
             {
                 for( auto & i : _properties )
                 {

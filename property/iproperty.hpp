@@ -9,7 +9,7 @@ namespace motor
         class iproperty
         {
         public: 
-            virtual ~iproperty( void_t ) {}
+            virtual ~iproperty( void_t ) noexcept {}
         };
         motor_typedef( iproperty ) ;
     }
