@@ -6,6 +6,7 @@
 
 #include "../slot/input_slot.h"
 #include "../slot/output_slot.h"
+#include "../slot/sheet.hpp"
 
 #include <motor/concurrent/task/task.hpp>
 #include <motor/concurrent/mrsw.hpp>
@@ -24,7 +25,7 @@ namespace motor
 
             motor_typedefs( motor::vector< this_mtr_t >, nodes ) ;
 
-        private:
+        private: // task and nodes
 
             motor::concurrent::task_mtr_t _task ;
 
@@ -34,6 +35,11 @@ namespace motor
             nodes_t _outgoing ;
              
             motor::string_t _name ;
+
+        private: // slots
+
+            motor::wire::inputs_t _inputs ;
+            motor::wire::outputs_t _outputs ;
 
         public:
 
@@ -50,6 +56,12 @@ namespace motor
             void_t disconnect( void_t ) noexcept ;
 
             motor::string_cref_t name( void_t ) const noexcept ;
+
+            // allows to interact with input slots
+            motor::wire::inputs_ref_t inputs( void_t ) noexcept ;
+
+            // allows to interact with output slots
+            motor::wire::outputs_ref_t outputs( void_t ) noexcept ;
 
         public:
 
@@ -230,6 +242,7 @@ namespace motor
             node( this_rref_t rhv ) noexcept : inode( std::move( rhv ) ), _funk( std::move( rhv._funk ) ) {}
             virtual ~node( void_t ) noexcept {}
 
+            void_t set_funk( funk_t f ) noexcept { _funk  = f ; }
 
         public:
 

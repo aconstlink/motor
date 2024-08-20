@@ -76,9 +76,18 @@ namespace motor
             t_ptr_t borrow( motor::string_in_t name ) const noexcept 
             {
                 auto iter = _ts.find( name ) ;
-                if ( iter == _ts.end() ) return false ;
+                if ( iter == _ts.end() ) return nullptr ;
 
                 return iter->second ;
+            }
+
+            template< typename T2 >
+            typename std::remove_pointer<T2>::type * borrow_by_cast( motor::string_in_t name ) const noexcept
+            {
+                auto iter = _ts.find( name ) ;
+                if ( iter == _ts.end() ) return nullptr ;
+
+                return dynamic_cast< typename std::remove_pointer<T2>::type * >( iter->second )  ;
             }
 
             // get a shared reference to the signal.

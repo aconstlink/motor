@@ -94,6 +94,18 @@ motor::string_cref_t inode::name( void_t ) const noexcept
 }
 
 //*****************************************************
+motor::wire::inputs_ref_t inode::inputs( void_t ) noexcept 
+{
+    return _inputs ;
+}
+
+//*****************************************************
+motor::wire::outputs_ref_t inode::outputs( void_t ) noexcept 
+{
+    return _outputs ;
+}
+
+//*****************************************************
 void_t inode::add_incoming( this_ptr_t other ) noexcept
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _mtx_in ) ;
