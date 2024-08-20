@@ -146,6 +146,7 @@ namespace motor
         };
     }
     
+    // @deprecated @see move
     template< typename T >
     static core::mtr_safe< T > unique( T * & ptr ) noexcept
     {
@@ -153,6 +154,7 @@ namespace motor
         return core::mtr_safe<T>::make( tmp ) ;
     }
 
+    // @deprecated @see move
     template< typename T >
     static core::mtr_safe< T > unique( T * && ptr ) noexcept
     {
@@ -176,6 +178,12 @@ namespace motor
     static core::mtr_safe< T > move( core::mtr_safe< T > & ptr ) noexcept
     {        
         return std::move( ptr ) ;
+    }
+
+    template< typename T >
+    static core::mtr_safe< T > share_unsafe( T * ptr ) noexcept
+    {
+        return motor::core::mtr_safe<T>::make( ptr ) ;
     }
 }
 
