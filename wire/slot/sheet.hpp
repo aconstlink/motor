@@ -43,6 +43,16 @@ namespace motor
 
         public:
 
+            void_t exchange( void_t ) noexcept
+            {
+                for( auto & item : _ts )
+                {
+                    item.second->exchange() ;
+                }
+            }
+
+        public:
+
             // add signal
             bool_t add( motor::string_in_t name, motor::core::mtr_safe< T > && other ) noexcept 
             {

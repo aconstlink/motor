@@ -21,7 +21,8 @@ inode::inode( motor::string_in_t n) noexcept : _name( n )
 //*****************************************************
 inode::inode( this_rref_t rhv ) noexcept : _incoming( std::move( rhv._incoming ) ), 
     _outgoing( std::move( rhv._outgoing ) ), _task( motor::move( rhv._task ) ), 
-    _name( std::move(rhv._name) )
+    _name( std::move(rhv._name) ), _inputs( std::move( rhv._inputs) ), 
+    _outputs( std::move( rhv._outputs ) )
 {
     _task->set_funk( this_t::make_task_funk() ) ;
 }
@@ -170,7 +171,11 @@ motor::concurrent::task_t::task_funk_t inode::make_task_funk( void_t ) noexcept
 {
     return [=] ( motor::concurrent::task_t::task_funk_param_in_t ) 
     {
+        // exchange all inputs... (pull)
+        this->inputs().exchange() ;
         this->execute() ;
+        // or exchange all outputs (push)
+        //this->outputs().exchange() ;
     } ;
 }
 
