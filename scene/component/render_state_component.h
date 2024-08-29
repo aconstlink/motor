@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../icomponent.h"
+#include "icomponent.h"
 
 #include <motor/graphics/object/state_object.h>
 

@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../icomponent.h"
+#include "icomponent.h"
 
 #include <motor/graphics/object/msl_object.h>
 

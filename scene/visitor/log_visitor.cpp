@@ -45,22 +45,6 @@ motor::scene::result log_visitor::post_visit( motor::scene::group_ptr_t, motor::
 }
 
 //*********************************************************************
-motor::scene::result log_visitor::visit( motor::scene::decorator_ptr_t ) noexcept
-{
-    this_t::print( "> decorator" ) ;
-    ++_indent ;
-    return motor::scene::ok ;
-}
-
-//*********************************************************************
-motor::scene::result log_visitor::post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept
-{
-    --_indent ;
-    this_t::print( "< decorator" ) ;
-    return motor::scene::ok ;
-}
-
-//*********************************************************************
 motor::scene::result log_visitor::visit( motor::scene::leaf_ptr_t ) noexcept
 {
     this_t::print( "> leaf" ) ;
