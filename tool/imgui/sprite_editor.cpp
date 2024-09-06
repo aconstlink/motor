@@ -2,7 +2,7 @@
 #include "sprite_editor.h"
 #include "imgui_custom.h"
 
-#include <motor/gfx/camera/pinhole_camera.h>
+#include <motor/gfx/camera/generic_camera.h>
 #include <motor/gfx/sprite/sprite_render_2d.h>
 #include <motor/graphics/object/framebuffer_object.h>
 
@@ -20,7 +20,7 @@ struct sprite_editor::sprite_render_pimpl
     bool_t initialized = false ;
     motor::graphics::framebuffer_object_t fb ;
     motor::gfx::sprite_render_2d_t sr ;
-    motor::gfx::pinhole_camera_t cam ;
+    motor::gfx::generic_camera_t cam ;
     motor::graphics::image_object_t sheets ;
 
     motor::graphics::image_t::dims_t dims ;
@@ -293,7 +293,7 @@ void_t sprite_editor::on_tool( motor::graphics::gen4::frontend_ptr_t fe, motor::
 {
     if( !_srp->initialized )
     {
-        _srp->cam = motor::gfx::pinhole_camera_t() ;
+        _srp->cam = motor::gfx::generic_camera_t() ;
         _srp->cam.set_dims( 200.0f, 200.0f, 1.0f, 100.0f ) ;
         _srp->cam.orthographic() ;
         _srp->cam.look_at( motor::math::vec3f_t( 0.0f, 0.0f, -50.0f ),

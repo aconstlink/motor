@@ -13,8 +13,13 @@ namespace motor
         {
             motor_this_typedefs( msl_component ) ;
 
+        private:
+
+            motor::graphics::msl_object_mtr_t _msl = nullptr ;
+
         public:
 
+            msl_component( void_t ) noexcept ;
             msl_component( motor::graphics::msl_object_mtr_safe_t ) noexcept ;
             virtual ~msl_component( void_t ) noexcept ;
         };

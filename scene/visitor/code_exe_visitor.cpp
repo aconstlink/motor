@@ -8,7 +8,7 @@ using namespace motor::scene ;
 motor::scene::result code_exe_visitor::visit( motor::scene::node_ptr_t nptr ) noexcept
 {
     motor::scene::code_component_ptr_t comp ;
-    if( nptr->borrow_component( comp ) )
+    if( nptr->borrow_component<motor::scene::code_component>( comp ) )
     {
         comp->execute( nptr ) ;
     }

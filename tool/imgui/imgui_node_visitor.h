@@ -34,6 +34,7 @@ namespace motor
         private:
 
             motor::string_t check_for_name( motor::string_rref_t, motor::scene::node_ptr_t ) const noexcept ;
+            void_t list_components( motor::scene::node_ptr_t ) noexcept ;
         };
         motor_typedef( imgui_node_visitor ) ;
     }

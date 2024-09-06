@@ -41,7 +41,7 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::group_ptr_t nptr )
         return motor::scene::result::no_descent ;
     }
 
-    // maybe check for properties or components
+    this_t::list_components( nptr ) ;
 
     ++_depth ;
     return motor::scene::result::ok ;
@@ -66,8 +66,10 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::leaf_ptr_t nptr ) 
     motor::string_t name = this_t::check_for_name( "Leaf", nptr ) ;
     if ( ImGui::TreeNode( "", name.c_str() ) )
     {
+        this_t::list_components( nptr ) ;
         ImGui::TreePop() ;
     }
+
     ImGui::PopID() ;
 
     return motor::scene::result::ok ;
@@ -88,4 +90,26 @@ motor::string_t imgui_node_visitor::check_for_name( motor::string_rref_t sin, mo
         return comp->get_name() ;
     }
     return sin ;
+}
+
+//************************************************************************
+void_t imgui_node_visitor::list_components( motor::scene::node_ptr_t nptr ) noexcept 
+{
+    ImGui::PushID( ++_id ) ;
+
+    if ( ImGui::TreeNode( "", "components" ) )
+    {
+        nptr->for_each_component( [&]( motor::scene::icomponent_ptr_t comp )
+        {
+            ImGui::PushID( ++_id ) ;
+            if( ImGui::TreeNode("a component" ) )
+            {
+                ImGui::TreePop() ;
+            }
+            ImGui::PopID() ;
+        } ) ;
+        ImGui::TreePop() ;
+    }
+
+    ImGui::PopID() ;
 }

@@ -2,6 +2,9 @@
 
 #include "render_visitor.h"
 
+#include "../node/leaf.h"
+#include "../component/msl_component.h"
+
 using namespace motor::scene ;
 
 
@@ -12,8 +15,14 @@ motor::scene::result render_visitor::visit( motor::scene::node_ptr_t ) noexcept
 }
 
 //*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::leaf_ptr_t ) noexcept
+motor::scene::result render_visitor::visit( motor::scene::leaf_ptr_t ptr ) noexcept
 {
+    motor::scene::msl_component_ptr_t comp ;
+    if( ptr->borrow_component( comp ) )
+    {
+        
+    }
+
     return motor::scene::result::ok ;
 }
 

@@ -25,7 +25,8 @@ namespace motor
             trafo_3d_component( motor::math::m3d::trafof_in_t t ) noexcept : _trafo( t ){}
             virtual ~trafo_3d_component( void_t ) noexcept {}
 
-            motor::math::m3d::trafof_t get_trafo( void_t ) const noexcept{}
+            motor::math::m3d::trafof_t get_computed( void_t ) const noexcept{ return _computed ; }
+            motor::math::m3d::trafof_t get_trafo( void_t ) const noexcept{ return _trafo ; }
             void_t set_trafo( motor::math::m3d::trafof_in_t t ) noexcept { _trafo = t ; }
 
         public:

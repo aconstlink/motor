@@ -94,6 +94,15 @@ namespace motor
                 return true ;
             }
 
+            using for_each_comp_funk_t = std::function< void_t ( motor::scene::icomponent_ptr_t ) > ;
+            void_t for_each_component( for_each_comp_funk_t funk ) noexcept 
+            {
+                for( auto * comp : _components )
+                {
+                    funk( comp ) ;
+                }
+            }
+
         public:
 
             // helps traversing the tree
