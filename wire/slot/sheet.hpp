@@ -104,7 +104,7 @@ namespace motor
             motor::core::mtr_safe< T > get( motor::string_in_t name ) const noexcept 
             {
                 auto iter = _ts.find( name ) ;
-                if ( iter == _ts.end() ) return false ;
+                if ( iter == _ts.end() ) return nullptr ;
 
                 return motor::share( iter->second ) ;
             }
