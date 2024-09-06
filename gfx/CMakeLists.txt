@@ -4,7 +4,6 @@ set( sources
     "result.h"
     "typedefs.h"
 
-    "camera/pinhole_camera.h"
     "camera/generic_camera.h"
     "camera/generic_camera.cpp"
 

@@ -28,7 +28,6 @@ generic_camera::generic_camera( this_cref_t rhv ) noexcept
     _projection_mode = rhv._projection_mode ;
 
     _fov = rhv._fov ;
-    _aspect = rhv._aspect ;
     _near_far = rhv._near_far ;
     _sensor_dims = rhv._sensor_dims ;
 
@@ -45,7 +44,6 @@ generic_camera::generic_camera( this_rref_t rhv ) noexcept
     _projection_mode = rhv._projection_mode ;
 
     _fov = rhv._fov ;
-    _aspect = rhv._aspect ;
     _near_far = rhv._near_far ;
     _sensor_dims = rhv._sensor_dims ;
 
@@ -64,7 +62,6 @@ generic_camera::this_ref_t generic_camera::operator = ( this_rref_t rhv ) noexce
     _projection_mode = rhv._projection_mode ;
 
     _fov = rhv._fov ;
-    _aspect = rhv._aspect ;
     _near_far = rhv._near_far ;
     _sensor_dims = rhv._sensor_dims ;
 
@@ -81,7 +78,7 @@ void_t generic_camera::transform_by( motor::math::m3d::trafof_cref_t trafo ) noe
 }
 
 //*********************************************
-void_t generic_camera::set_transformaion( motor::math::m3d::trafof_cref_t trafo ) noexcept
+void_t generic_camera::set_transformation( motor::math::m3d::trafof_cref_t trafo ) noexcept
 {
     _trafo = trafo ;
     this->update_view_matrix( trafo.get_transformation() ) ;
@@ -103,20 +100,18 @@ generic_camera::this_ref_t generic_camera::make_orthographic( float_t const w, f
     _projection_mode = projection_type::orthographic ;
     _near_far = motor::math::vec2f_t( n, f ) ;
     _sensor_dims = motor::math::vec2f_t( w, h ) ;
-
     return *this ;
 }
 
 //*********************************************
-generic_camera::this_ref_t generic_camera::make_perspective_fov( float_t const w, float_t const h, float_t const fov, float_t const aspect,
+generic_camera::this_ref_t generic_camera::make_perspective_fov( float_t const w, float_t const h, float_t const fov,
     float_t const n, float_t const f ) noexcept 
 {
     motor::math::m3d::perspective<float_t>::create_by_fovv_aspect(
-        fov, aspect, n, f, _proj_matrix ) ;
+        fov, w/h, n, f, _proj_matrix ) ;
 
     _projection_mode = projection_type::perspective ;
     _fov = fov ;
-    _aspect = aspect ;
     _near_far = motor::math::vec2f_t( n, f ) ;
     _sensor_dims = motor::math::vec2f_t( w, h ) ;
 
@@ -131,10 +126,10 @@ generic_camera::this_t generic_camera::create_orthographic( float_t const w, flo
 }
 
 //*********************************************
-generic_camera::this_t generic_camera::create_perspective_fov( float_t const w, float_t const h, float_t const fov, float_t const aspect,
+generic_camera::this_t generic_camera::create_perspective_fov( float_t const w, float_t const h, float_t const fov,
     float_t const n, float_t const f ) noexcept 
 {
-    return this_t().make_perspective_fov( w, h, fov, aspect, n, f ) ;
+    return this_t().make_perspective_fov( w, h, fov, n, f ) ;
 }
 
 //*********************************************
@@ -155,6 +150,18 @@ void_t generic_camera::update_view_matrix( motor::math::mat4f_cref_t frame ) noe
     _cam_matrix = frame ;
     motor::math::m3d::create_view_matrix( frame, _view_matrix ) ;
     this_t::reconstruct_frustum_planes() ;
+}
+
+//*********************************************
+generic_camera::this_ref_t generic_camera::look_at( motor::math::vec3f_cref_t pos,
+    motor::math::vec3f_cref_t up, motor::math::vec3f_cref_t at ) noexcept
+{
+    motor::math::mat4f_t m ;
+    motor::math::m3d::create_lookat_rh( pos, up, at, m ) ;
+
+    this_t::set_transformation( m ) ;
+
+    return *this ;
 }
 
 //*********************************************
@@ -231,7 +238,7 @@ generic_camera::ray3_t generic_camera::create_ray_norm( vec2_cref_t norm_pos ) c
 {
     if( _projection_mode == projection_type::perspective )
     {
-        float_t const w = motor::math::get_width_at<float_t>( _fov, _aspect, 1.0f ) ;
+        float_t const w = motor::math::get_width_at<float_t>( _fov, this_t::aspect_w_h(), 1.0f ) ;
         float_t const h = motor::math::get_height_at<float_t>( _fov, 1.0f ) ;
         return ray3_t( this_t::get_position(), _cam_matrix * vec3_t( norm_pos * vec2_t( w, h ) * 0.5f, 1.0f ).normalize() ) ;
     }
