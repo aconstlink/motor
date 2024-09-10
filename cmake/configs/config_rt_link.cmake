@@ -4,7 +4,12 @@
 ##
 message( STATUS ">>> Checking Run-Time Linkage"  )
 
-set( MOTOR_RUNTIME_LINKAGE "Shared" CACHE STRING "How to link the C++ Runtime?" )
+if( NOT MOTOR_LIBRARY_BUILD_SHARED )
+set( MOTOR_RUNTIME_LINKAGE "Static" CACHE STRING "How to link the C++ Runtime?" FORCE )
+else()
+set( MOTOR_RUNTIME_LINKAGE "Shared" CACHE STRING "How to link the C++ Runtime?" FORCE )
+endif()
+
 set_property(CACHE MOTOR_RUNTIME_LINKAGE PROPERTY STRINGS "Static" "Shared")
 
 set( MOTOR_RUNTIME_STATIC FALSE )
