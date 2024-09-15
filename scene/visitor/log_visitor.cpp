@@ -50,3 +50,28 @@ motor::scene::result log_visitor::visit( motor::scene::leaf_ptr_t ) noexcept
     this_t::print( "> leaf" ) ;
     return motor::scene::ok ;
 }
+
+//*********************************************************************
+motor::scene::result log_visitor::visit( motor::scene::camera_node_ptr_t ) noexcept 
+{
+    this_t::print( "> camera" ) ;
+    return motor::scene::ok ;
+}
+
+//*********************************************************************
+motor::scene::result log_visitor::visit( motor::scene::trafo3d_node_ptr_t ) noexcept
+{
+    this_t::print( "> trafo" ) ;
+    ++_indent ;
+    return motor::scene::ok ;
+}
+
+//*********************************************************************
+motor::scene::result log_visitor::post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept
+{
+    --_indent ;
+    this_t::print( "< trafo" ) ;
+    return motor::scene::ok ;
+}
+
+//*********************************************************************

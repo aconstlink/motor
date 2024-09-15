@@ -41,7 +41,7 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::group_ptr_t nptr )
         return motor::scene::result::no_descent ;
     }
 
-    this_t::list_components( nptr ) ;
+    //this_t::list_components( nptr ) ;
 
     ++_depth ;
     return motor::scene::result::ok ;
@@ -66,7 +66,7 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::leaf_ptr_t nptr ) 
     motor::string_t name = this_t::check_for_name( "Leaf", nptr ) ;
     if ( ImGui::TreeNode( "", name.c_str() ) )
     {
-        this_t::list_components( nptr ) ;
+        //this_t::list_components( nptr ) ;
         ImGui::TreePop() ;
     }
 
@@ -113,3 +113,23 @@ void_t imgui_node_visitor::list_components( motor::scene::node_ptr_t nptr ) noex
 
     ImGui::PopID() ;
 }
+
+//************************************************************************
+motor::scene::result imgui_node_visitor::visit( motor::scene::camera_node_ptr_t nptr ) noexcept 
+{
+    return this_t::visit( motor::scene::leaf_ptr_t(nptr) ) ;
+}
+
+//************************************************************************
+motor::scene::result imgui_node_visitor::visit( motor::scene::trafo3d_node_ptr_t nptr ) noexcept
+{
+    return this_t::visit( motor::scene::group_ptr_t(nptr) ) ;
+}
+
+//************************************************************************
+motor::scene::result imgui_node_visitor::post_visit( motor::scene::trafo3d_node_ptr_t nptr, motor::scene::result const res ) noexcept
+{
+    return this_t::post_visit( motor::scene::group_ptr_t(nptr), res ) ;
+}
+
+//************************************************************************

@@ -60,6 +60,7 @@ namespace motor
         public: // 
 
             generic_camera( void_t ) noexcept ;
+            generic_camera( float_t const w, float_t const h, float_t const n, float_t const f ) noexcept ;
 
             generic_camera( this_rref_t rhv ) noexcept ;
 
@@ -67,6 +68,7 @@ namespace motor
             
             virtual ~generic_camera( void_t ) noexcept ;
 
+            this_ref_t operator = ( this_cref_t ) noexcept ;
             this_ref_t operator = ( this_rref_t ) noexcept ;
 
         public:

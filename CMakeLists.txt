@@ -245,4 +245,4 @@ install(
     FILES ${MOTOR_BINARY_DIR}/motor-config.cmake 
     DESTINATION cmake )
 
-install( EXPORT ${PROJECT_NAME}-targets DESTINATION "cmake" )
+#install( EXPORT ${PROJECT_NAME}-targets DESTINATION "cmake" )

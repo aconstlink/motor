@@ -21,7 +21,7 @@ namespace motor
             /// if no parent exists, it is the root
             this_ptr_t _parent = nullptr ;
 
-            std::vector< motor::scene::icomponent_mtr_t > _components ;
+            motor::vector< motor::scene::icomponent_mtr_t > _components ;
 
         public:
 

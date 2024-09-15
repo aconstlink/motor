@@ -39,19 +39,12 @@ group::~group( void_t ) noexcept
 //*******************************************************************
 motor::scene::result group::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    return this_t::apply( vptr, [=]( size_t ){ return true ; } ) ;
-}
-
-//*******************************************************************
-motor::scene::result group::apply( motor::scene::ivisitor_ptr_t vptr, 
-    traverse_predicate_t pred ) noexcept
-{
     motor::scene::result const r = vptr->visit( this ) ;
 
     switch( r ) 
     {
     case motor::scene::ok:
-        traverse_children( vptr, pred ) ;
+        traverse_children( vptr, _funk ) ;
         break ;
     default:
         break ;
@@ -157,6 +150,12 @@ size_t group::remove_child( node_ptr_t nptr ) noexcept
 }
 
 //*******************************************************************
+void_t group::traverse_children( motor::scene::ivisitor_ptr_t ptr ) noexcept
+{
+    this_t::traverse_children( ptr, _funk ) ;
+}
+
+//*******************************************************************
 void_t group::traverse_children( motor::scene::ivisitor_ptr_t ptr, 
     traverse_predicate_t func ) noexcept
 {
@@ -169,6 +168,6 @@ void_t group::traverse_children( motor::scene::ivisitor_ptr_t ptr,
         {
             auto * nptr = _children[i] ;
             r = motor::scene::node_t::derived_apply(nptr).apply( ptr ) ;
-        }               
+        }
     }
 }

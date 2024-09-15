@@ -17,6 +17,7 @@ namespace motor
 
         private:
             
+            traverse_predicate_t _funk = [=]( size_t ){ return true ; } ;
             children_t _children ;
 
         protected:
@@ -36,6 +37,8 @@ namespace motor
             void_t traverse_children( motor::scene::ivisitor_ptr_t ptr,
                 traverse_predicate_t func ) noexcept ;
 
+            void_t traverse_children( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
+
         protected:
 
             group( void_t ) noexcept ;
@@ -50,8 +53,6 @@ namespace motor
         public:
 
             virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
-            motor::scene::result apply( motor::scene::ivisitor_ptr_t ptr,
-                traverse_predicate_t pred ) noexcept ;
 
             /// replaces the node which_ptr with with_ptr.
             /// if which_ptr does not exist, nothing will happen.

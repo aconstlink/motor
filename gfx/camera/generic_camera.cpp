@@ -19,6 +19,13 @@ generic_camera::generic_camera( void_t ) noexcept
     _proj_matrix.identity() ;
 }
 
+//*********************************************
+generic_camera::generic_camera( float_t const w, float_t const h, float_t const n, float_t const f ) noexcept 
+{
+    this_t::set_dims( w, h, n, f ) ;
+}
+
+//*********************************************
 generic_camera::generic_camera( this_cref_t rhv ) noexcept 
 {
     _trafo = ( rhv._trafo ) ;
@@ -51,11 +58,32 @@ generic_camera::generic_camera( this_rref_t rhv ) noexcept
 }
 
 //*********************************************
-generic_camera::~generic_camera( void_t ) noexcept {}
+generic_camera::~generic_camera( void_t ) noexcept 
+{
+}
 
+//*********************************************
 generic_camera::this_ref_t generic_camera::operator = ( this_rref_t rhv ) noexcept 
 {
     _trafo = std::move( rhv._trafo ) ;
+    _cam_matrix = rhv._cam_matrix ;
+    _view_matrix = rhv._view_matrix ;
+    _proj_matrix = rhv._proj_matrix ;
+    _projection_mode = rhv._projection_mode ;
+
+    _fov = rhv._fov ;
+    _near_far = rhv._near_far ;
+    _sensor_dims = rhv._sensor_dims ;
+
+    _frustum = rhv._frustum ;
+
+    return *this ;
+}
+
+//*********************************************
+generic_camera::this_ref_t generic_camera::operator = ( this_cref_t rhv ) noexcept 
+{
+    _trafo =  rhv._trafo ;
     _cam_matrix = rhv._cam_matrix ;
     _view_matrix = rhv._view_matrix ;
     _proj_matrix = rhv._proj_matrix ;

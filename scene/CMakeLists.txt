@@ -15,8 +15,12 @@ set( sources
     "node/group/logic_group.cpp"
     "node/group/switch_group.h"
     "node/group/switch_group.cpp"
+    "node/group/trafo3d_node.h"
+    "node/group/trafo3d_node.cpp"
     "node/leaf/logic_leaf.h"
     "node/leaf/logic_leaf.cpp"
+    "node/leaf/camera_node.h"
+    "node/leaf/camera_node.cpp"
 
     "visitor/ivisitor.h"
     "visitor/visitor.h"
@@ -33,10 +37,7 @@ set( sources
     "component/code_component.h"
     "component/code_component.cpp"
     "component/name_component.hpp"
-    "component/trafo_components.hpp"
 
-    "component/camera_component.h"
-    "component/camera_component.cpp"
     "component/msl_component.h"
     "component/msl_component.cpp"
     "component/render_state_component.h"
@@ -49,6 +50,7 @@ add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
 add_library( ${cur_alias_name} ALIAS ${cur_lib_name} ) 
 
 target_link_libraries( ${cur_lib_name}
+    PUBLIC motor::gfx
     PUBLIC motor::graphics
     PUBLIC motor::std
     PUBLIC motor::memory
