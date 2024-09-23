@@ -1,9 +1,9 @@
 #pragma once
 
 #include <motor/std/vector>
-#include <motor/core/types.hpp>
-#include <motor/core/macros/typedef.h>
-#include <motor/core/macros/move.h>
+#include <motor/base/types.hpp>
+#include <motor/base/macros/typedef.h>
+#include <motor/base/macros/move.h>
 
 
 namespace motor

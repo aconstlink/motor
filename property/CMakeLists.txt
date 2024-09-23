@@ -1,5 +1,6 @@
 
 set( sources 
+    "dummy.cpp"
     "typedefs.h"
 
     "property_sheet.hpp"
@@ -10,13 +11,11 @@ set( sources
 
 motor_vs_src_dir( sources )
 
-add_library( ${cur_lib_name} INTERFACE ${sources} )
+add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
+add_library( ${cur_alias_name} ALIAS ${cur_lib_name} ) 
 
 target_link_libraries( ${cur_lib_name}
-    INTERFACE motor::std
-    INTERFACE motor::memory
-    INTERFACE motor::log 
-    INTERFACE motor::core
+    PUBLIC motor::core
     )
 
 ###########################################################

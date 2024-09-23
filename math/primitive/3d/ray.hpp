@@ -2,7 +2,7 @@
 
 #include "../../vector/vector3.hpp"
 
-#include <motor/core/types.hpp>
+#include <motor/base/types.hpp>
 
 namespace motor
 {

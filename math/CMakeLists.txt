@@ -99,7 +99,7 @@ motor_vs_src_dir( sources )
 add_library( ${cur_lib_name} INTERFACE ${sources} )
 target_link_libraries( ${cur_lib_name}
     INTERFACE motor::std
-    INTERFACE motor::core
+    INTERFACE motor::base
 )
 
 target_compile_options( ${cur_lib_name} INTERFACE -DNOMINMAX)

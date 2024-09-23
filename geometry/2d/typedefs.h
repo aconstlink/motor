@@ -3,12 +3,12 @@
 
 #include "../typedefs.h"
 
-#include <motor/core/types.hpp>
-#include <motor/core/assert.h>
-#include <motor/core/macros/typedef.h>
-#include <motor/core/macros/move.h>
-#include <motor/core/checks.h>
-#include <motor/core/break_if.hpp>
+#include <motor/base/types.hpp>
+#include <motor/base/assert.h>
+#include <motor/base/macros/typedef.h>
+#include <motor/base/macros/move.h>
+#include <motor/base/checks.h>
+#include <motor/base/break_if.hpp>
 #include <motor/memory/macros.h>
 #include <motor/math/vector/vector2.hpp>
 

@@ -106,29 +106,34 @@ endif()
 ################################################################
 
 set( subdirs_header_only 
-    "core"
+    "base"
     "std"
     "math"
-    "property"
+    
+    
     #"collide"
     )
 
 set( subdirs  )
-
+set( opengl_subdir )
 if( TARGET OpenGL::GL )
-    list( APPEND subdirs "ogl" )
+    list( APPEND opengl_subdir "ogl" )
 endif()
 
 
 list( APPEND subdirs
+    "core"
     "log"
     "memory"
     "profiling"
+    "property"
     "concurrent"
     "io"
     "controls"
     "msl"
     
+    ${opengl_subdir}
+
     "network"
     "graphics"
     "audio"
@@ -150,6 +155,8 @@ list( APPEND subdirs
     #"profile"
     #${subdirs_header_only}
     )
+
+
 
 add_library( complete INTERFACE )
 add_library( ${PROJECT_NAME}::complete ALIAS complete )

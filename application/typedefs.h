@@ -3,8 +3,8 @@
 #include <motor/std/string>
 #include <motor/std/vector>
 #include <motor/memory/global.h>
-#include <motor/core/types.hpp>
-#include <motor/core/macros/typedef.h>
+#include <motor/base/types.hpp>
+#include <motor/base/macros/typedef.h>
 
 namespace motor
 {

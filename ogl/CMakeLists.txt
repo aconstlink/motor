@@ -56,9 +56,6 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC ct_motor_compiler_options
   PUBLIC OpenGL::GL 
   PUBLIC gl_headers
-  PUBLIC motor::log
-  PUBLIC motor::memory
-  PUBLIC motor::std
   PUBLIC motor::core
 )
 

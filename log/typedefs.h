@@ -2,10 +2,10 @@
 
 #include <motor/std/string>
 
-#include <motor/core/types.hpp>
-#include <motor/core/macros/common.h>
-#include <motor/core/macros/typedef.h>
-#include <motor/core/macros/move.h>
+#include <motor/base/types.hpp>
+#include <motor/base/macros/common.h>
+#include <motor/base/macros/typedef.h>
+#include <motor/base/macros/move.h>
 
 namespace motor
 {

@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <motor/core/types.hpp>
+#include <motor/base/types.hpp>
 #include <motor/std/vector>
 
 #include <functional>

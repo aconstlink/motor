@@ -7,7 +7,7 @@
 #include <mutex>
 #include <motor/std/stack>
 
-#include <motor/core/macros/move.h>
+#include <motor/base/macros/move.h>
 
 namespace motor
 {

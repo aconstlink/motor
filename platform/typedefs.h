@@ -1,6 +1,6 @@
 #pragma once
 
-#include <motor/core/types.hpp>
+#include <motor/base/types.hpp>
 
 namespace motor
 {

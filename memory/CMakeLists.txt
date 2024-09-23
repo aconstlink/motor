@@ -27,7 +27,7 @@ add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
 target_link_libraries( ${cur_lib_name} 
     PUBLIC motor::std
-    PUBLIC motor::core 
+    PUBLIC motor::base 
     )
 
 option( MOTOR_MEMORY_OBSERVER "Memory Observer" False )

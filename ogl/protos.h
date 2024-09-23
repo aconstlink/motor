@@ -1,6 +1,6 @@
 #pragma once
 
-#include <motor/core/macros/typedef.h>
+#include <motor/base/macros/typedef.h>
 
 namespace motor
 {

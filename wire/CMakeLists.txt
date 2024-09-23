@@ -26,10 +26,6 @@ add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${SOURCES} )
 add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
 target_link_libraries( ${cur_lib_name}
-PUBLIC motor::concurrent
-PUBLIC motor::log
-PUBLIC motor::memory
-PUBLIC motor::std
 PUBLIC motor::core
 )
 

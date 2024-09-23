@@ -1,28 +1,21 @@
 
 
 set( sources 
-    "types.hpp"
-    "mtr_ownership.hpp"
-    "macros/common.h"
-    "macros/typedef.h"
-    "macros/function.h"
-    "macros/move.h"   
+    "double_dispatch.hpp"
+    "dummy.cpp"
     )
 
 motor_vs_src_dir( sources )
 
-add_library( ${cur_lib_name} INTERFACE ${sources} )
-
-
-target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_LITTLE_ENDIAN=0 )
-target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_BIG_ENDIAN=1 )
-target_compile_definitions( ${cur_lib_name} INTERFACE -DMOTOR_BYTE_ORDER=${MOTOR_TARGET_ARCH_BIG_ENDIAN} )
+add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
+add_library( ${cur_alias_name} ALIAS ${cur_lib_name} ) 
 
 target_link_libraries( ${cur_lib_name} 
-    INTERFACE ct_motor_operating_system 
-    INTERFACE ct_motor_build_library_type
-    INTERFACE ct_motor_compiler_options
-    INTERFACE ct_motor_compiler )
+    INTERFACE motor::base
+    PUBLIC motor::memory
+    PUBLIC motor::log
+    PUBLIC motor::concurrent
+    PUBLIC motor::std )
 
 ###########################################################
 # SECTION: Build Tree

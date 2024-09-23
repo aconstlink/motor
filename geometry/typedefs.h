@@ -11,8 +11,8 @@
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
 
-#include <motor/core/types.hpp>
-#include <motor/core/macros/typedef.h>
+#include <motor/base/types.hpp>
+#include <motor/base/macros/typedef.h>
 
 namespace motor
 {
