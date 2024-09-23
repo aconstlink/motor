@@ -3,6 +3,7 @@
 
 #include <motor/scene/node/node.h>
 #include <motor/scene/node/group.h>
+#include <motor/scene/node/decorator.h>
 #include <motor/scene/node/leaf.h>
 
 #include <motor/scene/component/name_component.hpp>
@@ -26,6 +27,34 @@ imgui_node_visitor::~imgui_node_visitor( void_t ) noexcept
 //************************************************************************
 motor::scene::result imgui_node_visitor::visit( motor::scene::node_ptr_t ) noexcept
 {
+    return motor::scene::result::ok ;
+}
+
+//************************************************************************
+motor::scene::result imgui_node_visitor::visit( motor::scene::decorator_ptr_t nptr ) noexcept
+{
+    ImGui::PushID( ++_id ) ;
+
+    // check for name component first...
+    motor::string_t name = this_t::check_for_name( "Decorator", nptr ) ;
+    if ( !ImGui::TreeNode( "", name.c_str() ) )
+    {
+        return motor::scene::result::no_descent ;
+    }
+
+    //this_t::list_components( nptr ) ;
+
+    ++_depth ;
+    return motor::scene::result::ok ;
+}
+
+//************************************************************************
+motor::scene::result imgui_node_visitor::post_visit( motor::scene::decorator_ptr_t, motor::scene::result const r ) noexcept
+{
+    // r is ok then children were traversed.
+    if ( r == motor::scene::result::ok ) ImGui::TreePop();
+    ImGui::PopID() ;
+    --_depth ;
     return motor::scene::result::ok ;
 }
 

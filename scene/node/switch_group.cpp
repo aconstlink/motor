@@ -1,7 +1,7 @@
 
 #include "switch_group.h"
 
-#include "../../visitor/ivisitor.h"
+#include "../visitor/ivisitor.h"
 
 using namespace motor::scene ;
 

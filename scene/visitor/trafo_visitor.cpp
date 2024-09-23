@@ -1,7 +1,7 @@
 
 #include "trafo_visitor.h"
-#include "../node/leaf/camera_node.h"
-#include "../node/group/trafo3d_node.h"
+#include "../node/camera_node.h"
+#include "../node/trafo3d_node.h"
 #include "../node/leaf.h"
 
 using namespace motor::scene ;

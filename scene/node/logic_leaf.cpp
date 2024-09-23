@@ -1,6 +1,6 @@
 
 #include "logic_leaf.h"
-#include "../../visitor/ivisitor.h"
+#include "../visitor/ivisitor.h"
 
 #include <motor/log/global.h>
 

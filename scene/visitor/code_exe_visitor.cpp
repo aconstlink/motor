@@ -17,6 +17,18 @@ motor::scene::result code_exe_visitor::visit( motor::scene::node_ptr_t nptr ) no
 }
 
 //*********************************************************************
+motor::scene::result code_exe_visitor::visit( motor::scene::decorator_ptr_t nptr ) noexcept 
+{
+    return this_t::visit( motor::scene::node_ptr_t(nptr) )  ;
+}
+
+//*********************************************************************
+motor::scene::result code_exe_visitor::post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept 
+{
+    return motor::scene::result::ok ;
+}
+
+//*********************************************************************
 motor::scene::result code_exe_visitor::visit( motor::scene::group_ptr_t nptr ) noexcept
 {
     return this_t::visit( motor::scene::node_ptr_t(nptr) )  ;

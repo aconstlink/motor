@@ -1,6 +1,6 @@
 
 #include "camera_node.h"
-#include "../../visitor/ivisitor.h"
+#include "../visitor/ivisitor.h"
 
 #include <motor/log/global.h>
 

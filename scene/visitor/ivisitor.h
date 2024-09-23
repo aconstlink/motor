@@ -19,8 +19,11 @@ namespace motor
             virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept = 0 ;
             virtual motor::scene::result visit( motor::scene::camera_node_ptr_t ) noexcept = 0 ;
 
+            virtual motor::scene::result visit( motor::scene::decorator_ptr_t ) noexcept = 0 ;
+            virtual motor::scene::result post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept  = 0 ;
+
             virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept = 0 ;
-            virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept  = 0 ;
+            virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept = 0 ;
             
             virtual motor::scene::result visit( motor::scene::trafo3d_node_ptr_t ) noexcept = 0 ;
             virtual motor::scene::result post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept = 0 ;

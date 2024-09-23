@@ -1,15 +1,15 @@
 #pragma once
 
-#include "logic_group.h"
+#include "logic_decorator.h"
 #include <motor/math/utility/3d/transformation.hpp>
 
 namespace motor
 {
     namespace scene
     {
-        class MOTOR_SCENE_API trafo3d_node : public motor::scene::logic_group
+        class MOTOR_SCENE_API trafo3d_node : public motor::scene::logic_decorator
         {
-            typedef motor::scene::logic_group base_t ;
+            typedef motor::scene::logic_decorator base_t ;
             motor_this_typedefs( trafo3d_node ) ;
 
         private:

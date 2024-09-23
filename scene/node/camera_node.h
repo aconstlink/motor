@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../leaf.h"
+#include "leaf.h"
 #include <motor/gfx/camera/generic_camera.h>
 
 namespace motor

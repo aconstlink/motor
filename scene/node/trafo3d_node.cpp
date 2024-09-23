@@ -1,7 +1,7 @@
 
 #include "trafo3d_node.h"
 
-#include "../../visitor/ivisitor.h"
+#include "../visitor/ivisitor.h"
 
 using namespace motor::scene ;
 
@@ -32,13 +32,9 @@ motor::scene::result trafo3d_node::apply( motor::scene::ivisitor_ptr_t vptr ) no
 {
     motor::scene::result const r = vptr->visit( this ) ;
 
-    switch ( r )
+    if ( motor::scene::success( r ) )
     {
-    case motor::scene::ok:
-        base_t::traverse_children( vptr ) ;
-        break ;
-    default:
-        break ;
+        base_t::traverse_decorated( vptr ) ;
     }
 
     return vptr->post_visit( this, r ) ;

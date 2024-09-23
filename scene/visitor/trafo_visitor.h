@@ -34,6 +34,10 @@ namespace motor
                 { return motor::scene::result::ok ; }
             virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept 
                 { return motor::scene::result::ok ; }
+            virtual motor::scene::result visit( motor::scene::decorator_ptr_t ) noexcept 
+                { return motor::scene::result::ok ; }
+            virtual motor::scene::result post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept 
+                { return motor::scene::result::ok ; }
 
             virtual void_t on_start( void_t ) noexcept final ;
             virtual void_t on_finish( void_t ) noexcept final ;
