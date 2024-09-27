@@ -18,6 +18,8 @@ namespace motor
         motor_class_proto_typedefs( logic_decorator ) ;
         motor_class_proto_typedefs( trafo3d_node ) ;
         motor_class_proto_typedefs( camera_node ) ;
+        motor_class_proto_typedefs( render_node ) ;
+        motor_class_proto_typedefs( render_settings ) ;
 
         motor_class_proto_typedefs( ivisitor ) ;
         motor_class_proto_typedefs( icomponent ) ;

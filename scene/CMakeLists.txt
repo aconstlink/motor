@@ -29,6 +29,10 @@ set( sources
     "node/logic_leaf.cpp"
     "node/camera_node.h"
     "node/camera_node.cpp"
+    "node/render_settings.h"
+    "node/render_settings.cpp"
+    "node/render_node.h"
+    "node/render_node.cpp"
 
     "visitor/ivisitor.h"
     "visitor/visitor.h"

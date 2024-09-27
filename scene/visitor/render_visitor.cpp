@@ -2,7 +2,8 @@
 
 #include "render_visitor.h"
 
-#include "../node/leaf.h"
+#include "../node/render_node.h"
+#include "../node/render_settings.h"
 #include "../component/msl_component.h"
 
 using namespace motor::scene ;
@@ -10,49 +11,47 @@ using namespace motor::scene ;
 motor_core_dd_id_init( render_visitor ) ;
 
 //*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::node_ptr_t ) noexcept 
+render_visitor::render_visitor( motor::graphics::gen4::frontend_ptr_t fe ) noexcept : _fe( fe )
 {
-    return motor::scene::result::ok ;
 }
 
 //*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::leaf_ptr_t ptr ) noexcept
+render_visitor::render_visitor( this_rref_t rhv ) noexcept : _fe( motor::move( rhv._fe ) )
 {
-    motor::scene::msl_component_ptr_t comp ;
-    if( ptr->borrow_component( comp ) )
+}
+
+//*****************************************************************************************
+render_visitor::~render_visitor( void_t ) noexcept
+{
+}
+
+//*****************************************************************************************
+motor::scene::result render_visitor::visit( motor::scene::render_node_ptr_t nptr ) noexcept  
+{
+    auto msl = nptr->borrow_msl() ;
+
     {
-        
+        motor::graphics::gen4::backend_t::render_detail_t detail ;
+        detail.start = 0 ;
+        //detail.num_elems = 3 ;
+        detail.varset = 0 ;
+        _fe->render( msl, detail ) ;
     }
 
     return motor::scene::result::ok ;
 }
 
 //*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::decorator_ptr_t ) noexcept 
+motor::scene::result render_visitor::visit( motor::scene::render_settings_ptr_t nptr ) noexcept
 {
-    return motor::scene::result::ok ;
-}
-
-motor::scene::result render_visitor::post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept 
-{
+    _fe->push( nptr->borrow_state() ) ;
     return motor::scene::result::ok ;
 }
 
 //*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::group_ptr_t ) noexcept
+motor::scene::result render_visitor::post_visit( motor::scene::render_settings_ptr_t, motor::scene::result const ) noexcept
 {
-    return motor::scene::result::ok ;
-}
-
-//*****************************************************************************************
-motor::scene::result render_visitor::post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept
-{
-    return motor::scene::result::ok ;
-}
-
-//*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::camera_node_ptr_t ) noexcept 
-{
+    _fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     return motor::scene::result::ok ;
 }
 

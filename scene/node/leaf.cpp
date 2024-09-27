@@ -1,6 +1,7 @@
 
 #include "leaf.h"
 #include "../visitor/ivisitor.h"
+#include "../global.h"
 
 #include <motor/log/global.h>
 
@@ -31,5 +32,6 @@ leaf::~leaf( void_t )  noexcept
 //*******************************************************************
 motor::scene::result leaf::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    return vptr->visit( this ) ;
+    //return vptr->visit( this ) ;
+    return motor::scene::global::resolve( vptr, this ).visit( vptr, this ) ;
 }
