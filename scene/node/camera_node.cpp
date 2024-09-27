@@ -6,6 +6,8 @@
 
 using namespace motor::scene ;
 
+motor_core_dd_id_init( camera_node ) ;
+
 //*************************************************************************
 camera_node::camera_node( void_t ) noexcept
 {}

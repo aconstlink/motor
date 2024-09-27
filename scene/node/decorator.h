@@ -10,6 +10,7 @@ namespace motor
         {
             motor_typedefs( node, base ) ;
             motor_this_typedefs( decorator ) ;
+            motor_core_dd_id_fn() ;
 
         private:
 

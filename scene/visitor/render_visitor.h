@@ -8,6 +8,9 @@ namespace motor
     {
         class MOTOR_SCENE_API render_visitor : public ivisitor
         {
+            motor_core_dd_id_fn() ;
+            motor_this_typedefs( render_visitor ) ;
+
         public:
 
             virtual motor::scene::result visit( motor::scene::node_ptr_t ) noexcept ;

@@ -15,7 +15,7 @@ logic_decorator::logic_decorator( this_rref_t rhv ) noexcept : base_t( std::move
 {}
 
 //*************************************************************************
-logic_decorator::logic_decorator( node_ptr_t pptr ) noexcept : base_t(pptr)
+logic_decorator::logic_decorator( node_ptr_t decorated ) noexcept : base_t( decorated )
 {}
 
 //*************************************************************************

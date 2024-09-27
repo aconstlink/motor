@@ -2,6 +2,9 @@
 #include "carrier.h"
 //#include "../app.h"
 
+#include <motor/profiling/global.h>
+#include <motor/scene/global.h>
+#include <motor/concurrent/global.h>
 #include <motor/memory/global.h>
 #include <motor/log/global.h>
 
@@ -48,6 +51,11 @@ carrier::~carrier( void_t ) noexcept
     motor::memory::global_t::dealloc( _network_system ) ;
 
     motor::memory::release_ptr( _app ) ;
+
+    motor::scene::global::deinit() ;
+    motor::profiling::global::deinit() ;
+    motor::concurrent::global::deinit() ;
+    motor::log::global::deinit() ;
 }
 
 //******************************************************

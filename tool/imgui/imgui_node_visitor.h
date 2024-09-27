@@ -13,6 +13,7 @@ namespace motor
         class MOTOR_TOOL_API imgui_node_visitor : public motor::scene::ivisitor
         {
             motor_this_typedefs( imgui_node_visitor ) ;
+            motor_core_dd_id_fn() ;
 
         private:
 
@@ -24,17 +25,20 @@ namespace motor
             imgui_node_visitor( void_t ) noexcept ;
             virtual ~imgui_node_visitor( void_t ) noexcept ;
 
-            virtual motor::scene::result visit( motor::scene::node_ptr_t ) noexcept ;
+            virtual motor::scene::result visit( motor::scene::ivisitable_ptr_t ) noexcept ;
+            virtual motor::scene::result post_visit( motor::scene::ivisitable_ptr_t, motor::scene::result const ) noexcept ;
+            
             virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept  ;
             virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const  ) noexcept  ;
             virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept ;
-            virtual motor::scene::result visit( motor::scene::camera_node_ptr_t ) noexcept ;
-            virtual motor::scene::result visit( motor::scene::trafo3d_node_ptr_t ) noexcept  ;
-            virtual motor::scene::result post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept ;
             virtual motor::scene::result visit( motor::scene::decorator_ptr_t ) noexcept ;
             virtual motor::scene::result post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept ;
 
             virtual void_t on_finish( void_t ) noexcept ;
+
+        public:
+
+            static void_t init_function_callbacks( void_t ) noexcept ;
 
         private:
 

@@ -6,6 +6,10 @@ namespace motor
 {
     namespace scene
     {
+        motor_class_proto_typedefs( ivisitable ) ;
+        
+
+
         motor_class_proto_typedefs( node ) ;
         motor_class_proto_typedefs( group ) ;
         motor_class_proto_typedefs( leaf ) ;

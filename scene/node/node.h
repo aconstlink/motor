@@ -4,14 +4,16 @@
 #include "../typedefs.h"
 #include "../result.h"
 #include "../protos.h"
+#include "../ivisitable.hpp"
 
 #include <motor/std/vector>
+#include <motor/core/double_dispatch.hpp>
 
 namespace motor
 {
     namespace scene
     {
-        class MOTOR_SCENE_API node
+        class MOTOR_SCENE_API node : public motor::scene::ivisitable
         {
             motor_this_typedefs( node ) ;
 

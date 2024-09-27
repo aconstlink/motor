@@ -11,7 +11,8 @@ namespace motor
             invalid_argument,
 
             repeat,
-            no_descent
+            no_descent,
+            not_implemented
         };
 
         static bool success( result r ) { return r == ok ; }

@@ -12,6 +12,8 @@ namespace motor
             typedef motor::scene::logic_decorator base_t ;
             motor_this_typedefs( trafo3d_node ) ;
 
+            motor_core_dd_id_fn() ;
+
         private:
 
             motor::math::m3d::trafof_t _trafo ;
@@ -53,7 +55,7 @@ namespace motor
 
         public:
 
-            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
+            //virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
         };
         motor_typedef( trafo3d_node ) ;
     }

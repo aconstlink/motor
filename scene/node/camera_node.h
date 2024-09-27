@@ -12,6 +12,8 @@ namespace motor
             typedef leaf base_t ;
             motor_this_typedefs( camera_node ) ;
 
+            motor_core_dd_id_fn() ;
+
         private:
 
             motor::gfx::generic_camera_mtr_t _cam = nullptr ;

@@ -10,6 +10,7 @@ namespace motor
         {
             typedef node base_t ;
             motor_this_typedefs( leaf ) ;
+            motor_core_dd_id_fn() ;
 
         public:
 

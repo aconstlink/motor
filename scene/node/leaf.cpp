@@ -6,6 +6,8 @@
 
 using namespace motor::scene ;
 
+motor_core_dd_id_init( leaf ) ;
+
 //*******************************************************************
 leaf::leaf( void_t ) noexcept
 {
@@ -29,10 +31,5 @@ leaf::~leaf( void_t )  noexcept
 //*******************************************************************
 motor::scene::result leaf::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    auto res = vptr->visit( this ) ;
-    if( motor::scene::no_success(res) )
-    {
-        motor::log::global::error( "[vzt_scene::leaf::apply] : visit" ) ;
-    }
-    return res ;
+    return vptr->visit( this ) ;
 }

@@ -7,6 +7,7 @@
 
 using namespace motor::scene ;
 
+motor_core_dd_id_init( render_visitor ) ;
 
 //*****************************************************************************************
 motor::scene::result render_visitor::visit( motor::scene::node_ptr_t ) noexcept 

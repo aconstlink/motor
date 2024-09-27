@@ -1,10 +1,13 @@
 
 #include "imgui_node_visitor.h"
 
+#include <motor/scene/global.h>
 #include <motor/scene/node/node.h>
 #include <motor/scene/node/group.h>
 #include <motor/scene/node/decorator.h>
 #include <motor/scene/node/leaf.h>
+#include <motor/scene/node/trafo3d_node.h>
+#include <motor/scene/node/camera_node.h>
 
 #include <motor/scene/component/name_component.hpp>
 
@@ -13,6 +16,7 @@
 
 using namespace motor::tool ;
 
+motor_core_dd_id_init( imgui_node_visitor ) ;
 
 //************************************************************************
 imgui_node_visitor::imgui_node_visitor( void_t ) noexcept 
@@ -25,9 +29,37 @@ imgui_node_visitor::~imgui_node_visitor( void_t ) noexcept
 }
 
 //************************************************************************
-motor::scene::result imgui_node_visitor::visit( motor::scene::node_ptr_t ) noexcept
+motor::scene::result imgui_node_visitor::visit( motor::scene::ivisitable_ptr_t vptr ) noexcept 
 {
-    return motor::scene::result::ok ;
+    /*if( dynamic_cast< motor::scene::group_ptr_t>( vptr ) != nullptr )
+    {
+        return this->visit( static_cast< motor::scene::group_ptr_t>( vptr ) ) ;
+    }
+    else */if ( dynamic_cast<motor::scene::decorator_ptr_t>( vptr ) != nullptr )
+    {
+        return this->visit( static_cast< motor::scene::decorator_ptr_t>( vptr ) ) ;
+    }
+    else if( dynamic_cast<motor::scene::leaf_ptr_t>( vptr ) != nullptr )
+    {
+        return this->visit( static_cast< motor::scene::leaf_ptr_t>( vptr ) ) ;
+    }
+
+    return motor::scene::result::not_implemented ;
+}
+
+//************************************************************************
+motor::scene::result imgui_node_visitor::post_visit( motor::scene::ivisitable_ptr_t vptr, motor::scene::result const r ) noexcept 
+{
+    /*if ( dynamic_cast<motor::scene::group_ptr_t>( vptr ) != nullptr )
+    {
+        return this->post_visit( static_cast<motor::scene::group_ptr_t>( vptr ), r ) ;
+    }
+    else */if ( dynamic_cast<motor::scene::decorator_ptr_t>( vptr ) != nullptr )
+    {
+        return this->post_visit( static_cast<motor::scene::decorator_ptr_t>( vptr ), r ) ;
+    }
+
+    return motor::scene::result::not_implemented ;
 }
 
 //************************************************************************
@@ -111,6 +143,14 @@ void_t imgui_node_visitor::on_finish( void_t ) noexcept
 }
 
 //************************************************************************
+void_t imgui_node_visitor::init_function_callbacks( void_t ) noexcept 
+{
+    motor::scene::global::register_default_callbacks<this_t, motor::scene::group>() ;
+    motor::scene::global::register_default_callbacks<this_t, motor::scene::leaf>() ;
+    motor::scene::global::register_default_callbacks<this_t, motor::scene::trafo3d_node>() ;
+}
+
+//************************************************************************
 motor::string_t imgui_node_visitor::check_for_name( motor::string_rref_t sin, motor::scene::node_ptr_t nptr ) const noexcept
 {
     motor::scene::name_component_ptr_t comp ;
@@ -142,23 +182,3 @@ void_t imgui_node_visitor::list_components( motor::scene::node_ptr_t nptr ) noex
 
     ImGui::PopID() ;
 }
-
-//************************************************************************
-motor::scene::result imgui_node_visitor::visit( motor::scene::camera_node_ptr_t nptr ) noexcept 
-{
-    return this_t::visit( motor::scene::leaf_ptr_t(nptr) ) ;
-}
-
-//************************************************************************
-motor::scene::result imgui_node_visitor::visit( motor::scene::trafo3d_node_ptr_t nptr ) noexcept
-{
-    return this_t::visit( motor::scene::group_ptr_t(nptr) ) ;
-}
-
-//************************************************************************
-motor::scene::result imgui_node_visitor::post_visit( motor::scene::trafo3d_node_ptr_t nptr, motor::scene::result const res ) noexcept
-{
-    return this_t::post_visit( motor::scene::group_ptr_t(nptr), res ) ;
-}
-
-//************************************************************************

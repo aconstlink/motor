@@ -4,6 +4,10 @@ set( sources
     "typedefs.h"
     "result.h"
     "protos.h"
+    "global.h"
+    "global.cpp"
+    "double_dispatch.h"
+    "ivisitable.hpp"
 
     "node/decorator.h"
     "node/decorator.cpp"

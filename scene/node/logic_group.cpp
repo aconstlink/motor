@@ -30,9 +30,3 @@ size_t logic_group::remove_child( node_ptr_t nptr ) noexcept
 {
     return base_t::remove_child( nptr ) ;
 }
-
-//*******************************************************************
-motor::scene::result logic_group::apply( motor::scene::ivisitor_ptr_t ptr ) noexcept
-{
-    return base_t::apply( ptr ) ;
-}

@@ -1,6 +1,7 @@
 
 #include "group.h"
 
+#include "../global.h"
 #include "../visitor/ivisitor.h"
 
 #include <motor/log/global.h>
@@ -9,6 +10,8 @@
 #include <algorithm>
 
 using namespace motor::scene ;
+
+motor_core_dd_id_init( group ) ;
 
 //*******************************************************************
 group::group( void_t ) noexcept
@@ -39,7 +42,8 @@ group::~group( void_t ) noexcept
 //*******************************************************************
 motor::scene::result group::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    motor::scene::result const r = vptr->visit( this ) ;
+    //motor::scene::result const r = vptr->visit( this ) ;
+    motor::scene::result const r = motor::scene::global::resolve( vptr, this ).visit( vptr, this ) ;
 
     switch( r ) 
     {
@@ -50,7 +54,8 @@ motor::scene::result group::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
         break ;
     }
     
-    return vptr->post_visit( this, r ) ;
+    //return vptr->post_visit( this, r ) ;
+    return motor::scene::global::resolve( vptr, this ).post_visit( vptr, this, r ) ;
 }
 
 //*******************************************************************

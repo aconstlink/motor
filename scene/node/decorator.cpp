@@ -1,11 +1,14 @@
 
 #include "decorator.h"
 
+#include "../global.h"
 #include "../visitor/ivisitor.h"
 
 #include <motor/memory/global.h>
 
 using namespace motor::scene ;
+
+motor_core_dd_id_init( decorator ) ;
 
 //*************************************************************************
 decorator::decorator( void_t ) noexcept
@@ -21,7 +24,7 @@ decorator::decorator( this_rref_t rhv ) noexcept  : base_t( std::move(rhv) )
 }
 
 //*************************************************************************
-decorator::decorator( node_ptr_t parent_ptr ) noexcept  : base_t( parent_ptr )
+decorator::decorator( node_ptr_t decorated_ptr ) noexcept  : _decorated( decorated_ptr )
 {}
 
 //*************************************************************************
@@ -37,13 +40,16 @@ decorator::~decorator( void_t ) noexcept
 //*************************************************************************
 motor::scene::result decorator::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    motor::scene::result const r = vptr->visit( this ) ;
+    //motor::scene::result const r = vptr->visit( this ) ;
+    motor::scene::result const r = motor::scene::global::resolve( vptr, this ).visit( vptr, this ) ;
+
     if( motor::scene::success( r ) )
     {
         traverse_decorated( vptr ) ;
     }
     
-    return vptr->post_visit( this, r ) ;
+    //return vptr->post_visit( this, r ) ;
+    return motor::scene::global::resolve( vptr, this ).post_visit( vptr, this, r ) ;
 }
 
 //*************************************************************************

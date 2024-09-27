@@ -12,6 +12,7 @@ namespace motor
         class MOTOR_SCENE_API trafo_visitor : public ivisitor
         {
             motor_this_typedefs( trafo_visitor ) ;
+            motor_core_dd_id_fn() ;
 
         private:
 

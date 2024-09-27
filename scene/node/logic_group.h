@@ -25,10 +25,6 @@ namespace motor
             motor::scene::result add_child( node_mtr_safe_t nptr ) noexcept ;
             size_t remove_child( node_ptr_t nptr ) noexcept ;
 
-        public:
-
-            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
-
         };
         motor_typedef( logic_group ) ;
     }
