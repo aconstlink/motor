@@ -22,7 +22,7 @@ namespace motor
             template< class caller_t, class callee_t >
             static void_t register_callbacks( motor::scene::double_dispatch_callbacks && fs ) noexcept
             {
-                _dd.register_funk_set< caller_t, callee_t > ( std::move( fs ) ) noexcept ;
+                _dd.register_funk_set< caller_t, callee_t > ( std::move( fs ) ) ;
             }
 
             // by default, the visitor uses visit() and post_visit(), so
