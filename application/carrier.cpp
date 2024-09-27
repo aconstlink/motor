@@ -51,11 +51,6 @@ carrier::~carrier( void_t ) noexcept
     motor::memory::global_t::dealloc( _network_system ) ;
 
     motor::memory::release_ptr( _app ) ;
-
-    motor::scene::global::deinit() ;
-    motor::profiling::global::deinit() ;
-    motor::concurrent::global::deinit() ;
-    motor::log::global::deinit() ;
 }
 
 //******************************************************
@@ -116,6 +111,8 @@ void_t carrier::stop_update_thread( void_t ) noexcept
 //******************************************************
 int_t carrier::exec( void_t ) noexcept
 {
+    motor::scene::global::init() ;
+
     {
         auto const res = this_t::start_update_thread() ;
         if( motor::application::no_success( res ) )
@@ -131,6 +128,11 @@ int_t carrier::exec( void_t ) noexcept
     }
 
     this_t::stop_update_thread() ;
+
+    motor::scene::global::deinit() ;
+    motor::profiling::global::deinit() ;
+    motor::concurrent::global::deinit() ;
+    motor::log::global::deinit() ;
 
     return 0 ;
 }
