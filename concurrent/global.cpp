@@ -57,6 +57,7 @@ void_t global::deinit( void_t ) noexcept
     if( this_t::_dptr == nullptr ) return ;
 
     motor::memory::global_t::dealloc( _dptr ) ;
+    _dptr = nullptr ;
 }
 
 //*************************************************************************************************
