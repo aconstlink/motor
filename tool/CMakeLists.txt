@@ -27,8 +27,10 @@ set( sources
     "imgui/imnodes_wire.h"
     "imgui/imnodes_wire.cpp"
 
-    "imgui/imgui_node_visitor.h"
-    "imgui/imgui_node_visitor.cpp"
+    "imgui/node_kit/imgui_node_visitor.h"
+    "imgui/node_kit/imgui_node_visitor.cpp"
+    "imgui/node_kit/imgui_node_component.h"
+    "imgui/node_kit/imgui_node_component.cpp"
     )
 
 motor_vs_src_dir( sources )

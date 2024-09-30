@@ -15,20 +15,23 @@ namespace motor
 
         private:
 
+            size_t _vs = 0 ;
             motor::graphics::msl_object_mtr_t _msl = nullptr  ;
 
         public:
 
             render_node( this_rref_t ) noexcept ;
             render_node( this_cref_t ) = delete ;
-            render_node( node_ptr_t ) noexcept ;
             render_node( motor::graphics::msl_object_mtr_safe_t ) noexcept ;
+            render_node( motor::graphics::msl_object_mtr_safe_t, size_t const ) noexcept ;
 
             virtual ~render_node( void_t ) noexcept ;
 
         public:
 
             motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept { return _msl ; }
+            size_t get_variable_set_idx( void_t ) const noexcept { return _vs ; }
+
         } ;
         motor_typedef( render_node ) ;
     }

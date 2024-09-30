@@ -34,7 +34,7 @@ motor::scene::result render_visitor::visit( motor::scene::render_node_ptr_t nptr
         motor::graphics::gen4::backend_t::render_detail_t detail ;
         detail.start = 0 ;
         //detail.num_elems = 3 ;
-        detail.varset = 0 ;
+        detail.varset = nptr->get_variable_set_idx() ;
         _fe->render( msl, detail ) ;
     }
 

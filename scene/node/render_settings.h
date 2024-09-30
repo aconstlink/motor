@@ -1,6 +1,6 @@
 #pragma once 
 
-#include "decorator.h"
+#include "logic_decorator.h"
 
 #include <motor/graphics/object/state_object.h>
 
@@ -8,8 +8,9 @@ namespace motor
 {
     namespace scene
     {
-        class MOTOR_SCENE_API render_settings : public decorator
+        class MOTOR_SCENE_API render_settings : public logic_decorator
         {
+            motor_typedefs( logic_decorator, base ) ;
             motor_this_typedefs( render_settings ) ;
             motor_core_dd_id_fn() ;
 
@@ -29,12 +30,8 @@ namespace motor
 
         public:
 
-            void_t set_decorated( node_mtr_safe_t nptr, bool_t const reset_parent ) noexcept ;
-            void_t set_decorated( node_mtr_safe_t nptr ) noexcept ;
-
             motor::graphics::state_object_mtr_t borrow_state( void_t ) noexcept { return _rs ; }
         } ;
         motor_typedef( render_settings ) ;
-
     }
 }
