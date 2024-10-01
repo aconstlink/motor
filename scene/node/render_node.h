@@ -10,6 +10,7 @@ namespace motor
     {
         class MOTOR_SCENE_API render_node : public leaf
         {
+            motor_typedefs( leaf, base ) ;
             motor_this_typedefs( render_node ) ;
             motor_core_dd_id_fn() ;
 

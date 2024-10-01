@@ -18,6 +18,13 @@ namespace motor
 
         public:
 
+            imgui_node_component( void_t ) noexcept ;
+            imgui_node_component( this_cref_t ) = delete ;
+            imgui_node_component( this_rref_t ) noexcept ;
+            virtual ~imgui_node_component( void_t ) noexcept ;
+
+        public:
+
 
         };
         motor_typedef( imgui_node_component ) ;

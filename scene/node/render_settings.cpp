@@ -30,5 +30,5 @@ render_settings::render_settings( motor::graphics::state_object_mtr_safe_t rs, n
 //************************************************************************************************
 render_settings::~render_settings( void_t ) noexcept
 {
-    motor::memory::release_ptr( _rs ) ;
+    motor::memory::release_ptr( motor::move( _rs ) ) ;
 }

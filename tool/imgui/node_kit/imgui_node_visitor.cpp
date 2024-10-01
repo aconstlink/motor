@@ -26,6 +26,12 @@ imgui_node_visitor::imgui_node_visitor( void_t ) noexcept
 }
 
 //************************************************************************
+imgui_node_visitor::imgui_node_visitor( motor::scene::node_mtr_safe_t selected ) noexcept : 
+    _selected_node( motor::move( selected ) )
+{
+}
+
+//************************************************************************
 imgui_node_visitor::~imgui_node_visitor( void_t ) noexcept
 {
 }
@@ -69,11 +75,25 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::decorator_ptr_t np
 {
     ImGui::PushID( ++_id ) ;
 
-    // check for name component first...
-    motor::string_t name = this_t::check_for_name( "Decorator", nptr ) ;
-    if ( !ImGui::TreeNode( "", name.c_str() ) )
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_None | ImGuiTreeNodeFlags_OpenOnArrow |
+        ImGuiTreeNodeFlags_OpenOnDoubleClick ;
     {
-        return motor::scene::result::no_descent ;
+        bool_t const selected = this_t::is_selected_item( nptr ) ;
+        if ( selected )
+            node_flags |= ImGuiTreeNodeFlags_Selected ;
+    }
+
+    // make tree node
+    {
+        motor::string_t name = this_t::check_for_name( "Decorator", nptr ) ;
+        bool_t const open = ImGui::TreeNodeEx( name.c_str(), node_flags ) ;
+
+        this_t::check_selected_item( nptr ) ;
+
+        if ( !open )
+        {
+            return motor::scene::result::no_descent ;
+        }
     }
 
     //this_t::list_components( nptr ) ;
@@ -97,13 +117,26 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::group_ptr_t nptr )
 {
     ImGui::PushID( ++_id ) ;
 
-    // check for name component first...
-    motor::string_t name = this_t::check_for_name( "Group", nptr ) ;
-    if( !ImGui::TreeNode( "", name.c_str() ) )
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_None | ImGuiTreeNodeFlags_OpenOnArrow | 
+        ImGuiTreeNodeFlags_OpenOnDoubleClick ;
     {
-        return motor::scene::result::no_descent ;
+        bool_t const selected = this_t::is_selected_item( nptr ) ;
+        if( selected ) 
+            node_flags |= ImGuiTreeNodeFlags_Selected ;
     }
 
+    // make tree node
+    {
+        motor::string_t name = this_t::check_for_name( "Group", nptr ) ;
+        bool_t const open = ImGui::TreeNodeEx( "", node_flags, name.c_str() ) ;
+
+        this_t::check_selected_item( nptr ) ;
+
+        if ( !open )
+        {
+            return motor::scene::result::no_descent ;
+        }
+    }
     //this_t::list_components( nptr ) ;
 
     ++_depth ;
@@ -125,12 +158,24 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::leaf_ptr_t nptr ) 
 {
     ImGui::PushID( ++_id ) ;
 
-    // check for name component first...
-    motor::string_t name = this_t::check_for_name( "Leaf", nptr ) ;
-    if ( ImGui::TreeNode( "", name.c_str() ) )
+    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_None | ImGuiTreeNodeFlags_OpenOnArrow |
+        ImGuiTreeNodeFlags_OpenOnDoubleClick ;
     {
-        //this_t::list_components( nptr ) ;
-        ImGui::TreePop() ;
+        bool_t const selected = this_t::is_selected_item( nptr ) ;
+        if ( selected )
+            node_flags |= ImGuiTreeNodeFlags_Selected ;
+    }
+    // make tree node
+    {
+        motor::string_t name = this_t::check_for_name( "Leaf", nptr ) ;
+        bool_t const open = ImGui::TreeNodeEx( "", node_flags, name.c_str() ) ;
+
+        this_t::check_selected_item( nptr ) ;
+
+        if ( open )
+        {
+            ImGui::TreePop() ;
+        }
     }
 
     ImGui::PopID() ;
@@ -143,10 +188,12 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::render_settings_pt
 {
     auto const res = this_t::visit( static_cast< motor::scene::decorator_ptr_t >( nptr ) ) ;
 
+    if( res == motor::scene::result::ok )
     {
-        auto * ptr = this_t::check_and_borrow_imgui_component( nptr ) ;
-
+        
     }
+
+    
     return res ;
 }
 
@@ -180,6 +227,12 @@ void_t imgui_node_visitor::init_function_callbacks( void_t ) noexcept
     motor::scene::global::register_default_callbacks<this_t, motor::scene::trafo3d_node>() ;
     motor::scene::global::register_default_callbacks<this_t, motor::scene::render_node>() ;
     motor::scene::global::register_default_callbacks<this_t, motor::scene::render_settings>() ;
+}
+
+//************************************************************************
+motor::scene::node_mtr_safe_t imgui_node_visitor::get_selected( void_t ) noexcept
+{
+    return motor::move( _selected_node ) ;
 }
 
 //************************************************************************
@@ -229,4 +282,28 @@ motor::tool::imgui_node_component_mtr_t imgui_node_visitor::check_and_borrow_img
     }
 
     return comp ;
+}
+
+//************************************************************************
+void_t imgui_node_visitor::check_selected_item( motor::scene::node_ptr_t nptr ) noexcept 
+{
+    if ( ImGui::IsItemClicked() )
+    {
+        //auto * comp = this_t::check_and_borrow_imgui_component( nptr ) ;
+
+        // deselect
+        if( nptr == _selected_node )
+        {
+            motor::release( motor::move( _selected_node ) ) ;
+            return ;
+        }
+        motor::release( motor::move( _selected_node ) ) ;
+        _selected_node = motor::share( nptr ) ;
+    }
+}
+
+//************************************************************************
+bool_t imgui_node_visitor::is_selected_item( motor::scene::node_ptr_t nptr ) noexcept 
+{
+    return nptr == _selected_node ;
 }
