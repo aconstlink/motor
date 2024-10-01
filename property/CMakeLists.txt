@@ -2,6 +2,9 @@
 set( sources 
     "dummy.cpp"
     "typedefs.h"
+    "editor_hint.hpp"
+    "min_max.hpp"
+    "default_value.hpp"
 
     "property_sheet.hpp"
     "iproperty.hpp"
