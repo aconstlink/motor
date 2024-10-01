@@ -34,6 +34,7 @@ imgui_node_visitor::imgui_node_visitor( motor::scene::node_mtr_safe_t selected )
 //************************************************************************
 imgui_node_visitor::~imgui_node_visitor( void_t ) noexcept
 {
+    motor::release( motor::move( _selected_node ) ) ;
 }
 
 //************************************************************************
