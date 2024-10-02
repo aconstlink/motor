@@ -141,7 +141,7 @@ namespace motor
                         
         private: 
 
-            static inline strings_funk_t _strings_funk = [=]( void_t ){ return std::make_pair( nullptr, 0 ) ; } ;
+            static inline strings_funk_t _strings_funk = []( void_t ){ return std::make_pair( nullptr, 0 ) ; } ;
 
         public:
 
