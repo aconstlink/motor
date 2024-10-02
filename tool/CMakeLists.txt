@@ -26,6 +26,8 @@ set( sources
 
     "imgui/imnodes_wire.h"
     "imgui/imnodes_wire.cpp"
+    "imgui/imgui_property.h"
+    "imgui/imgui_property.cpp"
 
     "imgui/node_kit/imgui_node_visitor.h"
     "imgui/node_kit/imgui_node_visitor.cpp"
@@ -49,6 +51,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::memory
   PUBLIC motor::log
   PUBLIC motor::profiling
+  PUBLIC motor::property
   PUBLIC motor::gfx
   PUBLIC motor::format
   PUBLIC motor::scene
