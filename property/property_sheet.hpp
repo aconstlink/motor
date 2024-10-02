@@ -64,7 +64,7 @@ namespace motor
                 auto iter = _properties.find( name ) ;
                 if ( iter != _properties.end() )
                 {
-                    motor::release( motor::move( iter->first ) ) ;
+                    motor::release( motor::move( iter->second ) ) ;
                 }
 
                 _properties[ name ] = motor::shared( std::move( p ), "property" ) ;
