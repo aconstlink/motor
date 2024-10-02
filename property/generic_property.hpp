@@ -28,7 +28,7 @@ namespace motor
             value_t _data = motor::property::default_value<T>() ;
             min_max_t _mm = min_max_t() ;
             motor::property::editor_hint _hint = 
-                motor::property::default_editor_hint<T, std::is_enum< typename T>::value >::value ;
+                motor::property::default_editor_hint<T, std::is_enum<T>::value >::value ;
 
         public:
 

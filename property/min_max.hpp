@@ -56,14 +56,6 @@ namespace motor
         public:
 
             min_max( void_t ) noexcept {}
-            min_max( std::pair< T, T > const & p ) noexcept
-            {
-                _min = p.first ;
-                _max = p.second ;
-            }
-            min_max( T min_, T max_ ) noexcept : _min( min_ ), _max( max_ )
-            {
-            }
             ~min_max( void_t ) noexcept {}
 
             size_t get_min( void_t ) const noexcept { return size_t( T(0) ) ; }
