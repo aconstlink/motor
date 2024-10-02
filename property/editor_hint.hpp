@@ -77,37 +77,5 @@ namespace motor
         {
             static constexpr auto value = motor::property::editor_hint::slider ;
         };
-
-        #if 0
-        template< typename T, bool is_enum >
-        static editor_hint default_editor_hint( void_t ) noexcept
-        {
-            return editor_hint::no_edit ;
-        }
-
-        template< typename T >
-        editor_hint default_editor_hint< T, true > ( void_t ) noexcept
-        {
-            return editor_hint::combo_box ;
-        }
-
-        template<>
-        editor_hint default_editor_hint< uint_t, false > ( void_t ) noexcept
-        {
-            return editor_hint::slider ;
-        }
-
-        template<>
-        editor_hint default_editor_hint< int_t, false > ( void_t ) noexcept
-        {
-            return editor_hint::slider ;
-        }
-
-        template<>
-        editor_hint default_editor_hint< float_t, false > ( void_t ) noexcept
-        {
-            return editor_hint::slider ;
-        }
-        #endif
     }
 }
