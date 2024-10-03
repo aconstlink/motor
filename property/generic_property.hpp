@@ -218,10 +218,6 @@ namespace motor
             {
                 return &_data ;
             }
-
-            
         } ;
-
-        
     }
 }

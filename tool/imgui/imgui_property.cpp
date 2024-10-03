@@ -1,6 +1,8 @@
 
 #include "imgui_property.h"
+
 #include <imgui.h>
+#include <cstring>
 
 using namespace motor::tool ;
 
@@ -9,9 +11,12 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
 {
     ImGui::BeginGroup() ;
     {
+        ImGui::SeparatorText( sheet_name.c_str() );
+
+        int_t id = 0 ;
         props.for_each( [&] ( motor::string_cref_t name, motor::property::iproperty_mtr_t p )
         {
-            motor::string_t lable = name + "##" + sheet_name + "##property" ;
+            motor::string_t lable = name + "##" + sheet_name + "##property" + motor::to_string( id++ ) ;
 
             // handle int
             {
@@ -69,7 +74,7 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                         size_t const s = std::min( sizeof( buf ), ptr->get().size() ) ;
                         std::memcpy( buf, ptr->get().c_str(), s ) ;
                         buf[ s ] = '\0' ;
-                        if ( ImGui::InputText( "some input", buf, sizeof( buf ) ) )
+                        if ( ImGui::InputText( lable.c_str(), buf, sizeof( buf ) ) )
                         {
                             ptr->set( motor::string_t( buf ) ) ;
                         }
@@ -94,7 +99,7 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                     {
                     case motor::property::editor_hint::combo_box:
                     {
-                        if ( ImGui::BeginCombo( "enum", ptr->get_char_ptr(), 0 ) )
+                        if ( ImGui::BeginCombo( lable.c_str(), ptr->get_char_ptr(), 0 ) )
                         {
                             size_t sel = ptr->as_index() ;
                             for ( size_t n = 0; n < ptr->get_strings().second; n++ )
