@@ -6,6 +6,18 @@
 
 namespace motor
 {
+    // static string so the data is out of
+    // the run-time memory manager
+    using sstring_t = std::string ;
+    using sstring_cref_t = sstring_t const & ;
+    using sstring_ref_t = sstring_t & ;
+    using sstring_rref_t = sstring_t && ;
+    using sstring_in_t = sstring_t const & ;
+    using sstring_out_t = sstring_t & ;
+}
+
+namespace motor
+{
     using string_t = std::basic_string< char, std::char_traits<char>,
         motor::memory::allocator< char > > ;
 
