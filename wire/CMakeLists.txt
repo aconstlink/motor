@@ -7,6 +7,7 @@ set( SOURCES ${SOURCES}
     "global.cpp"
     "manager.h"
     "manager.cpp"
+    "variable.hpp"
     "node/node.h"
     "node/node.cpp"
     "node/node_disconnector.hpp"

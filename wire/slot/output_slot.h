@@ -39,7 +39,7 @@ namespace motor
 
         public:
 
-            output_slot( void_t ) noexcept : _value( T(0) ) {}
+            output_slot( void_t ) noexcept {}
             output_slot( T const v ) noexcept : _value(v) {}
             output_slot( this_rref_t rhv ) noexcept : _inputs( std::move( rhv._inputs) ), _value( rhv._value ) {}
 
@@ -96,9 +96,15 @@ namespace motor
                 return false ;
             }
 
+            this_ref_t operator = ( T const & v ) noexcept
+            {
+                _value = v ;
+                return *this ;
+            }
+
         public:
 
-            T get_value( void_t ) noexcept
+            T const & get_value( void_t ) const noexcept
             {
                 return _value ;
             }

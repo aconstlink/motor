@@ -39,7 +39,7 @@ namespace motor
 
         public:
 
-            input_slot( void_t ) noexcept : _value( 0 ) {}
+            input_slot( void_t ) noexcept {}
             input_slot( T const v ) noexcept : _value( v ) {}
             input_slot( this_rref_t rhv ) noexcept : _value( rhv._value ), _output_slot( motor::move(rhv._output_slot ) ) {}
             input_slot( this_cref_t ) = delete ;
@@ -67,7 +67,7 @@ namespace motor
                 if ( propagate ) _output_slot->disconnect( this ) ;
                 motor::memory::release_ptr( motor::move( _output_slot ) ) ;
 
-                _value = T( 0 ) ;
+                //_value = T( 0 ) ;
             }
 
             virtual void_t disconnect( motor::wire::ioutput_slot_ptr_t sig, bool_t const propagate = true ) noexcept
@@ -96,9 +96,15 @@ namespace motor
                 return false ;
             }
 
+            this_ref_t operator = ( T const & v ) noexcept
+            {
+                _value = v ;
+                return *this ;
+            }
+
         public:
 
-            T get_value( void_t ) noexcept
+            T const & get_value( void_t ) const noexcept
             {
                 return _value ;
             }
