@@ -125,6 +125,7 @@ list( APPEND subdirs
     "core"
     "log"
     "memory"
+    "meta"
     "profiling"
     "property"
     "concurrent"
