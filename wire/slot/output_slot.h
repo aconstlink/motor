@@ -34,6 +34,7 @@ namespace motor
 
         private:
 
+            bool_t _has_changed = false ;
             T _value ;
             motor::vector< this_input_slot_mtr_t > _inputs ;
 
@@ -52,9 +53,14 @@ namespace motor
 
             virtual void_t exchange( void_t ) noexcept 
             {
-                for ( auto * slot : _inputs )
+                // only push data if a changed happened.
+                if( _has_changed )
                 {
-                    slot->set_value( _value ) ;
+                    for ( auto * slot : _inputs )
+                    {
+                        slot->set_value( _value ) ;
+                    }
+                    _has_changed = false ;
                 }
             }
 
@@ -99,6 +105,7 @@ namespace motor
             this_ref_t operator = ( T const & v ) noexcept
             {
                 _value = v ;
+                _has_changed = true ;
                 return *this ;
             }
 
@@ -112,6 +119,16 @@ namespace motor
             void_t set_value( T const v ) noexcept
             {
                 _value = v ;
+                _has_changed = true ;
+            }
+
+            // set the value and immediately exchange with
+            // connected input slots.
+            void_t set_and_exchange( T const v ) noexcept
+            {
+                _value = v ;
+                _has_changed = true ;
+                this->exchange() ;
             }
         };
     }

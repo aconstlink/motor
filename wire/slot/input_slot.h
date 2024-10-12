@@ -34,6 +34,7 @@ namespace motor
 
         private:
 
+            bool_t _has_changed = false ;
             T _value ;
             this_output_slot_mtr_t _output_slot = nullptr ;
 
@@ -99,19 +100,39 @@ namespace motor
             this_ref_t operator = ( T const & v ) noexcept
             {
                 _value = v ;
+                _has_changed = true ;
                 return *this ;
             }
 
         public:
 
+            // Returns the value of the slot
+            // Does not reset the changed flag.
+            // @see get_value_and_reset
             T const & get_value( void_t ) const noexcept
             {
                 return _value ;
             }
 
+            // get the value in v if the value has changed
+            // returns the "changed flag" and also resets it
+            bool_t get_value_and_reset( T & v ) noexcept
+            {
+                if( _has_changed ) 
+                {
+                    v = _value ;
+                    _has_changed = false ;
+                    return true ;
+                }
+                
+                return false ;
+            }
+
+            // 
             void_t set_value( T const v ) noexcept
             {
                 _value = v ;
+                _has_changed = true ;
             }
         };
     }

@@ -172,10 +172,10 @@ motor::concurrent::task_t::task_funk_t inode::make_task_funk( void_t ) noexcept
     return [=] ( motor::concurrent::task_t::task_funk_param_in_t ) 
     {
         // exchange all inputs... (pull)
-        this->inputs().exchange() ;
+        //this->inputs().exchange() ;
         this->execute() ;
         // or exchange all outputs (push)
-        //this->outputs().exchange() ;
+        this->outputs().exchange() ;
     } ;
 }
 

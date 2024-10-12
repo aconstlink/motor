@@ -4,6 +4,7 @@
 
 #include "input_slot.h"
 #include "output_slot.h"
+#include "other_slot.hpp"
 
 #include <motor/std/hash_map>
 #include <motor/std/string>
@@ -107,6 +108,13 @@ namespace motor
                 if ( iter == _ts.end() ) return nullptr ;
 
                 return motor::share( iter->second ) ;
+            }
+
+            bool_t connect( motor::string_in_t name, typename motor::wire::other_slot< T >::type_safe_mtr_t slot ) noexcept 
+            {
+                auto * this_slot = this_t::borrow( name ) ;
+                if( this_slot == nullptr ) return false ;
+                return this_slot->connect( slot ) ;
             }
         };
         motor_typedefs( sheet< motor::wire::ioutput_slot >, outputs ) ;

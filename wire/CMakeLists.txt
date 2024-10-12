@@ -19,6 +19,7 @@ set( SOURCES ${SOURCES}
     "slot/output_slot.h"
     "slot/output_slot.cpp"
     "slot/sheet.hpp"
+    "slot/other_slot.hpp"
     )
 
 motor_vs_src_dir( SOURCES )
