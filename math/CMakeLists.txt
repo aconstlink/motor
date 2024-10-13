@@ -30,6 +30,7 @@ set( non_arch_sources
     vector/vector2b.hpp
     vector/vector3b.hpp
     vector/vector4b.hpp
+    vector/normalization.hpp
 
     interpolation/interpolate.hpp
 

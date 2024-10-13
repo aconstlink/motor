@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vector2b.hpp"
+
 namespace motor
 {
     namespace math
@@ -16,7 +18,7 @@ namespace motor
             typedef vec3_t this_t ;
             typedef this_t & this_ref_t ;
             typedef this_t const & this_cref_t ;
-
+            
         private:
 
             type_t _elem[3] ;
@@ -95,6 +97,11 @@ namespace motor
             this_ref_t z( type_t val ){
                 _elem[2] = val ;
                         return *this ;
+            }
+
+            vector2b yz( void ) const noexcept
+            {
+                return vector2b( _elem[1], _elem[2] ) ;
             }
 
         public: // operator ()

@@ -51,7 +51,7 @@ namespace motor
             }
 
             //************************************************************************************
-            vector4( vec3_t const & rhv ) 
+            explicit vector4( vec3_t const & rhv ) noexcept
             {
                 (*this)(rhv.x(),rhv.y(),rhv.z(),type_t(0)) ;
             }
@@ -391,10 +391,12 @@ namespace motor
             }
 
             //************************************************************************************
+            #if 0
             this_ref_t operator = ( vec3_t const & rhv ){
                 _elem[0] = rhv.x() ; _elem[1] = rhv.y() ; _elem[2] = rhv.z() ; // _elem[3] = type_t(0) ;
                 return (*this) ;
             }
+            #endif
 
         public: // relational 
 

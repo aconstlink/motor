@@ -66,13 +66,13 @@ namespace motor
             }
 
             //***************************************************
-            vector2( vec3_t const & rhv )  noexcept
+            explicit vector2( vec3_t const & rhv )  noexcept
             {
                 (*this)( rhv.x(), rhv.y() ) ;
             }
 
             //***************************************************
-            vector2( vec4_t const & rhv )  noexcept
+            explicit vector2( vec4_t const & rhv )  noexcept
             {
                 (*this)(rhv.x(),rhv.y()) ;
             }

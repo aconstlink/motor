@@ -652,7 +652,7 @@ void_t text_render_2d::draw_text( size_t const group, size_t const font_id, size
 
         {
             this_t::glyph_info_t tgi ;
-            tgi.color = color ;
+            tgi.color = motor::math::vec3f_t( color ) ; ;
             tgi.pos = pos_ ;
             tgi.point_size_scale = point_size_scale ;
             tgi.offset = idx ;

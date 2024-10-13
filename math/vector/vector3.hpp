@@ -92,13 +92,13 @@ namespace motor
             }
 
             //************************************************************************************
-            vector3( vec4_in_t rhv )
+            explicit vector3( vec4_in_t rhv )
             {
                 (*this)(rhv.x( ), rhv.y( ), rhv.z( )) ;
             }
 
             //************************************************************************************
-            vector3( quat3_in_t rhv )
+            explicit vector3( quat3_in_t rhv )
             {
                 _elem[0] = rhv.I( ) ;
                 _elem[1] = rhv.J( ) ;
@@ -106,7 +106,7 @@ namespace motor
             }
 
             //************************************************************************************
-            vector3( quat4_in_t rhv )
+            explicit vector3( quat4_in_t rhv )
             {
                 (*this) = rhv.vec( ) ;
             }
@@ -426,7 +426,7 @@ namespace motor
             }
 
             //************************************************************************************
-
+            #if 0
             this_ref_t operator=( vec4_t const & rhv)
             {
                 _elem[0] = rhv.x( ) ;
@@ -434,6 +434,7 @@ namespace motor
                 _elem[2] = rhv.z( ) ;
                 return (*this) ;
             }
+            #endif 
 
         public: // relational 
 

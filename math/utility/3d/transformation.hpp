@@ -8,6 +8,8 @@
 #include "../../matrix/matrix3.hpp"
 #include "../../matrix/matrix4.hpp"
 
+#include "../../vector/normalization.hpp"
+
 #include "../../quaternion/quaternion4.hpp"
 
 namespace motor
@@ -64,10 +66,18 @@ namespace motor
                     this_t::translate_fl( translation ) ;
                 }
 
-                transformation( vec3f_cref_t scale, axis_angle_cref_t axis, vec3f_cref_t translation ) noexcept
+                transformation( vec3f_cref_t scale, motor::math::not_normalized< axis_angle_t > const & axis, vec3f_cref_t translation ) noexcept :
+                    transformation( scale, 
+                        motor::math::is_normalized< axis_angle_t >( axis_angle_t( axis.get().xyz().normalized(), axis.get().w() ) ), 
+                        translation )
+                {
+
+                }
+
+                transformation( vec3f_cref_t scale, motor::math::is_normalized< axis_angle_t > const & axis, vec3f_cref_t translation ) noexcept
                 {
                     this_t::scale_fl( scale ) ;
-                    this_t::rotate_by_angle_fl( axis.xyz(), axis.w() ) ;
+                    this_t::rotate_by_axis_fl( motor::math::vector_is_normalized( axis.get().xyz() ), axis.get().w() ) ;
                     this_t::translate_fl( translation ) ;
                 }
 
@@ -83,7 +93,7 @@ namespace motor
 
                 vec3_t get_translation( void_t ) const noexcept
                 {
-                    return _trafo.get_column( 3 ) ;
+                    return _trafo.get_column( 3 ).xyz() ;
                 }
 
             public:
@@ -102,7 +112,25 @@ namespace motor
 
                 vec3_t get_scale( void_t ) const noexcept
                 {
-                    return _trafo.get_vec3_diagonal() ;
+                    mat3_t const B( _trafo ) ;
+
+                    auto const l = vec3_t( 
+                        B.get_column(0).length(),
+                        B.get_column(1).length(),
+                        B.get_column(2).length() ) ;
+
+                    return l ;
+                }
+
+                vec4_t get_orientation( void_t ) const noexcept
+                {
+                    mat3_t B( _trafo ) ;
+
+                    B.set_column( 0, B.get_column( 0 ).normalized() ) ;
+                    B.set_column( 1, B.get_column( 1 ).normalized() );
+                    B.set_column( 2, B.get_column( 2 ).normalized() ) ;
+
+                    return vec4_t( B.rotation_axis(), B.angle() ) ;
                 }
 
                 /// scale in all dimensions from left
@@ -201,9 +229,18 @@ namespace motor
 
                 /// rotation by axis from left
                 /// => rot(axis, angle) * this
-                this_ref_t rotate_by_axis_fl( vec3_cref_t axis, type_t angle ) noexcept
+                this_ref_t rotate_by_axis_fl( motor::math::is_normalized<motor::math::vec3f_t> const & axis, type_t angle ) noexcept
                 {
-                    auto m = mat4_t( quat4_t::rotatate_norm_axis( axis, angle ).to_matrix() ) ;
+                    auto m = mat4_t( quat4_t::rotatate_norm_axis( axis.get(), angle ).to_matrix() ) ;
+                    m[ 15 ] = type_t( 1 ) ;
+
+                    _trafo = m * _trafo ;
+                    return *this ;
+                }
+
+                this_ref_t rotate_by_axis_fl( motor::math::not_normalized<motor::math::vec3f_t> const & axis, type_t angle ) noexcept
+                {
+                    auto m = mat4_t( quat4_t::rotatate_norm_axis( axis.normalized(), angle ).to_matrix() ) ;
                     m[ 15 ] = type_t( 1 ) ;
 
                     _trafo = m * _trafo ;

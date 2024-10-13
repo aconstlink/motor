@@ -308,13 +308,20 @@ namespace motor
             }
 
             //************************************************************************************
-            type_t trace( void ) const {
+            vec3_t main_diagonal( void_t ) const noexcept
+            {
+                return vec3_t( _elem[0], _elem[4], _elem[8] ) ;
+            }
+
+            //************************************************************************************
+            type_t trace( void ) const 
+            {
                 return _elem[0]+_elem[4]+_elem[8] ;
             }
 
             //************************************************************************************
             type_t angle( void ) const {
-                return motor::math::fn<type_t>::acos( (this->trace()-type_t(2))*(type_t(0.5)) ) ;
+                return motor::math::fn<type_t>::acos( (this_t::trace()-type_t(1))*type_t(0.5) ) ;
             }
 
             //************************************************************************************
