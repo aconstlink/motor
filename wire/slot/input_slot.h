@@ -65,7 +65,7 @@ namespace motor
             virtual void_t disconnect( bool_t const propagate = true ) noexcept
             {
                 if ( _output_slot == nullptr ) return ;
-                if ( propagate ) _output_slot->disconnect( this ) ;
+                if ( propagate ) _output_slot->disconnect( this, false ) ;
                 motor::memory::release_ptr( motor::move( _output_slot ) ) ;
 
                 //_value = T( 0 ) ;

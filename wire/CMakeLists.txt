@@ -20,6 +20,9 @@ set( SOURCES ${SOURCES}
     "slot/output_slot.cpp"
     "slot/sheet.hpp"
     "slot/other_slot.hpp"
+
+    "variables/vector_variables.hpp"
+    "variables/trafo_variables.hpp"
     )
 
 motor_vs_src_dir( SOURCES )

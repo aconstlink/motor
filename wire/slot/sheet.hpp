@@ -113,8 +113,12 @@ namespace motor
             bool_t connect( motor::string_in_t name, typename motor::wire::other_slot< T >::type_safe_mtr_t slot ) noexcept 
             {
                 auto * this_slot = this_t::borrow( name ) ;
-                if( this_slot == nullptr ) return false ;
-                return this_slot->connect( slot ) ;
+                if( this_slot == nullptr ) 
+                {
+                    motor::release( motor::move( slot ) ) ;
+                    return false ;
+                }
+                return this_slot->connect( motor::move( slot ) ) ;
             }
         };
         motor_typedefs( sheet< motor::wire::ioutput_slot >, outputs ) ;
