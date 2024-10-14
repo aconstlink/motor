@@ -18,6 +18,10 @@ namespace motor
     {
         namespace m3d
         {
+            // the transformation class is designed to be used
+            // in real-time scenarios primarily. It stores a
+            // 4x4 matrix for quick access to the transformation.
+            // All computations are also carried out using matrices.
             template< typename T >
             class transformation
             {
@@ -110,6 +114,8 @@ namespace motor
                     return *this ;
                 }
 
+                // This is a rather costly function, 
+                // so do not use it often.
                 vec3_t get_scale( void_t ) const noexcept
                 {
                     mat3_t const B( _trafo ) ;
@@ -122,6 +128,8 @@ namespace motor
                     return l ;
                 }
 
+                // This is a rather costly function, 
+                // so do not use it often.
                 vec4_t get_orientation( void_t ) const noexcept
                 {
                     mat3_t B( _trafo ) ;

@@ -76,7 +76,7 @@ namespace motor
         public:
 
             explicit is_normalized( vec_in_t v ) noexcept : _vec ( v ) {}
-            is_normalized( not_normalized_cref_t nn ) noexcept : _vec ( nn.as_normalized() ) {}
+            is_normalized( not_normalized_cref_t nn ) noexcept : _vec ( nn.normalized() ) {}
             is_normalized( this_cref_t rhv ) noexcept : _vec( rhv._vec ) {}
             is_normalized( this_rref_t rhv ) noexcept : _vec( std::move( rhv._vec ) ) {}
             ~is_normalized( void_t ) noexcept {}
