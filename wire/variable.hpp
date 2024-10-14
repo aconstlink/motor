@@ -113,7 +113,7 @@ namespace motor
             template< typename T >
             T const * borrow_os( void_t ) const noexcept
             {
-                return reinterpret_cast<T *>( _out ) ;
+                return reinterpret_cast<T const *>( _out ) ;
             }
             
         public:
