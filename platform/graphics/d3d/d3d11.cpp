@@ -1073,7 +1073,10 @@ struct d3d11_backend::pimpl
         motor::string_t name ;
 
         // purpose: keep track of the data within the msl object
-        // if recompilation is triggered.
+        // if recompilation is triggered. On recompilation, there
+        // might be no/lost data of the original msl object, so 
+        // in that case, only the new shader code is passed and
+        // the old data is used.
         motor::graphics::msl_object_t msl_obj ;
 
         motor::vector< motor::graphics::render_object_t > ros ; 
