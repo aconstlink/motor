@@ -1866,6 +1866,7 @@ public: // functions
     //******************************************************************************************************************************
     void_t deactivate_framebuffer( void_t )
     {
+        _ctx->ctx()->OMSetRenderTargets( 0, nullptr, nullptr ) ;
         _ctx->activate_framebuffer() ;
         
         // done by the render states
@@ -3772,6 +3773,34 @@ public: // functions
             {
                 UINT const max_elems = num_elements == UINT( -1 ) ? UINT( geo.num_elements_vb ) : num_elements ;
                 ctx->Draw( max_elems, UINT( start_element ) ) ;
+            }
+        }
+
+        // SECTION: UNBIND pixel shader variables
+        {
+            for ( auto & cb : rnd._cbuffers_ps )
+            {
+                if ( cb.var_set_idx > varset_id ) break  ;
+                if ( cb.var_set_idx < varset_id ) continue ;
+
+                ID3D11Buffer * const null_buffer[1] = {nullptr};
+                ctx->PSSetConstantBuffers( cb.slot, 1, null_buffer ) ;
+            }
+
+            for ( auto & img : rnd.var_sets_imgs_ps )
+            {
+                if ( img.var_set_idx > varset_id ) break  ;
+                if ( img.var_set_idx < varset_id ) continue ;
+
+                ID3D11ShaderResourceView * const null_view[1] = {nullptr};
+                ctx->PSSetShaderResources( img.slot, 1, null_view ) ;
+                //ctx->PSSetSamplers( img.slot, 1, images[ img.id ].sampler ) ;
+            }
+
+            for ( auto & buf : rnd.var_sets_buffers_ps[ varset_id ].second )
+            {
+                ID3D11ShaderResourceView * const null_view[1] = {nullptr};
+                ctx->PSSetShaderResources( buf.slot, 1, null_view ) ;
             }
         }
 
