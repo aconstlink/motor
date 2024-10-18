@@ -308,7 +308,7 @@ void_t quad::init( size_t const nvs ) noexcept
 
             // configure more details
             {
-                sc.add_vertex_input_binding( motor::graphics::vertex_attribute::position, "in_pos" ) ;
+                sc.shader_bindings().add_vertex_input_binding( motor::graphics::vertex_attribute::position, "in_pos" ) ;
             }
 
             motor::memory::release_ptr( _so ) ;

@@ -40,6 +40,18 @@ namespace motor
             motor::vector< data > _datas ;
             motor::vector< motor::graphics::variable_set_mtr_t > _vars ;
 
+        private: // api data feeding back information to the user
+
+            struct api_data
+            {
+                bool_t is_compiled ;
+                motor::graphics::shader_object_mtr_t so ;
+            };
+            motor_typedef( api_data ) ;
+
+            motor::concurrent::mrsw_t _mtx_api_datas ;
+            motor::vector< api_data_t > _api_datas ;
+
         public:
 
             msl_object( void_t ) noexcept {}
@@ -51,6 +63,7 @@ namespace motor
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
                 _soo = std::move( rhv._soo ) ;
+                _api_datas = std::move( rhv._api_datas ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
@@ -65,6 +78,7 @@ namespace motor
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
                 _soo = std::move( rhv._soo ) ;
+                _api_datas = std::move( rhv._api_datas ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
@@ -73,6 +87,10 @@ namespace motor
                 return *this ;
             }
 
+            #if 0
+            msl_object( this_cref_t rhv ) = delete ;
+            this_ref_t operator = ( this_cref_t rhv ) = delete ;
+            #else
             msl_object( this_cref_t rhv ) noexcept : object( rhv )
             {
                 _name = rhv._name ;
@@ -87,7 +105,6 @@ namespace motor
                 for( size_t i=0; i<rhv._vars.size(); ++i )
                     _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
             }
-
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {
                 object::operator = ( rhv ) ;
@@ -107,10 +124,15 @@ namespace motor
                 return *this ;
             }
 
+            #endif
+
             virtual ~msl_object( void_t ) noexcept 
             {
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
+
+                for( auto & d : _api_datas )
+                    motor::release( motor::move( d.so ) ) ;
             }
 
             motor::string_cref_t name( void_t ) const noexcept
@@ -193,6 +215,53 @@ namespace motor
                 for( auto const & v : _vars )
                 {
                     funk( i++, v ) ;
+                }
+            }
+
+        public:
+
+            class backend_accessor
+            {
+                size_t _bid ;
+                this_ptr_t _msl ;
+
+            public:
+
+                backend_accessor( size_t const bid, this_ptr_t msl ) noexcept : 
+                    _bid( bid ), _msl( msl ) {}
+
+                void_t set_api_data( this_t::api_data_ref_t d ) noexcept
+                {
+                    _msl->set_api_data( _bid, d ) ;
+                }
+
+            };
+            friend class backend_accessor ;
+
+        private:
+
+            void_t set_api_data( size_t const bid, this_t::api_data_ref_t d ) noexcept
+            {
+                motor::concurrent::mrsw_t::writer_lock_t lk( _mtx_api_datas ) ;
+                if( _api_datas.size() <= bid )
+                {
+                    _api_datas.resize( bid + 1 ) ;
+                }
+
+                _api_datas[bid] = d ;
+            }
+
+        public:
+
+            using for_each_api_data_t = std::function < bool_t ( api_data_cref_t ) > ;
+
+            // iterate over each api datat until f returns true ;
+            // can be used to inspect generated shader data
+            void_t for_each( for_each_api_data_t f ) const noexcept
+            {
+                for ( auto const & d : _api_datas )
+                {
+                    if ( f( d ) ) break ;
                 }
             }
         };

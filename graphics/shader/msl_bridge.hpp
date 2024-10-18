@@ -107,6 +107,8 @@ namespace motor
             static void_t do_bindings( motor::graphics::shader_object_inout_t ret, 
                 motor::msl::generated_code_cref_t code ) noexcept
             {
+                motor::graphics::shader_bindings_t sb ;
+
                 // vertex input bindings
                 {
                     for( auto const & v : code.geometry_ins )
@@ -138,7 +140,7 @@ namespace motor
                                     va = motor::graphics::vertex_attribute::texcoord7 ; break ;
                                 default: break;
                                 }
-                                ret.add_vertex_input_binding( va, v.name ) ;
+                                sb.add_vertex_input_binding( va, v.name ) ;
 
                                 continue ;
                             }
@@ -167,22 +169,22 @@ namespace motor
                                     va = motor::graphics::vertex_attribute::color5 ; break ;
                                 default: break;
                                 }
-                                ret.add_vertex_input_binding( va, v.name ) ;
+                                sb.add_vertex_input_binding( va, v.name ) ;
                                 continue ;
                             }
                         }
 
                         if( v.binding == motor::msl::binding::position )
                         {
-                            ret.add_vertex_input_binding( motor::graphics::vertex_attribute::position, v.name ) ;
+                            sb.add_vertex_input_binding( motor::graphics::vertex_attribute::position, v.name ) ;
                         }
                         else if( v.binding == motor::msl::binding::normal )
                         {
-                            ret.add_vertex_input_binding( motor::graphics::vertex_attribute::normal, v.name ) ;
+                            sb.add_vertex_input_binding( motor::graphics::vertex_attribute::normal, v.name ) ;
                         }
                         else if( v.binding == motor::msl::binding::tangent )
                         {
-                            ret.add_vertex_input_binding( motor::graphics::vertex_attribute::tangent, v.name ) ;
+                            sb.add_vertex_input_binding( motor::graphics::vertex_attribute::tangent, v.name ) ;
                         }
                     }
                 }
@@ -218,7 +220,7 @@ namespace motor
                                     va = motor::graphics::vertex_attribute::texcoord7 ; break ;
                                 default: break;
                                 }
-                                ret.add_vertex_output_binding( va, v.name ) ;
+                                sb.add_vertex_output_binding( va, v.name ) ;
 
                                 continue ;
                             }
@@ -247,22 +249,22 @@ namespace motor
                                     va = motor::graphics::vertex_attribute::color5 ; break ;
                                 default: break;
                                 }
-                                ret.add_vertex_output_binding( va, v.name ) ;
+                                sb.add_vertex_output_binding( va, v.name ) ;
                                 continue ;
                             }
                         }
 
                         if( v.binding == motor::msl::binding::position )
                         {
-                            ret.add_vertex_output_binding( motor::graphics::vertex_attribute::position, v.name ) ;
+                            sb.add_vertex_output_binding( motor::graphics::vertex_attribute::position, v.name ) ;
                         }
                         else if( v.binding == motor::msl::binding::normal )
                         {
-                            ret.add_vertex_output_binding( motor::graphics::vertex_attribute::normal, v.name ) ;
+                            sb.add_vertex_output_binding( motor::graphics::vertex_attribute::normal, v.name ) ;
                         }
                         else if( v.binding == motor::msl::binding::tangent )
                         {
-                            ret.add_vertex_output_binding( motor::graphics::vertex_attribute::tangent, v.name ) ;
+                            sb.add_vertex_output_binding( motor::graphics::vertex_attribute::tangent, v.name ) ;
                         }
                     }
                 }
@@ -320,12 +322,14 @@ namespace motor
                                     bp = motor::graphics::binding_point::viewport_dimension ;
                                 }
 
-                                if( !ret.has_input_binding( bp ) && bp != motor::graphics::binding_point::undefined ) 
-                                    ret.add_input_binding( bp, v.name ) ;
+                                if( !sb.has_input_binding( bp ) && bp != motor::graphics::binding_point::undefined ) 
+                                    sb.add_input_binding( bp, v.name ) ;
                             }
                         }
                     }
                 }
+
+                ret.set( std::move( sb ) ) ;
             }
         };
         motor_typedef( msl_bridge ) ;

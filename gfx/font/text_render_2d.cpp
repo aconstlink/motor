@@ -380,7 +380,7 @@ void_t text_render_2d::init( motor::string_cref_t name, motor::font::glyph_atlas
 
         // configure more details
         {
-            sc
+            sc.shader_bindings()
                 .add_vertex_input_binding( motor::graphics::vertex_attribute::position, "in_pos" )
                 .add_input_binding( motor::graphics::binding_point::view_matrix, "u_view" )
                 .add_input_binding( motor::graphics::binding_point::projection_matrix, "u_proj" ) ;

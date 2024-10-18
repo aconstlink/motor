@@ -255,7 +255,7 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
 
         // configure more details
         {
-            sc
+            sc.shader_bindings()
                 .add_vertex_input_binding( motor::graphics::vertex_attribute::position, "in_pos" )
                 .add_vertex_input_binding( motor::graphics::vertex_attribute::texcoord0, "in_uv" )
                 .add_vertex_input_binding( motor::graphics::vertex_attribute::color0, "in_color" )

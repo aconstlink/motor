@@ -2650,18 +2650,18 @@ public: // functions
         }
 
         // Create Streamout shader w or w/o geometry shader
-        if( obj.get_num_output_bindings() > 0 && 
+        if( obj.shader_bindings().get_num_output_bindings() > 0 && 
             obj.get_streamout_mode() != motor::graphics::streamout_mode::unknown )
         {
             static size_t const max_entries = 10 ;
             D3D11_SO_DECLARATION_ENTRY decl[max_entries] ;
-            if( obj.get_num_output_bindings() > max_entries ) 
+            if( obj.shader_bindings().get_num_output_bindings() > max_entries ) 
             {
                 motor::log::global_t::warning( "[d3d11_backend] : you can not have more than " + 
                     motor::to_string(max_entries) + " vertex output bindings for stream out" ) ;
             }
 
-            obj.for_each_vertex_output_binding( [&]( size_t const i, motor::graphics::vertex_attribute const va, 
+            obj.shader_bindings().for_each_vertex_output_binding( [&]( size_t const i, motor::graphics::vertex_attribute const va, 
                 motor::graphics::ctype const ct, motor::string_in_t )
             {
                 D3D11_SO_DECLARATION_ENTRY e 
@@ -2683,13 +2683,13 @@ public: // functions
             if( pGSBlob == nullptr )
             {
                 auto const hr = _ctx->dev()->CreateGeometryShaderWithStreamOutput( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), decl, 
-                    std::min( UINT(max_entries), UINT(obj.get_num_output_bindings()) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
+                    std::min( UINT(max_entries), UINT(obj.shader_bindings().get_num_output_bindings()) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
                 motor::log::global_t::error( FAILED( hr ), "[d3d11] : CreateGeometryShaderWithStreamOutput" ) ;
             }
             else
             {
                 auto const hr = _ctx->dev()->CreateGeometryShaderWithStreamOutput( pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), decl, 
-                    std::min( UINT(max_entries), UINT(obj.get_num_output_bindings()) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
+                    std::min( UINT(max_entries), UINT(obj.shader_bindings().get_num_output_bindings()) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
                 motor::log::global_t::error( FAILED( hr ), "[d3d11] : CreateGeometryShaderWithStreamOutput" ) ;
             }
         }
@@ -2721,7 +2721,7 @@ public: // functions
         // is done if the render configuration is known.
         {
             shd.vertex_inputs.clear() ;
-            obj.for_each_vertex_input_binding( [&] ( size_t const,
+            obj.shader_bindings().for_each_vertex_input_binding( [&] ( size_t const,
                 motor::graphics::vertex_attribute const va, motor::string_cref_t name )
             {
                 shd.vertex_inputs.emplace_back( this_t::shader_data::vertex_input_binding

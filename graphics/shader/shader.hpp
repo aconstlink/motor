@@ -1,8 +1,6 @@
 
 #pragma once
 
-#include "variable_binding.h"
-
 #include <motor/std/string>
 #include <motor/std/vector>
 

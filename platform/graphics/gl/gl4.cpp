@@ -1373,7 +1373,7 @@ struct gl4_backend::pimpl
         //
 
         {
-            obj.for_each_vertex_input_binding( [&]( size_t const,
+            obj.shader_bindings().for_each_vertex_input_binding( [&]( size_t const,
                 motor::graphics::vertex_attribute const va, motor::string_cref_t name )
             {
                 sd.vertex_inputs.emplace_back( 
@@ -1383,13 +1383,13 @@ struct gl4_backend::pimpl
 
         // !!! must be done pre-link !!!
         // set transform feedback varyings
-        if( (obj.get_num_output_bindings() != 0) && 
+        if( (obj.shader_bindings().get_num_output_bindings() != 0) && 
             (obj.get_streamout_mode() != motor::graphics::streamout_mode::unknown) )
         {
             sd.output_names = (char const **)motor::memory::global_t::
-                alloc_raw<char *>( obj.get_num_output_bindings() ) ;
+                alloc_raw<char *>( obj.shader_bindings().get_num_output_bindings() ) ;
 
-            obj.for_each_vertex_output_binding( [&]( size_t const i,
+            obj.shader_bindings().for_each_vertex_output_binding( [&]( size_t const i,
                 motor::graphics::vertex_attribute const va, 
                 motor::graphics::ctype const, motor::string_cref_t name )
             {
@@ -1404,7 +1404,7 @@ struct gl4_backend::pimpl
             // based on the number of buffers attached to the streamout
             // object.
             GLenum const mode = motor::platform::gl3::convert( obj.get_streamout_mode() ) ;
-            glTransformFeedbackVaryings( sd.pg_id, GLsizei( obj.get_num_output_bindings() ), 
+            glTransformFeedbackVaryings( sd.pg_id, GLsizei( obj.shader_bindings().get_num_output_bindings() ), 
                                          sd.output_names, mode ) ;
 
             motor::ogl::error::check_and_log( motor_log_fn( "glTransformFeedbackVaryings" ) ) ;

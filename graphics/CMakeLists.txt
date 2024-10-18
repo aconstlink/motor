@@ -25,8 +25,9 @@ set( sources
 
     "shader/shader_set.hpp"
     "shader/shader.hpp"
-    "shader/variable_binding.h"
+    "shader/binding_point.h"
     "shader/msl_bridge.hpp"
+    "shader/shader_bindings.hpp"
 
     "buffer/vertex_attribute.h"
     "buffer/vertex_buffer.hpp"
