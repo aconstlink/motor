@@ -3703,7 +3703,6 @@ public: // functions
                 {
                     hr = _ctx->ctx()->GetData( so.read_buffer().query, &so_stats, sizeof( D3D11_QUERY_DATA_SO_STATISTICS ), 0 ) ;
                 }
-                int bp = 0 ;
             }
 
             // this path uses the streamout primitives as input data and the number of captured primitives using DrawAuto
