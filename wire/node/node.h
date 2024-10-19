@@ -69,8 +69,6 @@ namespace motor
 
         private:
 
-            friend class inode ;
-
             // other connects before this
             // other -> this
             bool_t add_outgoing( this_ptr_t other ) noexcept ;
