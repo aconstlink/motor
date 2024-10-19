@@ -1,6 +1,7 @@
 # motor
 
-[![CMake on multiple platforms](https://github.com/aconstlink/motor/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-multi-platform.yml)
+[![CMake on Linux with OpenGL](https://github.com/aconstlink/motor/actions/workflows/cmake-lin-gcc-gl.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-lin-gcc-gl.yml)
+[![CMake on Win32 with DirectX 11](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 motor is a software framework for real-time interactive audio/visual applications and is a personal endeavour into real-time engine coding. 
