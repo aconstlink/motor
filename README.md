@@ -20,9 +20,12 @@ Please see the following repos for samples:
 
 [Base tests](https://github.com/aconstlink/motor_suites) includes sample code and helps me test the engine. This repo also shows how to include the engine as a subrepository.
 
-## Platform Prerequisites
+## Platforms 
 
-### Windows:
+### Windows
+Windows has my main focus.
+
+#### Prerequisits :
  - Windows 10 SDK
  - Visual Studio 2019 (Community) or later
  - CMake
@@ -30,6 +33,10 @@ Please see the following repos for samples:
  The engine should compile for Windows 8 and Windows 7 still. There are some differences in the Windows SDKs which I might not support anymore.
 
 ### Linux:
+
+The engine should compile and sample code should run on Linux but not every feature may work. I try to make that work though. My main distributions are Ubuntu and Fedora.
+
+#### Prerequisits :
 
 *For development:*
 ```bash
