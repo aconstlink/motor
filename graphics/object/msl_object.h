@@ -45,7 +45,7 @@ namespace motor
             struct api_data
             {
                 bool_t is_compiled ;
-                motor::graphics::shader_object_mtr_t so ;
+                motor::graphics::shader_bindings_t bindings ;
             };
             motor_typedef( api_data ) ;
 
@@ -91,6 +91,7 @@ namespace motor
             msl_object( this_cref_t rhv ) = delete ;
             this_ref_t operator = ( this_cref_t rhv ) = delete ;
             #else
+
             msl_object( this_cref_t rhv ) noexcept : object( rhv )
             {
                 _name = rhv._name ;
@@ -105,6 +106,7 @@ namespace motor
                 for( size_t i=0; i<rhv._vars.size(); ++i )
                     _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
             }
+
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {
                 object::operator = ( rhv ) ;
@@ -130,9 +132,6 @@ namespace motor
             {
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
-
-                for( auto & d : _api_datas )
-                    motor::release( motor::move( d.so ) ) ;
             }
 
             motor::string_cref_t name( void_t ) const noexcept
