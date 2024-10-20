@@ -6,9 +6,15 @@
 
 motor is a software framework for real-time interactive audio/visual applications and is a personal endeavour into real-time engine coding. 
 
+## About 
+This repository contains my experimental game and animation engine for real-time applications. The philosophy here is to give the user a very basic, at the programming language level, coding experience. It just provides the user with some UI but the majority of any project done with motor is to code!
+Sure, some taks require an UI for simplicity but other just don't and are more easily and quickly achievable using plain old code.
+
+This repository is kept clean from any sample code. It is just the engine.
+
 ## Sample Code
 
-The engine itself does not contain any sample code! The purpose of this is to keep the codebase clean from clutter and rubbish. It also unnecessarily bloats the codebase with unused code if the engine itself is included in another project.
+The engine repo itself does not contain any sample code! The purpose of this is to keep the codebase clean from clutter and rubbish. Sample code also unnecessarily bloats the codebase with unused code if the engine itself is included in another project.
 
 Please see the following repos for samples:
 
