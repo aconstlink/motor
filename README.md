@@ -1,11 +1,18 @@
 # motor
 
-[![CMake on multiple platforms](https://github.com/aconstlink/motor/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-multi-platform.yml)
+[![CMake on Linux with OpenGL](https://github.com/aconstlink/motor/actions/workflows/cmake-lin-gcc-gl.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-lin-gcc-gl.yml)
+[![CMake on Win32 with DirectX 11](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 motor is a software framework for real-time interactive audio/visual applications and is a personal endeavour into real-time engine coding. 
 
-Sample code using the engine can be found in the [sample suites](https://github.com/aconstlink/motor_suites) repository. The engine itself does not contain any sample code! 
+## Sample Code
+
+The engine itself does not contain any sample code! The purpose of this is to keep the codebase clean from clutter and rubbish. It also unnecessarily bloats the codebase with unused code if the engine itself is included in another project.
+
+Please see the following repos for samples:
+
+[Base tests](https://github.com/aconstlink/motor_suites) includes sample code and helps me test the engine. This repo also shows how to include the engine as a subrepository.
 
 ## Platform Prerequisites
 
