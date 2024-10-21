@@ -148,7 +148,19 @@ namespace motor
                                     auto const iter = std::find( shd.deps.begin(), shd.deps.end(), s ) ;
                                     if( iter == shd.deps.end() ) continue ;
 
-                                    changed_configs.emplace_back( motor::msl::symbol_t( c.name ) ) ;
+                                    // symbol should only appear once is the changed list
+                                    {
+                                        motor::msl::symbol_t sym( c.name ) ;
+
+                                        auto const found_sym = std::find_if( changed_configs.begin(), changed_configs.end(), 
+                                            [&]( motor::msl::symbol_cref_t s )
+                                            {
+                                                return s == sym ;
+                                            } ) ;
+                                        if( found_sym != changed_configs.end() ) continue ;
+                                        changed_configs.emplace_back( std::move( sym ) ) ;
+                                    }
+                                    
                                 }
                             }
                         }
