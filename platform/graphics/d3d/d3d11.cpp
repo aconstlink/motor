@@ -1268,7 +1268,7 @@ public: // functions
 
         for( auto & msl : _msl_datas )
         {
-
+            msl.msl_obj.~msl_object() ;
         }
 
         state_sets.clear() ;

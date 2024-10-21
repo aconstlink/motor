@@ -43,7 +43,7 @@ namespace motor
 
             // default compilation listener
             motor::graphics::compilation_listener_mtr_t _comp_lst = 
-                motor::shared( motor::graphics::compilation_listener() ) ;
+                motor::shared( motor::graphics::compilation_listener(), "comp listener" ) ;
 
         private:
 
@@ -68,13 +68,18 @@ namespace motor
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
                 _soo = std::move( rhv._soo ) ;
-                _comp_lst = motor::move( rhv._comp_lst ) ;
 
                 for( auto * vs : _vars ) motor::memory::release_ptr( vs ) ;
                 _vars = std::move( rhv._vars ) ;
 
-                for( auto * l : _compilation_listeners ) motor::memory::release_ptr( l ) ;
-                _compilation_listeners = std::move( rhv._compilation_listeners ) ;
+                // compilation listeners
+                {
+                    motor::release( motor::move( _comp_lst ) ) ;
+                    _comp_lst = motor::move( rhv._comp_lst ) ;
+
+                    for ( auto * l : _compilation_listeners ) motor::memory::release_ptr( l ) ;
+                    _compilation_listeners = std::move( rhv._compilation_listeners ) ;
+                }
             }
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
@@ -85,13 +90,18 @@ namespace motor
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
                 _soo = std::move( rhv._soo ) ;
-                _comp_lst = motor::move( rhv._comp_lst ) ;
 
                 for( auto * vs : _vars ) motor::memory::release_ptr( vs ) ;
                 _vars = std::move( rhv._vars ) ;
 
-                for ( auto * l : _compilation_listeners ) motor::memory::release_ptr( l ) ;
-                _compilation_listeners = std::move( rhv._compilation_listeners ) ;
+                // compilation listeners
+                {
+                    motor::release( motor::move( _comp_lst ) ) ;
+                    _comp_lst = motor::move( rhv._comp_lst ) ;
+
+                    for ( auto * l : _compilation_listeners ) motor::memory::release_ptr( l ) ;
+                    _compilation_listeners = std::move( rhv._compilation_listeners ) ;
+                }
 
                 return *this ;
             }
@@ -107,7 +117,6 @@ namespace motor
                 _datas = rhv._datas ;
                 _geo = rhv._geo ;
                 _soo = rhv._soo ;
-                _comp_lst = motor::share( rhv._comp_lst ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
@@ -116,12 +125,21 @@ namespace motor
                 for( size_t i=0; i<rhv._vars.size(); ++i )
                     _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
 
-                for ( auto * l : _compilation_listeners ) 
-                    motor::memory::release_ptr( l ) ;
+                // compilation listeners
+                {
+                    if ( _comp_lst != rhv._comp_lst )
+                    {
+                        motor::release( motor::move( _comp_lst ) ) ;
+                        _comp_lst = motor::share( rhv._comp_lst ) ;
+                    }
 
-                _compilation_listeners.resize( rhv._compilation_listeners.size() ) ;
-                for( size_t i=0; i<rhv._compilation_listeners.size(); ++i )
-                    _compilation_listeners[ i ] = motor::share( rhv._compilation_listeners[ i ] ) ;
+                    for ( auto * l : _compilation_listeners )
+                        motor::memory::release_ptr( l ) ;
+
+                    _compilation_listeners.resize( rhv._compilation_listeners.size() ) ;
+                    for ( size_t i = 0; i < rhv._compilation_listeners.size(); ++i )
+                        _compilation_listeners[ i ] = motor::share( rhv._compilation_listeners[ i ] ) ;
+                }
             }
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
@@ -132,7 +150,6 @@ namespace motor
                 _datas = rhv._datas ;
                 _geo = rhv._geo ;
                 _soo = rhv._soo ;
-                _comp_lst = motor::share( rhv._comp_lst ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
@@ -141,9 +158,21 @@ namespace motor
                 for( size_t i=0; i<rhv._vars.size(); ++i )
                     _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
 
-                _compilation_listeners.resize( rhv._compilation_listeners.size() ) ;
-                for ( size_t i = 0; i < rhv._compilation_listeners.size(); ++i )
-                    _compilation_listeners[ i ] = motor::share( rhv._compilation_listeners[ i ] ) ;
+                // compilation listeners
+                {
+                    if ( _comp_lst != rhv._comp_lst )
+                    {
+                        motor::release( motor::move( _comp_lst ) ) ;
+                        _comp_lst = motor::share( rhv._comp_lst ) ;
+                    }
+
+                    for ( auto * l : _compilation_listeners )
+                        motor::memory::release_ptr( l ) ;
+
+                    _compilation_listeners.resize( rhv._compilation_listeners.size() ) ;
+                    for ( size_t i = 0; i < rhv._compilation_listeners.size(); ++i )
+                        _compilation_listeners[ i ] = motor::share( rhv._compilation_listeners[ i ] ) ;
+                }
 
                 return *this ;
             }
