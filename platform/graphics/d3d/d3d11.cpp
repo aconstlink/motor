@@ -411,6 +411,8 @@ struct d3d11_backend::pimpl
         bool_t valid = false ;
         motor::string_t name ;
 
+        bool_t compiled = false ;
+
         // vs, gs, ps, else?
         guard< ID3D11VertexShader > vs ;
         guard< ID3D11GeometryShader > gs ;
@@ -2161,7 +2163,6 @@ public: // functions
 
             so.set_oid( _bid, this_t::construct_shader_config( so.get_oid( _bid ), so ) ) ;
             ro.set_oid( _bid, this_t::construct_render_config( ro.get_oid( _bid ), ro ) ) ;
-
             
             auto & msl = _msl_datas[oid] ;
 
@@ -2184,6 +2185,16 @@ public: // functions
 
             // shader object
             {
+                // reflect compilation result to the user
+                {
+                    auto & shd = shaders[ so.get_oid( _bid ) ] ;
+
+                    obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
+                    {
+                        lst->set( shd.compiled, so.shader_bindings() ) ;
+                    } ) ;
+                }
+
                 auto iter = std::find_if( msl.sos.begin(), msl.sos.end(), [&]( motor::graphics::shader_object_cref_t rol )
                 {
                     return rol.name() == c.expand() ;
@@ -2200,7 +2211,6 @@ public: // functions
             }
             
             msl.msl_obj = obj ;
-
         }
         return oid ;
     }
@@ -2451,6 +2461,11 @@ public: // functions
         //
         auto & shd = shaders[ oid ] ;
         shd.name = obj.name() ;
+
+        // reset flags
+        {
+            shd.compiled = false ;
+        }
 
         // shader code
         motor::graphics::shader_set_t ss ;
@@ -2732,6 +2747,8 @@ public: // functions
         }
 
         motor::log::global_t::status( "[D3D11] : Compilation Successful : [" + shd.name + "]" ) ;
+
+        shd.compiled = true ;
 
         return oid ;
     }

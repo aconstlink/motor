@@ -2112,6 +2112,16 @@ struct gl4_backend::pimpl
 
             // shader object
             {
+                // reflect compilation result to the user
+                {
+                    auto & shd = _shaders[ so.get_oid( _bid ) ] ;
+
+                    obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
+                    {
+                        lst->set( shd.is_linkage_ok, so.shader_bindings() ) ;
+                    } ) ;
+                }
+
                 auto iter = std::find_if( msl.sos.begin(), msl.sos.end(), [&]( motor::graphics::shader_object_cref_t rol )
                 {
                     return rol.name() == c.expand() ;

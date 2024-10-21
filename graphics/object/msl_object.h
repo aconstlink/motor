@@ -2,6 +2,7 @@
 #pragma once
 
 #include "../object.hpp"
+#include "../shader/compilation_listener.h"
 
 #include "render_object.h"
 
@@ -40,22 +41,26 @@ namespace motor
             motor::vector< data > _datas ;
             motor::vector< motor::graphics::variable_set_mtr_t > _vars ;
 
-        private: // api data feeding back information to the user
+            // default compilation listener
+            motor::graphics::compilation_listener_mtr_t _comp_lst = 
+                motor::shared( motor::graphics::compilation_listener() ) ;
 
-            struct api_data
-            {
-                bool_t is_compiled ;
-                motor::graphics::shader_bindings_t bindings ;
-            };
-            motor_typedef( api_data ) ;
+        private:
 
-            motor::concurrent::mrsw_t _mtx_api_datas ;
-            motor::vector< api_data_t > _api_datas ;
+            motor::concurrent::mrsw_t _mtx_compilation_listeners ;
+            motor::vector< motor::graphics::compilation_listener_mtr_t > _compilation_listeners ;
 
         public:
 
-            msl_object( void_t ) noexcept {}
-            msl_object( motor::string_in_t name ) noexcept : _name( name ) {}
+            msl_object( void_t ) noexcept 
+            {
+                this_t::register_listener( motor::share( _comp_lst ) ) ;
+            }
+
+            msl_object( motor::string_in_t name ) noexcept : _name( name ) 
+            {
+                this_t::register_listener( motor::share( _comp_lst ) ) ;
+            }
 
             msl_object( this_rref_t rhv ) noexcept : object( std::move( rhv ) )
             {
@@ -63,11 +68,13 @@ namespace motor
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
                 _soo = std::move( rhv._soo ) ;
-                _api_datas = std::move( rhv._api_datas ) ;
+                _comp_lst = motor::move( rhv._comp_lst ) ;
 
-                for( auto * vs : _vars )
-                    motor::memory::release_ptr( vs ) ;
+                for( auto * vs : _vars ) motor::memory::release_ptr( vs ) ;
                 _vars = std::move( rhv._vars ) ;
+
+                for( auto * l : _compilation_listeners ) motor::memory::release_ptr( l ) ;
+                _compilation_listeners = std::move( rhv._compilation_listeners ) ;
             }
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
@@ -78,11 +85,13 @@ namespace motor
                 _datas = std::move( rhv._datas ) ;
                 _geo = std::move( rhv._geo ) ;
                 _soo = std::move( rhv._soo ) ;
-                _api_datas = std::move( rhv._api_datas ) ;
+                _comp_lst = motor::move( rhv._comp_lst ) ;
 
-                for( auto * vs : _vars )
-                    motor::memory::release_ptr( vs ) ;
+                for( auto * vs : _vars ) motor::memory::release_ptr( vs ) ;
                 _vars = std::move( rhv._vars ) ;
+
+                for ( auto * l : _compilation_listeners ) motor::memory::release_ptr( l ) ;
+                _compilation_listeners = std::move( rhv._compilation_listeners ) ;
 
                 return *this ;
             }
@@ -98,6 +107,7 @@ namespace motor
                 _datas = rhv._datas ;
                 _geo = rhv._geo ;
                 _soo = rhv._soo ;
+                _comp_lst = motor::share( rhv._comp_lst ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
@@ -105,6 +115,13 @@ namespace motor
                 _vars.resize( rhv._vars.size() ) ;
                 for( size_t i=0; i<rhv._vars.size(); ++i )
                     _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
+
+                for ( auto * l : _compilation_listeners ) 
+                    motor::memory::release_ptr( l ) ;
+
+                _compilation_listeners.resize( rhv._compilation_listeners.size() ) ;
+                for( size_t i=0; i<rhv._compilation_listeners.size(); ++i )
+                    _compilation_listeners[ i ] = motor::share( rhv._compilation_listeners[ i ] ) ;
             }
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
@@ -115,6 +132,7 @@ namespace motor
                 _datas = rhv._datas ;
                 _geo = rhv._geo ;
                 _soo = rhv._soo ;
+                _comp_lst = motor::share( rhv._comp_lst ) ;
 
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
@@ -122,6 +140,10 @@ namespace motor
                 _vars.resize( rhv._vars.size() ) ;
                 for( size_t i=0; i<rhv._vars.size(); ++i )
                     _vars[i] = motor::memory::copy_ptr( rhv._vars[i] ) ;
+
+                _compilation_listeners.resize( rhv._compilation_listeners.size() ) ;
+                for ( size_t i = 0; i < rhv._compilation_listeners.size(); ++i )
+                    _compilation_listeners[ i ] = motor::share( rhv._compilation_listeners[ i ] ) ;
 
                 return *this ;
             }
@@ -132,6 +154,12 @@ namespace motor
             {
                 for( auto * vs : _vars )
                     motor::memory::release_ptr( vs ) ;
+
+                for( auto * lst : _compilation_listeners )
+                    motor::release( motor::move( lst ) ) ;
+
+                motor::release( motor::move( _comp_lst ) ) ;
+
             }
 
             motor::string_cref_t name( void_t ) const noexcept
@@ -219,49 +247,61 @@ namespace motor
 
         public:
 
-            class backend_accessor
+            void_t register_listener( motor::graphics::compilation_listener_mtr_safe_t lst ) noexcept
             {
-                size_t _bid ;
-                this_ptr_t _msl ;
+                motor::concurrent::mrsw_t::writer_lock_t lk( _mtx_compilation_listeners ) ;
 
-            public:
-
-                backend_accessor( size_t const bid, this_ptr_t msl ) noexcept : 
-                    _bid( bid ), _msl( msl ) {}
-
-                void_t set_api_data( this_t::api_data_ref_t d ) noexcept
+                auto iter = std::find_if( _compilation_listeners.begin(), _compilation_listeners.end(),
+                    [&] ( motor::graphics::compilation_listener_mtr_t l )
                 {
-                    _msl->set_api_data( _bid, d ) ;
+                    return l == lst ;
+                } ) ;
+
+                if ( iter != _compilation_listeners.end() )
+                {
+                    motor::release( lst ) ;
+                    return ;
                 }
 
-            };
-            friend class backend_accessor ;
-
-        private:
-
-            void_t set_api_data( size_t const bid, this_t::api_data_ref_t d ) noexcept
-            {
-                motor::concurrent::mrsw_t::writer_lock_t lk( _mtx_api_datas ) ;
-                if( _api_datas.size() <= bid )
-                {
-                    _api_datas.resize( bid + 1 ) ;
-                }
-
-                _api_datas[bid] = d ;
+                _compilation_listeners.push_back( motor::move( lst ) ) ;
             }
 
-        public:
-
-            using for_each_api_data_t = std::function < bool_t ( api_data_cref_t ) > ;
-
-            // iterate over each api datat until f returns true ;
-            // can be used to inspect generated shader data
-            void_t for_each( for_each_api_data_t f ) const noexcept
+            void_t unregister_listener( motor::graphics::compilation_listener_mtr_t lst ) noexcept
             {
-                for ( auto const & d : _api_datas )
+                motor::concurrent::mrsw_t::writer_lock_t lk( _mtx_compilation_listeners ) ;
+
+                auto iter = std::find_if( _compilation_listeners.begin(), _compilation_listeners.end(),
+                    [&] ( motor::graphics::compilation_listener_mtr_t l )
                 {
-                    if ( f( d ) ) break ;
-                }
+                    return l == lst ;
+                } ) ;
+
+                if ( iter == _compilation_listeners.end() ) return ;
+
+                motor::release( motor::move( *iter ) ) ;
+                _compilation_listeners.erase( iter ) ;
+            }
+
+            using for_each_change_listerner_funk_t = std::function< void_t ( motor::graphics::compilation_listener_mtr_t ) > ;
+            void_t for_each( for_each_change_listerner_funk_t f ) noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock lk( _mtx_compilation_listeners ) ;
+                for ( auto * lst : _compilation_listeners ) f( lst ) ;
+            }
+
+            motor::graphics::compilation_listener_mtr_t borrow_compilation_listener( void_t ) const noexcept
+            {
+                return _comp_lst ;
+            }
+
+            bool_t has_shader_changed( void_t ) const noexcept
+            {
+                return _comp_lst->has_changed() ;
+            }
+
+            bool_t reset_and_successful( motor::graphics::shader_bindings_out_t sb ) noexcept
+            {
+                return _comp_lst->reset_and_successful( sb ) ;
             }
         };
         motor_typedef( msl_object ) ;

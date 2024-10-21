@@ -28,6 +28,7 @@ set( sources
     "shader/binding_point.h"
     "shader/msl_bridge.hpp"
     "shader/shader_bindings.hpp"
+    "shader/compilation_listener.h"
 
     "buffer/vertex_attribute.h"
     "buffer/vertex_buffer.hpp"

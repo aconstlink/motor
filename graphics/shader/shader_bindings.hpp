@@ -181,7 +181,7 @@ namespace motor
         motor_typedef( variable_binding ) ;
 
         //******************************************************************
-        class MOTOR_GRAPHICS_API shader_bindings
+        class shader_bindings
         {
             motor_this_typedefs( shader_bindings ) ;
 
