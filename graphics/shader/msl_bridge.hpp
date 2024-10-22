@@ -322,8 +322,8 @@ namespace motor
                                     bp = motor::graphics::binding_point::viewport_dimension ;
                                 }
 
-                                if( !sb.has_input_binding( bp ) && bp != motor::graphics::binding_point::undefined ) 
-                                    sb.add_input_binding( bp, v.name ) ;
+                                if( !sb.has_variable_binding( bp ) && bp != motor::graphics::binding_point::undefined ) 
+                                    sb.add_variable_binding( bp, v.name ) ;
                             }
                         }
                     }

@@ -204,6 +204,11 @@ motor::math::mat4f_cref_t generic_camera::get_proj_matrix( void_t ) const noexce
     return _proj_matrix ;
 }
 
+//*********************************************
+motor::math::mat4f_cref_t generic_camera::get_camera_matrix( void_t ) const noexcept 
+{
+    return _cam_matrix ;
+}
 
 generic_camera::vec3_t generic_camera::get_position( void_t ) const noexcept
 {

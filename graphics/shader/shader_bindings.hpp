@@ -410,7 +410,7 @@ namespace motor
             }
 
             //**************************************************************************
-            this_ref_t add_input_binding( motor::graphics::binding_point const bp,
+            this_ref_t add_variable_binding( motor::graphics::binding_point const bp,
                 motor::string_cref_t name ) noexcept
             {
                 _variable_bindings.emplace_back( motor::graphics::variable_binding( name, bp ) ) ;
@@ -418,11 +418,25 @@ namespace motor
             }
 
             //**************************************************************************
-            bool_t has_input_binding( motor::graphics::binding_point const bp ) const noexcept
+            bool_t has_variable_binding( motor::graphics::binding_point const bp ) const noexcept
             {
                 for( auto const & b : _variable_bindings )
                 {
                     if( b.bp() == bp ) return true ;
+                }
+                return false ;
+            }
+
+            //**************************************************************************
+            bool_t has_variable_binding( motor::graphics::binding_point const bp, motor::string_out_t s ) const noexcept
+            {
+                for( auto const & b : _variable_bindings )
+                {
+                    if( b.bp() == bp ) 
+                    {
+                        s = b.name() ;
+                        return true ;
+                    }
                 }
                 return false ;
             }

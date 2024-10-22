@@ -259,8 +259,8 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
                 .add_vertex_input_binding( motor::graphics::vertex_attribute::position, "in_pos" )
                 .add_vertex_input_binding( motor::graphics::vertex_attribute::texcoord0, "in_uv" )
                 .add_vertex_input_binding( motor::graphics::vertex_attribute::color0, "in_color" )
-                .add_input_binding( motor::graphics::binding_point::view_matrix, "u_view" )
-                .add_input_binding( motor::graphics::binding_point::projection_matrix, "u_proj" ) ;
+                .add_variable_binding( motor::graphics::binding_point::view_matrix, "u_view" )
+                .add_variable_binding( motor::graphics::binding_point::projection_matrix, "u_proj" ) ;
         }
 
         _sc = motor::memory::create_ptr( std::move( sc ), "[imgui] : shader object" ) ;

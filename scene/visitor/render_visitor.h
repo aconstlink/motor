@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ivisitor.h"
+#include <motor/gfx/camera/generic_camera.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 namespace motor
@@ -14,9 +15,11 @@ namespace motor
 
             motor::graphics::gen4::frontend_ptr_t _fe ;
 
+            motor::gfx::generic_camera_ptr_t _cam = nullptr ;
+
         public:
 
-            render_visitor( motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+            render_visitor( motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept ;
             render_visitor( this_rref_t ) noexcept ;
             render_visitor( this_cref_t ) = delete ;
             virtual ~render_visitor( void_t ) noexcept ;

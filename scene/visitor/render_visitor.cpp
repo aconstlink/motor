@@ -11,12 +11,14 @@ using namespace motor::scene ;
 motor_core_dd_id_init( render_visitor ) ;
 
 //*****************************************************************************************
-render_visitor::render_visitor( motor::graphics::gen4::frontend_ptr_t fe ) noexcept : _fe( fe )
+render_visitor::render_visitor( motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept : 
+    _fe( fe ), _cam( cam ) 
 {
 }
 
 //*****************************************************************************************
-render_visitor::render_visitor( this_rref_t rhv ) noexcept : _fe( motor::move( rhv._fe ) )
+render_visitor::render_visitor( this_rref_t rhv ) noexcept : _fe( motor::move( rhv._fe ) ),
+    _cam( motor::move( rhv._cam ) )
 {
 }
 
@@ -28,6 +30,9 @@ render_visitor::~render_visitor( void_t ) noexcept
 //*****************************************************************************************
 motor::scene::result render_visitor::visit( motor::scene::render_node_ptr_t nptr ) noexcept  
 {
+    nptr->update_bindings() ;
+    nptr->update_camera( _cam ) ;
+
     auto msl = nptr->borrow_msl() ;
 
     {

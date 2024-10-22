@@ -214,6 +214,13 @@ msl_object::this_ref_t msl_object::add_variable_set( motor::graphics::variable_s
 }
 
 //****************************************************************************
+motor::graphics::variable_set_mtr_safe_t msl_object::get_varibale_set( size_t const id ) const noexcept 
+{
+    if( id >= _vars.size() ) return nullptr ;
+    return motor::share( _vars[ id ] ) ;
+}
+
+//****************************************************************************
 motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_varibale_sets( void_t ) const noexcept
 {
     motor::vector< motor::graphics::variable_set_mtr_safe_t > ret ;
@@ -293,6 +300,12 @@ motor::graphics::compilation_listener_mtr_t msl_object::borrow_compilation_liste
 bool_t msl_object::has_shader_changed( void_t ) const noexcept
 {
     return _comp_lst->has_changed() ;
+}
+
+//****************************************************************************
+bool_t msl_object::get_if_successful( motor::graphics::shader_bindings_out_t sb ) noexcept 
+{
+    return _comp_lst->get_if_successful( sb ) ;
 }
 
 //****************************************************************************

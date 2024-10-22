@@ -186,6 +186,12 @@ namespace motor
                 return this_t::get_proj_matrix() ;
             }
 
+            motor::math::mat4f_cref_t get_camera_matrix( void_t ) const noexcept ;
+            motor::math::mat4f_t mat_cam( void_t ) const noexcept
+            {
+                return this_t::get_camera_matrix() ;
+            }
+
         public: // ray
 
             /// creates a ray in view center direction.

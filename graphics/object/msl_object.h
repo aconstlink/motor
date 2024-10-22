@@ -85,7 +85,8 @@ namespace motor
         public: // variable sets
 
             this_ref_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept ;
-            motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets( void_t ) const noexcept ;
+            motor::graphics::variable_set_mtr_safe_t get_varibale_set( size_t const id ) const noexcept ;
+            motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets( void_t ) const noexcept ;            
             motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > borrow_varibale_sets( void_t ) const noexcept ;
 
             typedef std::function< void_t ( size_t const i, motor::graphics::variable_set_mtr_t ) > for_each_var_funk_t ;
@@ -101,6 +102,7 @@ namespace motor
 
             motor::graphics::compilation_listener_mtr_t borrow_compilation_listener( void_t ) const noexcept ;
             bool_t has_shader_changed( void_t ) const noexcept ;
+            bool_t get_if_successful( motor::graphics::shader_bindings_out_t sb ) noexcept ;
             bool_t reset_and_successful( motor::graphics::shader_bindings_out_t sb ) noexcept ;
         };
         motor_typedef( msl_object ) ;
