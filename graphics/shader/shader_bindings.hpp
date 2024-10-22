@@ -221,6 +221,13 @@ namespace motor
 
             ~shader_bindings( void_t ) noexcept {}
 
+            void_t clear( void_t ) noexcept
+            {
+                _vertex_inputs.clear() ;
+                _vertex_outputs.clear() ;
+                _variable_bindings.clear() ;
+            }
+
         public:
 
             typedef std::function < void_t ( size_t const i,

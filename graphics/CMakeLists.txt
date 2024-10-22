@@ -39,6 +39,7 @@ set( sources
     "object/geometry_object.h"
     "object/image_object.h"
     "object/msl_object.h"
+    "object/msl_object.cpp"
     "object/shader_object.h"
     "object/framebuffer_object.h"
     "object/state_object.h"

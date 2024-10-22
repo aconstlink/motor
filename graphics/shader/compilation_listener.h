@@ -28,7 +28,7 @@ namespace motor
                 motor::concurrent::mrsw_t::writer_lock_t lk( _mtx ) ;
                 ++_has_changed ;
                 _compilation = compilation_sucessful ? _compilation+1 : _compilation ;
-                _bindings = bindings ;
+                if( compilation_sucessful ) _bindings = bindings ;
             }
 
             bool_t has_changed( void_t ) const noexcept
@@ -44,13 +44,22 @@ namespace motor
             }
 
             // reset and return if compilation was successful
+            bool_t get_if_successful( motor::graphics::shader_bindings_out_t sb ) noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( _mtx ) ;
+                bool_t const ret = _has_changed == _compilation ;
+                if ( ret ) sb = _bindings ;
+                return ret ;
+            }
+
+            // reset and return if compilation was successful
             bool_t reset_and_successful( motor::graphics::shader_bindings_out_t sb ) noexcept
             {
                 motor::concurrent::mrsw_t::writer_lock_t lk( _mtx ) ;
                 bool_t const ret = _has_changed == _compilation ;
                 _has_changed = 0 ;
                 _compilation = 0 ;
-                if( ret ) sb = _bindings ;
+                if( ret ) sb = std::move( _bindings ) ;
                 return ret ;
             }
         };
