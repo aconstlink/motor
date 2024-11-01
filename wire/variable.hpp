@@ -11,6 +11,9 @@ namespace motor
 {
     namespace wire
     {
+        class simple_trait { /*public: virtual ~simple_trait( void_t ) {}*/ } ;
+        class detailed_trait {} ;
+
         class any
         {
             motor_this_typedefs( any ) ;
@@ -117,6 +120,13 @@ namespace motor
             {
                 return reinterpret_cast<T const *>( _out ) ;
             }
+
+        public:
+
+            motor::wire::ioutput_slot_ptr_t borrow_os( void_t ) noexcept
+            {
+                return _out ;
+            }
             
         public:
 
@@ -152,12 +162,23 @@ namespace motor
         };
         motor_typedef( any ) ;
 
+        static bool_t is_simple( motor::wire::any_ptr_t p ) noexcept
+        {
+            return dynamic_cast< motor::wire::simple_trait * >( p ) != nullptr ;
+        }
 
-        template< typename T >
-        class variable : public any
+        static bool_t is_detailed( motor::wire::any_ptr_t p ) noexcept
+        {
+            return dynamic_cast<motor::wire::simple_trait *>( p ) != nullptr ;
+        }
+
+        template< typename T, typename trait_t >
+        class variable : public any, public trait_t
         {
             using base_t = any ;
-            motor_this_typedefs( variable< T > ) ;
+            motor_this_typedefs( variable< T motor_comma trait_t > ) ;
+
+        public:
 
             using in_t = motor::wire::input_slot< T > ;
             using out_t = motor::wire::output_slot< T > ;
@@ -199,10 +220,18 @@ namespace motor
             }
         };
 
-        motor_typedefs( variable< bool_t >, boolv ) ;
-        motor_typedefs( variable< int_t >, intv ) ;
-        motor_typedefs( variable< uint_t >, uintv ) ;
-        motor_typedefs( variable< float_t >, floatv ) ;
-        motor_typedefs( variable< double_t >, doublev ) ;
+        motor_typedefs( variable< bool_t motor_comma motor::wire::simple_trait >, boolv ) ;
+        motor_typedefs( variable< int_t motor_comma motor::wire::simple_trait >, intv ) ;
+        motor_typedefs( variable< uint_t motor_comma motor::wire::simple_trait >, uintv ) ;
+        motor_typedefs( variable< float_t motor_comma motor::wire::simple_trait >, floatv ) ;
+        motor_typedefs( variable< double_t motor_comma motor::wire::simple_trait >, doublev ) ;
+
+
+        template< typename T >
+        bool_t is_type_compatible( motor::wire::any_ptr_t ptr ) noexcept
+        {
+            using target_type = motor::wire::variable< T, motor::wire::simple_trait >::out_t ;
+            return dynamic_cast< target_type *>( ptr->borrow_os() ) != nullptr ;
+        }
     }
 }
