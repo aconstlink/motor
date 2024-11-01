@@ -44,16 +44,21 @@ set( sources
     "visitor/render_visitor.cpp"
     "visitor/trafo_visitor.h"
     "visitor/trafo_visitor.cpp"
+    "visitor/variable_update_visitor.h"
+    "visitor/variable_update_visitor.cpp"
 
     "component/icomponent.h"
     "component/code_component.h"
     "component/code_component.cpp"
     "component/name_component.hpp"
-
+    
     "component/msl_component.h"
     "component/msl_component.cpp"
     "component/render_state_component.h"
     "component/render_state_component.cpp"
+    
+    "component/render_variables_component.hpp"
+    "component/variables_component.hpp"
     )
 
 motor_vs_src_dir( sources )

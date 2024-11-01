@@ -5,6 +5,8 @@
 
 using namespace motor::scene ;
 
+motor_core_dd_id_init( node ) ;
+
 //*******************************************************************
 node::traverser::traverser( node_ptr_t begin ) noexcept :_traverse( begin )
 {
@@ -63,7 +65,7 @@ node::~node( void_t ) noexcept
 
 //*******************************************************************
 motor::scene::result node::apply( motor::scene::ivisitor_ptr_t v ) noexcept
-{
+{   
     return v->visit( this ) ;
 }
 

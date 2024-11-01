@@ -5,6 +5,8 @@
 #include "../typedefs.h"
 #include "../protos.h"
 
+#include "../ivisitable.hpp"
+
 namespace motor
 {
     namespace scene

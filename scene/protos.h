@@ -23,5 +23,8 @@ namespace motor
 
         motor_class_proto_typedefs( ivisitor ) ;
         motor_class_proto_typedefs( icomponent ) ;
+
+        motor_class_proto_typedefs( variables_component ) ;
+        motor_class_proto_typedefs( render_variables_component ) ;
     }
 }

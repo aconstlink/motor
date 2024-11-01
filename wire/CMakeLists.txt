@@ -21,6 +21,7 @@ set( SOURCES ${SOURCES}
     "slot/sheet.hpp"
     "slot/other_slot.hpp"
 
+    "variables/variable_set.hpp"
     "variables/vector_variables.hpp"
     "variables/trafo_variables.hpp"
     )

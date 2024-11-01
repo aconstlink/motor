@@ -6,6 +6,8 @@
 #include "../protos.h"
 #include "../ivisitable.hpp"
 
+#include <motor/wire/variable.hpp>
+
 #include <motor/std/vector>
 #include <motor/core/double_dispatch.hpp>
 
@@ -16,6 +18,7 @@ namespace motor
         class MOTOR_SCENE_API node : public motor::scene::ivisitable
         {
             motor_this_typedefs( node ) ;
+            motor_core_dd_id_fn() ;
 
         private:
 

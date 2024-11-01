@@ -10,6 +10,7 @@
 #include "visitor/trafo_visitor.h"
 #include "visitor/log_visitor.h"
 #include "visitor/render_visitor.h"
+#include "visitor/variable_update_visitor.h"
 
 using namespace motor::scene ;
 
@@ -35,6 +36,9 @@ void_t global::init( void_t ) noexcept
     this_t::register_default_callbacks< motor::scene::render_visitor, motor::scene::trafo3d_node >() ;
     this_t::register_default_callbacks< motor::scene::render_visitor, motor::scene::render_settings >() ;
     this_t::register_default_callbacks< motor::scene::render_visitor, motor::scene::render_node >() ;
+
+    //this_t::register_default_callbacks< motor::scene::variable_update_visitor, motor::scene::group >() ;
+    //this_t::register_default_callbacks< motor::scene::variable_update_visitor, motor::scene::leaf >() ;
 }
 
 //***********************************************************************

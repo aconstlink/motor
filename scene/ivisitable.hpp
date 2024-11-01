@@ -1,4 +1,6 @@
 
+#pragma once
+
 #include "api.h"
 #include "double_dispatch.h"
 

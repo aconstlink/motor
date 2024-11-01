@@ -3,6 +3,7 @@
 
 using namespace motor::tool ;
 
+
 //**************************************************************************
 imgui_node_component::imgui_node_component( void_t ) noexcept 
 {
