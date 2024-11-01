@@ -36,9 +36,6 @@ namespace motor
             variable( char const * const name ) noexcept : base_t( name,
                 motor::shared( in_t() ), motor::shared( out_t() ) ) {}
 
-            variable( char const * const name, motor::wire::sub_update_strategy const us ) noexcept :
-                base_t( name, motor::shared( in_t() ), motor::shared( out_t() ), us ) {}
-
             variable( this_cref_t ) = delete ;
             variable( this_rref_t rhv ) noexcept :
                 base_t( std::move( rhv ) ),
@@ -73,13 +70,6 @@ namespace motor
                 }
 
                 return false ;
-            }
-
-            virtual void_t update_strat_changed( motor::wire::sub_update_strategy const us ) noexcept
-            {
-                base_t::set_update_strategy( us ) ;
-                _x.set_update_strategy( us ) ;
-                _y.set_update_strategy( us ) ;
             }
 
             value_cref_t get_value( void_t ) const noexcept
@@ -139,9 +129,6 @@ namespace motor
             variable( char const * const name ) noexcept : base_t( name,
                 motor::shared( in_t() ), motor::shared( out_t() ) ) {}
 
-            variable( char const * const name, motor::wire::sub_update_strategy const us ) noexcept :
-                base_t( name, motor::shared( in_t() ), motor::shared( out_t() ), us ) {}
-
             variable( this_cref_t ) = delete ;
             variable( this_rref_t rhv ) noexcept :
                 base_t( std::move( rhv ) ),
@@ -177,14 +164,6 @@ namespace motor
                 }
 
                 return false ;
-            }
-
-            virtual void_t update_strat_changed( motor::wire::sub_update_strategy const us ) noexcept
-            {
-                base_t::set_update_strategy( us ) ;
-                _x.set_update_strategy( us ) ;
-                _y.set_update_strategy( us ) ;
-                _z.set_update_strategy( us ) ;
             }
 
             value_cref_t get_value( void_t ) const noexcept
@@ -248,9 +227,6 @@ namespace motor
             variable( char const * const name ) noexcept : base_t( name,
                 motor::shared( in_t() ), motor::shared( out_t() ) ) {}
 
-            variable( char const * const name, motor::wire::sub_update_strategy const us ) noexcept :
-                base_t( name, motor::shared( in_t() ), motor::shared( out_t() ), us ) {}
-
             variable( this_cref_t ) = delete ;
             variable( this_rref_t rhv ) noexcept :
                 base_t( std::move( rhv ) ),
@@ -286,15 +262,6 @@ namespace motor
                 }
 
                 return false ;
-            }
-
-            virtual void_t update_strat_changed( motor::wire::sub_update_strategy const us ) noexcept
-            {
-                base_t::set_update_strategy( us ) ;
-                _x.set_update_strategy( us ) ;
-                _y.set_update_strategy( us ) ;
-                _z.set_update_strategy( us ) ;
-                _w.set_update_strategy( us ) ;
             }
 
             value_cref_t get_value( void_t ) const noexcept

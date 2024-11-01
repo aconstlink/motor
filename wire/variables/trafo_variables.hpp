@@ -31,9 +31,9 @@ namespace motor
 
         private:
 
-            pos_t _pos = pos_t( "position", base_t::get_update_strategy() ) ;
-            scale_t _scale = scale_t( "scale", base_t::get_update_strategy() ) ;
-            axis_t _axis = axis_t( "axis", base_t::get_update_strategy() ) ;
+            pos_t _pos = pos_t( "position" ) ;
+            scale_t _scale = scale_t( "scale" ) ;
+            axis_t _axis = axis_t( "axis" ) ;
             angle_t _angle = angle_t( "angle" ) ;
 
         public:
@@ -42,12 +42,6 @@ namespace motor
                 motor::shared( in_t() ), motor::shared( out_t() ) ) {}
             variable( char const * name, value_cref_t v ) noexcept : base_t( name,
                 motor::shared( in_t() ), motor::shared( out_t() ) )
-            {
-                this_t::set_value( v ) ;
-            }
-
-            variable( char const * name, value_cref_t v, motor::wire::sub_update_strategy const us ) noexcept :
-                base_t( name, motor::shared( in_t() ), motor::shared( out_t() ), us )
             {
                 this_t::set_value( v ) ;
             }
@@ -95,20 +89,6 @@ namespace motor
                 return false ;
             }
 
-            virtual void_t update_strat_changed( motor::wire::sub_update_strategy const us ) noexcept
-            {
-                base_t::set_update_strategy( us ) ;
-                _pos.set_update_strategy( us ) ;
-                _scale.set_update_strategy( us ) ;
-                _axis.set_update_strategy( us ) ;
-                _angle.set_update_strategy( us ) ;
-            }
-
-            bool_t update( motor::wire::sub_update_strategy const us ) noexcept
-            {
-
-            }
-
             value_cref_t get_value( void_t ) const noexcept
             {
                 return base_t::borrow_os<out_t>()->get_value() ;
@@ -130,11 +110,6 @@ namespace motor
 
             void_t propagate_value_to_sub( value_cref_t v ) noexcept
             {
-                auto const strat = base_t::get_update_strategy() ;
-
-                if ( strat == motor::wire::sub_update_strategy::never )
-                    return ;
-
                 _pos.set_value( v.get_translation() ) ;
 
                 // some cost involved!

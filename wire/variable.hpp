@@ -11,12 +11,6 @@ namespace motor
 {
     namespace wire
     {
-        enum sub_update_strategy
-        {
-            never,
-            always
-        };
-
         class any
         {
             motor_this_typedefs( any ) ;
@@ -27,9 +21,6 @@ namespace motor
             
             motor::wire::iinput_slot_ptr_t _in = nullptr ;
             motor::wire::ioutput_slot_ptr_t _out = nullptr ;
-
-            // how to automatically update sub member variables
-            sub_update_strategy _strat = sub_update_strategy::never ;
 
         public:
 
@@ -46,9 +37,6 @@ namespace motor
             any( char const * name ) noexcept : _name( name ) {}
             any( char const * name, motor::wire::iinput_slot_ptr_t in_, motor::wire::ioutput_slot_ptr_t out_ ) noexcept : 
                 _name( name ), _in( in_ ), _out( out_ ) {}
-
-            any( char const * name, motor::wire::iinput_slot_ptr_t in_, motor::wire::ioutput_slot_ptr_t out_, sub_update_strategy const us ) noexcept :
-                _name( name ), _in( in_ ), _out( out_ ), _strat( us )  {}
 
             any( this_cref_t ) = delete ;
             any( this_rref_t rhv ) noexcept : _name( motor::move( rhv._name ) ),
@@ -79,7 +67,6 @@ namespace motor
 
             // return bool if anything changed.
             virtual bool_t update( void_t ) noexcept = 0 ;
-            virtual void_t update_strat_changed( motor::wire::sub_update_strategy const ) noexcept {}
 
         public:
 
@@ -91,17 +78,6 @@ namespace motor
             motor::wire::ioutput_slot_mtr_safe_t get_os( void_t ) noexcept
             {
                 return motor::share( _out ) ;
-            }
-
-            motor::wire::sub_update_strategy get_update_strategy( void_t ) const noexcept
-            {
-                return _strat ;
-            }
-
-            void_t set_update_strategy( motor::wire::sub_update_strategy const s ) noexcept
-            {
-                _strat = s ;
-                this->update_strat_changed( s ) ;
             }
 
         protected:
