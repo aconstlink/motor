@@ -3,6 +3,8 @@
 
 #include "../mtr_ownership.hpp"
 
+#define motor_comma , 
+
 #define motor_typedefs_extend( from_, to_ )                                \
     typedef to_ ## _t * to_ ## _ptr_t ;                                 \
     typedef to_ ## _t * to_ ## _mtr_t ;                                 \
