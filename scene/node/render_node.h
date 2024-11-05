@@ -3,7 +3,10 @@
 #include "leaf.h"
 
 #include <motor/graphics/object/msl_object.h>
+#include <motor/graphics/variable/wire_variable_bridge.h>
 #include <motor/gfx/camera/generic_camera.h>
+
+#include <motor/wire/slot/sheet.hpp>
 
 namespace motor
 {
@@ -16,6 +19,9 @@ namespace motor
             motor_core_dd_id_fn() ;
 
         private:
+
+            motor::graphics::compilation_listener_mtr_t _comp_lst =
+                motor::shared( motor::graphics::compilation_listener(), "render_node comp listener" ) ;
 
             size_t _vs = 0 ;
             motor::graphics::msl_object_mtr_t _msl = nullptr  ;
@@ -39,6 +45,10 @@ namespace motor
 
             camera_variables _cam_vars ;
 
+        private:
+
+            motor::graphics::wire_variable_bridge_t _brigde ;
+
         public:
             
             render_node( this_rref_t ) noexcept ;
@@ -56,6 +66,14 @@ namespace motor
             void_t update_bindings( void_t ) noexcept ;
             void_t update_camera( motor::gfx::generic_camera_ptr_t ) noexcept ;
 
+        public: // inputs
+
+            motor::wire::inputs_cptr_t borrow_shader_inputs( void_t ) const noexcept ;
+            motor::wire::inputs_ptr_t borrow_shader_inputs( void_t ) noexcept ;
+
+        private:
+
+            void_t prefill_bridge( void_t ) noexcept ;
         } ;
         motor_typedef( render_node ) ;
     }

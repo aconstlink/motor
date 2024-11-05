@@ -114,5 +114,14 @@ namespace motor
                 return nullptr ;
             }
         };
+
+        template< typename T >
+        std::pair< bool_t, motor::graphics::data_variable< T > * > cast_data_variable( motor::graphics::ivariable_ptr_t in_var ) noexcept
+        {
+            using ret_t = std::pair< bool_t, motor::graphics::data_variable< T > * > ;
+            auto * ptr = dynamic_cast< motor::graphics::data_variable< T > * >( in_var ) ;
+            return ptr != nullptr ? ret_t { true, ptr } : ret_t { false, nullptr }  ;
+        }
+        
     }
 }

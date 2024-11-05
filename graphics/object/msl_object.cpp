@@ -214,10 +214,32 @@ msl_object::this_ref_t msl_object::add_variable_set( motor::graphics::variable_s
 }
 
 //****************************************************************************
+msl_object::this_ref_t msl_object::fill_variable_sets( size_t const idx ) noexcept 
+{
+    if( idx < _vars.size() ) return *this ;
+
+    auto old = std::move( _vars ) ;
+    _vars.resize( idx + 1 ) ;
+
+    for( size_t i=0; i<old.size(); ++i ) _vars[i] = old[i] ;
+    for( size_t i=old.size(); i < _vars.size(); ++i ) _vars[i] = 
+        motor::shared( motor::graphics::variable_set_t() ) ;
+
+    return *this ;
+}
+
+//****************************************************************************
 motor::graphics::variable_set_mtr_safe_t msl_object::get_varibale_set( size_t const id ) const noexcept 
 {
     if( id >= _vars.size() ) return nullptr ;
     return motor::share( _vars[ id ] ) ;
+}
+
+//****************************************************************************
+motor::graphics::variable_set_mtr_t msl_object::borrow_varibale_set( size_t const id ) const noexcept 
+{
+    if ( id >= _vars.size() ) return nullptr ;
+    return motor::share_unsafe( _vars[ id ] ) ;
 }
 
 //****************************************************************************

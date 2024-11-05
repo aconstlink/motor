@@ -9,6 +9,8 @@
 #include <motor/std/hash_map>
 #include <motor/std/string>
 
+#include <initializer_list>
+
 namespace motor
 {
     namespace wire
@@ -32,14 +34,24 @@ namespace motor
 
             sheet( void_t ) noexcept {}
             sheet( this_rref_t rhv ) noexcept : _ts( std::move( rhv._ts ) ) {}
-            sheet( this_cref_t ) = delete ;
+            sheet( this_cref_t ) noexcept = delete ;
+            sheet( std::initializer_list< std::pair< motor::string_t, motor::core::mtr_safe<T> > > && lst ) noexcept
+            {
+                for( auto  elem : lst )
+                {
+                    this_t::add( elem.first, motor::move( elem.second ) ) ;
+                }
+            }
+
             ~sheet( void_t ) noexcept 
             {
-                for ( auto item : _ts )
-                {
-                    item.second->disconnect() ;
-                    motor::memory::release_ptr( item.second ) ;
-                }
+                this_t::clear() ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                _ts = std::move( rhv._ts ) ;
+                return *this ;
             }
 
         public:
@@ -50,6 +62,16 @@ namespace motor
                 {
                     item.second->exchange() ;
                 }
+            }
+
+            void_t clear( void_t ) noexcept
+            {
+                for ( auto item : _ts )
+                {
+                    item.second->disconnect() ;
+                    motor::memory::release_ptr( item.second ) ;
+                }
+                _ts.clear() ;
             }
 
         public:
@@ -67,6 +89,20 @@ namespace motor
                 _ts[ name ] = motor::move( other ) ;
 
                 return true ;
+            }
+
+            motor::core::mtr_safe< T > get_or_add( motor::string_in_t name, motor::core::mtr_safe< T > && other ) noexcept
+            {
+                auto iter = _ts.find( name ) ;
+                if ( iter != _ts.end() )
+                {
+                    motor::release( other ) ;
+                    return motor::share( iter->second ) ;
+                }
+
+                _ts[ name ] = motor::share( other ) ;
+
+                return motor::move( other ) ;
             }
 
             // remove signal
@@ -119,6 +155,15 @@ namespace motor
                     return false ;
                 }
                 return this_slot->connect( motor::move( slot ) ) ;
+            }
+
+            using for_each_slot_funk_t = std::function< void_t ( motor::string_in_t, t_ptr_t ) > ;
+            void_t for_each_slot( for_each_slot_funk_t f ) noexcept
+            {
+                for( auto & i : _ts )
+                {
+                    f( i.first, i.second ) ;
+                }
             }
         };
         motor_typedefs( sheet< motor::wire::ioutput_slot >, outputs ) ;

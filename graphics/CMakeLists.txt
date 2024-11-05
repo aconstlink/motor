@@ -49,6 +49,8 @@ set( sources
     "variable/variables.hpp"
     "variable/variable_set.hpp"
     "variable/type_traits.hpp"
+    "variable/wire_variable_bridge.h"
+    "variable/wire_variable_bridge.cpp"
 
     "texture/image.hpp"
     )
@@ -65,7 +67,8 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::log
   PUBLIC motor::std
   PUBLIC motor::concurrent
-  PUBLIC motor::msl  )
+  PUBLIC motor::msl
+  PUBLIC motor::wire )
 
 ###########################################################
 # SECTION: Build Tree

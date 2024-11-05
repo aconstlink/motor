@@ -165,6 +165,15 @@ namespace motor
                 return var ;
             }
 
+            bool_t has_data_variable( motor::string_in_t name ) const noexcept
+            {
+                for( auto const & d : _variables ) 
+                {
+                    if( d.name == name ) return true ;
+                }
+                return false ;
+            }
+
             motor::graphics::data_variable< motor::string_t > * texture_variable( 
                 motor::string_in_t name ) noexcept
             {
@@ -198,6 +207,15 @@ namespace motor
                 return static_cast< motor::graphics::data_variable< motor::string_t >* >( var ) ;
             }
 
+            bool_t has_texture_variable( motor::string_in_t name ) const noexcept
+            {
+                for ( auto const & d : _textures )
+                {
+                    if ( d.name == name ) return true ;
+                }
+                return false ;
+            }
+
             motor::graphics::data_variable< motor::string_t > * array_variable( 
                 motor::string_in_t name ) noexcept
             {
@@ -229,6 +247,15 @@ namespace motor
                 }
 
                 return static_cast< motor::graphics::data_variable< motor::string_t >* >( var ) ;
+            }
+
+            bool_t has_array_variable( motor::string_in_t name ) const noexcept
+            {
+                for ( auto const & d : _arrays )
+                {
+                    if ( d.name == name ) return true ;
+                }
+                return false ;
             }
 
             // allows to connect a streamout object with a data buffer in the shader
@@ -265,6 +292,42 @@ namespace motor
                 return static_cast< motor::graphics::data_variable< motor::string_t >* >( var ) ;
             }
 
+            using for_each_data_var_funk_t = std::function< void_t ( motor::string_in_t, motor::graphics::ivariable_ptr_t ) > ;
+            void_t for_each_data_variable( for_each_data_var_funk_t f ) const noexcept
+            {
+                for( auto const & v : _variables )
+                {
+                    f( v.name, v.var ) ;
+                }
+            }
+
+            using for_each_texture_var_funk_t = std::function< void_t ( motor::string_in_t, motor::graphics::data_variable< motor::string_t > * ) > ;
+
+            void_t for_each_texture_variable( for_each_texture_var_funk_t f ) const noexcept
+            {
+                using ptr_t = motor::graphics::data_variable< motor::string_t > * ;
+                for ( auto const & v : _textures )
+                {
+                    f( v.name, reinterpret_cast< ptr_t >( v.var ) ) ;
+                }
+            }
+
+            void_t for_each_buffer_variable( for_each_texture_var_funk_t f ) const noexcept
+            {
+                using ptr_t = motor::graphics::data_variable< motor::string_t > * ;
+                for ( auto const & v : _arrays )
+                {
+                    f( v.name, reinterpret_cast< ptr_t >( v.var ) ) ;
+                }
+            }
+
+            bool_t has_any_variable( motor::string_in_t name ) const noexcept
+            {
+                if( this_t::has_data_variable( name ) ) return true ;
+                if( this_t::has_texture_variable( name ) ) return true ;
+                if( this_t::has_array_variable( name ) ) return true ;
+                return false ;
+            }
         private:
 
             template< typename T >

@@ -6,7 +6,7 @@
 #include "../protos.h"
 #include "../ivisitable.hpp"
 
-#include <motor/wire/variable.hpp>
+#include <motor/wire/slot/sheet.hpp>
 
 #include <motor/std/vector>
 #include <motor/core/double_dispatch.hpp>
@@ -141,9 +141,9 @@ namespace motor
 
             virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
 
-            
-
         public:
+
+            virtual bool_t inputs( motor::wire::inputs_out_t ) noexcept { return false ; }
 
             template< typename T >
             static bool_t is_of( this_ptr_t ptr ) noexcept
