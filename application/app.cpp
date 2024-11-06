@@ -443,12 +443,11 @@ bool_t app::carrier_shutdown( void_t ) noexcept
 // this function is supposed to be called repeatedly, 
 // until it returns true!
 {
-    if( !_shutdown_called ) 
+    // destroy all windows first
+    // @note render engine need to be cleared 
+    // due to borrowed graphics objects
     {
-        this->on_shutdown() ;
-        _shutdown_called = true ;
-
-        for( auto & d : _windows ) 
+        for ( auto & d : _windows )
         {
             _destruction_queue.emplace_back( std::move( d ) ) ;
         }
@@ -476,6 +475,12 @@ bool_t app::carrier_shutdown( void_t ) noexcept
             ns.wrapper->shutdown() ;
             motor::memory::release_ptr( motor::move( ns.wrapper ) ) ;
         }
+    }
+
+    if ( !_shutdown_called )
+    {
+        this->on_shutdown() ;
+        _shutdown_called = true ;
     }
 
     return true ;
