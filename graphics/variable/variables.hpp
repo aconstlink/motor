@@ -62,58 +62,205 @@ namespace motor
             }
         };
 
-        template<>
-        class data_variable<motor::string_t> : public ivariable
+        //***************************************************
+        class texture_variable_data
         {
-            motor_this_typedefs( data_variable< motor::string_t > ) ;
-            motor_typedefs( motor::string_t, value ) ;
+            motor_this_typedefs( texture_variable_data ) ;
 
         private:
 
-            motor::string_t _value ;
-            //size_t _hash = 0 ;
+            motor::string_t _name ;
+
+        public: // ctor
+
+            texture_variable_data( void_t ) noexcept {}
+            texture_variable_data( char_cptr_t name ) noexcept : _name( name ) {}
+            texture_variable_data( motor::string_cref_t name ) noexcept : _name( name ) {}
+            texture_variable_data( motor::string_rref_t name ) noexcept : _name( std::move( name  ) ) {}
+            texture_variable_data( this_cref_t rhv ) noexcept : _name( rhv._name ) {}
+            texture_variable_data( this_rref_t rhv ) noexcept : _name( std::move(rhv._name) ) {}
+            ~texture_variable_data( void_t ) noexcept {}
+
+        public: // operator =
+
+            this_ref_t operator = ( motor::string_cref_t name ) noexcept
+            {
+                _name = name ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( motor::string_rref_t name ) noexcept
+            {
+                _name = std::move( name ) ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_cref_t rhv ) noexcept
+            {
+                _name = rhv._name ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                _name = std::move( rhv._name ) ;
+                return *this ;
+            }
+
+        public: // operator ==
+
+            bool_t operator == ( motor::string_cref_t name ) const noexcept
+            {
+                return _name == name ;
+            }
+
+            bool_t operator == ( this_cref_t rhv ) const noexcept
+            {
+                return _name == rhv._name ;
+            }
 
         public:
 
-            data_variable( void_t ) noexcept
-            {}
-
-            data_variable( this_cref_t rhv ) noexcept
+            motor::string_cref_t name( void_t ) const noexcept
             {
-                _value = rhv._value ;
-                //_hash = rhv._hash ;
+                return _name ;
             }
 
-            data_variable( this_rref_t rhv ) noexcept
+        };
+        using texture_variable_t = data_variable< texture_variable_data > ;
+
+        //***************************************************
+        class array_variable_data
+        {
+            motor_this_typedefs( array_variable_data ) ;
+
+        private:
+
+            motor::string_t _name ;
+
+        public: // ctor
+
+            array_variable_data( void_t ) noexcept {}
+            array_variable_data( char_cptr_t name ) noexcept : _name( name ) {}
+            array_variable_data( motor::string_cref_t name ) noexcept : _name( name ) {}
+            array_variable_data( motor::string_rref_t name ) noexcept : _name( std::move( name ) ) {}
+            array_variable_data( this_cref_t rhv ) noexcept : _name( rhv._name ) {}
+            array_variable_data( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ) {}
+            ~array_variable_data( void_t ) noexcept {}
+
+        public: // operator =
+
+            this_ref_t operator = ( motor::string_cref_t name ) noexcept
             {
-                _value = std::move( rhv._value ) ;
-                //_hash = rhv._hash ;
+                _name = name ;
+                return *this ;
             }
 
-            virtual ~data_variable( void_t ) noexcept {}
+            this_ref_t operator = ( motor::string_rref_t name ) noexcept
+            {
+                _name = std::move( name ) ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_cref_t rhv ) noexcept
+            {
+                _name = rhv._name ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                _name = std::move( rhv._name ) ;
+                return *this ;
+            }
+
+        public: // operator ==
+
+            bool_t operator == ( motor::string_cref_t name ) const noexcept
+            {
+                return _name == name ;
+            }
+
+            bool_t operator == ( this_cref_t rhv ) const noexcept
+            {
+                return _name == rhv._name ;
+            }
 
         public:
 
-            void_t set( value_cref_t v ) noexcept 
-            { 
-                _value = v ; 
-                //_hash = std::hash<motor::string_t>{}(v) ; 
-            }
-
-            void_t set( value_rref_t v ) noexcept 
-            { 
-                _value = std::move( v ) ; 
-                //_hash = std::hash<motor::string_t>{}(_value) ; 
-            }
-
-            value_cref_t get( void_t ) const noexcept { return _value ; }
-            //size_t hash( void_t ) const noexcept { return _hash ; }
-
-            virtual void_cptr_t data_ptr( void_t ) const noexcept override
+            motor::string_cref_t name( void_t ) const noexcept
             {
-                return nullptr ;
+                return _name ;
+            }
+
+        };
+        using array_variable_t = data_variable< array_variable_data > ;
+
+        //***************************************************
+        class streamout_variable_data
+        {
+            motor_this_typedefs( streamout_variable_data ) ;
+
+        private:
+
+            motor::string_t _name ;
+
+        public: // ctor
+
+            streamout_variable_data( void_t ) noexcept {}
+            streamout_variable_data( char_cptr_t name ) noexcept : _name( name ) {}
+            streamout_variable_data( motor::string_cref_t name ) noexcept : _name( name ) {}
+            streamout_variable_data( motor::string_rref_t name ) noexcept : _name( std::move( name ) ) {}
+            streamout_variable_data( this_cref_t rhv ) noexcept : _name( rhv._name ) {}
+            streamout_variable_data( this_rref_t rhv ) noexcept : _name( std::move( rhv._name ) ) {}
+            ~streamout_variable_data( void_t ) noexcept {}
+
+        public: // operator =
+
+            this_ref_t operator = ( motor::string_cref_t name ) noexcept
+            {
+                _name = name ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( motor::string_rref_t name ) noexcept
+            {
+                _name = std::move( name ) ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_cref_t rhv ) noexcept
+            {
+                _name = rhv._name ;
+                return *this ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                _name = std::move( rhv._name ) ;
+                return *this ;
+            }
+
+        public: // operator ==
+
+            bool_t operator == ( motor::string_cref_t name ) const noexcept
+            {
+                return _name == name ;
+            }
+
+            bool_t operator == ( this_cref_t rhv ) const noexcept
+            {
+                return _name == rhv._name ;
+            }
+
+        public:
+
+            motor::string_cref_t name( void_t ) const noexcept
+            {
+                return _name ;
             }
         };
+        using streamout_variable_t = data_variable< streamout_variable_data > ;
 
         template< typename T >
         std::pair< bool_t, motor::graphics::data_variable< T > * > cast_data_variable( motor::graphics::ivariable_ptr_t in_var ) noexcept

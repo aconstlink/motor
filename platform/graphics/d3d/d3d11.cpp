@@ -3150,7 +3150,7 @@ public: // functions
                 for( auto& t : shd.ps_textures )
                 {
                     auto * dv = vs->texture_variable( t.name ) ;
-                    motor::string_t const img_name = dv->get() ;
+                    motor::string_t const img_name = dv->get().name() ;
 
                     size_t i = 0 ;
                     for( ; i < images.size(); ++i ) if( images[ i ].name == img_name ) break ;
@@ -3186,7 +3186,7 @@ public: // functions
                 for( auto& t : the_buffer )
                 {
                     // first try data_buffers...
-                    motor::string_t const name = vs->array_variable( t.name )->get() ;
+                    motor::string_t const name = vs->array_variable( t.name )->get().name() ;
                     size_t const i = this_t::find_index_by_resource_name( name, arrays ) ;
 
                     // ... if the stored variable name is found in the data_buffers array, it is used ...
@@ -3201,7 +3201,7 @@ public: // functions
                     // ... otherwise we default to the streamout objects
                     else
                     {
-                        motor::string_t const name2 = vs->array_variable_streamout( t.name )->get() ;
+                        motor::string_t const name2 = vs->array_variable_streamout( t.name )->get().name() ;
                         size_t const i2 = this_t::find_index_by_resource_name( name2, streamouts ) ;
                         
                         if( i2 < streamouts.size() )

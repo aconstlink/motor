@@ -174,11 +174,10 @@ namespace motor
                 return false ;
             }
 
-            motor::graphics::data_variable< motor::string_t > * texture_variable( 
-                motor::string_in_t name ) noexcept
+            motor::graphics::texture_variable_t * texture_variable( motor::string_in_t name ) noexcept
             {
                 motor::graphics::ivariable_ptr_t var = motor::memory::global_t::alloc(
-                    motor::graphics::data_variable<motor::string_t>(), "texture variable" ) ;
+                    motor::graphics::texture_variable_t(), "texture variable" ) ;
 
                 // before inserting, check if name and type match
                 {
@@ -194,7 +193,7 @@ namespace motor
                     {
                         motor::memory::global_t::dealloc( var ) ;
 
-                        return static_cast< motor::graphics::data_variable< motor::string_t >* >( iter->var ) ;
+                        return static_cast< motor::graphics::texture_variable_t* >( iter->var ) ;
                     }
 
                     this_t::texture_data_t d ;
@@ -204,7 +203,7 @@ namespace motor
                     _textures.emplace_back( d ) ;
                 }
 
-                return static_cast< motor::graphics::data_variable< motor::string_t >* >( var ) ;
+                return static_cast< motor::graphics::texture_variable_t* >( var ) ;
             }
 
             bool_t has_texture_variable( motor::string_in_t name ) const noexcept
@@ -216,11 +215,10 @@ namespace motor
                 return false ;
             }
 
-            motor::graphics::data_variable< motor::string_t > * array_variable( 
-                motor::string_in_t name ) noexcept
+            motor::graphics::array_variable_t * array_variable( motor::string_in_t name ) noexcept
             {
                 motor::graphics::ivariable_ptr_t var = motor::memory::global_t::alloc(
-                    motor::graphics::data_variable<motor::string_t>(), "array variable" ) ;
+                    motor::graphics::array_variable_t(), "array variable" ) ;
 
                 // before inserting, check if name and type match
                 {
@@ -236,7 +234,7 @@ namespace motor
                     {
                         motor::memory::global_t::dealloc( var ) ;
 
-                        return static_cast< motor::graphics::data_variable< motor::string_t >* >( iter->var ) ;
+                        return static_cast< motor::graphics::array_variable_t* >( iter->var ) ;
                     }
 
                     this_t::array_data_t d ;
@@ -246,7 +244,7 @@ namespace motor
                     _arrays.emplace_back( d ) ;
                 }
 
-                return static_cast< motor::graphics::data_variable< motor::string_t >* >( var ) ;
+                return static_cast< motor::graphics::array_variable_t* >( var ) ;
             }
 
             bool_t has_array_variable( motor::string_in_t name ) const noexcept
@@ -259,11 +257,11 @@ namespace motor
             }
 
             // allows to connect a streamout object with a data buffer in the shader
-            motor::graphics::data_variable< motor::string_t > * array_variable_streamout( 
+            motor::graphics::streamout_variable_t * array_variable_streamout( 
                 motor::string_in_t name ) noexcept
             {
                 motor::graphics::ivariable_ptr_t var = motor::memory::global_t::alloc(
-                    motor::graphics::data_variable<motor::string_t>(), "array variable from streamout" ) ;
+                    motor::graphics::streamout_variable_t(), "array variable from streamout" ) ;
 
                 // before inserting, check if name and type match
                 {
@@ -279,7 +277,7 @@ namespace motor
                     {
                         motor::memory::global_t::dealloc( var ) ;
 
-                        return static_cast< motor::graphics::data_variable< motor::string_t >* >( iter->var ) ;
+                        return static_cast< motor::graphics::streamout_variable_t* >( iter->var ) ;
                     }
 
                     this_t::streamout_data_t d ;
@@ -289,7 +287,7 @@ namespace motor
                     _streamouts.emplace_back( d ) ;
                 }
 
-                return static_cast< motor::graphics::data_variable< motor::string_t >* >( var ) ;
+                return static_cast< motor::graphics::streamout_variable_t* >( var ) ;
             }
 
             using for_each_data_var_funk_t = std::function< void_t ( motor::string_in_t, motor::graphics::ivariable_ptr_t ) > ;

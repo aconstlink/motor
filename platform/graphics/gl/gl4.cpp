@@ -2731,14 +2731,14 @@ struct gl4_backend::pimpl
                     auto const& tx_name = var->get() ;
                     for( auto& cfg : _images )
                     {
-                        if( cfg.name == tx_name ) break ;
+                        if( tx_name == cfg.name ) break ;
                         ++i ;
                     }
 
                     if( i >= _images.size() )
                     {
                         motor::log::global_t::error( motor_log_fn( "Could not find image [" +
-                            tx_name + "]" ) ) ;
+                            tx_name.name() + "]" ) ) ;
                         continue ;
                     }
 
@@ -2752,18 +2752,14 @@ struct gl4_backend::pimpl
             }
             else if( motor::ogl::uniform_is_buffer( uv.type ) )
             {
-                auto* var = vs->array_variable( uv.name ) ;
+                motor::string_t tx_name ;
 
-                if( var == nullptr )
                 {
-                    motor::log::global_t::error( motor_log_fn( "can not claim variable " + uv.name ) ) ;
-                    continue ;
+                    tx_name = vs->array_variable( uv.name )->get().name() ;
+
+                    if ( tx_name.empty() )
+                        tx_name = vs->array_variable_streamout( uv.name )->get().name() ;
                 }
-
-                if( var->get().empty() )
-                    var = vs->array_variable_streamout( uv.name ) ;
-
-                auto const & tx_name = var->get() ;
 
                 // looking for data buffer
                 auto handle_buffer_link = [&]( void_t )
