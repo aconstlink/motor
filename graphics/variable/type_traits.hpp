@@ -278,6 +278,15 @@ namespace motor
         };
 
         template<>
+        class type_traits< motor::math::mat2f_t >
+        {
+        public:
+
+            static const motor::graphics::type gpu_type = motor::graphics::type::tfloat ;
+            static const motor::graphics::type_struct gpu_type_struct = motor::graphics::type_struct::mat2 ;
+        };
+
+        template<>
         class type_traits< motor::math::mat3f_t >
         {
         public:

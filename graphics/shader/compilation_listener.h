@@ -63,9 +63,10 @@ namespace motor
             {
                 motor::concurrent::mrsw_t::writer_lock_t lk( _mtx ) ;
                 _has_changed = 0 ;
+                auto const succ = _successful ;
                 _successful = false ;
-                if( _successful ) sb = std::move( _bindings ) ;
-                return _successful ;
+                if( succ ) sb = std::move( _bindings ) ;
+                return succ ;
             }
         };
         motor_typedef( compilation_listener ) ;

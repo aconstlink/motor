@@ -105,6 +105,20 @@ namespace motor
                 return motor::move( other ) ;
             }
 
+            T * borrow_or_add( motor::string_in_t name, motor::core::mtr_safe< T > && other ) noexcept
+            {
+                auto iter = _ts.find( name ) ;
+                if ( iter != _ts.end() )
+                {
+                    motor::release( other ) ;
+                    return iter->second ;
+                }
+
+                _ts[ name ] = motor::share( other ) ;
+
+                return other.mtr() ;
+            }
+
             // remove signal
             bool_t remove( motor::string_in_t name ) noexcept 
             {

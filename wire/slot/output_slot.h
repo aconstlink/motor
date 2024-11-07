@@ -87,6 +87,12 @@ namespace motor
 
             virtual bool_t connect( motor::wire::iinput_slot_mtr_safe_t s, bool_t const propagate = true ) noexcept
             {
+                // first check is slot is already connected.
+                for( auto * in_s : _inputs ) 
+                {
+                    if( in_s == s ) return true ; 
+                }
+
                 if( auto * v = dynamic_cast< motor::wire::input_slot<T> * >( s.mtr() ); v != nullptr )
                 {
                     // can connect

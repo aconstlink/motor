@@ -47,7 +47,7 @@ namespace motor
             void_t pull_data( void_t ) noexcept ;
 
             // redo graphics variables to inputs bindings
-            void_t update_bindings( void_t ) noexcept ;
+            void_t update_bindings( bool_t const clear = false ) noexcept ;
 
             // redo graphics variables to inputs bindings
             // by introducing a new variable set
@@ -62,6 +62,8 @@ namespace motor
 
             void_t create_bindings( void_t ) noexcept ;
             
+
+            // #1 : this function creates input slots from shader variables
             template< typename T >
             bool_t make_binding( motor::string_in_t name, motor::graphics::ivariable_ptr_t var ) noexcept
             {
@@ -89,6 +91,39 @@ namespace motor
                     } ) ;
                     return true ;
                 }
+                return false ;
+            }
+
+            // #2 : this function creates shader variables from input slots
+            template< typename T >
+            bool_t make_binding( motor::string_in_t name, motor::wire::iinput_slot_mtr_t s ) noexcept
+            {
+                using type_t = T ;
+
+                auto * slot = dynamic_cast< motor::wire::input_slot< type_t > * >( s ) ;
+                if( slot != nullptr )
+                {
+                    using slot_t = motor::wire::input_slot< type_t > ;
+                    using var_t = motor::graphics::data_variable< type_t > ;
+
+                    auto * var = _vs->any_variable< type_t >( name ) ;
+                    var->set( slot->get_value() ) ;
+
+                    _bindings.emplace_back( variable_binding
+                    {
+                        var, motor::share( s ),
+                        [=] ( this_t::variable_binding & v )
+                        {
+                            auto * s_local = reinterpret_cast<slot_t *>( v.slot ) ;
+                            auto * v_local = reinterpret_cast<var_t *>( v.gvar ) ;
+
+                            v_local->set( s_local->get_value() ) ;
+                        }
+                    } ) ;
+
+                    return true ;
+                }
+
                 return false ;
             }
         };

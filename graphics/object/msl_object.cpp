@@ -229,9 +229,9 @@ msl_object::this_ref_t msl_object::fill_variable_sets( size_t const idx ) noexce
 }
 
 //****************************************************************************
-motor::graphics::variable_set_mtr_safe_t msl_object::get_varibale_set( size_t const id ) const noexcept 
+motor::graphics::variable_set_mtr_safe_t msl_object::get_varibale_set( size_t const id ) noexcept 
 {
-    if( id >= _vars.size() ) return nullptr ;
+    this_t::fill_variable_sets( id ) ;
     return motor::share( _vars[ id ] ) ;
 }
 
