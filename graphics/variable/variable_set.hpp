@@ -102,19 +102,22 @@ namespace motor
             }
 
             template<>
-            motor::graphics::data_variable< motor::graphics::texture_variable_data > * any_variable( motor::string_cref_t name ) noexcept
+            motor::graphics::data_variable< motor::graphics::texture_variable_data > * 
+                any_variable<motor::graphics::texture_variable_data>( motor::string_cref_t name ) noexcept
             {
                 return this_t::texture_variable( name ) ;
             }
 
             template<>
-            motor::graphics::data_variable< motor::graphics::array_variable_data > * any_variable( motor::string_cref_t name ) noexcept
+            motor::graphics::data_variable< motor::graphics::array_variable_data > * 
+                any_variable< motor::graphics::array_variable_data >( motor::string_cref_t name ) noexcept
             {
                 return this_t::array_variable( name ) ;
             }
 
             template<>
-            motor::graphics::data_variable< motor::graphics::streamout_variable_data > * any_variable( motor::string_cref_t name ) noexcept
+            motor::graphics::data_variable< motor::graphics::streamout_variable_data > * 
+                any_variable< motor::graphics::streamout_variable_data >( motor::string_cref_t name ) noexcept
             {
                 return this_t::array_variable_streamout( name ) ;
             }

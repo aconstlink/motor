@@ -61,7 +61,8 @@ namespace motor
         private:
 
             void_t create_bindings( void_t ) noexcept ;
-            
+            void_t clear_bindings( void_t ) noexcept ;
+
 
             // #1 : this function creates input slots from shader variables
             template< typename T >

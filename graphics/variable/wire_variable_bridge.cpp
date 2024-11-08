@@ -15,15 +15,22 @@ wire_variable_bridge::wire_variable_bridge( motor::graphics::variable_set_mtr_sa
 }
 
 //*****************************************************************
-wire_variable_bridge::wire_variable_bridge( this_rref_t rhv ) noexcept : _vs( motor::move( rhv._vs ) ),
-    _inputs( std::move( rhv._inputs ) ), _bindings( std::move( rhv._bindings ) )
+wire_variable_bridge::wire_variable_bridge( this_rref_t rhv ) noexcept
 {
+    motor::release( motor::move( _vs ) ) ;
+    _vs = motor::move( rhv._vs ) ;
+
+    _inputs = std::move( rhv._inputs ) ;
+
+    this_t::clear_bindings() ;
+    _bindings = std::move( rhv._bindings ) ;
 }
 
 //*****************************************************************
 wire_variable_bridge::~wire_variable_bridge( void_t ) noexcept 
-{
-    _inputs.clear() ;
+{    
+    this_t::clear_bindings() ;
+    motor::release( motor::move( _vs  ) ) ;
 }
 
 //*****************************************************************
@@ -86,7 +93,7 @@ motor::wire::inputs_cptr_t wire_variable_bridge::borrow_inputs( void_t ) const n
 //*****************************************************************
 void_t wire_variable_bridge::create_bindings( void_t ) noexcept 
 {
-    _bindings.clear() ;
+    this_t::clear_bindings() ;
 
     if( _vs == nullptr ) 
     {
@@ -145,4 +152,14 @@ void_t wire_variable_bridge::create_bindings( void_t ) noexcept
             if ( this_t::make_binding< motor::graphics::streamout_variable_data >( name, s ) ) return ;
         } ) ;
     }
+}
+
+//*****************************************************************
+void_t wire_variable_bridge::clear_bindings( void_t ) noexcept 
+{
+    for( auto & b : _bindings )
+    {
+        motor::release( motor::move( b.slot ) ) ;
+    }
+    _bindings.clear() ;
 }
