@@ -114,9 +114,10 @@ namespace motor
                     return iter->second ;
                 }
 
-                _ts[ name ] = motor::share( other ) ;
+                auto * ret = other.mtr() ;
+                _ts[ name ] = motor::move( other ) ;
 
-                return other.mtr() ;
+                return ret ;
             }
 
             // remove signal
