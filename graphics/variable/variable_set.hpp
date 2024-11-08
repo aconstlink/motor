@@ -96,33 +96,6 @@ namespace motor
         public:
 
             template< class T >
-            motor::graphics::data_variable< T > * any_variable( motor::string_cref_t name ) noexcept
-            {
-                return this_t::data_variable< T >( name ) ;
-            }
-
-            template<>
-            motor::graphics::data_variable< motor::graphics::texture_variable_data > * 
-                any_variable<motor::graphics::texture_variable_data>( motor::string_cref_t name ) noexcept
-            {
-                return this_t::texture_variable( name ) ;
-            }
-
-            template<>
-            motor::graphics::data_variable< motor::graphics::array_variable_data > * 
-                any_variable< motor::graphics::array_variable_data >( motor::string_cref_t name ) noexcept
-            {
-                return this_t::array_variable( name ) ;
-            }
-
-            template<>
-            motor::graphics::data_variable< motor::graphics::streamout_variable_data > * 
-                any_variable< motor::graphics::streamout_variable_data >( motor::string_cref_t name ) noexcept
-            {
-                return this_t::array_variable_streamout( name ) ;
-            }
-
-            template< class T >
             motor::graphics::data_variable< T > * data_variable( motor::string_cref_t name ) noexcept
             {
                 auto const type = motor::graphics::type_traits< T >::gpu_type ;
@@ -389,5 +362,32 @@ namespace motor
             }
         };
         motor_typedef( variable_set ) ;
+
+        template< class T >
+        static motor::graphics::data_variable< T > * any_variable( variable_set_ptr_t vs, motor::string_cref_t name ) noexcept
+        {
+            return vs->data_variable< T >( name ) ;
+        }
+
+        template<>
+        motor::graphics::data_variable< motor::graphics::texture_variable_data > *
+            any_variable<motor::graphics::texture_variable_data>( variable_set_ptr_t vs, motor::string_cref_t name ) noexcept
+        {
+            return vs->texture_variable( name ) ;
+        }
+
+        template<>
+        motor::graphics::data_variable< motor::graphics::array_variable_data > *
+            any_variable< motor::graphics::array_variable_data >( variable_set_ptr_t vs, motor::string_cref_t name ) noexcept
+        {
+            return vs->array_variable( name ) ;
+        }
+
+        template<>
+        motor::graphics::data_variable< motor::graphics::streamout_variable_data > *
+            any_variable< motor::graphics::streamout_variable_data >( variable_set_ptr_t vs, motor::string_cref_t name ) noexcept
+        {
+            return vs->array_variable_streamout( name ) ;
+        }
     }
 }

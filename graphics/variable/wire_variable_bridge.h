@@ -107,7 +107,7 @@ namespace motor
                     using slot_t = motor::wire::input_slot< type_t > ;
                     using var_t = motor::graphics::data_variable< type_t > ;
 
-                    auto * var = _vs->any_variable< type_t >( name ) ;
+                    auto * var = motor::graphics::any_variable< type_t >( _vs, name ) ;
                     var->set( slot->get_value() ) ;
 
                     _bindings.emplace_back( variable_binding
