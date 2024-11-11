@@ -25,7 +25,7 @@ namespace motor
 
             size_t _vs = 0 ;
             motor::graphics::msl_object_mtr_t _msl = nullptr  ;
-            motor::graphics::variable_set_mtr_safe_t _var_set ;
+            motor::graphics::variable_set_mtr_t _var_set = nullptr ;
             
             struct camera_variables
             {

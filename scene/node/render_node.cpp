@@ -6,12 +6,17 @@ motor_core_dd_id_init( render_node ) ;
 
 //*****************************************************************
 render_node::render_node( this_rref_t rhv ) noexcept : 
-    base_t( std::move( rhv) ), _msl( motor::move( rhv._msl ) ), _vs( rhv._vs ), 
-    _var_set( motor::move( rhv._var_set ) ), _brigde( std::move( rhv._brigde ) )
+    base_t( std::move( rhv) ), _vs( rhv._vs ), _brigde( std::move( rhv._brigde ) )
 {
     std::memcpy( reinterpret_cast<void*>( &_cam_vars ), 
         reinterpret_cast<void*>( &rhv._cam_vars ), 
         sizeof( _cam_vars ) ) ;
+
+    motor::release( motor::move( _msl ) ) ;
+    _msl = motor::move( rhv._msl ) ;
+
+    motor::release( motor::move( _var_set ) ) ;
+    _var_set = motor::move( rhv._var_set ) ;
 
     motor::release( motor::move( _comp_lst ) ) ;
     _comp_lst = motor::move( rhv._comp_lst )  ;
@@ -40,8 +45,9 @@ render_node::render_node( motor::graphics::msl_object_mtr_safe_t msl, size_t con
 //*****************************************************************
 render_node::~render_node( void_t ) noexcept
 {
-    motor::memory::release_ptr( _msl ) ;
+    motor::release( motor::move( _msl  ) ) ;
     motor::release( motor::move( _var_set ) ) ;
+    motor::release( motor::move( _comp_lst ) ) ;
 }
 
 //*****************************************************************
@@ -99,7 +105,7 @@ void_t render_node::update_bindings( void_t ) noexcept
 
             // update wire slot to shader variable bridge
             {
-                _brigde.update_bindings( _var_set ) ;
+                _brigde.update_bindings( motor::share( _var_set ) ) ;
             }
         }
     }

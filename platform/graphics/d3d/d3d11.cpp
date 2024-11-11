@@ -1270,6 +1270,7 @@ public: // functions
         {
             msl.msl_obj.~msl_object() ;
         }
+        _msl_datas.clear() ;
 
         state_sets.clear() ;
 
