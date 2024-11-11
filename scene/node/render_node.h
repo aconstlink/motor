@@ -4,6 +4,8 @@
 
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/variable/wire_variable_bridge.h>
+#include <motor/graphics/frontend/gen4/frontend.hpp>
+
 #include <motor/gfx/camera/generic_camera.h>
 
 #include <motor/wire/slot/sheet.hpp>
@@ -27,6 +29,8 @@ namespace motor
             motor::graphics::msl_object_mtr_t _msl = nullptr  ;
             motor::graphics::variable_set_mtr_t _var_set = nullptr ;
             
+        private: // camera variables
+
             struct camera_variables
             {
                 motor::graphics::data_variable< motor::math::mat4f_t > * proj ;
@@ -44,6 +48,31 @@ namespace motor
             };
 
             camera_variables _cam_vars ;
+
+        private: // trafo variables
+
+            struct trafo_variables
+            {
+                motor::wire::output_slot< motor::math::mat4f_t > * world = 
+                    motor::shared( motor::wire::output_slot< motor::math::mat4f_t >() );
+
+                trafo_variables( void_t ) noexcept{}
+                trafo_variables( trafo_variables && rhv ) noexcept
+                {
+                    motor::release( motor::move( world ) ) ;
+                    world = motor::move( rhv.world ) ;
+                }
+                ~trafo_variables( void_t ) noexcept 
+                {
+                    trafo_variables::clear() ;
+                }
+                void_t clear( void_t ) noexcept
+                {
+                    motor::release( motor::move( world ) ) ;
+                }
+            };
+
+            trafo_variables _trafo_vars ;
 
         private:
 
@@ -63,8 +92,13 @@ namespace motor
             motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept { return _msl ; }
             size_t get_variable_set_idx( void_t ) const noexcept { return _vs ; }
 
-            void_t update_bindings( void_t ) noexcept ;
-            void_t update_camera( motor::gfx::generic_camera_ptr_t ) noexcept ;
+        public: // render interface
+
+            void_t render_update( motor::gfx::generic_camera_ptr_t ) noexcept ;
+
+        public: // transformation interface
+
+            void_t set_world( motor::math::m3d::trafof_cref_t ) noexcept ;
 
         public: // inputs
 
@@ -73,6 +107,8 @@ namespace motor
 
         private:
 
+            void_t update_bindings( void_t ) noexcept ;
+            void_t update_camera( motor::gfx::generic_camera_ptr_t ) noexcept ;
             void_t prefill_bridge( void_t ) noexcept ;
         } ;
         motor_typedef( render_node ) ;

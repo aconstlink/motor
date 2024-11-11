@@ -6,7 +6,8 @@ motor_core_dd_id_init( render_node ) ;
 
 //*****************************************************************
 render_node::render_node( this_rref_t rhv ) noexcept : 
-    base_t( std::move( rhv) ), _vs( rhv._vs ), _brigde( std::move( rhv._brigde ) )
+    base_t( std::move( rhv) ), _vs( rhv._vs ), _brigde( std::move( rhv._brigde ) ),
+    _trafo_vars( std::move( rhv._trafo_vars ) )
 {
     std::memcpy( reinterpret_cast<void*>( &_cam_vars ), 
         reinterpret_cast<void*>( &rhv._cam_vars ), 
@@ -44,10 +45,17 @@ render_node::render_node( motor::graphics::msl_object_mtr_safe_t msl, size_t con
 
 //*****************************************************************
 render_node::~render_node( void_t ) noexcept
-{
+{   
     motor::release( motor::move( _msl  ) ) ;
     motor::release( motor::move( _var_set ) ) ;
     motor::release( motor::move( _comp_lst ) ) ;
+}
+
+//*****************************************************************
+void_t render_node::render_update( motor::gfx::generic_camera_ptr_t cam ) noexcept 
+{
+    this_t::update_bindings() ;
+    this_t::update_camera( cam ) ;
 }
 
 //*****************************************************************
@@ -60,6 +68,10 @@ void_t render_node::update_bindings( void_t ) noexcept
         {
             motor::release( motor::move( _var_set) ) ;
             _var_set = _msl->get_varibale_set( _vs ) ;
+
+            {
+                _trafo_vars.world->disconnect() ;
+            }
 
             // update shader variable bindings
             {
@@ -100,6 +112,13 @@ void_t render_node::update_bindings( void_t ) noexcept
                             _cam_vars.cam_pos = var ;
                         }
                     }
+
+                    if( sb.has_variable_binding( motor::graphics::binding_point::world_matrix, name ) )
+                    {
+                        _trafo_vars.world->connect( 
+                            motor::share( _brigde.borrow_inputs()->borrow_or_add( name, 
+                                motor::shared( motor::wire::input_slot< motor::math::mat4f_t >() ) ) ) ) ;
+                    }
                 }
             }
 
@@ -135,6 +154,12 @@ void_t render_node::update_camera( motor::gfx::generic_camera_ptr_t cam ) noexce
     {
         _cam_vars.cam_pos->set( cam->get_position() ) ;
     }
+}
+
+//*****************************************************************
+void_t render_node::set_world( motor::math::m3d::trafof_cref_t trafo ) noexcept 
+{
+    _trafo_vars.world->set_and_exchange( trafo.get_transformation() ) ;
 }
 
 //*****************************************************************

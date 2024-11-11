@@ -26,7 +26,7 @@ motor::scene::double_dispatch_callbacks global::resolve( motor::scene::ivisitor_
 void_t global::init( void_t ) noexcept 
 {
     this_t::register_default_callbacks< motor::scene::trafo_visitor, motor::scene::trafo3d_node >() ;
-    //this_t::register_default_callbacks< motor::scene::trafo_visitor, motor::scene::trafo3d_node >() ;
+    this_t::register_default_callbacks< motor::scene::trafo_visitor, motor::scene::render_node >() ;
 
     this_t::register_default_callbacks< motor::scene::log_visitor, motor::scene::group >() ;
     this_t::register_default_callbacks< motor::scene::log_visitor, motor::scene::decorator >() ;

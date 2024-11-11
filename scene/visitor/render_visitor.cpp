@@ -30,8 +30,7 @@ render_visitor::~render_visitor( void_t ) noexcept
 //*****************************************************************************************
 motor::scene::result render_visitor::visit( motor::scene::render_node_ptr_t nptr ) noexcept  
 {
-    nptr->update_bindings() ;
-    nptr->update_camera( _cam ) ;
+    nptr->render_update(  _cam ) ;
 
     auto msl = nptr->borrow_msl() ;
 

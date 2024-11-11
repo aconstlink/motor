@@ -2,6 +2,7 @@
 #include "trafo_visitor.h"
 #include "../node/camera_node.h"
 #include "../node/trafo3d_node.h"
+#include "../node/render_node.h"
 #include "../node/leaf.h"
 
 using namespace motor::scene ;
@@ -16,6 +17,13 @@ trafo_visitor::trafo_visitor( void_t ) noexcept
 //******************************************************************************
 trafo_visitor::~trafo_visitor( void_t ) noexcept 
 {
+}
+
+//******************************************************************************
+motor::scene::result trafo_visitor::visit( motor::scene::render_node_ptr_t nptr ) noexcept 
+{
+    nptr->set_world( _trafos.top() ) ;
+    return motor::scene::result::ok ;
 }
 
 //******************************************************************************
