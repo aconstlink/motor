@@ -68,7 +68,7 @@ struct motor::platform::oal_backend::pimpl
     size_t _captures = 0 ;
     size_t _do_captures = 0 ;
 
-    this_file::global_capture_ptr_t _gc ;
+    this_file::global_capture_ptr_t _gc = nullptr ;
     motor::vector< this_file::buffer_config_t > buffers ;
 
     ALCdevice * ddev = nullptr ;
@@ -318,6 +318,9 @@ struct motor::platform::oal_backend::pimpl
 
     pimpl( pimpl && rhv ) noexcept
     {
+        // can not move if already initialized
+        // need to do more if already initialzed
+        assert( _gc == nullptr ) ;
         _gc = motor::move( rhv._gc ) ;
         buffers = std::move( rhv.buffers ) ;
 
