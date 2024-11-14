@@ -28,14 +28,17 @@ namespace motor
 
         private:
 
+            bool_t _disconnect_on_clear = true ;
             motor::hash_map< motor::string_t, t_ptr_t > _ts ;
 
         public:
 
             sheet( void_t ) noexcept {}
-            sheet( this_rref_t rhv ) noexcept : _ts( std::move( rhv._ts ) ) {}
+            sheet( this_rref_t rhv ) noexcept : _ts( std::move( rhv._ts ) ),
+                _disconnect_on_clear( rhv._disconnect_on_clear ) {}
             sheet( this_cref_t ) noexcept = delete ;
-            sheet( std::initializer_list< std::pair< motor::string_t, motor::core::mtr_safe<T> > > && lst ) noexcept
+            sheet( std::initializer_list< std::pair< motor::string_t, motor::core::mtr_safe<T> > > && lst, 
+                bool_t const disconnect_on_clear = true ) noexcept : _disconnect_on_clear( disconnect_on_clear )
             {
                 for( auto  elem : lst )
                 {
@@ -51,6 +54,7 @@ namespace motor
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
                 _ts = std::move( rhv._ts ) ;
+                _disconnect_on_clear = rhv._disconnect_on_clear ;
                 return *this ;
             }
 
@@ -68,7 +72,9 @@ namespace motor
             {
                 for ( auto item : _ts )
                 {
-                    item.second->disconnect() ;
+                    if( _disconnect_on_clear )
+                        item.second->disconnect() ;
+
                     motor::memory::release_ptr( item.second ) ;
                 }
                 _ts.clear() ;

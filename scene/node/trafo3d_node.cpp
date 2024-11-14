@@ -32,7 +32,7 @@ trafo3d_node::~trafo3d_node( void_t ) noexcept
 //**********************************************************************************
 bool_t trafo3d_node::inputs( motor::wire::inputs_out_t ins ) noexcept 
 {
-    ins = motor::wire::inputs_t( { { "trafo", motor::share( this_t::_trafo )}  } ) ;
+    ins = motor::wire::inputs_t( { { "trafo", motor::share( this_t::_trafo )}  }, false ) ;
     return true ;
 }
 
