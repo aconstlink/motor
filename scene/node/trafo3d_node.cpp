@@ -25,6 +25,8 @@ trafo3d_node::trafo3d_node( this_rref_t rhv ) noexcept : base_t( std::move( rhv 
 //**********************************************************************************
 trafo3d_node::~trafo3d_node( void_t ) noexcept
 {
+    if( _trafo ) _trafo->disconnect() ;
+    if( _computed ) _computed->disconnect() ;
     motor::release( motor::move( _trafo ) ) ;
     motor::release( motor::move( _computed ) ) ;
 }

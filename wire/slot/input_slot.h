@@ -42,7 +42,13 @@ namespace motor
 
             input_slot( void_t ) noexcept {}
             input_slot( T const v ) noexcept : _value( v ) {}
-            input_slot( this_rref_t rhv ) noexcept : _value( rhv._value ), _output_slot( motor::move(rhv._output_slot ) ) {}
+            
+            input_slot( this_rref_t rhv ) noexcept : _value( rhv._value ) 
+            {
+                this_t::disconnect() ;
+                _output_slot = motor::move( rhv._output_slot ) ;
+            }
+
             input_slot( this_cref_t ) = delete ;
 
             virtual ~input_slot( void_t ) noexcept
@@ -83,7 +89,11 @@ namespace motor
             virtual bool_t connect( motor::wire::ioutput_slot_mtr_safe_t s, bool_t const propagate = true ) noexcept
             {
                 // first check is slot is already connected.
-                if( _output_slot == s ) return true ;
+                if( _output_slot == s ) 
+                {
+                    motor::release( motor::move( s ) ) ;
+                    return true ;
+                }
 
                 if ( auto * v = dynamic_cast<motor::wire::output_slot<T> *>( s.mtr() ); v != nullptr )
                 {

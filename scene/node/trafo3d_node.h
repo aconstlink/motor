@@ -25,8 +25,8 @@ namespace motor
             motor_typedefs( motor::wire::input_slot< motor::math::m3d::trafof_t >, in_slot ) ;
             motor_typedefs( motor::wire::output_slot< motor::math::m3d::trafof_t >, out_slot ) ;
 
-            in_slot_mtr_t _trafo = motor::shared( this_t::in_slot_t() ) ; // relative or absolute @todo insert enum for that
-            out_slot_mtr_t _computed = motor::shared( this_t::out_slot_t() ) ; // the one the visitor computes.
+            in_slot_mtr_t _trafo = motor::shared( this_t::in_slot_t(), "trafo3d_node:trafo" ) ; // relative or absolute @todo insert enum for that
+            out_slot_mtr_t _computed = motor::shared( this_t::out_slot_t(), "trafo3d_node:computed" ) ; // the one the visitor computes.
 
         public:
 

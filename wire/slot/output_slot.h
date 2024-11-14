@@ -42,7 +42,15 @@ namespace motor
 
             output_slot( void_t ) noexcept {}
             output_slot( T const v ) noexcept : _value(v) {}
-            output_slot( this_rref_t rhv ) noexcept : _inputs( std::move( rhv._inputs) ), _value( rhv._value ) {}
+            output_slot( this_rref_t rhv ) noexcept : _value( rhv._value ) 
+            {
+                this_t::disconnect() ;
+                for( auto * i : rhv._inputs )
+                {
+                    i->disconnect() ;
+                    i->connect( motor::share( this ) ) ;
+                }
+            }
 
             output_slot( this_cref_t ) = delete ;
 
