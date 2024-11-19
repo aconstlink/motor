@@ -20,31 +20,39 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
 
             // handle int
             {
-                auto * ptr = dynamic_cast<motor::property::int_property_ptr_t>( p ) ;
+                auto * ptr = dynamic_cast<motor::property::int_traits_ptr_t>( p ) ;
                 if ( ptr != nullptr )
                 {
                     auto const & mm = ptr->get_min_max() ;
                     switch ( ptr->get_hint() )
                     {
                     case motor::property::editor_hint::slider:
-                        ImGui::SliderInt( lable.c_str(), ptr->ptr(), mm.get_min(), mm.get_max() ) ;
+                        {
+                            int_t v = ptr->get() ;
+                            ImGui::SliderInt( lable.c_str(), &v, mm.get_min(), mm.get_max() ) ;
+                            ptr->set( v ) ;
+                        }
                         break ;
                     default: break ;
                     }
                     return ;
                 }
             }
-
+            
             // handle float
             {
-                auto * ptr = dynamic_cast<motor::property::float_property_ptr_t>( p ) ;
+                auto * ptr = dynamic_cast<motor::property::float_traits_ptr_t>( p ) ;
                 if ( ptr != nullptr )
                 {
                     auto const & mm = ptr->get_min_max() ;
                     switch ( ptr->get_hint() )
                     {
                     case motor::property::editor_hint::slider:
-                        ImGui::SliderFloat( lable.c_str(), ptr->ptr(), mm.get_min(), mm.get_max() ) ;
+                        {
+                            float_t v = ptr->get() ;
+                            ImGui::SliderFloat( lable.c_str(), &v, mm.get_min(), mm.get_max() ) ;
+                            ptr->set( v ) ;
+                        }
                         break ;
                     default: break ;
                     }
@@ -89,7 +97,7 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                     return ;
                 }
             }
-
+            
             // handle enum
             {
                 auto * ptr = dynamic_cast<motor::property::any_enum_property_ptr_t>( p ) ;

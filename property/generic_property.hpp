@@ -6,6 +6,7 @@
 #include "min_max.hpp"
 #include "default_value.hpp"
 
+#include <motor/wire/slot/input_slot.h>
 #include <motor/std/string>
 
 #include <type_traits>
@@ -14,67 +15,44 @@ namespace motor
 {
     namespace property
     {
-        template< typename T, bool is_enum = std::is_enum< T >::value >
-        class generic_property ; 
-
         template< typename T >
-        class generic_property< T, false > : public iproperty
+        class numerical_traits : public iproperty
         {
+            motor_this_typedefs( numerical_traits< T > ) ;
+
+        public:
+
             motor_typedefs( T, value ) ;
-            motor_this_typedefs( generic_property< T > ) ;
             using min_max_t_ = motor::property::min_max< T, std::is_fundamental< T >::value > ;
             motor_typedefs( min_max_t_, min_max ) ;
 
         private:
 
-            value_t _data = motor::property::default_value<T>() ;
             min_max_t _mm = min_max_t() ;
-            motor::property::editor_hint _hint = 
+            motor::property::editor_hint _hint =
                 motor::property::default_editor_hint<T, std::is_enum<T>::value >::value ;
 
         public:
 
-            generic_property( void_t ) noexcept{}
-
-            generic_property( motor::property::editor_hint const h ) noexcept : 
+            numerical_traits( void_t ) noexcept {}
+            numerical_traits( motor::property::editor_hint const h ) noexcept :
                 _hint( h ) {}
 
-            generic_property( motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept : 
+            numerical_traits( motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
                 _mm( mm ), _hint( h ) {}
 
-            generic_property( typename this_t::min_max_in_t mm ) noexcept : 
+            numerical_traits( typename this_t::min_max_in_t mm ) noexcept :
                 _mm( mm ) {}
 
-            generic_property( T const & v ) noexcept :
-                _data( v ) {}
-
-            generic_property( T const & v, motor::property::editor_hint const h ) noexcept :
-                _data( v ), _hint( h ) {}
-
-            generic_property( T const & v, typename this_t::min_max_in_t mm ) noexcept :
-                _data( v ), _mm( mm ) {}
-
-            generic_property( T const & v, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
-                _data( v ), _hint( h ), _mm( mm ) {}
-
-            virtual ~generic_property( void_t ) noexcept {}
+            numerical_traits( this_rref_t rhv ) noexcept : _mm( rhv._mm ), _hint( rhv._hint ) {}
+            virtual ~numerical_traits( void_t ) noexcept {}
 
         public:
 
-            void_t set( value_cref_t data ) noexcept
-            {
-                _data = data ;
-            }
+            virtual void_t set( value_cref_t data ) noexcept = 0 ;
+            virtual value_cref_t get( void_t ) const noexcept = 0 ;
 
-            value_cref_t get( void_t ) const noexcept
-            {
-                return _data ;
-            }
-
-            value_ptr_t ptr( void_t ) noexcept
-            {
-                return &_data ;
-            }
+        public:
 
             motor::property::editor_hint get_hint( void_t ) const  noexcept
             {
@@ -94,6 +72,71 @@ namespace motor
             void_t set_min_max( typename this_t::min_max_in_t mm ) noexcept
             {
                 _mm = mm ;
+            }
+        };
+
+        motor_typedefs( numerical_traits< byte_t >, byte_traits ) ;
+        motor_typedefs( numerical_traits< bool_t >, bool_traits ) ;
+        motor_typedefs( numerical_traits< ushort_t >, ushort_traits ) ;
+        motor_typedefs( numerical_traits< short_t >, short_traits ) ;
+        motor_typedefs( numerical_traits< int_t >, int_traits ) ;
+        motor_typedefs( numerical_traits< uint_t >, uint_traits ) ;
+        motor_typedefs( numerical_traits< float_t >, float_traits ) ;
+        motor_typedefs( numerical_traits< double_t >, double_traits ) ;
+        motor_typedefs( numerical_traits< motor::string_t >, string_traits ) ;
+
+        template< typename T, bool is_enum = std::is_enum< T >::value >
+        class generic_property ; 
+
+        template< typename T >
+        class generic_property< T, false > : public numerical_traits< T >
+        {
+            motor_this_typedefs( generic_property< T > ) ;
+            motor_typedefs( numerical_traits< T >::value_t, value ) ;
+
+        private:
+
+            value_t _data = motor::property::default_value<T>() ;
+
+        public:
+
+            generic_property( void_t ) noexcept{}
+
+            generic_property( motor::property::editor_hint const h ) noexcept : 
+                numerical_traits( h ) {}
+
+            generic_property( motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept : 
+                numerical_traits( h, mm ) {}
+
+            generic_property( typename this_t::min_max_in_t mm ) noexcept : 
+                numerical_traits( mm ) {}
+
+            generic_property( T const & v ) noexcept :
+                _data( v ) {}
+
+            generic_property( T const & v, motor::property::editor_hint const h ) noexcept :
+                _data( v ), numerical_traits( h ) {}
+
+            generic_property( T const & v, typename this_t::min_max_in_t mm ) noexcept :
+                _data( v ), numerical_traits( mm ){}
+
+            generic_property( T const & v, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
+                _data( v ), numerical_traits( h, mm ){}
+
+            generic_property( this_rref_t rhv ) noexcept : numerical_traits( std::move( rhv ) ), _data( rhv._data ) {}
+
+            virtual ~generic_property( void_t ) noexcept {}
+
+        public: // numerical_traits interface
+
+            virtual void_t set( value_cref_t data ) noexcept final
+            {
+                _data = data ;
+            }
+
+            virtual value_cref_t get( void_t ) const noexcept final
+            {
+                return _data ;
             }
         };
         motor_typedefs( generic_property< byte_t >, byte_property ) ;
@@ -219,5 +262,126 @@ namespace motor
                 return &_data ;
             }
         } ;
+
+
+        template< typename T >
+        class generic_property< motor::wire::input_slot< T >, false > : public numerical_traits< T >
+        {
+            motor_this_typedefs( generic_property< motor::wire::input_slot< T > > ) ;
+
+        private:
+
+            using is_t = motor::wire::input_slot< T > ;
+            using is_mtr_safe_t = motor::core::mtr_safe< motor::wire::input_slot< T > > ;
+            using is_mtr_t = motor::wire::input_slot< T > * ;
+
+            is_mtr_t _is = motor::shared( is_t( motor::property::default_value<T>() ) ) ;
+
+        public:
+
+            generic_property( void_t ) noexcept {}
+
+            generic_property( motor::property::editor_hint const h ) noexcept : 
+                numerical_traits( h ) {}
+
+            generic_property( motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
+                numerical_traits( h, mm ) {}
+
+            generic_property( typename this_t::min_max_in_t mm ) noexcept :
+                numerical_traits( mm ) {}
+
+            generic_property( T const & v ) noexcept :
+            {
+                _is->set_value( v ) ;
+            }
+
+            generic_property( T const & v, motor::property::editor_hint const h ) noexcept : numerical_traits( h ) 
+            {
+                _is->set_value( v ) ;
+            }
+
+            generic_property( T const & v, typename this_t::min_max_in_t mm ) noexcept : numerical_traits( mm ) 
+            {
+                _is->set_value( v ) ;
+            }
+
+            generic_property( T const & v, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
+                numerical_traits( h, mm ) 
+            {
+                _is->set_value( v ) ;
+            }
+
+            generic_property( is_mtr_safe_t input ) noexcept 
+            {
+                motor::release( motor::move( _is ) ) ;
+                _is = motor::move( input ) ;
+            }
+
+            generic_property( is_mtr_safe_t input, motor::property::editor_hint const h ) noexcept :
+                numerical_traits( h ) 
+            {
+                motor::release( motor::move( _is ) ) ;
+                _is = motor::move( input ) ;
+            }
+
+            generic_property( is_mtr_safe_t input, typename this_t::min_max_in_t mm ) noexcept :
+                numerical_traits( mm ) 
+            {
+                motor::release( motor::move( _is ) ) ;
+                _is = motor::move( input ) ;
+            }
+
+            generic_property( is_mtr_safe_t input, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
+                numerical_traits( h, mm )
+            {
+                motor::release( motor::move( _is ) ) ;
+                _is = motor::move( input ) ;
+            }
+
+            generic_property( this_rref_t rhv ) noexcept : numerical_traits( std::move( rhv ) )
+            {
+                _is->disconnect() ;
+                motor::release( motor::move( _is ) ) ;
+                _is = motor::move( rhv._is ) ;
+            }
+
+            virtual ~generic_property( void_t ) noexcept 
+            {
+                motor::release( motor::move( _is ) ) ;
+            }
+
+        public: // numerical_traits interface
+
+            virtual void_t set( value_cref_t data ) noexcept final
+            {
+                _is->set_value( data ) ;
+            }
+
+            virtual value_cref_t get( void_t ) const noexcept final
+            {
+                return _is->get_value() ;
+            }
+
+        public: 
+
+            typename this_t::is_mtr_safe_t get_is( void_t ) noexcept
+            {
+                return motor::share( _is ) ;
+            }
+
+            typename this_t::is_mtr_t borrow_is( void_t ) noexcept 
+            {
+                return _is ;
+            }
+        };
+        motor_typedefs( generic_property< motor::wire::input_slot< byte_t > >, byte_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< bool_t > >, bool_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< ushort_t > >, ushort_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< short_t > >, short_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< int_t > >, int_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< uint_t > >, uint_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< float_t > >, float_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< double_t > >, double_is_property ) ;
+        motor_typedefs( generic_property< motor::wire::input_slot< motor::string_t > >, string_is_property ) ;
     }
 }

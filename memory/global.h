@@ -340,6 +340,20 @@ namespace motor
     }
 
     template< typename T >
+    static T * release_and_move( core::mtr_safe< T > & v_release, core::mtr_safe< T > && v_move ) noexcept
+    {
+        core::mtr_safe< T >( motor::memory::release_ptr( v_release.mtr() ) ) ;
+        return v_move.mtr() ;
+    }
+
+    template< typename T >
+    static T * release_and_move( core::mtr_safe< T > && v_release, core::mtr_safe< T > && v_move ) noexcept
+    {
+        core::mtr_safe< T >( motor::memory::release_ptr( v_release.move() ) ) ;
+        return v_move.mtr() ;
+    }
+
+    template< typename T >
     static core::mtr_safe< T > shared( T const & v, char_cptr_t purpose="" ) noexcept
     {
         return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( v, purpose ) ) ;

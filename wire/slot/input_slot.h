@@ -31,6 +31,7 @@ namespace motor
         {
             motor_this_typedefs( input_slot<T> ) ;
             motor_typedefs( output_slot<T>, this_output_slot ) ;
+            motor_typedefs( output_slot<T>, os ) ;
 
         private:
 
@@ -115,6 +116,16 @@ namespace motor
                 _value = v ;
                 _has_changed = true ;
                 return *this ;
+            }
+
+            this_t::os_mtr_safe_t get_os( void_t ) noexcept
+            {
+                return motor::share( _output_slot ) ;
+            }
+
+            this_t::os_mtr_safe_t get_output_slot( void_t ) noexcept
+            {
+                return this_t::get_os() ;
             }
 
         public:

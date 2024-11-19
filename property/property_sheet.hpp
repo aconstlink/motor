@@ -105,6 +105,28 @@ namespace motor
                 return true ;
             }
 
+            template< typename T >
+            motor::property::generic_property< T > * borrow_property( motor::string_in_t name ) noexcept
+            {
+                for( auto item : _properties )
+                {
+                    if( item.first == name ) 
+                    {
+                        return dynamic_cast< motor::property::generic_property< T > * >( item.second ) ;
+                    }
+                }
+                return nullptr ;
+            }
+
+            template< typename T >
+            bool_t get_property( motor::string_in_t name, motor::core::mtr_safe< motor::property::generic_property< T > > & res ) noexcept
+            {
+                auto * ret = this_t::borrow_property( name ) ;
+                if( ret == nullptr ) return false ;
+                res = motor::shared( ret )  ;
+                return true ;
+            }
+
             typedef std::function< void_t ( motor::string_cref_t, motor::property::iproperty_cptr_t ) > for_each_cfunk_t ;
 
             void_t read_for_each( for_each_cfunk_t f ) const noexcept
