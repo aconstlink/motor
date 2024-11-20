@@ -92,7 +92,7 @@ namespace motor
         class generic_property< T, false > : public numerical_traits< T >
         {
             motor_this_typedefs( generic_property< T > ) ;
-            motor_typedefs( numerical_traits< T >::value_t, value ) ;
+            motor_typedefs( typename numerical_traits< T >::value_t, value ) ;
 
         private:
 
@@ -270,7 +270,7 @@ namespace motor
             motor_this_typedefs( generic_property< motor::wire::input_slot< T > > ) ;
 
             motor_typedefs( numerical_traits< T >, base ) ;
-            motor_typedefs( numerical_traits< T >::value_t, value ) ;
+            motor_typedefs( typename numerical_traits< T >::value_t, value ) ;
 
         private:
 
@@ -293,7 +293,7 @@ namespace motor
             generic_property( typename this_t::min_max_in_t mm ) noexcept :
                 base_t( mm ) {}
 
-            generic_property( T const & v ) noexcept :
+            generic_property( T const & v ) noexcept
             {
                 _is->set_value( v ) ;
             }
