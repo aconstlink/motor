@@ -92,6 +92,7 @@ namespace motor
         class generic_property< T, false > : public numerical_traits< T >
         {
             motor_this_typedefs( generic_property< T > ) ;
+            motor_typedefs( numerical_traits< T >, base ) ;
             motor_typedefs( typename numerical_traits< T >::value_t, value ) ;
 
         private:
@@ -103,27 +104,27 @@ namespace motor
             generic_property( void_t ) noexcept{}
 
             generic_property( motor::property::editor_hint const h ) noexcept : 
-                numerical_traits( h ) {}
+                base_t( h ) {}
 
             generic_property( motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept : 
-                numerical_traits( h, mm ) {}
+                base_t( h, mm ) {}
 
             generic_property( typename this_t::min_max_in_t mm ) noexcept : 
-                numerical_traits( mm ) {}
+                base_t( mm ) {}
 
             generic_property( T const & v ) noexcept :
                 _data( v ) {}
 
             generic_property( T const & v, motor::property::editor_hint const h ) noexcept :
-                _data( v ), numerical_traits( h ) {}
+                _data( v ), base_t( h ) {}
 
             generic_property( T const & v, typename this_t::min_max_in_t mm ) noexcept :
-                _data( v ), numerical_traits( mm ){}
+                _data( v ), base_t( mm ){}
 
             generic_property( T const & v, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
-                _data( v ), numerical_traits( h, mm ){}
+                _data( v ), base_t( h, mm ){}
 
-            generic_property( this_rref_t rhv ) noexcept : numerical_traits( std::move( rhv ) ), _data( rhv._data ) {}
+            generic_property( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) ), _data( rhv._data ) {}
 
             virtual ~generic_property( void_t ) noexcept {}
 
