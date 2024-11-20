@@ -121,7 +121,7 @@ namespace motor
             template< typename T >
             bool_t get_property( motor::string_in_t name, motor::core::mtr_safe< motor::property::generic_property< T > > & res ) noexcept
             {
-                auto * ret = this_t::borrow_property( name ) ;
+                auto * ret = this_t::borrow_property<T>( name ) ;
                 if( ret == nullptr ) return false ;
                 res = motor::shared( ret )  ;
                 return true ;
