@@ -270,6 +270,7 @@ namespace motor
             motor_this_typedefs( generic_property< motor::wire::input_slot< T > > ) ;
 
             motor_typedefs( numerical_traits< T >, base ) ;
+            motor_typedefs( numerical_traits< T >::value_t, value ) ;
 
         private:
 
