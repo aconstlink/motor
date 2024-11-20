@@ -269,6 +269,8 @@ namespace motor
         {
             motor_this_typedefs( generic_property< motor::wire::input_slot< T > > ) ;
 
+            motor_typedefs( numerical_traits< T >, base ) ;
+
         private:
 
             using is_t = motor::wire::input_slot< T > ;
@@ -282,31 +284,31 @@ namespace motor
             generic_property( void_t ) noexcept {}
 
             generic_property( motor::property::editor_hint const h ) noexcept : 
-                numerical_traits( h ) {}
+                base_t( h ) {}
 
             generic_property( motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
-                numerical_traits( h, mm ) {}
+                base_t( h, mm ) {}
 
             generic_property( typename this_t::min_max_in_t mm ) noexcept :
-                numerical_traits( mm ) {}
+                base_t( mm ) {}
 
             generic_property( T const & v ) noexcept :
             {
                 _is->set_value( v ) ;
             }
 
-            generic_property( T const & v, motor::property::editor_hint const h ) noexcept : numerical_traits( h ) 
+            generic_property( T const & v, motor::property::editor_hint const h ) noexcept : base_t( h ) 
             {
                 _is->set_value( v ) ;
             }
 
-            generic_property( T const & v, typename this_t::min_max_in_t mm ) noexcept : numerical_traits( mm ) 
+            generic_property( T const & v, typename this_t::min_max_in_t mm ) noexcept : base_t( mm ) 
             {
                 _is->set_value( v ) ;
             }
 
             generic_property( T const & v, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
-                numerical_traits( h, mm ) 
+                base_t( h, mm ) 
             {
                 _is->set_value( v ) ;
             }
@@ -318,27 +320,27 @@ namespace motor
             }
 
             generic_property( is_mtr_safe_t input, motor::property::editor_hint const h ) noexcept :
-                numerical_traits( h ) 
+                base_t( h ) 
             {
                 motor::release( motor::move( _is ) ) ;
                 _is = motor::move( input ) ;
             }
 
             generic_property( is_mtr_safe_t input, typename this_t::min_max_in_t mm ) noexcept :
-                numerical_traits( mm ) 
+                base_t( mm ) 
             {
                 motor::release( motor::move( _is ) ) ;
                 _is = motor::move( input ) ;
             }
 
             generic_property( is_mtr_safe_t input, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
-                numerical_traits( h, mm )
+                base_t( h, mm )
             {
                 motor::release( motor::move( _is ) ) ;
                 _is = motor::move( input ) ;
             }
 
-            generic_property( this_rref_t rhv ) noexcept : numerical_traits( std::move( rhv ) )
+            generic_property( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) )
             {
                 _is->disconnect() ;
                 motor::release( motor::move( _is ) ) ;
