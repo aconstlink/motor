@@ -77,5 +77,23 @@ namespace motor
         {
             static constexpr auto value = motor::property::editor_hint::slider ;
         };
+
+        template<>
+        struct default_editor_hint< motor::math::vec2f_t, false >
+        {
+            static constexpr auto value = motor::property::editor_hint::slider ;
+        };
+
+        template<>
+        struct default_editor_hint< motor::math::vec3f_t, false >
+        {
+            static constexpr auto value = motor::property::editor_hint::slider ;
+        };
+
+        template<>
+        struct default_editor_hint< motor::math::vec4f_t, false >
+        {
+            static constexpr auto value = motor::property::editor_hint::slider ;
+        };
     }
 }

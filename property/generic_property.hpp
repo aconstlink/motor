@@ -9,6 +9,10 @@
 #include <motor/wire/slot/input_slot.h>
 #include <motor/std/string>
 
+#include <motor/math/vector/vector2.hpp>
+#include <motor/math/vector/vector3.hpp>
+#include <motor/math/vector/vector4.hpp>
+
 #include <type_traits>
 
 namespace motor
@@ -23,8 +27,7 @@ namespace motor
         public:
 
             motor_typedefs( T, value ) ;
-            using min_max_t_ = motor::property::min_max< T, std::is_fundamental< T >::value > ;
-            motor_typedefs( min_max_t_, min_max ) ;
+            motor_typedefs( motor::property::min_max< T >, min_max ) ;
 
         private:
 
@@ -46,6 +49,13 @@ namespace motor
 
             numerical_traits( this_rref_t rhv ) noexcept : _mm( rhv._mm ), _hint( rhv._hint ) {}
             virtual ~numerical_traits( void_t ) noexcept {}
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                _mm = rhv._mm ;
+                _hint = rhv._hint ;
+                return *this ;
+            }
 
         public:
 
@@ -84,6 +94,10 @@ namespace motor
         motor_typedefs( numerical_traits< float_t >, float_traits ) ;
         motor_typedefs( numerical_traits< double_t >, double_traits ) ;
         motor_typedefs( numerical_traits< motor::string_t >, string_traits ) ;
+
+        motor_typedefs( numerical_traits< motor::math::vec2f_t >, vec2f_traits ) ;
+        motor_typedefs( numerical_traits< motor::math::vec3f_t >, vec3f_traits ) ;
+        motor_typedefs( numerical_traits< motor::math::vec4f_t >, vec4f_traits ) ;
 
         template< typename T, bool is_enum = std::is_enum< T >::value >
         class generic_property ; 
@@ -344,7 +358,6 @@ namespace motor
 
             generic_property( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) )
             {
-                _is->disconnect() ;
                 motor::release( motor::move( _is ) ) ;
                 _is = motor::move( rhv._is ) ;
             }
@@ -352,6 +365,14 @@ namespace motor
             virtual ~generic_property( void_t ) noexcept 
             {
                 motor::release( motor::move( _is ) ) ;
+            }
+
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                base_t::operator = ( std::move( rhv ) )  ;
+                motor::release( motor::move( _is ) ) ;
+                _is = motor::move( rhv._is ) ;
+                return *this ;
             }
 
         public: // numerical_traits interface
@@ -377,6 +398,18 @@ namespace motor
             {
                 return _is ;
             }
+
+        public:
+
+            static bool_t create_property( motor::wire::iinput_slot_mtr_t is, this_t & prop_out ) noexcept
+            {
+                auto * is_ = dynamic_cast< motor::wire::input_slot< value_t > * >( is ) ;
+                if( is_ == nullptr ) return false ;
+
+                prop_out = this_t( motor::share( is_ ) ) ;
+
+                return true ;
+            }
         };
         motor_typedefs( generic_property< motor::wire::input_slot< byte_t > >, byte_is_property ) ;
         motor_typedefs( generic_property< motor::wire::input_slot< bool_t > >, bool_is_property ) ;
@@ -387,5 +420,6 @@ namespace motor
         motor_typedefs( generic_property< motor::wire::input_slot< float_t > >, float_is_property ) ;
         motor_typedefs( generic_property< motor::wire::input_slot< double_t > >, double_is_property ) ;
         motor_typedefs( generic_property< motor::wire::input_slot< motor::string_t > >, string_is_property ) ;
+
     }
 }

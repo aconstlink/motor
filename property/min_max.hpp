@@ -8,18 +8,8 @@ namespace motor
 {
     namespace property
     {
-        // @param T the value type
-        // @param enable true if this class should be enabled
-        //          otherwise it is empty
-        template< typename T, bool enable >
-        class min_max {};
-
-        // disabled => enable = false
         template< typename T >
-        class min_max < T, false > {};
-
-        template< typename T >
-        class min_max< T, true >
+        class min_max
         {
         private:
 

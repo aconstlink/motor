@@ -5,6 +5,9 @@
 #include <motor/base/macros/typedef.h>
 #include <motor/base/macros/move.h>
 
+#include <motor/math/vector/vector2.hpp>
+#include <motor/math/vector/vector3.hpp>
+#include <motor/math/vector/vector4.hpp>
 
 namespace motor
 {
