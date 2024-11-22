@@ -399,6 +399,39 @@ namespace motor
                 return _is ;
             }
 
+            void_t replace_is( motor::wire::iinput_slot_mtr_safe_t s, bool_t const take_old_value ) noexcept
+            {
+                if ( s.mtr() == _is ) 
+                {
+                    motor::release( motor::move( s ) ) ;
+                    return ;
+                }
+
+                auto * s_ = dynamic_cast<typename this_t::is_mtr_t>( s.mtr() ) ;
+                if ( s_ == nullptr )
+                {
+                    motor::release( motor::move( s ) ) ;
+                    return ;
+                }
+
+                if( take_old_value && _is != nullptr )
+                    s_->set_value( _is->get_value() ) ;
+                    
+                motor::release( motor::move( _is ) ) ;
+                _is = s_ ;
+            }
+
+            void_t replace_is( motor::wire::iinput_slot_mtr_safe_t s ) noexcept
+            {
+                this_t::replace_is( motor::move( s ), false ) ;
+            }
+
+            void_t replace_is( typename this_t::is_mtr_safe_t s ) noexcept
+            {
+                motor::release( motor::move( _is ) ) ;
+                _is = motor::move( s ) ;
+            }
+
         public:
 
             static bool_t create_property( motor::wire::iinput_slot_mtr_t is, this_t & prop_out ) noexcept

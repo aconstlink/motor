@@ -154,14 +154,15 @@ namespace motor
         template< typename T >
         static bool_t add_is_property( motor::string_in_t name, motor::wire::iinput_slot_ptr_t is, motor::property::property_sheet_inout_t props )
         {
-            using property_t = motor::property::generic_property<motor::wire::input_slot< T > > ;
+            using type_t = motor::wire::input_slot< T > ;
+            using property_t = motor::property::generic_property< type_t > ;
             property_t p ;
 
             if ( property_t::create_property( is, p ) )
             {
                 if( !props.add_property( name, std::move( p ) ) )
                 {
-                    return props.borrow_property< T >( name ) != nullptr ;
+                    return props.borrow_property< type_t >( name ) != nullptr ;
                 }
                 return true ;
             }
