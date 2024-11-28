@@ -73,6 +73,12 @@ namespace motor
                 _cond.notify_all() ;
             }
 
+            void_t reset( void_t ) noexcept
+            {
+                lock_guard_t lk( _mtx ) ;
+                _condition = false ;
+            }
+
             /// wait until condition == true
             void_t wait( void_t ) noexcept
             {

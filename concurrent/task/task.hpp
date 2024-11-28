@@ -4,6 +4,7 @@
 #include "../api.h"
 #include "../typedefs.h"
 #include "../sync_object.hpp"
+#include "../mrsw.hpp"
 
 #include <motor/std/hash_map>
 #include <motor/std/vector>
@@ -35,6 +36,11 @@ namespace motor
             motor::concurrent::mutex_t _incomings_mtx ;
             size_t _incomings = 0 ;
 
+            mutable motor::concurrent::mrsw_t _exec_mtx ;
+            bool_t _is_executing = false ;
+
+            mutable motor::concurrent::sync_object_t _so ;
+
             bool_t dec_incoming( void_t ) noexcept 
             {
                 motor::concurrent::lock_guard_t lk( _incomings_mtx ) ;
@@ -55,13 +61,13 @@ namespace motor
 
         public:
 
-            task( void_t ) noexcept : _ins( tasks_t::allocator_type("incomings")), 
+            task( void_t ) noexcept : _ins( tasks_t::allocator_type("incomings") ), 
                 _outs( tasks_t::allocator_type("outgoings") )
             {
                 _funk = [=]( this_t::task_funk_param_in_t ){} ;
             }
 
-            task( task_funk_t f ) noexcept: _ins( tasks_t::allocator_type("incomings")), 
+            task( task_funk_t f ) noexcept: _ins( tasks_t::allocator_type("incomings") ), 
                 _outs( tasks_t::allocator_type("outgoings"))
             {
                 _funk = f ;
@@ -74,6 +80,8 @@ namespace motor
                 _ins = std::move( rhv._ins ) ;
                 _outs = std::move( rhv._outs ) ;
                 _incomings = rhv._incomings ;
+                _is_executing = rhv._is_executing ;
+                _so = std::move( rhv._so ) ;
             }
 
             ~task( void_t ) noexcept
@@ -95,6 +103,8 @@ namespace motor
                 _ins = std::move( rhv._ins ) ;
                 _outs = std::move( rhv._outs ) ;
                 _incomings = rhv._incomings ;
+                _is_executing = rhv._is_executing ;
+                _so = std::move( rhv._so ) ;
                 return *this ;
             }
 
@@ -103,7 +113,27 @@ namespace motor
                 _funk = f ;
             }
 
+            bool_t is_executing( void_t ) const noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( _exec_mtx ) ;
+                return _is_executing ;
+            }
+
+            void_t wait_until_executed( void_t ) const noexcept
+            {
+                _so.wait() ;
+            }
+
         private:
+
+            void_t set_executing( bool_t const b ) noexcept
+            {
+                if( !b ) _so.set_and_signal() ;
+                else _so.reset() ;
+
+                motor::concurrent::mrsw_t::writer_lock_t lk( _exec_mtx ) ;
+                _is_executing = b ;
+            }
 
             bool_t add_incoming( this_mtr_t ptr ) noexcept
             {
@@ -323,10 +353,12 @@ namespace motor
             {
                 if( _incomings != 0 ) return false ;
 
+                this_t::set_executing( true ) ;
                 this_t::task_funk_param_t p ;
                 _funk( p ) ;
 
                 _incomings = _ins.size() ;
+                this_t::set_executing( false ) ;
 
                 return true ;
             }

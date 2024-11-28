@@ -2,6 +2,8 @@
 
 #include "node.h"
 
+#include <motor/log/global.h>
+
 using namespace motor::wire ;
 
 //*****************************************************
@@ -30,6 +32,26 @@ inode::inode( this_rref_t rhv ) noexcept : _incoming( std::move( rhv._incoming )
 //*****************************************************
 inode::~inode( void_t ) noexcept 
 {
+    #if 0
+    if( _task != nullptr )
+    {
+        assert( !_task->is_executing() && 
+            "The task is still in the loop. So releasing the node needs to wait."
+            "The solution right now is to wait for all taks to be full executed in the scheduler."
+            "Second solution would be to insert a sync_object in the task so other instances could wait for it." ) ;
+
+        motor::log::global_t::critical( "[inode::~inode] : task did not finished executing." ) ;
+
+        // _task->wait_for_sync() ;
+    }
+    #elif 1
+    // the task could still be in the loop. So before deleting the node,
+    // be sure to wait for the task which has a captured this pointer.
+    // @see make_task_funk
+    if( _task != nullptr ) 
+        _task->wait_until_executed() ;
+    #endif 
+
     motor::memory::release_ptr( _task ) ;
     for ( auto ptr : _incoming ) motor::memory::release_ptr( ptr ) ;
     for ( auto ptr : _outgoing ) motor::memory::release_ptr( ptr ) ;
