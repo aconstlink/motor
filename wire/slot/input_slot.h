@@ -138,6 +138,11 @@ namespace motor
                 return _value ;
             }
 
+            bool_t has_changed( void_t ) const noexcept
+            {
+                return _has_changed ;
+            }
+
             // get the value in v if the value has changed
             // returns the "changed flag" and also resets it
             bool_t get_value_and_reset( T & v ) noexcept
@@ -150,6 +155,12 @@ namespace motor
                 }
                 
                 return false ;
+            }
+
+            T const & get_value_and_reset( void_t ) noexcept
+            {
+                _has_changed = false ;
+                return _value ;
             }
 
             // 

@@ -9,15 +9,11 @@ namespace motor
     namespace wire
     {
         template< typename T >
-        class variable< motor::math::m3d::transformation< T >, motor::wire::detailed_trait > : public motor::wire::any, public motor::wire::detailed_trait
+        class variable< motor::math::m3d::transformation< T > > : public motor::wire::any
         {
             using base_t = motor::wire::any ;
 
-            using trait_t = motor::wire::detailed_trait ;
-
-            motor_this_typedefs( variable< motor::math::m3d::transformation< T > motor_comma trait_t > ) ;
-
-            
+            motor_this_typedefs( variable< motor::math::m3d::transformation< T > > ) ;
 
         public:
 
@@ -25,38 +21,57 @@ namespace motor
 
         private:
 
-            using pos_t = motor::wire::vec3v< T, trait_t > ;
-            using scale_t = motor::wire::vec3v< T, trait_t > ;
-            using axis_t = motor::wire::vec3v< T, trait_t > ;
-            using angle_t = motor::wire::variable< T, trait_t > ;
-
             using in_t = motor::wire::input_slot< value_t > ;
             using out_t = motor::wire::output_slot< value_t > ;
 
+            using vec3_is_t = motor::wire::input_slot< motor::math::vector3< T > > ;
+            using type_is_t = motor::wire::input_slot< T > ;
+
         private:
 
-            pos_t _pos = pos_t( "position" ) ;
-            scale_t _scale = scale_t( "scale" ) ;
-            axis_t _axis = axis_t( "axis" ) ;
-            angle_t _angle = angle_t( "angle" ) ;
+            vec3_is_t * _pos = motor::shared( vec3_is_t() ) ;
+            vec3_is_t * _scale = motor::shared( vec3_is_t() ) ;
+            vec3_is_t * _axis = motor::shared( vec3_is_t() ) ;
+            type_is_t * _angle = motor::shared( type_is_t() ) ;
 
         public:
 
             variable( char const * name ) noexcept : base_t( name,
                 motor::shared( in_t() ), motor::shared( out_t() ) ) {}
             variable( char const * name, value_cref_t v ) noexcept : base_t( name,
-                motor::shared( in_t() ), motor::shared( out_t() ) )
+                motor::shared( in_t( v ) ), motor::shared( out_t( v ) ) )
             {
-                this_t::set_value( v ) ;
+                this_t::propagate_value_to_sub( v ) ;
             }
 
             variable( this_cref_t ) = delete ;
-            variable( this_rref_t rhv ) noexcept :
-                base_t( std::move( rhv ) ),
-                _pos( std::move( rhv._pos ) ), _scale( std::move( rhv._scale ) ),
-                _axis( std::move( rhv._axis ) ), _angle( std::move( rhv._angle ) ) {}
+            variable( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) )
+            {
+                this_t::disconnect_and_clear() ;
 
-            virtual ~variable( void_t ) noexcept {}
+                _pos = motor::move( rhv._pos ) ;
+                _scale = motor::move( rhv._scale ) ;
+                _axis = motor::move( rhv._axis ) ;
+                _angle = motor::move( rhv._angle ) ;
+            }
+
+            virtual ~variable( void_t ) noexcept 
+            {
+                this_t::disconnect_and_clear() ;
+            }
+
+            void_t disconnect_and_clear( void_t ) noexcept
+            {
+                if( _pos != nullptr ) _pos->disconnect() ;
+                if( _scale != nullptr ) _scale->disconnect() ;
+                if( _axis != nullptr ) _axis->disconnect() ;
+                if( _angle != nullptr ) _angle->disconnect() ;
+
+                motor::release( motor::move( _pos ) ) ;
+                motor::release( motor::move( _scale ) ) ;
+                motor::release( motor::move( _axis ) ) ;
+                motor::release( motor::move( _angle ) ) ;
+            }
 
         public:
 
@@ -75,17 +90,17 @@ namespace motor
                     this_t::propagate_value_to_sub( v ) ;
                     return true ;
                 }
-                else if ( motor::math::vec4b_t( _pos.update(), _scale.update(),
-                    _axis.update(), _angle.update() ).any() )
+                else if ( motor::math::vec4b_t( _pos->has_changed(), _scale->has_changed(),
+                    _axis->has_changed(), _angle->has_changed() ).any() )
                 {
-                    auto const p = _pos.get_value() ;
-                    auto const s = _scale.get_value() ;
-                    auto const ax = _axis.get_value() ;
-                    auto const an = _angle.get_value() ;
+                    auto const p = _pos->get_value_and_reset() ;
+                    auto const s = _scale->get_value_and_reset() ;
+                    auto const ax = _axis->get_value_and_reset() ;
+                    auto const an = _angle->get_value_and_reset() ;
 
                     this_t::value_t const trafo( s, motor::math::vector_is_normalized( motor::math::vector4<T>( ax, an ) ), p ) ;
 
-                    this_t::set_value( trafo ) ;
+                    this_t::set_value_and_exchange( trafo ) ;
 
                     return true ;
                 }
@@ -93,14 +108,25 @@ namespace motor
                 return false ;
             }
 
+            virtual motor::wire::inputs_t inputs( void_t ) noexcept
+            {
+                motor::string_t const name = base_t::sname() ;
+
+                return motor::wire::inputs_t( 
+                    { 
+                        { name, base_t::get_is() },
+                        { name + ".position", motor::share( _pos ) },
+                        { name + ".scale", motor::share( _scale ) },
+                        { name + ".axis", motor::share( _axis ) }, 
+                        { name + ".angle", motor::share( _angle ) } 
+                    }, false ) ;
+            }
+
             value_cref_t get_value( void_t ) const noexcept
             {
                 return base_t::borrow_os<out_t>()->get_value() ;
             }
-
-            // if the transformation is updated, other
-            // costly functions are called. So only use
-            // if really required.
+            
             void_t set_value( value_cref_t v ) noexcept
             {
                 auto in_ = base_t::borrow_is<in_t>() ;
@@ -110,54 +136,32 @@ namespace motor
                 out_->set_value( v ) ;
             }
 
+            void_t set_value_and_exchange( value_cref_t v ) noexcept
+            {
+                auto in_ = base_t::borrow_is<in_t>() ;
+                auto out_ = base_t::borrow_os<out_t>() ;
+
+                in_->set_value( v ) ;
+                out_->set_and_exchange( v ) ;
+            }
+
         private:
 
             void_t propagate_value_to_sub( value_cref_t v ) noexcept
             {
-                _pos.set_value( v.get_translation() ) ;
+                _pos->set_value( v.get_translation() ) ;
 
                 // some cost involved!
-                _scale.set_value( v.get_scale() ) ;
+                _scale->set_value( v.get_scale() ) ;
 
                 // some cost involved!
                 {
                     auto const orientation = v.get_orientation() ;
-                    _axis.set_value( orientation.xyz() ) ;
-                    _angle.set_value( orientation.w() ) ;
-                }
-
-                {
-                    auto const r = v.get_rotation_matrix() ;
-                    _axis.set_value( r.rotation_axis() ) ;
-                    _angle.set_value( r.angle() ) ;
+                    _axis->set_value( orientation.xyz() ) ;
+                    _angle->set_value( orientation.w() ) ;
                 }
             }
-
-        private:
-
-            virtual void_t for_each_member( for_each_funk_t f, motor::wire::any::member_info_in_t ifo ) noexcept
-            {
-                {
-                    motor::string_t const full_name = ifo.full_name + "." + _pos.name() ;
-                    f( _pos, { ifo.level, full_name } ) ;
-                    motor::wire::any::derived_accessor( _pos ).for_each_member( f, { ifo.level + 1, full_name } ) ;
-                }
-
-                {
-                    motor::string_t const full_name = ifo.full_name + "." + _axis.name() ;
-                    f( _axis, { ifo.level, full_name } ) ;
-                    motor::wire::any::derived_accessor( _axis ).for_each_member( f, { ifo.level + 1, full_name } ) ;
-                }
-
-                {
-                    motor::string_t const full_name = ifo.full_name + "." + _angle.name() ;
-                    f( _angle, { ifo.level, full_name } ) ;
-                    motor::wire::any::derived_accessor( _angle ).for_each_member( f, { ifo.level + 1, full_name } ) ;
-                }
-            }
-
         } ;
-        motor_typedefs( variable< motor::math::m3d::transformation< float_t > motor_comma motor::wire::simple_trait >, trafo3fv ) ;
-        motor_typedefs( variable< motor::math::m3d::transformation< float_t > motor_comma motor::wire::detailed_trait >, trafo3fvd ) ;
+        motor_typedefs( variable< motor::math::m3d::transformation< float_t > >, trafo3fv ) ;
     }
 }

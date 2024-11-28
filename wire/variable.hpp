@@ -11,9 +11,6 @@ namespace motor
 {
     namespace wire
     {
-        class simple_trait { /*public: virtual ~simple_trait( void_t ) {}*/ } ;
-        class detailed_trait {} ;
-
         class any
         {
             motor_this_typedefs( any ) ;
@@ -56,6 +53,12 @@ namespace motor
                 return _name ;
             }
 
+            motor::string_t sname( void_t ) const noexcept
+            {
+                return motor::string_t( _name ) ;
+            }
+
+            #if 0
             inputs_t inputs( void_t ) noexcept 
             {
                 inputs_t ret ;
@@ -65,11 +68,13 @@ namespace motor
                 } ) ;
                 return ret ;
             }
+            #endif
 
         public: // virtual 
 
             // return bool if anything changed.
             virtual bool_t update( void_t ) noexcept = 0 ;
+            virtual motor::wire::inputs_t inputs( void_t ) noexcept = 0 ;
 
         public:
 
@@ -127,56 +132,14 @@ namespace motor
             {
                 return _out ;
             }
-            
-        public:
-
-            void_t inspect( for_each_funk_t f ) noexcept
-            {
-                member_info_t info{ 0, motor::string_t( this_t::name() ) } ;
-                f( *this, info ) ;
-                ++info.level ;
-
-                this->for_each_member( f, info ) ;
-            }
-
-            class derived_accessor
-            {
-                this_ref_t _owner ;
-            public:
-                derived_accessor( this_ref_t r ) noexcept : _owner( r ) {}
-                void_t for_each_member( for_each_funk_t f, member_info_in_t ifo ) noexcept 
-                {
-                    _owner.for_each_member( f, ifo ) ;
-                }
-            };
-            friend class derived_accessor ;
-
-        private:
-
-            // go through every member motor::wire::variable< some_type >
-            // only required for complex types with multiple sub-variables
-            virtual void_t for_each_member( for_each_funk_t f, member_info_in_t ) noexcept 
-            {
-                // do not implement if no sub-variables are used!
-            }
         };
         motor_typedef( any ) ;
 
-        static bool_t is_simple( motor::wire::any_ptr_t p ) noexcept
-        {
-            return dynamic_cast< motor::wire::simple_trait * >( p ) != nullptr ;
-        }
-
-        static bool_t is_detailed( motor::wire::any_ptr_t p ) noexcept
-        {
-            return dynamic_cast<motor::wire::simple_trait *>( p ) != nullptr ;
-        }
-
-        template< typename T, typename trait_t >
-        class variable : public any, public trait_t
+        template< typename T >
+        class variable : public any
         {
             using base_t = any ;
-            motor_this_typedefs( variable< T motor_comma trait_t > ) ;
+            motor_this_typedefs( variable< T > ) ;
 
         public:
 
@@ -207,6 +170,12 @@ namespace motor
                 return false ;
             }
 
+            virtual motor::wire::inputs_t inputs( void_t ) noexcept 
+            {
+                return motor::wire::inputs_t( { { base_t::sname(), base_t::get_is() } }, false ) ;
+            }
+
+
             // get output slot value
             T const & get_value( void_t ) const noexcept
             {
@@ -220,18 +189,10 @@ namespace motor
             }
         };
 
-        motor_typedefs( variable< bool_t motor_comma motor::wire::simple_trait >, boolv ) ;
-        motor_typedefs( variable< int_t motor_comma motor::wire::simple_trait >, intv ) ;
-        motor_typedefs( variable< uint_t motor_comma motor::wire::simple_trait >, uintv ) ;
-        motor_typedefs( variable< float_t motor_comma motor::wire::simple_trait >, floatv ) ;
-        motor_typedefs( variable< double_t motor_comma motor::wire::simple_trait >, doublev ) ;
-
-
-        template< typename T >
-        bool_t is_type_compatible( motor::wire::any_ptr_t ptr ) noexcept
-        {
-            using target_type = motor::wire::variable< T, motor::wire::simple_trait >::out_t ;
-            return dynamic_cast< target_type *>( ptr->borrow_os() ) != nullptr ;
-        }
+        motor_typedefs( variable< bool_t >, boolv ) ;
+        motor_typedefs( variable< int_t >, intv ) ;
+        motor_typedefs( variable< uint_t >, uintv ) ;
+        motor_typedefs( variable< float_t >, floatv ) ;
+        motor_typedefs( variable< double_t >, doublev ) ;
     }
 }
