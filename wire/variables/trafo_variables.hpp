@@ -86,7 +86,7 @@ namespace motor
 
                 if ( value_t v; in_->get_value_and_reset( v ) )
                 {
-                    *out_ = v ;
+                    this_t::set_output_value_and_exchange( v ) ;
                     this_t::propagate_value_to_sub( v ) ;
                     return true ;
                 }
@@ -143,6 +143,40 @@ namespace motor
 
                 in_->set_value( v ) ;
                 out_->set_and_exchange( v ) ;
+            }
+
+            void_t set_output_value_and_exchange( value_cref_t v ) noexcept
+            {
+                auto out_ = base_t::borrow_os<out_t>() ;
+                out_->set_and_exchange( v ) ;
+            }
+
+            typename this_t::in_t * borrow_value_is( void_t ) noexcept
+            {
+                return base_t::borrow_is<in_t>() ;
+            }
+
+            typename this_t::out_t * borrow_value_os( void_t ) noexcept
+            {
+                return base_t::borrow_os<os_t>() ;
+            }
+
+            typename motor::core::mtr_safe< this_t::out_t > get_value_os( void_t ) noexcept
+            {
+                return motor::share( this_t::borrow_os<out_t>() ) ;
+            }
+
+            void_t connect( motor::core::mtr_safe< in_t > && is ) noexcept
+            {
+                out_t * os = base_t::borrow_os<os_t>() ;
+                os->connect( motor::move( is ) ) ;
+            }
+
+            void_t connect( motor::core::mtr_safe< out_t > && s ) noexcept
+            {
+                in_t * is = base_t::borrow_is<in_t>() ;
+                is->connect( motor::move( s ) ) ;
+                this_t::propagate_value_to_sub( is->get_value() ) ;
             }
 
         private:

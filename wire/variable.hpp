@@ -44,6 +44,9 @@ namespace motor
 
             virtual ~any( void_t ) noexcept 
             {
+                if( _in != nullptr ) _in->disconnect() ;
+                if( _out != nullptr ) _out->disconnect() ;
+
                 motor::release( motor::move( _in ) ) ;
                 motor::release( motor::move( _out ) ) ;
             }
@@ -57,18 +60,6 @@ namespace motor
             {
                 return motor::string_t( _name ) ;
             }
-
-            #if 0
-            inputs_t inputs( void_t ) noexcept 
-            {
-                inputs_t ret ;
-                this_t::inspect( [&]( this_ref_t any_in, member_info_in_t info )
-                {
-                    ret.add( info.full_name, any_in.get_is() ) ;
-                } ) ;
-                return ret ;
-            }
-            #endif
 
         public: // virtual 
 

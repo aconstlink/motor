@@ -104,6 +104,7 @@ namespace motor
                     {
                         s->connect( motor::share( this ), false ) ;
                     }
+                    this_t::exchange() ;
                     return true ;
                 }
 

@@ -62,6 +62,16 @@ namespace motor
                 motor::release( motor::move( _y ) ) ;
             }
 
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                this_t::disconnect_and_clear() ;
+
+                _x = motor::move( rhv._x ) ;
+                _y = motor::move( rhv._y ) ;
+
+                return *this ;
+            }
+
         public:
 
             virtual bool_t update( void_t ) noexcept
@@ -75,7 +85,7 @@ namespace motor
 
                 if ( value_t a; in_->get_value_and_reset( a ) )
                 {
-                    *out_ = a ;
+                    out_->set_and_exchange( a ) ;
                     this_t::propagate_value_to_sub( a ) ;
                     return true ;
                 }
@@ -108,13 +118,20 @@ namespace motor
                 return base_t::borrow_os<out_t>()->get_value() ;
             }
 
+            // acts as is the value was set via the input slot.
+            // calling update() is required.
             void_t set_value( value_cref_t v ) noexcept
+            {
+                auto in_ = base_t::borrow_is<in_t>() ;
+                in_->set_value( v ) ;
+            }
+
+            void_t set_value_and_exchange( value_cref_t v ) noexcept
             {
                 auto in_ = base_t::borrow_is<in_t>() ;
                 auto out_ = base_t::borrow_os<out_t>() ;
 
                 in_->set_value( v ) ;
-                out_->set_value( v ) ;
             }
 
         private:
@@ -181,6 +198,17 @@ namespace motor
                 motor::release( motor::move( _z ) ) ;
             }
 
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                this_t::disconnect_and_clear() ;
+
+                _x = motor::move( rhv._x ) ;
+                _y = motor::move( rhv._y ) ;
+                _z = motor::move( rhv._z ) ;
+
+                return *this ;
+            }
+
         public:
 
             virtual bool_t update( void_t ) noexcept
@@ -194,7 +222,7 @@ namespace motor
 
                 if ( value_t a; in_->get_value_and_reset( a ) )
                 {
-                    *out_ = a ;
+                    out_->set_and_exchange( a ) ;
                     this_t::propagate_value_to_sub( a ) ;
                     return true ;
                 }
@@ -233,13 +261,21 @@ namespace motor
                 return base_t::borrow_os<out_t>()->get_value() ;
             }
 
+            // acts as is the value was set via the input slot.
+            // calling update() is required.
             void_t set_value( value_cref_t v ) noexcept
+            {
+                auto in_ = base_t::borrow_is<in_t>() ;
+                in_->set_value( v ) ;
+            }
+
+            void_t set_value_and_exchange( value_cref_t v ) noexcept
             {
                 auto in_ = base_t::borrow_is<in_t>() ;
                 auto out_ = base_t::borrow_os<out_t>() ;
 
                 in_->set_value( v ) ;
-                out_->set_value( v ) ;
+                out_->set_and_exchange( v ) ;
             }
 
         private:
@@ -312,6 +348,18 @@ namespace motor
                 motor::release( motor::move( _w ) ) ;
             }
 
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
+            {
+                this_t::disconnect_and_clear() ;
+
+                _x = motor::move( rhv._x ) ;
+                _y = motor::move( rhv._y ) ;
+                _z = motor::move( rhv._z ) ;
+                _w = motor::move( rhv._w ) ;
+
+                return *this ;
+            }
+
         public:
 
             virtual bool_t update( void_t ) noexcept
@@ -325,7 +373,7 @@ namespace motor
 
                 if ( value_t a; in_->get_value_and_reset( a ) )
                 {
-                    *out_ = a ;
+                    out_->set_and_exchange( a ) ;
                     this_t::propagate_value_to_sub( a ) ;
                     return true ;
                 }
@@ -365,13 +413,21 @@ namespace motor
                 return base_t::borrow_os<out_t>()->get_value() ;
             }
 
+            // acts as is the value was set via the input slot.
+            // calling update() is required.
             void_t set_value( value_cref_t v ) noexcept
+            {
+                auto in_ = base_t::borrow_is<in_t>() ;
+                in_->set_value( v ) ;
+            }
+
+            void_t set_value_and_exchange( value_cref_t v ) noexcept
             {
                 auto in_ = base_t::borrow_is<in_t>() ;
                 auto out_ = base_t::borrow_os<out_t>() ;
 
                 in_->set_value( v ) ;
-                out_->set_value( v ) ;
+                out_->set_and_exchange( v ) ;
             }
 
         private:
