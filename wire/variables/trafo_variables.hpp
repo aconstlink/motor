@@ -158,7 +158,7 @@ namespace motor
 
             typename this_t::out_t * borrow_value_os( void_t ) noexcept
             {
-                return base_t::borrow_os<os_t>() ;
+                return base_t::borrow_os<out_t>() ;
             }
 
             typename motor::core::mtr_safe< this_t::out_t > get_value_os( void_t ) noexcept
@@ -168,7 +168,7 @@ namespace motor
 
             void_t connect( motor::core::mtr_safe< in_t > && is ) noexcept
             {
-                out_t * os = base_t::borrow_os<os_t>() ;
+                out_t * os = base_t::borrow_os<out_t>() ;
                 os->connect( motor::move( is ) ) ;
             }
 
