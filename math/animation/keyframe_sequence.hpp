@@ -95,6 +95,11 @@ namespace motor
                 return *this ;
             }
 
+            spline_cref_t get_spline( void_t ) noexcept
+            {
+                return _value_spline ;
+            }
+
         public:
 
             bool_t insert( keyframe_cref_t kf ) noexcept
