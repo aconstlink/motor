@@ -10,6 +10,7 @@ set( non_arch_sources
     animation/evaluation_result.h
     animation/keyframe.hpp
     animation/keyframe_sequence.hpp
+    animation/time_remap_funk.h
 
     spline/linear_bezier_spline.hpp
     spline/quadratic_bezier_spline.hpp

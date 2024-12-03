@@ -190,6 +190,10 @@ namespace motor
             {
                 motor::graphics::gen4::frontend_ptr_t fe ;
                 motor::tool::imgui_ptr_t imgui ;
+
+                float_t sec_dt ;
+                size_t micro_dt ;
+                size_t milli_dt ;
             };
             motor_typedef( tool_data ) ;
 

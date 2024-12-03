@@ -1,6 +1,7 @@
 #pragma once
 
 #include "keyframe.hpp"
+#include "time_remap_funk.h"
 #include "evaluation_result.h"
 #include "../spline/cubic_hermit_spline.hpp"
 #include "../spline/linear_bezier_spline.hpp"
@@ -39,17 +40,26 @@ namespace motor
         
             time_funks_t _time_funks ;
 
+            motor::math::time_remap_funk_type _trf = 
+                motor::math::time_remap_funk_type::none ;
+            
+
         public:
 
             keyframe_sequence( void_t ) noexcept
             {
             }
 
+            keyframe_sequence( motor::math::time_remap_funk_type const trf ) noexcept : 
+                _trf( trf )
+            {}
+
             keyframe_sequence( this_cref_t rhv ) noexcept
             {
                 _keyframes = rhv._keyframes ;
                 _value_spline = rhv._value_spline ;
                 _time_funks = rhv._time_funks ;
+                _trf = rhv._trf ;
             }
 
             keyframe_sequence( this_rref_t rhv ) noexcept
@@ -57,6 +67,7 @@ namespace motor
                 _keyframes = std::move( rhv._keyframes ) ;
                 _value_spline = std::move( rhv._value_spline ) ;
                 _time_funks = std::move( rhv._time_funks ) ;
+                _trf = std::move( rhv._trf ) ;
             }
 
             ~keyframe_sequence( void_t ) noexcept
@@ -69,6 +80,7 @@ namespace motor
                 _keyframes = std::move( rhv._keyframes ) ;
                 _value_spline = std::move( rhv._value_spline ) ;
                 _time_funks = std::move( rhv._time_funks ) ;
+                _trf = std::move( rhv._trf ) ;
 
                 return *this ;
             }
@@ -78,6 +90,7 @@ namespace motor
                 _keyframes = rhv._keyframes ;
                 _value_spline = rhv._value_spline ;
                 _time_funks = rhv._time_funks ;
+                _trf = rhv._trf ;
 
                 return *this ;
             }
@@ -130,12 +143,24 @@ namespace motor
                 return _keyframes.size() ;
             }
 
+            void_t set_time_remapping( motor::math::time_remap_funk_type const trf ) noexcept
+            {
+                _trf = trf ;
+            }
+
         public:
 
-            motor::math::evaluation_result operator () ( time_stamp_t const ts, value_out_t vo ) const noexcept
+            motor::math::evaluation_result operator () ( time_stamp_t ts, value_out_t vo ) const noexcept
             {
                 float_t t ;
             
+                // remap time
+                {
+                    time_stamp_t const a = _keyframes.front().get_time() ;
+                    time_stamp_t const b = _keyframes.back().get_time() ;
+                    ts = motor::math::get_time_remap_funk( _trf )( ts, a, b ) ;
+                }
+
                 // before we can evaluate the anything, we need to check if
                 // 1. the sequence has enough keyframes
                 // 2. the time stamp is in time range of the sequence

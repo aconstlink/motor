@@ -332,15 +332,16 @@ bool_t app::carrier_update( void_t ) noexcept
     // only the shared user/engine data has been send upstream
     if( this_t::before_render(dt_micro) )
     {
+        this_t::graphics_data_t dat_graphic ;
+
         // do single on_graphics for updating 
         // user graphics system data.
         {
-            this_t::graphics_data_t dat ;
-            dat.micro_dt = _render_residual.count() ;
-            dat.sec_dt = float_t( double_t(_render_residual.count()) / 1000000.0 ) ;
-            dat.milli_dt = dat.micro_dt / 1000 ;
+            dat_graphic.micro_dt = _render_residual.count() ;
+            dat_graphic.sec_dt = float_t( double_t(_render_residual.count()) / 1000000.0 ) ;
+            dat_graphic.milli_dt = dat_graphic.micro_dt / 1000 ;
 
-            this->on_graphics( dat ) ;
+            this->on_graphics( dat_graphic ) ;
         }
 
         // render all the present windows
@@ -366,7 +367,13 @@ bool_t app::carrier_update( void_t ) noexcept
                         {
                             d.imgui->execute( [&] ( void_t )
                             {
-                                this_t::tool_data_t td { fe, d.imgui } ;
+                                this_t::tool_data_t td 
+                                { 
+                                    fe, d.imgui,
+                                    dat_graphic.sec_dt,
+                                    dat_graphic.micro_dt,
+                                    dat_graphic.milli_dt
+                                } ;
                                 if( this->on_tool( d.wid, td ) )
                                 {
                                     this_t::display_engine_stats() ;
