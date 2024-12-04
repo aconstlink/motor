@@ -25,14 +25,15 @@ namespace motor
 
             public:
 
-                enum frustum_plane
+                enum class frustum_plane
                 {
-                    p_left,
-                    p_right,
-                    p_bottom,
-                    p_top,
-                    p_near,
-                    p_far
+                    left_plane,
+                    right_plane,
+                    bottom_plane,
+                    top_plane,
+                    near_plane,
+                    far_plane,
+                    num_planes
                 } ;
 
             public:
@@ -43,16 +44,20 @@ namespace motor
                 }
 
 
-                this_ref_t set_plane( frustum_plane fp, plane_cref_t plane )
+                this_ref_t set_plane( this_t::frustum_plane const fp, plane_cref_t plane )
                 {
-                    _planes[ fp ] = plane ;
+                    _planes[ size_t( fp ) % size_t(frustum_plane::num_planes) ] = plane ;
                     return *this ;
+                }
+
+                plane_cref_t get_plane( this_t::frustum_plane const fp ) const
+                {
+                    return _planes[ size_t(fp) % size_t(frustum_plane::num_planes) ] ;
                 }
 
                 plane_cref_t get_plane( size_t i ) const
                 {
-                    assert( i < 6 ) ;
-                    return _planes[ i ] ;
+                    return _planes[ i % % size_t(frustum_plane::num_planes) ] ;
                 }
             };
         }

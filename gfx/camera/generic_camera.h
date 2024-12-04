@@ -85,6 +85,12 @@ namespace motor
                 _sensor_dims = motor::math::vec2f_t( w, h ) ;
             }
 
+            // returns ( w, h, n, f )
+            motor::math::vec4f_t get_dims( void_t ) const noexcept
+            {
+                return motor::math::vec4f_t( _sensor_dims, _near_far ) ;
+            }
+
             // this will be a orthographic camera 
             // this function changes the projection matrix
             this_ref_t make_orthographic( float_t const w, float_t const h,
@@ -190,6 +196,14 @@ namespace motor
             motor::math::mat4f_t mat_cam( void_t ) const noexcept
             {
                 return this_t::get_camera_matrix() ;
+            }
+
+            motor::math::vec4f_t near_far_plane_half_dims( void_t ) const noexcept ;
+            motor::math::vec4f_t near_far_plane_half_dims( motor::math::vec2f_in_t ) const noexcept ;
+
+            motor::math::vec2f_t get_near_far( void_t ) const noexcept
+            {
+                return _near_far ;
             }
 
         public: // ray

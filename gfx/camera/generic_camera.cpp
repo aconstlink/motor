@@ -267,6 +267,25 @@ generic_camera::frustum_cref_t generic_camera::get_frustum( void_t ) const noexc
     return _frustum ;
 }
 
+//******************************************************************************************
+motor::math::vec4f_t generic_camera::near_far_plane_half_dims( void_t ) const noexcept 
+{
+    return this_t::near_far_plane_half_dims( _near_far ) ;
+}
+
+//******************************************************************************************
+motor::math::vec4f_t generic_camera::near_far_plane_half_dims( motor::math::vec2f_in_t nf ) const noexcept 
+{
+    auto const nl = motor::math::m3d::detail::perspective_projection<float_t>::
+        get_half_length_for( _fov, nf.x() ) ;
+    auto const fl = motor::math::m3d::detail::perspective_projection<float_t>::
+        get_half_length_for( _fov, nf.y() ) ;
+
+    auto const aspect = this_t::aspect_h_w() ;
+    return motor::math::vec4f_t( nl, nl * aspect, fl, fl * aspect ) ;
+}
+
+//******************************************************************************************
 generic_camera::ray3_t generic_camera::create_ray_norm( vec2_cref_t norm_pos ) const noexcept
 {
     if( _projection_mode == projection_type::perspective )
@@ -311,10 +330,10 @@ void_t generic_camera::reconstruct_frustum_planes( void_t ) noexcept
     motor::math::vec4f_t const p4 = ( r3 + r2 ).normalized() ;
     motor::math::vec4f_t const p5 = ( r3 - r2 ).normalized() ;
 
-    _frustum.set_plane( frustum_t::p_left, plane_t( p0.negated() ) ) ;
-    _frustum.set_plane( frustum_t::p_right, plane_t( p1.negated() ) ) ;
-    _frustum.set_plane( frustum_t::p_bottom, plane_t( p2.negated() ) ) ;
-    _frustum.set_plane( frustum_t::p_top, plane_t( p3.negated() ) ) ;
-    _frustum.set_plane( frustum_t::p_near, plane_t( p4.negated() ) ) ;
-    _frustum.set_plane( frustum_t::p_far, plane_t( p5.negated() ) ) ;
+    _frustum.set_plane( frustum_t::frustum_plane::left_plane, plane_t( p0.negated() ) ) ;
+    _frustum.set_plane( frustum_t::frustum_plane::right_plane, plane_t( p1.negated() ) ) ;
+    _frustum.set_plane( frustum_t::frustum_plane::bottom_plane, plane_t( p2.negated() ) ) ;
+    _frustum.set_plane( frustum_t::frustum_plane::top_plane, plane_t( p3.negated() ) ) ;
+    _frustum.set_plane( frustum_t::frustum_plane::near_plane, plane_t( p4.negated() ) ) ;
+    _frustum.set_plane( frustum_t::frustum_plane::far_plane, plane_t( p5.negated() ) ) ;
 }
