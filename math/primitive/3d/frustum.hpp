@@ -57,7 +57,7 @@ namespace motor
 
                 plane_cref_t get_plane( size_t i ) const
                 {
-                    return _planes[ i % % size_t(frustum_plane::num_planes) ] ;
+                    return _planes[ i % size_t(frustum_plane::num_planes) ] ;
                 }
             };
         }
