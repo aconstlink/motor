@@ -7,6 +7,7 @@
 #include <motor/concurrent/mrsw.hpp>
 
 #include <mutex>
+#include <cstring>
 
 namespace motor
 {
@@ -15,10 +16,6 @@ namespace motor
         class arena_allocator
         {
         public:
-
-            // @note will not compile if used
-            template< typename T >
-            using vector = motor::vector<T> ;
 
             template< typename T >
             static T * alloc_raw( char const * purpose ) noexcept
@@ -47,11 +44,7 @@ namespace motor
             class arena_allocator
             {
             public:
-
-                // @note will not compile if used
-                template< typename T >
-                using vector = std::vector<T> ;
-
+               
                 template< typename T >
                 static T * alloc_raw( char const * ) noexcept
                 {
@@ -330,14 +323,14 @@ namespace motor
             //**********************************************************************************
             page_ptr_t alloc_page( size_t const prealloc ) noexcept
             {
-                auto * p = allocator_t::alloc_raw<page_t>( "[arena::alloc_page] : page" ) ;
+                auto * p = allocator_t::template alloc_raw<page_t>( "[arena::alloc_page] : page" ) ;
 
                 // 1. the memory block itself
                 {
                     size_t const sib = prealloc * sizeof( T ) ;
                     size_t const sibx = prealloc * ( sizeof( size_t ) << 1 ) ;
 
-                    byte_ptr_t raw_mem = allocator_t::alloc_raw<byte_t>( sib + sibx,
+                    byte_ptr_t raw_mem = allocator_t::template alloc_raw<byte_t>( sib + sibx,
                         "[motor::memory::arena] : raw memory data" ) ;
 
                     p->mem_ptr = raw_mem ;
@@ -346,7 +339,7 @@ namespace motor
                 // 2. the freelist
                 {
                     size_t const sib = prealloc * sizeof( size_t ) ;
-                    byte_ptr_t raw_mem = allocator_t::alloc_raw<byte_t>( sib,
+                    byte_ptr_t raw_mem = allocator_t::template alloc_raw<byte_t>( sib,
                         "[motor::memory::arena] : raw memory freelist" ) ;
 
                     p->free_ptr = (size_t*)raw_mem ;
