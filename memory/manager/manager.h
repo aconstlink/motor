@@ -6,8 +6,8 @@
 #include "../observer.hpp"
 
 #include <map>
+#include <unordered_map>
 #include <mutex>
-
 
 namespace motor
 {
@@ -26,7 +26,7 @@ namespace motor
 
             // can not use motor std because that would trigger 
             // this manager which requires this map type.
-            typedef std::map< void_ptr_t, memory_info > ptr_to_info_t ;
+            typedef std::unordered_map< void_ptr_t, memory_info > ptr_to_info_t ;
 
             typedef std::mutex mutex_t ;
             typedef std::unique_lock< mutex_t > lock_t ;
@@ -38,6 +38,9 @@ namespace motor
             mutable mutex_t _mtx ;
             size_t _allocated_sib = 0 ;
             ptr_to_info_t _ptr_to_info ;
+
+            struct pimpl ;
+            pimpl * _pimpl = nullptr ;
 
         public:
 
