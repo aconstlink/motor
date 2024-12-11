@@ -5,9 +5,6 @@
 
 using namespace motor::memory ;
 
-std::mutex global::_mtx ;
-global::manager_t global::_manager ;
-
 //*************************************************************************************
 global::global( void_t ) noexcept {}
 

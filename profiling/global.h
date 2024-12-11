@@ -15,7 +15,7 @@ namespace motor{ namespace profiling {
 
     private:
 
-        static motor::profiling::manager_t _mgr ;
+        inline static motor::profiling::manager_t _mgr ;
 
     public:
 

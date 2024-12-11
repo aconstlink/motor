@@ -20,8 +20,8 @@ namespace motor
 
         private: // singleton
 
-            static std::mutex _mtx ;
-            static manager_t _manager ;
+            inline static std::mutex _mtx ;
+            inline static manager_t _manager ;
 
         public:
 

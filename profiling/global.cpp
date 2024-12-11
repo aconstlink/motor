@@ -2,9 +2,6 @@
 
 #include "global.h"
 
-
-motor::profiling::manager_t motor::profiling::global::_mgr = motor::profiling::manager_t() ;
-
 using namespace motor::profiling ;
 
 //******************************************************
