@@ -42,6 +42,7 @@ target_link_libraries( ${cur_lib_name}
   PRIVATE stb
   PRIVATE rapidxml
   PRIVATE nlohmann_json
+  PUBLIC motor::geometry
   PUBLIC motor::font
   PUBLIC motor::msl
   PUBLIC motor::audio

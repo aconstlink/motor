@@ -2,6 +2,7 @@
 
 #include "future_item.hpp"
 
+#include <motor/geometry/mesh/polygon_mesh.h>
 #include <motor/audio/object/buffer_object.hpp>
 #include <motor/graphics/texture/image.hpp>
 #include <motor/font/glyph_atlas.h>
@@ -38,5 +39,18 @@ namespace motor
             motor::font::glyph_atlas_mtr_t obj ;
         };
         motor_typedef( glyph_atlas_item ) ;
+
+        struct mesh_item : public item
+        {
+            mesh_item( void_t ) noexcept {}
+            virtual ~mesh_item( void_t ) noexcept {}
+
+            motor::string_t name ;
+            // mesh
+            motor::geometry::polygon_mesh_t poly ;
+            // string for msl shader
+            motor::string_t shader ;
+        };
+        motor_typedef( mesh_item ) ;
     }
 }
