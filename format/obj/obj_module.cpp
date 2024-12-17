@@ -445,21 +445,16 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 print_ln( indent, "{" , shader ) ;
                 ++indent ;
                 
-                if ( has_pos )
-                    print_ln( indent, "in vec3_t pos : position ;" , shader ) ;
-
-                if ( has_nrm )
-                    print_ln( indent, "in vec3_t nrm : normal ;" , shader ) ;
+                
+                print_ln( indent, "in vec3_t pos : position ;" , shader ) ;
+                print_ln( indent, "in vec3_t nrm : normal ;" , shader ) ;
 
                 if ( has_tx )
                     print_ln( indent, "in vec3_t tx : texcoord0 ;" , shader ) ;
 
                 print_ln( indent, "" , shader ) ;
-                if ( has_pos )
-                    print_ln( indent, "out vec4_t pos : position ;" , shader ) ;
-
-                if ( has_nrm )
-                    print_ln( indent, "out vec3_t nrm : normal ;" , shader ) ;
+                print_ln( indent, "out vec4_t pos : position ;" , shader ) ;
+                print_ln( indent, "out vec3_t nrm : normal ;" , shader ) ;
 
                 if ( has_tx )
                     print_ln( indent, "out vec3_t tx : texcoord0 ;" , shader ) ;
@@ -473,6 +468,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 print_ln( indent, "{" , shader ) ;
                 ++indent ;
                 {
+                    print_ln( indent, "out.nrm = in.nrm ;" , shader ) ;
                     print_ln( indent, "out.pos = proj * view * world * vec4_t( in.pos, 1.0 ) ;" , shader ) ;
                 }
                 --indent ;
@@ -488,19 +484,20 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 print_ln( indent, "{", shader ) ;
                 ++indent ;
 
-                if ( has_nrm )
-                    print_ln( indent, "in vec3_t nrm : normal ;", shader ) ;
+                print_ln( indent, "in vec3_t nrm : normal ;", shader ) ;
 
                 if ( has_tx )
                     print_ln( indent, "in vec3_t tx : texcoord0 ;", shader ) ;
 
+                print_ln( indent, "vec3_t light_dir ;", shader ) ;
                 print_ln( indent, "out vec4_t color : color ;", shader ) ;
 
                 print_ln( indent, "void main()", shader ) ;
                 print_ln( indent, "{", shader ) ;
                 ++indent ;
                 {
-                    print_ln( indent, "out.color = vec4_t(1.0, 1.0, 1.0, 1.0 ) ;", shader ) ;
+                    print_ln( indent, "float_t ndl = dot( in.nrm, light_dir ) ;", shader ) ;
+                    print_ln( indent, "out.color = vec4_t(ndl, ndl, ndl, 1.0 ) ;", shader ) ;
                 }
                 --indent ;
                 print_ln( indent, "}", shader ) ;
