@@ -137,7 +137,7 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
     return ptr ;
 }
 
-#define USE_SIB_OPTIMIZATION 1
+#define USE_SIB_OPTIMIZATION 0
 
 //*************************************************************************************
 void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept 
