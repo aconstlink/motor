@@ -92,12 +92,23 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 }
                 if( s != std::string::npos )
                     l += tmp.substr( s, tmp.size() - s ) ;
+
+                // remove whitespace at the end of every line
+                {
+                    size_t const p = l.find_last_not_of( ' ' ) ;
+                    if( p < l.size()-1 )
+                    {
+                        l = l.substr(0, p+1 ) ;
+                    }
+                }
             }
         }
 
         motor::vector< motor::math::vec3f_t > positions ;
         motor::vector< motor::math::vec3f_t > normals ;
         motor::vector< motor::math::vec3f_t > texcoords ;
+        // only valid if texcoords actually have values.
+        size_t num_texcoord_elems = 3 ;
 
         motor::vector< motor::string_t > coord_lines ;
 
@@ -199,6 +210,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 else if ( line[ 0 ] == 'v' && line[ 1 ] == 't' )
                 {
                     texcoords.emplace_back( read_out_vec3( 3, line, num_elems ) ) ;
+                    num_texcoord_elems = std::min( num_elems, num_texcoord_elems ) ;
                 }
                 // position
                 else if ( line[ 0 ] == 'v' )
@@ -206,6 +218,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     positions.emplace_back( read_out_vec3( 2, line, num_elems ) ) ;
                 }
             }
+
+            if( texcoords.size() == 0 )
+                num_texcoord_elems = 0 ;
         }
 
         struct mesh_data
@@ -363,30 +378,115 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // make the polygon mesh
         {
-            #if 0
+            #if 1
             for( auto & m : meshes )
             {
                 motor::geometry::polygon_mesh pm ;
+                pm.position_format = motor::geometry::vector_component_format::xyz ;
+                pm.normal_format = motor::geometry::vector_component_format::xyz ;
+                pm.texcoord_format = motor::geometry::from_num_components( num_texcoord_elems ) ;
+
                 pm.polygons.resize( m.faces.size() ) ;
 
                 // count some numbers
                 {
                     size_t i = 0;
                     size_t num_indices = 0 ;
-                    size_t num_vertices = 0 ;
                     for ( auto & f : m.faces )
                     {
                         pm.polygons[ i++ ] = f.num_vertices ;
                         num_indices += f.num_vertices ;
-                        num_vertices += f.num_vertices ;
                     }
+
                     pm.indices.resize( num_indices ) ;
-                    pm.positions.resize( num_vertices * 3 ) ;
-                    pm.normals.resize( num_vertices ) ;
-                    pm.texcoords.resize( num_vertices ) ;
+                    pm.positions.resize( positions.size() * 3 ) ;
+
+                    if( normals.size() != 0 )
+                    {
+                        // only one layer of normals
+                        pm.normals_indices.resize( 1 ) ;
+                        pm.normals.resize( 1 ) ;
+                        pm.normals_indices[ 0 ].resize( num_indices ) ;
+                        pm.normals[0].resize( normals.size() * 3 ) ;
+                    }
+                    
+                    if( texcoords.size() != 0 )
+                    {
+                        // only one layer of texcoords
+                        pm.texcoords_indices.resize( 1 ) ;
+                        pm.texcoords.resize( 1 ) ;
+                        pm.texcoords_indices[ 0 ].resize( num_indices ) ;
+                        pm.texcoords[0].resize( texcoords.size() * num_texcoord_elems ) ;
+                    }
                 }
 
+                // copy indices
+                {
+                    size_t poly_idx = 0 ;
+                    size_t idx = 0 ;
+                    for ( auto const & f : m.faces )
+                    {
+                        pm.polygons[poly_idx++] = f.num_vertices ;
+                        for( size_t i = 0 ; i<f.num_vertices; ++i )
+                        {
+                            pm.indices[idx] = f.indices.pos_idx[i] ;
+                            if( normals.size() > 0 )
+                                pm.normals_indices[0][idx] = f.indices.nrm_idx[i] ;
+                            if( texcoords.size() > 0 )
+                                pm.texcoords_indices[0][idx] = f.indices.tx_idx[i] ;
+                            ++idx ;
+                        }
+                    }
+                }
+
+                // copy positions
+                {
+                    {
+                        size_t j = 0 ;
+                        for ( auto const & v : positions )
+                        {
+                            pm.positions[j++] = v.x() ;
+                            pm.positions[j++] = v.y() ;
+                            pm.positions[j++] = v.z() ;
+                        }
+                    }
+
+                    if( normals.size() != 0 )
+                    {
+                        size_t j = 0 ;
+                        for ( auto const & v : normals )
+                        {
+                            pm.normals[0][ j++ ] = v.x() ;
+                            pm.normals[0][ j++ ] = v.y() ;
+                            pm.normals[0][ j++ ] = v.z() ;
+                        }
+                    }
+
+                    if( texcoords.size() != 0 )
+                    {
+                        size_t j = 0 ;
+                        for ( auto const & tx : texcoords )
+                        {
+                            pm.texcoords[0][j++] = tx.x() ;
+                            pm.texcoords[0][j++] = tx.y() ;
+                            if( num_texcoord_elems > 2 )
+                                pm.texcoords[0][j++] = tx.z() ;
+                        }
+                    }
+                }
+
+                ret.poly = std::move( pm ) ;
+                break ;
+            }
+            #if 0
+            for ( auto & m : meshes )
+            {
                 // copy vertices
+                {
+
+                }
+
+                // copy indices
                 {
                     size_t j = 0 ;
                     for ( auto & f : m.faces )
@@ -399,6 +499,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 }
                 
             }
+            #endif
             #else
             {
                 motor::geometry::polygon_mesh_t poly ;

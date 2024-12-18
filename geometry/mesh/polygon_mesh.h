@@ -31,9 +31,9 @@ namespace motor
             more_uints_t texcoords_indices ;
             more_floats_t texcoords ;
 
-            vector_component_format position_format ;
-            vector_component_format normal_format ;
-            texcoord_component_format texcoord_format ;
+            vector_component_format position_format = vector_component_format::invalid ;
+            vector_component_format normal_format = vector_component_format::invalid ;
+            texcoord_component_format texcoord_format = texcoord_component_format::invalid ;
 
         public:
 

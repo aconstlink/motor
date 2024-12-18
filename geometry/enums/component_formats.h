@@ -50,6 +50,13 @@ namespace motor
             return 0 ;
         }
 
+        static texcoord_component_format from_num_components( size_t const i )
+        {
+            if( i == 2 ) return texcoord_component_format::uv ;
+            if( i == 3 ) return texcoord_component_format::uvw ;
+            return texcoord_component_format::invalid ;
+        }
+
         enum class image_component_format
         {
             invalid,

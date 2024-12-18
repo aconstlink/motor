@@ -64,7 +64,7 @@ geometry_object::this_t geometry_object::create( motor::string_in_t name, motor:
 
             if ( ts != motor::graphics::type_struct::undefined )
             {
-                for( size_t i=0; i<2; ++i )
+                for( size_t i=0; i<tm.texcoords.size(); ++i )
                 {
                     if( tm.get_num_texcoords( i ) == 0 ) break ;
 
