@@ -223,6 +223,29 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 num_texcoord_elems = 0 ;
         }
 
+        // check if coordinates need to normalized
+        {
+            auto * prop = psr->borrow_property<bool_t>( "normalize_coordinate" ) ;
+            if( prop != nullptr ) 
+            {
+                if( prop->get() )
+                {
+                    float_t greatest = 0.0f ;
+                    for( auto const & p : positions )
+                    {
+                        greatest = std::max( std::abs(p.x()), greatest ) ;
+                        greatest = std::max( std::abs(p.y()), greatest ) ;
+                        greatest = std::max( std::abs(p.z()), greatest ) ;
+                    }
+
+                    for ( auto & p : positions )
+                    {
+                        p = p / greatest ;
+                    }
+                }
+            }
+        }
+
         struct mesh_data
         {
             struct face_indices

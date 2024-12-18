@@ -20,6 +20,8 @@ namespace motor
             virtual ~wav_obj_module( void_t ) {}
             virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t ) noexcept ;
 
+            // properties:
+            // normalize_coordinate : normalize coordinates so that they only are in [-1;1]
             virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc,
                 motor::io::database_mtr_t, motor::property::property_sheet_mtr_safe_t ) noexcept ;
 
