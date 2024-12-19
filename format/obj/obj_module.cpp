@@ -16,6 +16,173 @@
 
 using namespace motor::format ;
 
+namespace this_file
+{
+    struct tripple
+    {
+        uint16_t pid = 0 ;
+        uint16_t tid = 0 ;
+        uint16_t nid = 0 ;
+    } ;
+
+    // dissect tokens and make indices tripple
+    // @param l must be a "f" line
+    static motor::vector< tripple > dissect_tripples( motor::string_in_t l ) noexcept
+    {
+        motor::vector< motor::string_t > tokens ;
+
+        // tokenize string line for indices
+        {
+            size_t s = 2 ;
+            size_t p = l.find_first_of( ' ', s ) ;
+            while ( p != std::string::npos )
+            {
+                tokens.emplace_back( l.substr( s, p - s ) ) ;
+                s = p + 1 ;
+                p = l.find_first_of( ' ', s ) ;
+            }
+
+            tokens.emplace_back( l.substr( s, l.size() - s ) ) ;
+        }
+
+        size_t const sot = 3 ;
+
+        motor::vector< tripple > ret ;
+
+        for ( auto const & t : tokens )
+        {
+            tripple tr ;
+            uint16_t * ptr = (uint16_ptr_t) ( &tr ) ;
+
+            size_t idx = 0 ;
+            size_t s = 0 ;
+            size_t p = t.find_first_of( '/', s ) ;
+            while ( p != std::string::npos )
+            {
+                motor::string_t const number = t.substr( s, p - s ) ;
+                if ( number.empty() ) ++idx ;
+                else ptr[ idx++ ] = std::stol( std::string( number ) ) ;
+                s = p + 1 ;
+                p = t.find_first_of( '/', s ) ;
+            }
+
+            {
+                auto const number = t.substr( s, l.size() - s ) ;
+                if ( !number.empty() )
+                    ptr[ idx ] = std::stol( std::string( number ) ) ;
+            }
+
+            ret.emplace_back( std::move( tr ) ) ;
+        }
+
+        return ret ;
+    }
+
+    static void_t _pl_( size_t const indent, motor::string_in_t ln, motor::string_ref_t shader, bool_t const b ) noexcept
+    {
+        if ( !b ) return ;
+        for ( size_t i = 0; i < indent << 2; ++i ) shader += " " ;
+        shader += ln + "\n" ;
+    }
+
+    static void_t _pl_( size_t const indent, motor::string_in_t ln, motor::string_ref_t shader ) noexcept
+    {
+        return _pl_( indent, ln, shader, true ) ;
+    }
+
+    struct material_info
+    {
+        motor::string_t name ;
+
+        bool_t has_nrm ;
+        bool_t has_tx ;
+    };
+    motor_typedef( material_info ) ;
+
+    // positions
+    // no normals
+    // no texcoords
+    static motor::string_t generate_forward_shader( material_info_in_t mi ) noexcept
+    {
+        size_t indent = 0 ;
+        motor::string_t shader ;
+
+        _pl_( indent, "config " + mi.name, shader ) ;
+        _pl_( indent, "{", shader ) ;
+        ++indent ;
+
+        // vertex shader
+        {
+            _pl_( indent, "vertex_shader", shader ) ;
+            _pl_( indent, "{", shader ) ;
+            ++indent ;
+
+
+            _pl_( indent, "in vec3_t pos : position ;", shader ) ;
+            _pl_( indent, "in vec3_t nrm : normal ;", shader, mi.has_nrm ) ;
+            _pl_( indent, "in vec3_t tx : texcoord0 ;", shader, mi.has_tx ) ;
+
+            _pl_( indent, "", shader ) ;
+            _pl_( indent, "out vec4_t pos : position ;", shader ) ;
+            _pl_( indent, "out vec3_t nrm : normal ;", shader, mi.has_nrm ) ;
+            _pl_( indent, "out vec3_t tx : texcoord0 ;", shader, mi.has_tx ) ;
+
+            _pl_( indent, "", shader ) ;
+            _pl_( indent, "mat4_t world : world ;", shader ) ;
+            _pl_( indent, "mat4_t view : view ;", shader ) ;
+            _pl_( indent, "mat4_t proj : proj ;", shader ) ;
+            _pl_( indent, "", shader ) ;
+
+            _pl_( indent, "void main()", shader ) ;
+            _pl_( indent, "{", shader ) ;
+            ++indent ;
+            {
+                _pl_( indent, "out.nrm = in.nrm ;", shader, mi.has_nrm ) ;
+                _pl_( indent, "out.pos = proj * view * world * vec4_t( in.pos, 1.0 ) ;", shader ) ;
+            }
+            --indent ;
+            _pl_( indent, "}", shader ) ;
+
+
+            --indent ;
+            _pl_( indent, "}", shader ) ;
+        }
+
+        {
+            _pl_( indent, "pixel_shader", shader ) ;
+            _pl_( indent, "{", shader ) ;
+            ++indent ;
+
+            _pl_( indent, "in vec3_t nrm : normal ;", shader, mi.has_nrm ) ;
+            _pl_( indent, "in vec3_t tx : texcoord0 ;", shader, mi.has_tx ) ;
+
+            _pl_( indent, "vec3_t light_dir ;", shader, mi.has_nrm ) ;
+            _pl_( indent, "out vec4_t color : color ;", shader ) ;
+
+            _pl_( indent, "void main()", shader ) ;
+            _pl_( indent, "{", shader ) ;
+            ++indent ;
+            if( mi.has_nrm )
+            {
+                _pl_( indent, "float_t ndl = dot( in.nrm, light_dir ) ;", shader ) ;
+                _pl_( indent, "out.color = vec4_t(ndl, ndl, ndl, 1.0 ) ;", shader ) ;
+            }
+            else
+            {
+                _pl_( indent, "out.color = vec4_t(1.0, 1.0, 1.0, 1.0 ) ;", shader ) ;
+            }
+            --indent ;
+            _pl_( indent, "}", shader ) ;
+            --indent ;
+            _pl_( indent, "}", shader ) ;
+        }
+
+        --indent ;
+        _pl_( indent, "}", shader ) ;
+
+        return shader ;
+    }
+}
 
 // *****************************************************************************************
 void_t wav_obj_module_register::register_module( motor::format::module_registry_mtr_t reg )
@@ -248,17 +415,17 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         struct mesh_data
         {
-            struct face_indices
+            struct index_tripple
             {
-                uint16_t pos_idx[ 4 ] = { 0, 0, 0, 0 };
-                uint16_t tx_idx[ 4 ] = { 0, 0, 0, 0 };
-                uint16_t nrm_idx[ 4 ] = { 0, 0, 0, 0 };
+                uint16_t pos_idx ;
+                uint16_t tx_idx ;
+                uint16_t nrm_idx ;
             };
 
             struct face
             {
                 byte_t num_vertices = 0 ;
-                face_indices indices ;
+                motor::vector< index_tripple > indices ;
             };
             motor::string_t name ;
             motor::string_t material ;
@@ -298,61 +465,22 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
                     mesh_data::face f ;
 
-                    byte_t vtx_idx =  0 ;
-                    
-                    size_t s = 2 ;
-                    size_t p = l.find_first_of( ' ', s ) ;
-
-                    while( true )
                     {
-                        uint16_t * dst = reinterpret_cast<uint16_t*>( &f.indices ) + (vtx_idx++) ;
-
-                        motor::string_t tripple = l.substr( s, p - s ) ;
-
-                        size_t s0 = 0 ;
-                        size_t p0 = tripple.find_first_of( '/', s0 ) ;
-                        while( p0 != std::string::npos )
-                        {
-                            auto const number = std::string( tripple.substr( s0, p0 - s0 ) ) ;
-                            if( !number.empty() )
-                            {
-                                uint16_t idx = std::stol( number ) ;
-                                *dst = idx ;
-                            }
-                            
-                            dst += 4 ;
-                            s0 = p0 + 1 ;
-                            p0 = tripple.find_first_of( '/', s0 ) ;
-                        }
-
-                        {
-                            auto const number = std::string( tripple.substr( s0, p0 - s0 ) ) ;
-                            if( !number.empty() )
-                            {
-                                uint16_t const idx = std::stol( number ) ;
-                                
-                                *dst = idx ;
-                            }
-                        }
-                        //dst = reinterpret_cast<uint16_t*>( &f.indices ) + (vtx_idx++) ;
+                        auto tripples = this_file::dissect_tripples( l ) ;
                         
-                        s = p + 1 ;
-                        p = l.find_first_of( ' ', s ) ;
-
-                        if( p == std::string::npos )
+                        for( auto const & t : tripples )
                         {
-                            if( s == l.size() + 1 ) break ;
-                            p = l.size() ;
+                            f.indices.emplace_back( mesh_data::index_tripple
+                            {
+                                t.pid,
+                                t.nid,
+                                t.tid
+                            } ) ;
                         }
-
-                        if( vtx_idx == 5 ) 
-                        {
-                            motor::log::global_t::error("[Wavefront obj] : can not import "
-                                "more than 4 vertices per primitive.") ;
-                            break ;
-                        }
+                        f.num_vertices = tripples.size() ;
+                        //assert( f.num_vertices <= 8 ) ;
                     }
-                    f.num_vertices = vtx_idx ;
+                    
                     cur_data.faces.emplace_back( std::move( f ) ) ;
                 }
             }
@@ -373,21 +501,21 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             {
                 for( auto & f : m.faces )
                 {
-                    for( size_t i=0 ;i<4; ++i )
+                    for( auto & idx : f.indices )
                     {
-                        if( f.indices.pos_idx[i] > positions.size() ||
-                            f.indices.tx_idx[i] > texcoords.size() ||
-                            f.indices.nrm_idx[i] > normals.size() ) 
+                        if( idx.pos_idx > positions.size() ||
+                            idx.tx_idx > texcoords.size() ||
+                            idx.nrm_idx > normals.size() ) 
                         {
                             negative_index_detected = true ;
-                            f.indices.pos_idx[ i ] = 0 ;
-                            f.indices.tx_idx[ i ] = 0  ;
-                            f.indices.nrm_idx[ i ] = 0 ;
+                            idx.pos_idx = 0 ;
+                            idx.tx_idx = 0  ;
+                            idx.nrm_idx = 0 ;
                         }
 
-                        f.indices.pos_idx[ i ] -= 1 ;
-                        f.indices.tx_idx[ i ] -= 1 ;
-                        f.indices.nrm_idx[ i ] -= 1 ;
+                        idx.pos_idx -= 1 ;
+                        idx.tx_idx -= 1 ;
+                        idx.nrm_idx -= 1 ;
                     }
                 }
             }
@@ -401,12 +529,11 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // make the polygon mesh
         {
-            #if 1
             for( auto & m : meshes )
             {
                 motor::geometry::polygon_mesh pm ;
                 pm.position_format = motor::geometry::vector_component_format::xyz ;
-                pm.normal_format = motor::geometry::vector_component_format::xyz ;
+                pm.normal_format = pm.normals.size() == 0 ?  motor::geometry::vector_component_format::invalid : motor::geometry::vector_component_format::xyz ;
                 pm.texcoord_format = motor::geometry::from_num_components( num_texcoord_elems ) ;
 
                 pm.polygons.resize( m.faces.size() ) ;
@@ -450,13 +577,13 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     for ( auto const & f : m.faces )
                     {
                         pm.polygons[poly_idx++] = f.num_vertices ;
-                        for( size_t i = 0 ; i<f.num_vertices; ++i )
+                        for( auto & fidx : f.indices )
                         {
-                            pm.indices[idx] = f.indices.pos_idx[i] ;
-                            if( normals.size() > 0 )
-                                pm.normals_indices[0][idx] = f.indices.nrm_idx[i] ;
-                            if( texcoords.size() > 0 )
-                                pm.texcoords_indices[0][idx] = f.indices.tx_idx[i] ;
+                            pm.indices[idx] = fidx.pos_idx ;
+                            if ( normals.size() > 0 )
+                                pm.normals_indices[ 0 ][ idx ] = fidx.nrm_idx ;
+                            if ( texcoords.size() > 0 )
+                                pm.texcoords_indices[ 0 ][ idx ] = fidx.tx_idx ;
                             ++idx ;
                         }
                     }
@@ -501,41 +628,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 ret.poly = std::move( pm ) ;
                 break ;
             }
-            #if 0
-            for ( auto & m : meshes )
-            {
-                // copy vertices
-                {
-
-                }
-
-                // copy indices
-                {
-                    size_t j = 0 ;
-                    for ( auto & f : m.faces )
-                    {
-                        for ( size_t i = 0 ; i < f.num_vertices; ++i )
-                        {
-                            pm.indices[j++] = f.indices.[i] ;
-                        }
-                    }
-                }
-                
-            }
-            #endif
-            #else
-            {
-                motor::geometry::polygon_mesh_t poly ;
-                motor::geometry::cube_t::input_params const ip = 
-                {
-
-                } ;
-                motor::geometry::cube_t::make( &poly, std::move( ip ) )  ;
-                ret.poly = std::move( poly ) ;
-            }
-
-            #endif
-            
         }
 
         // put together a shader per material
@@ -545,96 +637,15 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             bool_t const has_nrm = normals.size() != 0 ;
             bool_t const has_tx = texcoords.size() != 0 ;
 
-            if( has_tx )
+            ret.shader = this_file::generate_forward_shader( this_file::material_info_t
             {
-                //texcoords[0] ;
-            }
-
-            auto print_ln = []( size_t const indent, motor::string_in_t ln, motor::string_ref_t shader )
-            {
-                for( size_t i=0; i<indent<<2; ++i ) shader+= " " ;
-                shader += ln + "\n" ;
-            } ;
-
-            size_t indent = 0 ;
-            motor::string_t shader ;
-            
-            print_ln( indent, "config " + loc.as_string() , shader ) ;
-            print_ln( indent, "{" , shader ) ;
-            ++indent ;
-
-            // vertex shader
-            {
-                print_ln( indent, "vertex_shader", shader ) ;
-                print_ln( indent, "{" , shader ) ;
-                ++indent ;
-                
-                
-                print_ln( indent, "in vec3_t pos : position ;" , shader ) ;
-                print_ln( indent, "in vec3_t nrm : normal ;" , shader ) ;
-
-                if ( has_tx )
-                    print_ln( indent, "in vec3_t tx : texcoord0 ;" , shader ) ;
-
-                print_ln( indent, "" , shader ) ;
-                print_ln( indent, "out vec4_t pos : position ;" , shader ) ;
-                print_ln( indent, "out vec3_t nrm : normal ;" , shader ) ;
-
-                if ( has_tx )
-                    print_ln( indent, "out vec3_t tx : texcoord0 ;" , shader ) ;
-
-                print_ln( indent, "" , shader ) ;
-                print_ln( indent, "mat4_t world : world ;", shader ) ;
-                print_ln( indent, "mat4_t view : view ;" , shader ) ;
-                print_ln( indent, "mat4_t proj : proj ;" , shader ) ;
-                print_ln( indent, "" , shader ) ;
-                print_ln( indent, "void main()" , shader ) ;
-                print_ln( indent, "{" , shader ) ;
-                ++indent ;
-                {
-                    print_ln( indent, "out.nrm = in.nrm ;" , shader ) ;
-                    print_ln( indent, "out.pos = proj * view * world * vec4_t( in.pos, 1.0 ) ;" , shader ) ;
-                }
-                --indent ;
-                print_ln( indent, "}" , shader ) ;
-                
-
-                --indent ;
-                print_ln( indent, "}" , shader ) ;
-            }
-
-            {
-                print_ln( indent, "pixel_shader", shader ) ;
-                print_ln( indent, "{", shader ) ;
-                ++indent ;
-
-                print_ln( indent, "in vec3_t nrm : normal ;", shader ) ;
-
-                if ( has_tx )
-                    print_ln( indent, "in vec3_t tx : texcoord0 ;", shader ) ;
-
-                print_ln( indent, "vec3_t light_dir ;", shader ) ;
-                print_ln( indent, "out vec4_t color : color ;", shader ) ;
-
-                print_ln( indent, "void main()", shader ) ;
-                print_ln( indent, "{", shader ) ;
-                ++indent ;
-                {
-                    print_ln( indent, "float_t ndl = dot( in.nrm, light_dir ) ;", shader ) ;
-                    print_ln( indent, "out.color = vec4_t(ndl, ndl, ndl, 1.0 ) ;", shader ) ;
-                }
-                --indent ;
-                print_ln( indent, "}", shader ) ;
-                --indent ;
-                print_ln( indent, "}" , shader ) ;
-            }
-
-            --indent ;
-            print_ln( indent, "}" , shader ) ;
-
-            ret.shader = std::move( shader ) ;
+                loc.as_string(),
+                has_nrm, 
+                has_tx
+            } ) ;
         }
 
+        
         ret.name = loc.as_string() ;
 
         return motor::shared( std::move( ret ), "mesh_item" ) ;
