@@ -99,6 +99,7 @@ geometry_object::this_t geometry_object::create( motor::string_in_t name, motor:
                     }
 
                     // normals
+                    if( tm.get_num_normals() > 0 )
                     {
                         size_t const comps = motor::geometry::vector_component_format_to_number( tm.normal_format ) ;
                         size_t const idx = v * comps ;
