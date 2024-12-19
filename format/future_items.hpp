@@ -46,10 +46,16 @@ namespace motor
             virtual ~mesh_item( void_t ) noexcept {}
 
             motor::string_t name ;
-            // mesh
-            motor::geometry::polygon_mesh_t poly ;
-            // string for msl shader
-            motor::string_t shader ;
+            
+            struct geometry
+            {
+                motor::string_t name ;
+                motor::geometry::polygon_mesh_t poly ;
+                motor::string_t shader ;
+            };
+
+            motor::vector< geometry > geos ;
+            
         };
         motor_typedef( mesh_item ) ;
     }

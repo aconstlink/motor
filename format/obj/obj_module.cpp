@@ -442,7 +442,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             mesh_data cur_data ;
             for ( auto const & l : lines )
             {
-                if ( l[ 0 ] == 'o' )
+                if ( l[ 0 ] == 'o' || l[ 0 ] == 'g' )
                 {
                     if( !cur_data.name.empty() )
                         meshes.emplace_back( std::move( cur_data ) ) ;
@@ -527,8 +527,13 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             }
         }
 
+        {
+            ret.geos.resize( meshes.size() ) ;
+        }
+
         // make the polygon mesh
         {
+            size_t midx = 0 ;
             for( auto & m : meshes )
             {
                 motor::geometry::polygon_mesh pm ;
@@ -625,28 +630,33 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     }
                 }
 
-                ret.poly = std::move( pm ) ;
-                break ;
+                ret.geos[midx++].poly = std::move( pm ) ;
             }
         }
+
+        ret.name = loc.as_string() ;
 
         // put together a shader per material
         // or maybe just some shading infos?
         {
+            // expect normals/texcoords are globally there or not
             bool_t const has_pos = positions.size() != 0 ;
             bool_t const has_nrm = normals.size() != 0 ;
             bool_t const has_tx = texcoords.size() != 0 ;
 
-            ret.shader = this_file::generate_forward_shader( this_file::material_info_t
+            size_t midx = 0 ;
+            for ( auto & m : meshes )
             {
-                loc.as_string(),
-                has_nrm, 
-                has_tx
-            } ) ;
+                motor::string_t name = ret.name + "." + m.name;
+                ret.geos[midx].name = name ;
+                ret.geos[midx++].shader = this_file::generate_forward_shader( this_file::material_info_t
+                    {
+                        name,
+                        has_nrm,
+                        has_tx
+                    } ) ;
+            }
         }
-
-        
-        ret.name = loc.as_string() ;
 
         return motor::shared( std::move( ret ), "mesh_item" ) ;
     } ) ;
