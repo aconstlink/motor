@@ -2901,7 +2901,7 @@ public: // functions
                 {
                     size_t j = i ;
                 
-                    while( j < vibs.size() && geo.elements[i].va != vibs[j].va  ) ++j ;
+                    while( (j < vibs.size()) && (geo.elements[i].va != vibs[j].va)  ) ++j ;
 
                     if( j == i ) continue ;
                     // input variable declared in shader not found in geometry, remove ...
