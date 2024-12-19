@@ -106,9 +106,8 @@ motor::geometry::result polygon_mesh::flatten( tri_mesh_ref_t mesh_out ) const
     tri_mesh the_mesh ;
 
     the_mesh.position_format = this_t::position_format ;
-    the_mesh.normal_format = this_t::normal_format ;
-    the_mesh.texcoord_format = this_t::texcoord_format ;
-
+    the_mesh.normal_format = this_t::normals.size() != 0 ? this_t::normal_format : vector_component_format::invalid ;
+    the_mesh.texcoord_format = texcoords.size() != 0 ? this_t::texcoord_format : texcoord_component_format::invalid ;
     
     // check some values
     {
@@ -153,7 +152,7 @@ motor::geometry::result polygon_mesh::flatten( tri_mesh_ref_t mesh_out ) const
             {
                 the_mesh.normals[l][i] = this_t::normals[l][i] ;
             }
-        }        
+        }
     }
 
     // do normal indices
