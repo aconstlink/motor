@@ -253,7 +253,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // remove multiple white spaces
         {
-            #if 1
             char buffer[1024] ;
             for ( auto & l : lines )
             {
@@ -287,34 +286,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 buffer[bp] = '\0' ;
                 l.replace( 0, bp+1, buffer ) ;
             }
-            #else
-            for( auto & l : lines )
-            {
-                motor::string_t tmp = std::move( l ) ;
-
-                size_t s = 0 ;
-                size_t p = tmp.find_first_of( ' ', s ) ;
-                while( p != std::string::npos )
-                {
-                    l += tmp.substr( s, p - s ) + " ";
-                    s = tmp.find_first_not_of( ' ', p ) ;
-                    if( s == std::string::npos ) break ;
-                    p = tmp.find_first_of( ' ', s ) ;
-                    if( p == std::string::npos ) break ;
-                }
-                if( s != std::string::npos )
-                    l += tmp.substr( s, tmp.size() - s ) ;
-
-                // remove whitespace at the end of every line
-                {
-                    size_t const p = l.find_last_not_of( ' ' ) ;
-                    if( p < l.size()-1 )
-                    {
-                        l = l.substr(0, p+1 ) ;
-                    }
-                }
-            }
-            #endif
         }
 
         motor::vector< motor::math::vec3f_t > positions ;
