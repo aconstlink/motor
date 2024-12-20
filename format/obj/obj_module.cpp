@@ -8,6 +8,7 @@
 #include <motor/geometry/mesh/flat_tri_mesh.h>
 #include <motor/geometry/mesh/polygon_mesh.h>
 
+#include <motor/std/hash_map>
 #include <motor/io/database.h>
 #include <motor/memory/malloc_guard.hpp>
 
@@ -20,9 +21,9 @@ namespace this_file
 {
     struct tripple
     {
-        uint16_t pid = 0 ;
-        uint16_t tid = 0 ;
-        uint16_t nid = 0 ;
+        int32_t pid = 0 ;
+        int32_t tid = 0 ;
+        int32_t nid = 0 ;
     } ;
 
     // dissect tokens and make indices tripple
@@ -52,7 +53,7 @@ namespace this_file
         for ( auto const & t : tokens )
         {
             tripple tr ;
-            uint16_t * ptr = (uint16_ptr_t) ( &tr ) ;
+            int32_t * ptr = (int32_ptr_t) ( &tr ) ;
 
             size_t idx = 0 ;
             size_t s = 0 ;
@@ -61,7 +62,7 @@ namespace this_file
             {
                 motor::string_t const number = t.substr( s, p - s ) ;
                 if ( number.empty() ) ++idx ;
-                else ptr[ idx++ ] = std::stol( std::string( number ) ) ;
+                else ptr[ idx++ ] = std::stoi( std::string( number ) ) ;
                 s = p + 1 ;
                 p = t.find_first_of( '/', s ) ;
             }
@@ -224,6 +225,16 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         motor::vector< motor::string_t > lines ;
         motor::vector< motor::string_t > mtl_files ;
 
+        // find number of lines
+        {
+            size_t num_lines = 0 ;
+            for( auto const & c : data_buffer )
+            {
+                if( c == '\n' ) ++num_lines ;
+            }
+            lines.reserve( num_lines ) ;
+        }
+
         // fill lines vector
         {
             size_t s = 0 ;
@@ -243,6 +254,42 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // remove multiple white spaces
         {
+            #if 1
+            char buffer[1024] ;
+            for ( auto & l : lines )
+            {
+                if( l.empty() ) continue ;
+                buffer[0] = '\0' ;
+
+                size_t bp = 0 ;
+
+                size_t s = 0 ;
+                size_t p = 0 ;
+                while( p < l.size() )
+                {
+                    // find first white space
+                    while( l[p] != ' ' && p < l.size() ) ++p ;
+                    
+                    size_t const dist = p - s ;
+                    std::memcpy( buffer+bp, l.data()+s, dist ) ;
+                    bp += dist ;
+                    
+                    if ( p == l.size() ) break ;
+
+                    // find first white space
+                    while( l[p] == ' ' && p < l.size() ) ++p ;
+                    if( p == l.size() ) break ;
+
+                    buffer[ bp++ ] = ' ' ;
+                    buffer[ bp ] = '\0' ;
+
+                    s = p ;
+                }
+                buffer[bp] = '\0' ;
+                l = motor::string_t( buffer, bp ) ;
+                //std::memcpy( l.data(), buffer, bp + 1 ) ;
+            }
+            #else
             for( auto & l : lines )
             {
                 motor::string_t tmp = std::move( l ) ;
@@ -269,6 +316,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     }
                 }
             }
+            #endif
         }
 
         motor::vector< motor::math::vec3f_t > positions ;
@@ -278,6 +326,19 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         size_t num_texcoord_elems = 3 ;
 
         motor::vector< motor::string_t > coord_lines ;
+
+        // for negative indices.
+        // we need to remember the number of vertex data
+        // loaded up until the moment, 'f' faces are read.
+        // So this numbers can be used to compute the absolute
+        // index.
+        struct index_offset_capture
+        {
+            size_t num_pos = 0 ;
+            size_t num_nrm = 0 ;
+            size_t num_tx = 0 ;
+        };
+        motor::vector< index_offset_capture > offsets ;
 
         // filter lines
         {
@@ -290,10 +351,35 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             size_t num_texcoords = 0 ;
             size_t num_normals = 0 ;
 
+            bool_t in_faces = false ;
+
             // filter lines and count 
             for ( auto & line : tmp_lines )
             {
                 if ( line.size() < 2 ) continue ;
+
+                if( line[0] != 'f' )
+                {
+                    // going out 
+                    if( in_faces )
+                    {
+                        in_faces = false ;
+                        offsets.emplace_back( index_offset_capture
+                            { 
+                                num_positions,
+                                num_normals,
+                                num_texcoords
+                            } ) ;
+                    }
+                }
+                else
+                {
+                    if( !in_faces )
+                    {
+                        in_faces = true ;
+                    }
+                    
+                }
 
                 if ( line[ 0 ] == 'v' && line[ 1 ] == 'n' )
                 {
@@ -323,6 +409,16 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 {
                     lines.emplace_back( std::move( line ) ) ;
                 }
+            }
+
+            if( in_faces )
+            {
+                offsets.emplace_back( index_offset_capture
+                    {
+                        num_positions,
+                        num_normals,
+                        num_texcoords
+                    } ) ;
             }
             
             positions.reserve( num_positions ) ;
@@ -439,9 +535,17 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         // material name
         // faces
         {
+            bool_t in_faces = false ;
+            size_t offset_idx = size_t(-1) ;
+
             mesh_data cur_data ;
             for ( auto const & l : lines )
             {
+                if( l[ 0 ] != 'f' && in_faces )
+                {
+                    in_faces = false ;
+                }
+
                 if ( l[ 0 ] == 'o' || l[ 0 ] == 'g' )
                 {
                     if( !cur_data.name.empty() )
@@ -458,23 +562,47 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 }
                 else if( l[ 0 ] == 'f' )
                 {
+                    if( !in_faces )
+                    {
+                        ++offset_idx ;
+                        in_faces = true ;
+                    }
+
                     // f usually looks like this:
                     // pos/tx/nrm
                     // example:
-                    // 1//1 or 1/2/3
+                    // 1//1 or 1/2/3 or 1
+                    // the latter is position only
 
                     mesh_data::face f ;
 
                     {
                         auto tripples = this_file::dissect_tripples( l ) ;
-                        
-                        for( auto const & t : tripples )
+                        for( auto & t : tripples )
                         {
+                            if( t.pid == 0 ) 
+                            {
+                                t.pid = 1 ;
+                                motor::log::global_t::warning( "[wavefront obj importer] : "
+                                    "zero based indices not supported/valid." ) ;
+                            }
+
+                            uint16_t const pid = t.pid < 0 ? 
+                                uint16_t(offsets[offset_idx].num_pos + t.pid) : (uint16_t) t.pid - 1 ;
+
+                            uint16_t const tid = t.tid < 0 ?
+                                uint16_t( offsets[ offset_idx ].num_tx + t.tid ) : (uint16_t) t.tid - 1 ;
+
+                            uint16_t const nid = t.nid < 0 ?
+                                uint16_t( offsets[ offset_idx ].num_nrm + t.nid ) : (uint16_t) t.nid - 1 ;
+                            
+                            
+                            
                             f.indices.emplace_back( mesh_data::index_tripple
                             {
-                                t.pid,
-                                t.nid,
-                                t.tid
+                                pid,
+                                tid,
+                                nid
                             } ) ;
                         }
                         f.num_vertices = tripples.size() ;
@@ -485,46 +613,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 }
             }
             meshes.push_back( std::move( cur_data ) ) ;
-        }
-
-        // 1. test negative indices
-        // 2. convert to zero-based index
-        // @note negative indices would require to 
-        // split up the whole importing process. 
-        // Negative indices require to read the vertex
-        // data from the file position the face index is 
-        // negative. So this is not supported.
-        {
-            bool negative_index_detected = false ;
-
-            for( auto & m : meshes ) 
-            {
-                for( auto & f : m.faces )
-                {
-                    for( auto & idx : f.indices )
-                    {
-                        if( idx.pos_idx > positions.size() ||
-                            idx.tx_idx > texcoords.size() ||
-                            idx.nrm_idx > normals.size() ) 
-                        {
-                            negative_index_detected = true ;
-                            idx.pos_idx = 0 ;
-                            idx.tx_idx = 0  ;
-                            idx.nrm_idx = 0 ;
-                        }
-
-                        idx.pos_idx -= 1 ;
-                        idx.tx_idx -= 1 ;
-                        idx.nrm_idx -= 1 ;
-                    }
-                }
-            }
-
-            if( negative_index_detected )
-            {
-                motor::log::global_t::error( "[Wavefront obj] : negative"
-                    " indices are not supported." ) ;
-            }
         }
 
         {
@@ -538,7 +626,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             {
                 motor::geometry::polygon_mesh pm ;
                 pm.position_format = motor::geometry::vector_component_format::xyz ;
-                pm.normal_format = pm.normals.size() == 0 ?  motor::geometry::vector_component_format::invalid : motor::geometry::vector_component_format::xyz ;
+                pm.normal_format = normals.size() == 0 ?  motor::geometry::vector_component_format::invalid : motor::geometry::vector_component_format::xyz ;
                 pm.texcoord_format = motor::geometry::from_num_components( num_texcoord_elems ) ;
 
                 pm.polygons.resize( m.faces.size() ) ;
@@ -547,16 +635,21 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 {
                     size_t i = 0;
                     size_t num_indices = 0 ;
+                    size_t num_vertices = 0 ;
+                    bool_t const has_normals = normals.size() != 0 ;
+                    bool_t const has_texcoords = texcoords.size() != 0 ;
+
                     for ( auto & f : m.faces )
                     {
                         pm.polygons[ i++ ] = f.num_vertices ;
                         num_indices += f.num_vertices ;
+                        num_vertices += f.num_vertices ;
                     }
 
                     pm.indices.resize( num_indices ) ;
                     pm.positions.resize( positions.size() * 3 ) ;
 
-                    if( normals.size() != 0 )
+                    if( has_normals )
                     {
                         // only one layer of normals
                         pm.normals_indices.resize( 1 ) ;
@@ -574,6 +667,12 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         pm.texcoords[0].resize( texcoords.size() * num_texcoord_elems ) ;
                     }
                 }
+
+                #if 0
+                motor::hash_map< size_t, size_t > pos_map ;
+                motor::hash_map< size_t, size_t > nrm_map ;
+                motor::hash_map< size_t, size_t > tx_map ;
+                #endif
 
                 // copy indices
                 {
