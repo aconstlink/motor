@@ -1899,7 +1899,7 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
                     }
 
                     // no intput interface block in the vertex shader
-                    if ( sht_cur == motor::msl::shader_type::vertex_shader ) text << "in" ;
+                    if ( sht_cur == motor::msl::shader_type::vertex_shader ) local_text += "in" ;
 
                     local_text += " " + type_ + " " + name + " ; \n" ;
                 }
