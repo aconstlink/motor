@@ -244,8 +244,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 size_t const pb = p - 1 ;
                 size_t const e = (pb < data_buffer.size() && data_buffer[pb] == '\r') ? pb : p ;
                 
-                auto line = data_buffer.substr( s, e - s ) ;
-                lines.emplace_back( std::move( line ) ) ;
+                lines.emplace_back( data_buffer.substr( s, e - s ) ) ;
 
                 s = p + 1 ;
                 p = data_buffer.find_first_of( '\n', s ) ;
@@ -338,6 +337,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             size_t num_tx = 0 ;
         };
         motor::vector< index_offset_capture > offsets ;
+        offsets.reserve( 100 ) ;
 
         // filter lines
         {
@@ -361,7 +361,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 // do not know how to smooth faces within
                 // a single mesh. This is not supported.
                 if ( line[ 0 ] == 's' || line[ 0 ] == '#' ) continue ;
-                
 
                 if( line[0] != 'f' )
                 {
@@ -514,9 +513,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         {
             struct index_tripple
             {
-                uint16_t pos_idx ;
-                uint16_t tx_idx ;
-                uint16_t nrm_idx ;
+                uint_t pos_idx ;
+                uint_t tx_idx ;
+                uint_t nrm_idx ;
             };
 
             struct face
@@ -531,7 +530,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         motor::vector< mesh_data > meshes ;
 
         // read out indices
-        // analyse object properties
+        // analyze object properties
         // name
         // material name
         // faces
@@ -588,14 +587,14 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                                     "zero based indices not supported/valid." ) ;
                             }
 
-                            uint16_t const pid = t.pid < 0 ? 
-                                uint16_t(offsets[offset_idx].num_pos + t.pid) : (uint16_t) t.pid - 1 ;
+                            uint_t const pid = t.pid < 0 ? 
+                                uint_t(offsets[offset_idx].num_pos + t.pid) : (uint_t) t.pid - 1 ;
 
-                            uint16_t const tid = t.tid < 0 ?
-                                uint16_t( offsets[ offset_idx ].num_tx + t.tid ) : (uint16_t) t.tid - 1 ;
+                            uint_t const tid = t.tid < 0 ?
+                                uint_t( offsets[ offset_idx ].num_tx + t.tid ) : (uint_t) t.tid - 1 ;
 
-                            uint16_t const nid = t.nid < 0 ?
-                                uint16_t( offsets[ offset_idx ].num_nrm + t.nid ) : (uint16_t) t.nid - 1 ;
+                            uint_t const nid = t.nid < 0 ?
+                                uint_t( offsets[ offset_idx ].num_nrm + t.nid ) : (uint_t) t.nid - 1 ;
                             
                             
                             
@@ -677,182 +676,93 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 remapping_t nrm_map ;
                 remapping_t tx_map ;
 
-                #if 1
-                // copy indices
+                // create remap table for vertex indices
+                // map : global -> local
                 {
-                    // create remap table for vertex indices
-                    // map : global -> local
+                    size_t idx[ 3 ] = { 0, 0, 0 } ;
+
+                    // remap vertex data
+                    for ( auto const & f : m.faces )
                     {
-                        size_t idx[ 3 ] = { 0, 0, 0 } ;
-
-                        #if 1
-                        
-                        // remap positions
+                        for ( auto & fidx : f.indices )
                         {
-                            for ( auto const & f : m.faces )
+                            if ( pos_map.find( fidx.pos_idx ) == pos_map.end() )
+                                pos_map[ fidx.pos_idx ] = idx[ 0 ]++ ;
+
+                            if ( has_normals )
                             {
-                                for ( auto & fidx : f.indices )
-                                {
-                                    if ( pos_map.find( fidx.pos_idx ) == pos_map.end() )
-                                        pos_map[ fidx.pos_idx ] = idx[ 0 ]++ ;
+                                if ( nrm_map.find( fidx.nrm_idx ) == nrm_map.end() )
+                                    nrm_map[ fidx.nrm_idx ] = idx[ 1 ]++ ;
+                            }
 
-                                    if ( has_normals )
-                                    {
-                                        if ( nrm_map.find( fidx.nrm_idx ) == nrm_map.end() )
-                                            nrm_map[ fidx.nrm_idx ] = idx[ 1 ]++ ;
-                                    }
-
-                                    if ( has_texcoords )
-                                    {
-                                        if ( tx_map.find( fidx.tx_idx ) == tx_map.end() )
-                                            tx_map[ fidx.tx_idx ] = idx[ 2 ]++ ;
-                                    }
-                                }
+                            if ( has_texcoords )
+                            {
+                                if ( tx_map.find( fidx.tx_idx ) == tx_map.end() )
+                                    tx_map[ fidx.tx_idx ] = idx[ 2 ]++ ;
                             }
                         }
-                        
-                        #else
-                        for ( auto const & f : m.faces )
-                        {
-                            for ( auto & fidx : f.indices )
-                            {
-                                if ( pos_map.find( fidx.pos_idx ) == pos_map.end() )
-                                    pos_map[ fidx.pos_idx ] = idx[ 0 ]++ ;
-                            }
-                        }
-                        #endif
-                    }
-                    
-                    // copy indices
-                    {
-                        #if 1
-                        {
-                            size_t idx = 0 ;
-                            for ( auto const & f : m.faces )
-                            {
-                                for ( auto & fidx : f.indices )
-                                {
-                                    pm.indices[ idx ] = pos_map[ fidx.pos_idx ] ;
-
-                                    if( has_normals )
-                                        pm.normals_indices[0][idx] = nrm_map[ fidx.nrm_idx ] ;
-                                    if( has_texcoords)
-                                        pm.texcoords_indices[0][idx] = tx_map[ fidx.tx_idx ] ;
-
-                                    ++idx ;
-                                }
-                            }
-                        }
-
-                        #else
-                        for ( auto const & f : m.faces )
-                        {
-                            for ( auto & fidx : f.indices )
-                            {
-                                pm.indices[ idx++ ] = pos_map[ fidx.pos_idx ] ;
-                            }
-                        }
-                        #endif
                     }
                 }
-                #else
+
                 // copy indices
                 {
-                    size_t poly_idx = 0 ;
                     size_t idx = 0 ;
                     for ( auto const & f : m.faces )
                     {
-                        pm.polygons[poly_idx++] = f.num_vertices ;
-                        for( auto & fidx : f.indices )
+                        for ( auto & fidx : f.indices )
                         {
-                            pm.indices[idx] = fidx.pos_idx ;
-                            if ( normals.size() > 0 )
-                                pm.normals_indices[ 0 ][ idx ] = fidx.nrm_idx ;
-                            if ( texcoords.size() > 0 )
-                                pm.texcoords_indices[ 0 ][ idx ] = fidx.tx_idx ;
+                            pm.indices[ idx ] = pos_map[ fidx.pos_idx ] ;
+
+                            if ( has_normals )
+                                pm.normals_indices[ 0 ][ idx ] = nrm_map[ fidx.nrm_idx ] ;
+                            if ( has_texcoords )
+                                pm.texcoords_indices[ 0 ][ idx ] = tx_map[ fidx.tx_idx ] ;
+
                             ++idx ;
                         }
                     }
                 }
-                #endif
-                // copy positions
+                
+                // copy vertex data
+                // @note this section copys vertex data from global 
+                // arrays to local mesh arrays using the remapping tables.
                 {
-                    #if 1
+                    for ( auto const & item : pos_map )
                     {
-                        for( auto const & item : pos_map )
-                        {
-                            size_t const src_idx = item.first ;
-                            size_t const dst_idx = item.second ;
-                            
-                            size_t const dst_pos = dst_idx * 3 ;
+                        size_t const src_idx = item.first ;
+                        size_t const dst_idx = item.second ;
 
-                            pm.positions[dst_pos + 0] = positions[src_idx][0] ;
-                            pm.positions[dst_pos + 1] = positions[src_idx][1] ;
-                            pm.positions[dst_pos + 2] = positions[src_idx][2] ;
-                        }
+                        size_t const dst_pos = dst_idx * 3 ;
 
-
-                        for ( auto const & item : nrm_map )
-                        {
-                            size_t const src_idx = item.first ;
-                            size_t const dst_idx = item.second ;
-
-                            size_t const dst_pos = dst_idx * 3 ;
-
-                            pm.normals[0][ dst_pos + 0 ] = normals[ src_idx ][ 0 ] ;
-                            pm.normals[0][ dst_pos + 1 ] = normals[ src_idx ][ 1 ] ;
-                            pm.normals[0][ dst_pos + 2 ] = normals[ src_idx ][ 2 ] ;
-                        }
-
-                        for ( auto const & item : tx_map )
-                        {
-                            size_t const src_idx = item.first ;
-                            size_t const dst_idx = item.second ;
-
-                            size_t const dst_pos = dst_idx * num_texcoord_elems ;
-
-                            pm.texcoords[ 0 ][ dst_pos + 0 ] = texcoords[ src_idx ][ 0 ] ;
-                            pm.texcoords[ 0 ][ dst_pos + 1 ] = texcoords[ src_idx ][ 1 ] ;
-                            if( num_texcoord_elems > 2 )
-                                pm.texcoords[ 0 ][ dst_pos + 2 ] = texcoords[ src_idx ][ 2 ] ;
-                        }
+                        pm.positions[ dst_pos + 0 ] = positions[ src_idx ][ 0 ] ;
+                        pm.positions[ dst_pos + 1 ] = positions[ src_idx ][ 1 ] ;
+                        pm.positions[ dst_pos + 2 ] = positions[ src_idx ][ 2 ] ;
                     }
-                    #else
+
+                    for ( auto const & item : nrm_map )
                     {
-                        size_t j = 0 ;
-                        for ( auto const & v : positions )
-                        {
-                            pm.positions[j++] = v.x() ;
-                            pm.positions[j++] = v.y() ;
-                            pm.positions[j++] = v.z() ;
-                        }
+                        size_t const src_idx = item.first ;
+                        size_t const dst_idx = item.second ;
 
-                        if ( normals.size() != 0 )
-                        {
-                            size_t j = 0 ;
-                            for ( auto const & v : normals )
-                            {
-                                pm.normals[ 0 ][ j++ ] = v.x() ;
-                                pm.normals[ 0 ][ j++ ] = v.y() ;
-                                pm.normals[ 0 ][ j++ ] = v.z() ;
-                            }
-                        }
+                        size_t const dst_pos = dst_idx * 3 ;
 
-                        if ( texcoords.size() != 0 )
-                        {
-                            size_t j = 0 ;
-                            for ( auto const & tx : texcoords )
-                            {
-                                pm.texcoords[ 0 ][ j++ ] = tx.x() ;
-                                pm.texcoords[ 0 ][ j++ ] = tx.y() ;
-                                if ( num_texcoord_elems > 2 )
-                                    pm.texcoords[ 0 ][ j++ ] = tx.z() ;
-                            }
-                        }
+                        pm.normals[ 0 ][ dst_pos + 0 ] = normals[ src_idx ][ 0 ] ;
+                        pm.normals[ 0 ][ dst_pos + 1 ] = normals[ src_idx ][ 1 ] ;
+                        pm.normals[ 0 ][ dst_pos + 2 ] = normals[ src_idx ][ 2 ] ;
                     }
-                    #endif
 
-                    
+                    for ( auto const & item : tx_map )
+                    {
+                        size_t const src_idx = item.first ;
+                        size_t const dst_idx = item.second ;
+
+                        size_t const dst_pos = dst_idx * num_texcoord_elems ;
+
+                        pm.texcoords[ 0 ][ dst_pos + 0 ] = texcoords[ src_idx ][ 0 ] ;
+                        pm.texcoords[ 0 ][ dst_pos + 1 ] = texcoords[ src_idx ][ 1 ] ;
+                        if ( num_texcoord_elems > 2 )
+                            pm.texcoords[ 0 ][ dst_pos + 2 ] = texcoords[ src_idx ][ 2 ] ;
+                    }
                 }
 
                 ret.geos[midx++].poly = std::move( pm ) ;
