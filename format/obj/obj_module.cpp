@@ -286,8 +286,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     s = p ;
                 }
                 buffer[bp] = '\0' ;
-                l = motor::string_t( buffer, bp ) ;
-                //std::memcpy( l.data(), buffer, bp + 1 ) ;
+                l.replace( 0, bp+1, buffer ) ;
             }
             #else
             for( auto & l : lines )
@@ -358,6 +357,12 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             {
                 if ( line.size() < 2 ) continue ;
 
+                // I think 's' should not be supported.
+                // do not know how to smooth faces within
+                // a single mesh. This is not supported.
+                if ( line[ 0 ] == 's' || line[ 0 ] == '#' ) continue ;
+                
+
                 if( line[0] != 'f' )
                 {
                     // going out 
@@ -396,10 +401,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     ++num_positions ;
                     coord_lines.emplace_back( std::move( line ) ) ;
                 }
-                else if( line[0] == '#' )
-                {}
-                else if ( line.empty() )
-                {}
                 else if( line.size() >= 6 && line[0] == 'm' && line[1] == 't' && line[2] == 'l' && 
                     line[3] == 'l' && line[4] == 'i' && line[5] == 'b' )
                 {
@@ -631,13 +632,15 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
                 pm.polygons.resize( m.faces.size() ) ;
 
+                bool_t const has_normals = normals.size() != 0 ;
+                bool_t const has_texcoords = texcoords.size() != 0 ;
+
+                size_t num_indices = 0 ;
+                size_t num_vertices = 0 ;
+
                 // count some numbers
                 {
                     size_t i = 0;
-                    size_t num_indices = 0 ;
-                    size_t num_vertices = 0 ;
-                    bool_t const has_normals = normals.size() != 0 ;
-                    bool_t const has_texcoords = texcoords.size() != 0 ;
 
                     for ( auto & f : m.faces )
                     {
@@ -647,7 +650,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     }
 
                     pm.indices.resize( num_indices ) ;
-                    pm.positions.resize( positions.size() * 3 ) ;
+                    pm.positions.resize( num_vertices * 3 ) ;
 
                     if( has_normals )
                     {
@@ -667,13 +670,92 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         pm.texcoords[0].resize( texcoords.size() * num_texcoord_elems ) ;
                     }
                 }
+                
+                using remapping_t = motor::hash_map< size_t, size_t > ;
 
-                #if 0
-                motor::hash_map< size_t, size_t > pos_map ;
-                motor::hash_map< size_t, size_t > nrm_map ;
-                motor::hash_map< size_t, size_t > tx_map ;
-                #endif
+                remapping_t pos_map ;
+                remapping_t nrm_map ;
+                remapping_t tx_map ;
 
+                #if 1
+                // copy indices
+                {
+                    // create remap table for vertex indices
+                    // map : global -> local
+                    {
+                        size_t idx[ 3 ] = { 0, 0, 0 } ;
+
+                        #if 1
+                        
+                        // remap positions
+                        {
+                            for ( auto const & f : m.faces )
+                            {
+                                for ( auto & fidx : f.indices )
+                                {
+                                    if ( pos_map.find( fidx.pos_idx ) == pos_map.end() )
+                                        pos_map[ fidx.pos_idx ] = idx[ 0 ]++ ;
+
+                                    if ( has_normals )
+                                    {
+                                        if ( nrm_map.find( fidx.nrm_idx ) == nrm_map.end() )
+                                            nrm_map[ fidx.nrm_idx ] = idx[ 1 ]++ ;
+                                    }
+
+                                    if ( has_texcoords )
+                                    {
+                                        if ( tx_map.find( fidx.tx_idx ) == tx_map.end() )
+                                            tx_map[ fidx.tx_idx ] = idx[ 2 ]++ ;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        #else
+                        for ( auto const & f : m.faces )
+                        {
+                            for ( auto & fidx : f.indices )
+                            {
+                                if ( pos_map.find( fidx.pos_idx ) == pos_map.end() )
+                                    pos_map[ fidx.pos_idx ] = idx[ 0 ]++ ;
+                            }
+                        }
+                        #endif
+                    }
+                    
+                    // copy indices
+                    {
+                        #if 1
+                        {
+                            size_t idx = 0 ;
+                            for ( auto const & f : m.faces )
+                            {
+                                for ( auto & fidx : f.indices )
+                                {
+                                    pm.indices[ idx ] = pos_map[ fidx.pos_idx ] ;
+
+                                    if( has_normals )
+                                        pm.normals_indices[0][idx] = nrm_map[ fidx.nrm_idx ] ;
+                                    if( has_texcoords)
+                                        pm.texcoords_indices[0][idx] = tx_map[ fidx.tx_idx ] ;
+
+                                    ++idx ;
+                                }
+                            }
+                        }
+
+                        #else
+                        for ( auto const & f : m.faces )
+                        {
+                            for ( auto & fidx : f.indices )
+                            {
+                                pm.indices[ idx++ ] = pos_map[ fidx.pos_idx ] ;
+                            }
+                        }
+                        #endif
+                    }
+                }
+                #else
                 // copy indices
                 {
                     size_t poly_idx = 0 ;
@@ -692,9 +774,50 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         }
                     }
                 }
-
+                #endif
                 // copy positions
                 {
+                    #if 1
+                    {
+                        for( auto const & item : pos_map )
+                        {
+                            size_t const src_idx = item.first ;
+                            size_t const dst_idx = item.second ;
+                            
+                            size_t const dst_pos = dst_idx * 3 ;
+
+                            pm.positions[dst_pos + 0] = positions[src_idx][0] ;
+                            pm.positions[dst_pos + 1] = positions[src_idx][1] ;
+                            pm.positions[dst_pos + 2] = positions[src_idx][2] ;
+                        }
+
+
+                        for ( auto const & item : nrm_map )
+                        {
+                            size_t const src_idx = item.first ;
+                            size_t const dst_idx = item.second ;
+
+                            size_t const dst_pos = dst_idx * 3 ;
+
+                            pm.normals[0][ dst_pos + 0 ] = normals[ src_idx ][ 0 ] ;
+                            pm.normals[0][ dst_pos + 1 ] = normals[ src_idx ][ 1 ] ;
+                            pm.normals[0][ dst_pos + 2 ] = normals[ src_idx ][ 2 ] ;
+                        }
+
+                        for ( auto const & item : tx_map )
+                        {
+                            size_t const src_idx = item.first ;
+                            size_t const dst_idx = item.second ;
+
+                            size_t const dst_pos = dst_idx * num_texcoord_elems ;
+
+                            pm.texcoords[ 0 ][ dst_pos + 0 ] = texcoords[ src_idx ][ 0 ] ;
+                            pm.texcoords[ 0 ][ dst_pos + 1 ] = texcoords[ src_idx ][ 1 ] ;
+                            if( num_texcoord_elems > 2 )
+                                pm.texcoords[ 0 ][ dst_pos + 2 ] = texcoords[ src_idx ][ 2 ] ;
+                        }
+                    }
+                    #else
                     {
                         size_t j = 0 ;
                         for ( auto const & v : positions )
@@ -703,30 +826,33 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                             pm.positions[j++] = v.y() ;
                             pm.positions[j++] = v.z() ;
                         }
-                    }
 
-                    if( normals.size() != 0 )
-                    {
-                        size_t j = 0 ;
-                        for ( auto const & v : normals )
+                        if ( normals.size() != 0 )
                         {
-                            pm.normals[0][ j++ ] = v.x() ;
-                            pm.normals[0][ j++ ] = v.y() ;
-                            pm.normals[0][ j++ ] = v.z() ;
+                            size_t j = 0 ;
+                            for ( auto const & v : normals )
+                            {
+                                pm.normals[ 0 ][ j++ ] = v.x() ;
+                                pm.normals[ 0 ][ j++ ] = v.y() ;
+                                pm.normals[ 0 ][ j++ ] = v.z() ;
+                            }
+                        }
+
+                        if ( texcoords.size() != 0 )
+                        {
+                            size_t j = 0 ;
+                            for ( auto const & tx : texcoords )
+                            {
+                                pm.texcoords[ 0 ][ j++ ] = tx.x() ;
+                                pm.texcoords[ 0 ][ j++ ] = tx.y() ;
+                                if ( num_texcoord_elems > 2 )
+                                    pm.texcoords[ 0 ][ j++ ] = tx.z() ;
+                            }
                         }
                     }
+                    #endif
 
-                    if( texcoords.size() != 0 )
-                    {
-                        size_t j = 0 ;
-                        for ( auto const & tx : texcoords )
-                        {
-                            pm.texcoords[0][j++] = tx.x() ;
-                            pm.texcoords[0][j++] = tx.y() ;
-                            if( num_texcoord_elems > 2 )
-                                pm.texcoords[0][j++] = tx.z() ;
-                        }
-                    }
+                    
                 }
 
                 ret.geos[midx++].poly = std::move( pm ) ;
