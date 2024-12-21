@@ -15,6 +15,8 @@
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
 
+#include <cstdlib>
+
 using namespace motor::format ;
 
 namespace this_file
@@ -75,6 +77,8 @@ namespace this_file
 
             ret.emplace_back( std::move( tr ) ) ;
         }
+
+        tokens.clear() ;
 
         return ret ;
     }
@@ -353,7 +357,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     {
                         in_faces = true ;
                     }
-                    
                 }
 
                 if ( line[ 0 ] == 'v' && line[ 1 ] == 'n' )
@@ -409,7 +412,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // read out coords
         {
-            auto read_out_vec3 = [] ( size_t s, motor::string_in_t line, size_t & num_elems )
+            auto read_out_vec3 = [] ( size_t s, motor::string_in_t line, size_t & num_elems, char * tmp_buffer )
             {
                 float_t coords[ 3 ] = { 0.0f, 0.0f, 0.0f };
 
@@ -417,14 +420,28 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 size_t p = line.find_first_of( ' ', s ) ;
                 while ( p != std::string::npos && i < 3 )
                 {
+                    #if 1
+                    size_t const dist = p - s ;
+                    std::memcpy( tmp_buffer, line.data()+s, dist ) ;
+                    tmp_buffer[dist] = '\0' ;
+                    coords[ i++ ] = atof( tmp_buffer ) ;
+                    #else
                     coords[ i++ ] = std::stof( std::string( line.substr( s, p - s ) ) ) ;
+                    #endif
                     s = p + 1 ;
                     p = line.find_first_of( ' ', s ) ;
                 }
 
                 if ( s < line.size() && i < 3 )
                 {
+                    #if 1
+                    size_t const dist = line.size() - s ;
+                    std::memcpy( tmp_buffer, line.data() + s, dist ) ;
+                    tmp_buffer[ dist ] = '\0' ;
+                    coords[ i++ ] = atof( tmp_buffer ) ;
+                    #else
                     coords[ i++ ] = std::stof( std::string( line.substr( s, line.size() - s ) ) ) ;
+                    #endif
                 }
 
                 num_elems = i ;
@@ -432,24 +449,26 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 return motor::math::vec3f_t( coords[ 0 ], coords[ 1 ], coords[ 2 ] ) ;
             } ;
 
+            char tmp_buffer[1024] ;
+
             for ( auto const & line : coord_lines )
             {
                 size_t num_elems = 0 ;
                 // normal
                 if ( line[ 0 ] == 'v' && line[ 1 ] == 'n' )
                 {
-                    normals.emplace_back( read_out_vec3( 3, line, num_elems ) ) ;
+                    normals.emplace_back( read_out_vec3( 3, line, num_elems, tmp_buffer ) ) ;
                 }
                 // tex-coord
                 else if ( line[ 0 ] == 'v' && line[ 1 ] == 't' )
                 {
-                    texcoords.emplace_back( read_out_vec3( 3, line, num_elems ) ) ;
+                    texcoords.emplace_back( read_out_vec3( 3, line, num_elems, tmp_buffer ) ) ;
                     num_texcoord_elems = std::min( num_elems, num_texcoord_elems ) ;
                 }
                 // position
                 else if ( line[ 0 ] == 'v' )
                 {
-                    positions.emplace_back( read_out_vec3( 2, line, num_elems ) ) ;
+                    positions.emplace_back( read_out_vec3( 2, line, num_elems, tmp_buffer ) ) ;
                 }
             }
 
@@ -512,6 +531,11 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             mesh_data cur_data ;
             for ( auto const & l : lines )
             {
+                // I think 's' should not be supported.
+                // do not know how to smooth faces within
+                // a single mesh. This is not supported.
+                if ( l[ 0 ] == 's' || l[ 0 ] == '#' ) continue ;
+
                 if( l[ 0 ] != 'f' && in_faces )
                 {
                     in_faces = false ;
@@ -519,7 +543,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
                 if ( l[ 0 ] == 'o' || l[ 0 ] == 'g' )
                 {
-                    if( !cur_data.name.empty() )
+                    if( !cur_data.name.empty() && cur_data.faces.size() != 0 )
                         meshes.emplace_back( std::move( cur_data ) ) ;
 
                     cur_data.name = l.substr( 2 ) ;
@@ -547,6 +571,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
                     mesh_data::face f ;
 
+                    // this section extracts the indices of the vertex
+                    // attributes. It also converts from relative negative 
+                    // to positive absolute indices.
                     {
                         auto tripples = this_file::dissect_tripples( l ) ;
                         for( auto & t : tripples )
@@ -567,8 +594,6 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                             uint_t const nid = t.nid < 0 ?
                                 uint_t( offsets[ offset_idx ].num_nrm + t.nid ) : (uint_t) t.nid - 1 ;
                             
-                            
-                            
                             f.indices.emplace_back( mesh_data::index_tripple
                             {
                                 pid,
@@ -577,13 +602,13 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                             } ) ;
                         }
                         f.num_vertices = tripples.size() ;
-                        //assert( f.num_vertices <= 8 ) ;
                     }
-                    
                     cur_data.faces.emplace_back( std::move( f ) ) ;
                 }
             }
-            meshes.push_back( std::move( cur_data ) ) ;
+
+            if( cur_data.faces.size() != 0 ) 
+                meshes.push_back( std::move( cur_data ) ) ;
         }
 
         {
@@ -595,6 +620,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             size_t midx = 0 ;
             for( auto & m : meshes )
             {
+                if( m.faces.size() == 0 ) continue ;
+
                 motor::geometry::polygon_mesh pm ;
                 pm.position_format = motor::geometry::vector_component_format::xyz ;
                 pm.normal_format = normals.size() == 0 ?  motor::geometry::vector_component_format::invalid : motor::geometry::vector_component_format::xyz ;
@@ -740,7 +767,21 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             }
         }
 
+        
+        auto replace_specials = [=]( motor::string_t & name )
+        {
+            for ( size_t i = 0; i < name.size(); ++i )
+            {
+                if ( name[ i ] == '(' || name[ i ] == ')' )
+                {
+                    name[ i ] = '_' ;
+                }
+            }
+        } ;
+
         ret.name = loc.as_string() ;
+        replace_specials( ret.name ) ;
+        
 
         // put together a shader per material
         // or maybe just some shading infos?
@@ -753,7 +794,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             size_t midx = 0 ;
             for ( auto & m : meshes )
             {
-                motor::string_t name = ret.name + "." + m.name;
+                replace_specials( m.name ) ;
+                motor::string_t name = ret.name + "." + m.name ;
                 ret.geos[midx].name = name ;
                 ret.geos[midx++].shader = this_file::generate_forward_shader( this_file::material_info_t
                     {
