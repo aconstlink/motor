@@ -226,6 +226,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             return motor::shared( motor::format::status_item_t( "error" ) ) ;
         }
 
+        motor::vector< motor::io::database_t::cache_access_t > mtl_caches ;
+
         motor::vector< motor::string_t > lines ;
         motor::vector< motor::string_t > mtl_files ;
 
@@ -404,9 +406,10 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         {
             if( mtl_files.size() > 0 )
             {
-                motor::log::global_t::warning("[Wavefront obj] : mtl files not supported yet.") ;
+                mtl_caches.emplace_back( db->load( loc ) ) ;
             }
-            // load the files here and generate msl shaders in the end.
+
+            // files are loaded at the end before generate msl shaders.
             // for the shader, the vertex layout is required.
         }
 
@@ -782,6 +785,21 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         ret.name = loc.as_string() ;
         replace_specials( ret.name ) ;
         
+        {
+            for( auto ca : mtl_caches )
+            {
+                auto const res = ca.wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const )
+                {
+                    data_buffer = motor::string_t( data, sib ) ;
+                } ) ;
+
+                if ( !res )
+                {
+                    motor::log::global_t::error( "[obl_import] : can not load location " + loc.as_string() ) ;
+                    continue ;
+                }
+            }
+        }
 
         // put together a shader per material
         // or maybe just some shading infos?
