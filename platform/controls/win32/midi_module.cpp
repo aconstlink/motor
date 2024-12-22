@@ -286,15 +286,15 @@ void_t midi_module::update( void_t ) noexcept
 
     // swap in-message queues
     {
-        auto tmp = std::move( _ins ) ;
+        _tmp_in_msgs = std::move( _ins ) ;
         std::lock_guard< std::mutex > lk( _mtx_in ) ;
         _ins = std::move( _ins_from_proc ) ;
-        _ins_from_proc = std::move( tmp ) ;
+        _ins_from_proc = std::move( _tmp_in_msgs ) ;
     }
 
     // update observers
     {
-        this_t::observers_t tmp ;
+        this_t::observers_t & tmp = _tmp_observers ;
         
         {
             std::lock_guard< std::mutex > lk( _mtx_observers ) ;
@@ -359,7 +359,7 @@ void_t midi_module::update( void_t ) noexcept
 
     // midi-out
     {
-        motor::controls::midi_messages_t msgs ;
+        motor::controls::midi_messages_t & msgs = _tmp_out_msgs ;
 
         for( auto & item : _devices )
         {

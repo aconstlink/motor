@@ -137,7 +137,7 @@ namespace motor{ namespace profiling {
 
     public:
 
-        data_points_t swap_and_clear( void_t ) noexcept ;
+        data_points_cref_t swap_and_clear( void_t ) noexcept ;
 
     public: // other interface
 

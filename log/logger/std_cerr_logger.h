@@ -21,6 +21,7 @@ namespace motor
         public:
 
             virtual motor::log::result log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept ;
+            virtual motor::log::result log( motor::log::log_level const ll, char const * msg ) noexcept ;
         };
     }
 }

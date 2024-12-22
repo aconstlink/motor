@@ -21,6 +21,16 @@ namespace motor
                 motor::log::global_t::error( msg + " " + __glstring ) ;
                 return true ;
             }
+
+            static bool_t check_and_log( char const * msg ) noexcept
+            {
+                GLenum __so__err = glGetError() ;
+                if ( __so__err == GL_NO_ERROR ) return false ;
+
+                motor::string_t const __glstring = motor::ogl::to_string( __so__err ) ;
+                motor::log::global_t::error( motor::string_t( msg ) + " " + __glstring ) ;
+                return true ;
+            }
         };
     }
 }

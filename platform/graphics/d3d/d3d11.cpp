@@ -33,6 +33,8 @@
 #define D3D_DEBUG
 #endif
 
+#define d3d11_backend_log( text ) "[D3D11] : " text
+
 using namespace motor::platform ;
 using namespace motor::platform::gen4 ;
 
@@ -1527,7 +1529,7 @@ public: // functions
         {
             if( _state_stack.size() == 1 )
             {
-                motor::log::global_t::error( motor_log_fn( "no more render states to pop" ) ) ;
+                motor::log::global_t::error( d3d11_backend_log( "no more render states to pop" ) ) ;
                 return ;
             }
             auto old = _state_stack.pop() ;
@@ -1603,7 +1605,7 @@ public: // functions
                     auto const hr = dev->CreateSamplerState( &sampDesc, smp ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateSamplerState" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "CreateSamplerState" ) ) ;
                         continue ;
                     }
                 }
@@ -1633,7 +1635,7 @@ public: // functions
                         auto const hr = dev->CreateTexture2D( &desc, nullptr, tex ) ;
                         if( FAILED( hr ) )
                         {
-                            motor::log::global_t::error( motor_log_fn( "CreateTexture2D" ) ) ;
+                            motor::log::global_t::error( d3d11_backend_log( "CreateTexture2D" ) ) ;
                             continue ;
                         }
                     }
@@ -1651,7 +1653,7 @@ public: // functions
                     auto const hr = dev->CreateShaderResourceView( tex, &res_desc, srv ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateShaderResourceView for texture : [" + 
+                        motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for texture : [" + 
                             obj.name() + "]" ) ) ;
                         continue ;
                     }
@@ -1668,7 +1670,7 @@ public: // functions
                     auto const res = _ctx->dev()->CreateRenderTargetView( tex, &desc, view ) ;
                     if( FAILED( res ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateRenderTargetView" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "CreateRenderTargetView" ) ) ;
                         continue ;
                     }
                 }
@@ -1744,7 +1746,7 @@ public: // functions
                     auto const hr = dev->CreateSamplerState( &sampDesc, smp ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateSamplerState" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "CreateSamplerState" ) ) ;
                         return oid ;
                     }
                 }
@@ -1774,7 +1776,7 @@ public: // functions
                         auto const hr = dev->CreateTexture2D( &desc, nullptr, tex ) ;
                         if( FAILED( hr ) )
                         {
-                            motor::log::global_t::error( motor_log_fn( "CreateTexture2D" ) ) ;
+                            motor::log::global_t::error( d3d11_backend_log( "CreateTexture2D" ) ) ;
                             return oid ;
                         }
                     }
@@ -1792,7 +1794,7 @@ public: // functions
                     auto const hr = dev->CreateShaderResourceView( tex, &res_desc, srv ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateShaderResourceView for texture : [" +
+                        motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for texture : [" +
                             obj.name() + "]" ) ) ;
                         return oid ;
                     }
@@ -1809,7 +1811,7 @@ public: // functions
                     auto const res = _ctx->dev()->CreateDepthStencilView( tex, &desc, view ) ;
                     if( FAILED( res ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateDepthStencilView" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "CreateDepthStencilView" ) ) ;
                         return oid ;
                     }
                 }
@@ -1934,7 +1936,7 @@ public: // functions
                         auto & b = config._ping_pong[j].buffers[i].invalidate() ;
                         
                         HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, NULL, b ) ;
-                        motor::log::global_t::error( FAILED( hr ), motor_log_fn( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) ) ;
+                        motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) ) ;
                     }
                 }
 
@@ -1956,7 +1958,7 @@ public: // functions
                         auto & b = config._ping_pong[j].buffers[i] ;
                         auto & v = config._ping_pong[j].views[i].invalidate() ;
                         auto const hr = _ctx->dev()->CreateShaderResourceView( b, &res_desc, v ) ;
-                        motor::log::global_t::error( FAILED( hr ), motor_log_fn( "CreateShaderResourceView for buffer : [" + config.name + "]" ) ) ;
+                        motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateShaderResourceView for buffer : [" + config.name + "]" ) ) ;
                     }
                 }
             } ) ;
@@ -1973,7 +1975,7 @@ public: // functions
             for( size_t j=0; j<2; ++j )
             {
                 HRESULT const hr = _ctx->dev()->CreateQuery( &qd, config._ping_pong[j].query ) ;
-                motor::log::global_t::error( FAILED( hr ), motor_log_fn( "CreateQuery - D3D11_QUERY_SO_STATISTICS" ) ) ;
+                motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateQuery - D3D11_QUERY_SO_STATISTICS" ) ) ;
             }
         }
 
@@ -2017,7 +2019,7 @@ public: // functions
 
                 auto & b = d._ping_pong[pp].buffers[i].invalidate() ;
                 HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, NULL, b ) ;
-                motor::log::global_t::error( FAILED( hr ), motor_log_fn( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) ) ;
+                motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) ) ;
             }
         } ) ;
 
@@ -2274,7 +2276,7 @@ public: // functions
                 HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.vb ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
                 }
             }
             else
@@ -2282,7 +2284,7 @@ public: // functions
                 HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.vb ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
                 }
             }
         }
@@ -2322,7 +2324,7 @@ public: // functions
                 HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.ib ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "D3D11_BIND_INDEX_BUFFER" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
                 }
             }
             else
@@ -2330,7 +2332,7 @@ public: // functions
                 HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.ib ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "D3D11_BIND_INDEX_BUFFER" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
                 }
             }
         }
@@ -2380,7 +2382,7 @@ public: // functions
                     auto const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.vb ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateBuffer( vertex_buffer )" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "CreateBuffer( vertex_buffer )" ) ) ;
                     }
                 }
             }
@@ -2426,7 +2428,7 @@ public: // functions
                     auto const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.ib ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "CreateBuffer( index_buffer )" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "CreateBuffer( index_buffer )" ) ) ;
                     }
                 }
             }
@@ -2474,7 +2476,7 @@ public: // functions
             auto const res = obj.shader_set( this->sapi, ss ) ;
             if( !res )
             {
-                motor::log::global_t::warning( motor_log_fn(
+                motor::log::global_t::warning( d3d11_backend_log(
                     "config [" + obj.name() + "] has no shaders for " + 
                     motor::graphics::gen4::to_string( this->bt ) ) ) ;
                 return oid ;
@@ -2505,7 +2507,7 @@ public: // functions
 
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::warning( motor_log_fn(
+                        motor::log::global_t::warning( d3d11_backend_log(
                             "vertex shader [" + obj.name() + "] failed " +
                             motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
@@ -2551,7 +2553,7 @@ public: // functions
 
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::warning( motor_log_fn(
+                    motor::log::global_t::warning( d3d11_backend_log(
                         "geometry shader [" + obj.name() + "] failed " +
                         motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
@@ -2599,7 +2601,7 @@ public: // functions
 
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::warning( motor_log_fn(
+                    motor::log::global_t::warning( d3d11_backend_log(
                         "pixel shader [" + obj.name() + "] failed " +
                         motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
@@ -2822,7 +2824,7 @@ public: // functions
 
                 if( iter == geo_datas.end() )
                 {
-                    motor::log::global_t::warning( motor_log_fn(
+                    motor::log::global_t::warning( d3d11_backend_log(
                         "no geometry with name [" + rc.get_geometry() + "] for render_config [" + rc.name() + "]" ) ) ;
                     continue ;
                 }
@@ -2844,7 +2846,7 @@ public: // functions
 
                 if( iter == _streamouts.end() )
                 {
-                    motor::log::global_t::warning( motor_log_fn(
+                    motor::log::global_t::warning( d3d11_backend_log(
                         "no streamout object with name [" + rc.get_streamout() + "] for render_data [" + rc.name() + "]" ) ) ;
                     return false ;
                 }
@@ -2855,7 +2857,7 @@ public: // functions
 
         if( rd.geo_ids.size() == 0 && rd.so_ids.size() == 0 )
         {
-            motor::log::global_t::warning( motor_log_fn(
+            motor::log::global_t::warning( d3d11_backend_log(
                 "no geometry nor streamout linked to render_object with name [" + rc.name() + "]" ) ) ;
             return false ;
         }
@@ -2869,7 +2871,7 @@ public: // functions
             } ) ;
             if( iter == shaders.end() )
             {
-                motor::log::global_t::warning( motor_log_fn(
+                motor::log::global_t::warning( d3d11_backend_log(
                     "no shader with name [" + rc.get_shader() + "] for render_config [" + rc.name() + "]" ) ) ;
                 return false ;
             }
@@ -2880,7 +2882,7 @@ public: // functions
         // may happen if shaders did not compile properly the first time.
         if( rd.shd_id == size_t(-1) || shaders[ rd.shd_id ].vs_blob == nullptr )
         {
-            motor::log::global_t::warning( motor_log_fn(
+            motor::log::global_t::warning( d3d11_backend_log(
                 "something strange happened to render_config [" + rc.name() + "]" ) ) ;
             return false ;
         }
@@ -2908,7 +2910,7 @@ public: // functions
                     else if( j == vibs.size() )
                     {
                         vibs.erase( vibs.begin() + i ) ;
-                        motor::log::global_t::warning( motor_log_fn(
+                        motor::log::global_t::warning( d3d11_backend_log(
                             "removed shader input attribute in [" + shd.name + "]. Attribute not found in geometry layout." ) ) ;
                     }
                     // .. or entries are not at the same spot. exchange.
@@ -2954,7 +2956,7 @@ public: // functions
 
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::warning( motor_log_fn(
+                    motor::log::global_t::warning( d3d11_backend_log(
                         "CreateInputLayout for shader [" + shd.name + "] and render object[" + rc.name() + "]" ) ) ;
                     return false ;
                 }
@@ -2990,7 +2992,7 @@ public: // functions
                     else if( j == vibs.size() )
                     {
                         shd.vertex_inputs.erase( vibs.begin() + i ) ;
-                        motor::log::global_t::warning( motor_log_fn(
+                        motor::log::global_t::warning( d3d11_backend_log(
                             "removed shader input attribute in [" + shd.name + "]. Attribute not found in geometry layout." ) ) ;
                     }
                     // .. or entries are not at the same spot. exchange.
@@ -3037,7 +3039,7 @@ public: // functions
 
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::warning( motor_log_fn(
+                    motor::log::global_t::warning( d3d11_backend_log(
                         "CreateInputLayout for shader [" + shd.name + "] and render object[" + rc.name() + "]" ) ) ;
                     return false ;
                 }
@@ -3117,7 +3119,7 @@ public: // functions
                     auto const hr = dev->CreateBuffer( &bd, &InitData, cb.ptr ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn( "D3D11_BIND_CONSTANT_BUFFER" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_CONSTANT_BUFFER" ) ) ;
                     }
 
                     for( auto& var : c.datas )
@@ -3274,7 +3276,7 @@ public: // functions
             auto const hr = dev->CreateSamplerState( &sampDesc, img.sampler );
             if( FAILED( hr ) )
             {
-                motor::log::global_t::error( motor_log_fn( "CreateSamplerState" ) ) ;
+                motor::log::global_t::error( d3d11_backend_log( "CreateSamplerState" ) ) ;
             }
         }
 
@@ -3319,7 +3321,7 @@ public: // functions
                 auto const hr = dev->CreateTexture2D( &desc, init_datas.get(), img.texture ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "CreateTexture2D" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "CreateTexture2D" ) ) ;
                 }
             }
 
@@ -3347,7 +3349,7 @@ public: // functions
                 auto const hr = dev->CreateShaderResourceView( img.texture, &res_desc, img.view ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "CreateShaderResourceView for texture : [" + img.name + "]" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for texture : [" + img.name + "]" ) ) ;
                 }
             }
         }
@@ -3427,7 +3429,7 @@ public: // functions
             HRESULT const hr = dev->CreateBuffer( &bd, nullptr, data.buffer ) ;
             if( FAILED( hr ) )
             {
-                motor::log::global_t::error( motor_log_fn( "D3D11_BIND_DATA_BUFFER" ) ) ;
+                motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_DATA_BUFFER" ) ) ;
             }
         }
             
@@ -3446,7 +3448,7 @@ public: // functions
             auto const hr = dev->CreateShaderResourceView( data.buffer, &res_desc, data.view ) ;
             if( FAILED( hr ) )
             {
-                motor::log::global_t::error( motor_log_fn( "CreateShaderResourceView for buffer : [" + data.name + "]" ) ) ;
+                motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for buffer : [" + data.name + "]" ) ) ;
             }
         }
 
@@ -3607,7 +3609,7 @@ public: // functions
 
         if( rnd.shd_id == size_t( -1 ) )
         {
-            motor::log::global_t::error( motor_log_fn( "shader invalid. First shader compilation failed probably." ) ) ;
+            motor::log::global_t::error( d3d11_backend_log( "shader invalid. First shader compilation failed probably." ) ) ;
             return false ;
         }
 
@@ -3621,7 +3623,7 @@ public: // functions
 
         if( shd.vs == nullptr )
         {
-            motor::log::global_t::error( motor_log_fn( "shader missing" ) ) ;
+            motor::log::global_t::error( d3d11_backend_log( "shader missing" ) ) ;
             return false ;
         }
 
@@ -3911,7 +3913,7 @@ public: // functions
             auto const hr = reflector->GetDesc( &shd_desc ) ;
             if( FAILED( hr ) )
             {
-                motor::log::global_t::error( motor_log_fn( "Can not get shader reflection desc" ) ) ;
+                motor::log::global_t::error( d3d11_backend_log( "Can not get shader reflection desc" ) ) ;
                 return false ;
             }
         }
@@ -3924,7 +3926,7 @@ public: // functions
                 auto const hr = reflector->GetResourceBindingDesc( i, &ibd ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "GetResourceBindingDesc" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "GetResourceBindingDesc" ) ) ;
                     return false ;
                 }
             }
@@ -3962,7 +3964,7 @@ public: // functions
             }
             else
             {
-                motor::log::global_t::warning( motor_log_fn("Detected texture but type is not supported.") ) ;
+                motor::log::global_t::warning( d3d11_backend_log("Detected texture but type is not supported.") ) ;
             }
         }
 
@@ -3985,7 +3987,7 @@ public: // functions
             auto const hr = reflector->GetDesc( &shd_desc ) ;
             if( FAILED( hr ) )
             {
-                motor::log::global_t::error( motor_log_fn( "Can not get shader reflection desc" ) ) ;
+                motor::log::global_t::error( d3d11_backend_log( "Can not get shader reflection desc" ) ) ;
                 return shader_data_t::cbuffers_t() ;
             }
         }
@@ -4002,7 +4004,7 @@ public: // functions
                 auto hr = cbr->GetDesc( &buf_desc ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "D3D11_SHADER_BUFFER_DESC" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_SHADER_BUFFER_DESC" ) ) ;
                     continue ;
                 }
             }
@@ -4017,7 +4019,7 @@ public: // functions
                 auto const hr = reflector->GetResourceBindingDescByName( buf_desc.Name, &res_desc ) ;
                 if( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( motor_log_fn( "D3D11_SHADER_INPUT_BIND_DESC" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_SHADER_INPUT_BIND_DESC" ) ) ;
                     continue ;
                 }
                 cbuffer.slot = res_desc.BindPoint ;
@@ -4032,7 +4034,7 @@ public: // functions
                     auto const hr = var->GetDesc( &var_desc ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn(
+                        motor::log::global_t::error( d3d11_backend_log(
                             "D3D11_SHADER_VARIABLE_DESC" ) ) ;
                         continue ;
                     }
@@ -4044,7 +4046,7 @@ public: // functions
                     auto const hr = type->GetDesc( &type_desc ) ;
                     if( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( motor_log_fn(
+                        motor::log::global_t::error( d3d11_backend_log(
                             "D3D11_SHADER_TYPE_DESC" ) ) ;
                         continue ;
                     }
@@ -4130,7 +4132,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
 {
     if( obj == nullptr )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4145,7 +4147,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::geometry_obje
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4170,7 +4172,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::render_object
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4187,7 +4189,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::shader_object
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
         
@@ -4215,7 +4217,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::image_object_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4242,7 +4244,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::framebuffer_o
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4259,7 +4261,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::state_object_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4276,7 +4278,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::array_object_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4296,7 +4298,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::streamout_obj
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4317,7 +4319,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::geometry_object
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4332,7 +4334,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::render_object_m
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4347,7 +4349,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::shader_object_m
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4362,7 +4364,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::image_object_mt
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4377,7 +4379,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::framebuffer_obj
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4392,7 +4394,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::state_object_mt
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4407,7 +4409,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::array_object_mt
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4422,7 +4424,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::streamout_objec
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( motor_log_fn( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4439,7 +4441,7 @@ motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_m
     #if 0
     if( id->is_not_valid( this_t::get_bid() ) )
     {
-        motor::log::global_t::error( motor_log_fn( "invalid render configuration id" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "invalid render configuration id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
@@ -4447,7 +4449,7 @@ motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_m
 
     auto const res = _pimpl->connect( oid, vs ) ;
     motor::log::global_t::error( motor::graphics::is_not( res ), 
-        motor_log_fn( "connect variable set" ) ) ;
+        d3d11_backend_log( "connect variable set" ) ) ;
    
     #endif
 
@@ -4461,12 +4463,12 @@ motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( motor_log_fn( "invalid geometry object id" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "invalid geometry object id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
     auto const res = _pimpl->update( oid, obj ) ;
-    motor::log::global_t::error( !res, motor_log_fn( "update geometry" ) ) ;
+    motor::log::global_t::error( !res, d3d11_backend_log( "update geometry" ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4517,7 +4519,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::render_object_mt
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
@@ -4616,7 +4618,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mt
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
@@ -4643,7 +4645,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( motor_log_fn( "invalid id" ) ) ;
+        motor::log::global_t::error( d3d11_backend_log( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
     }
 

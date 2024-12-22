@@ -167,10 +167,19 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     {
                         // set frame time
                         {
+                            char tmp_text[2048] ;
+                            
                             size_t const milli = d.micro_rnd/1000 ;
                             size_t const fps = size_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
+
+                            sprintf_s( tmp_text, "%s [ %zd ms; %zd fps ]", wd.window_text.c_str(), milli, fps  ) ;
+
+                            #if 1
+                            SetWindowText( wd.hwnd, tmp_text ) ;
+                            #else
                             SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
                                 motor::to_string(fps) + " fps]").c_str() ) ;
+                            #endif
                         }
 
                         // set vsync

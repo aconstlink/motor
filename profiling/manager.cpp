@@ -173,7 +173,7 @@ void_t manager::end_probe( size_t const idx ) noexcept
 }
 
 //************************************************************
-manager::data_points_t manager::swap_and_clear( void_t ) noexcept
+manager::data_points_cref_t manager::swap_and_clear( void_t ) noexcept
 {
     _data_points[ _dp_ridx ].clear() ;
 

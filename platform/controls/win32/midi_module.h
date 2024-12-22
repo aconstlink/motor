@@ -156,6 +156,12 @@ namespace motor
                 std::mutex _mtx_observers ;
                 observers_t _observers ;
 
+            private: // temp cache
+
+                in_messages_t _tmp_in_msgs ;
+                motor::controls::midi_messages_t _tmp_out_msgs ;
+                this_t::observers_t _tmp_observers ;
+
             public:
 
                 midi_module( void_t ) noexcept ;

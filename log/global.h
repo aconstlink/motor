@@ -61,6 +61,21 @@ namespace motor
             static void_t critical( motor::string_cref_t msg ) noexcept ;
             static bool_t critical( bool_t const condition, motor::string_cref_t msg ) noexcept ;
 
+        public:
+
+            static void_t message( log_level const level, char const * msg ) noexcept ;
+            static bool_t message( bool_t const condition, log_level const level, char const * msg ) noexcept ;
+            static void_t status( char const * msg ) noexcept ;
+            static bool_t status( bool_t const condition, char const * msg ) noexcept ;
+            static void_t warning( char const * msg ) noexcept ;
+            static bool_t warning( bool_t const condition, char const * msg ) noexcept ;
+            static void_t error( char const * msg ) noexcept ;
+            static void_t error_and_exit( char const * msg ) noexcept ;
+            static void_t error_and_exit( bool_t const condition, char const * msg ) noexcept ;
+            static bool_t error( bool_t const condition, char const * msg ) noexcept ;
+            static void_t critical( char const * msg ) noexcept ;
+            static bool_t critical( bool_t const condition, char const * msg ) noexcept ;
+
         };
         motor_typedef( global ) ;
     }

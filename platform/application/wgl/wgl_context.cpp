@@ -7,6 +7,8 @@
 #include <motor/std/string_split.hpp>
 #include <motor/log/global.h>
 
+#define wgl_context_log( text ) "[WGL Context] : " text
+
 using namespace motor::platform ;
 using namespace motor::platform::wgl ;
 
@@ -83,7 +85,7 @@ motor::platform::result wgl_context::activate( void_t ) noexcept
     if( _hdc == NULL ) return motor::platform::result::invalid_win32_handle ;
 
     if( motor::log::global::error( wglMakeCurrent( _hdc, _hrc ) == FALSE, 
-        motor_log_fn( "wglMakeCurrent" ) ) ) 
+        wgl_context_log( "wglMakeCurrent" ) ) ) 
         return motor::platform::result::failed_wgl ;
         
     return motor::platform::result::ok ;
@@ -95,11 +97,11 @@ motor::platform::result wgl_context::deactivate( void_t ) noexcept
     if( _hdc == NULL ) return motor::platform::result::ok ;
 
     if( motor::log::global::error( wglMakeCurrent( 0,0 ) == FALSE, 
-        motor_log_fn( "wglMakeCurrent" ) ) ) 
+        wgl_context_log( "wglMakeCurrent" ) ) ) 
         return motor::platform::result::failed_wgl ;
 
     if( motor::log::global::error( ReleaseDC( _hwnd, _hdc ) == FALSE, 
-        motor_log_fn( "ReleaseDC" ) ) ) 
+        wgl_context_log( "ReleaseDC" ) ) ) 
         return motor::platform::result::failed_wgl ;
     
     _hdc = NULL ;
@@ -337,7 +339,7 @@ motor::platform::result wgl_context::create_the_context( motor::application::gl_
         motor::application::gl_version version ;
         if( !success( this_t::get_gl_version( version ) ) )
         {
-            motor::log::global_t::error( motor_log_fn( "" ) ) ;
+            motor::log::global_t::error( wgl_context_log( "" ) ) ;
             wglMakeCurrent( 0, 0 ) ;
             return result::failed_gfx_context_creation ;
         }
@@ -360,7 +362,7 @@ motor::platform::result wgl_context::create_the_context( motor::application::gl_
         size_t const milli = size_t( std::chrono::duration_cast<std::chrono::milliseconds>(
             local_clock_t::now() - t1).count()) ;
 
-        motor::log::global::status( motor_log_fn( "created [" + std::to_string(milli) +" ms]" ) ) ;
+        motor::log::global::status( motor::string_t( "created [" ) + motor::to_string(milli) + motor::string_t( " ms]" ) ) ;
     }
 
     return motor::platform::result::ok ;
