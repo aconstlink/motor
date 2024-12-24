@@ -15,6 +15,8 @@
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
 
+#include <motor/core/document.hpp>
+
 #include <cstdlib>
 
 using namespace motor::format ;
@@ -230,6 +232,12 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         motor::vector< motor::string_t > lines ;
         motor::vector< motor::string_t > mtl_files ;
+
+        motor::core::document doc( data_buffer ) ;
+        doc.for_each_line( [&]( std::string_view const & line )
+        {
+            int bp =0 ;
+        } ) ;
 
         // find number of lines
         {

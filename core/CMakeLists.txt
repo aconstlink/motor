@@ -2,6 +2,7 @@
 
 set( sources 
     "double_dispatch.hpp"
+    "document.hpp"
     "dummy.cpp"
     )
 
