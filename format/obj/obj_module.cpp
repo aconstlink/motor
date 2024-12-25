@@ -32,8 +32,10 @@ namespace this_file
 
     // dissect tokens and make indices tripple
     // @param l must be a "f" line
-    static motor::vector< tripple > dissect_tripples( motor::string_in_t l ) noexcept
+    static void_t dissect_tripples( std::string_view const & l, motor::vector< tripple > & ret ) noexcept
     {
+        ret.clear() ;
+
         motor::vector< motor::string_t > tokens ;
 
         // tokenize string line for indices
@@ -51,8 +53,6 @@ namespace this_file
         }
 
         size_t const sot = 3 ;
-
-        motor::vector< tripple > ret ;
 
         for ( auto const & t : tokens )
         {
@@ -81,8 +81,6 @@ namespace this_file
         }
 
         tokens.clear() ;
-
-        return ret ;
     }
 
     static void_t _pl_( size_t const indent, motor::string_in_t ln, motor::string_ref_t shader, bool_t const b ) noexcept
@@ -230,85 +228,14 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         motor::vector< motor::io::database_t::cache_access_t > mtl_caches ;
 
-        motor::vector< motor::string_t > lines ;
-        motor::vector< motor::string_t > mtl_files ;
-
         motor::core::document doc( data_buffer ) ;
-        doc.for_each_line( [&]( std::string_view const & line )
-        {
-            int bp =0 ;
-        } ) ;
-
-        // find number of lines
-        {
-            size_t num_lines = 0 ;
-            for( auto const & c : data_buffer )
-            {
-                if( c == '\n' ) ++num_lines ;
-            }
-            lines.reserve( num_lines ) ;
-        }
-
-        // fill lines vector
-        {
-            size_t s = 0 ;
-            size_t p = data_buffer.find_first_of( '\n' ) ;
-            while( p != std::string::npos )
-            {
-                size_t const pb = p - 1 ;
-                size_t const e = (pb < data_buffer.size() && data_buffer[pb] == '\r') ? pb : p ;
-                
-                lines.emplace_back( data_buffer.substr( s, e - s ) ) ;
-
-                s = p + 1 ;
-                p = data_buffer.find_first_of( '\n', s ) ;
-            }
-        }
-
-        // remove multiple white spaces
-        {
-            char buffer[1024] ;
-            for ( auto & l : lines )
-            {
-                if( l.empty() ) continue ;
-                buffer[0] = '\0' ;
-
-                size_t bp = 0 ;
-
-                size_t s = 0 ;
-                size_t p = 0 ;
-                while( p < l.size() )
-                {
-                    // find first white space
-                    while( l[p] != ' ' && p < l.size() ) ++p ;
-                    
-                    size_t const dist = p - s ;
-                    std::memcpy( buffer+bp, l.data()+s, dist ) ;
-                    bp += dist ;
-                    
-                    if ( p == l.size() ) break ;
-
-                    // find first white space
-                    while( l[p] == ' ' && p < l.size() ) ++p ;
-                    if( p == l.size() ) break ;
-
-                    buffer[ bp++ ] = ' ' ;
-                    buffer[ bp ] = '\0' ;
-
-                    s = p ;
-                }
-                buffer[bp] = '\0' ;
-                l.replace( 0, bp+1, buffer ) ;
-            }
-        }
 
         motor::vector< motor::math::vec3f_t > positions ;
         motor::vector< motor::math::vec3f_t > normals ;
         motor::vector< motor::math::vec3f_t > texcoords ;
+
         // only valid if texcoords actually have values.
         size_t num_texcoord_elems = 3 ;
-
-        motor::vector< motor::string_t > coord_lines ;
 
         // for negative indices.
         // we need to remember the number of vertex data
@@ -326,74 +253,72 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // filter lines
         {
-            auto tmp_lines = std::move( lines ) ;
-            lines.reserve( tmp_lines.size() ) ;
-            
-            coord_lines.reserve( tmp_lines.size() ) ;
-
             size_t num_positions = 0 ;
             size_t num_texcoords = 0 ;
             size_t num_normals = 0 ;
 
             bool_t in_faces = false ;
 
-            // filter lines and count 
-            for ( auto & line : tmp_lines )
+            doc.for_each_line( [&] ( motor::core::document::line_view const & line )
             {
-                if ( line.size() < 2 ) continue ;
+                if ( line.get_line().size() < 2 ) return ;
 
-                // I think 's' should not be supported.
-                // do not know how to smooth faces within
-                // a single mesh. This is not supported.
-                if ( line[ 0 ] == 's' || line[ 0 ] == '#' ) continue ;
-
-                if( line[0] != 'f' )
                 {
-                    // going out 
-                    if( in_faces )
+                    auto const tok = line.get_token( 0 ) ;
+
+                    // I think 's' should not be supported.
+                    // do not know how to smooth faces within
+                    // a single mesh. This is not supported.
+                    if ( tok[ 0 ] == 's' || tok[ 0 ] == '#' ) return ;
+
+                    if ( tok[ 0 ] != 'f' )
                     {
-                        in_faces = false ;
-                        offsets.emplace_back( index_offset_capture
-                            { 
+                        // going out 
+                        if ( in_faces )
+                        {
+                            in_faces = false ;
+                            offsets.emplace_back( index_offset_capture
+                            {
                                 num_positions,
                                 num_normals,
                                 num_texcoords
                             } ) ;
+                        }
                     }
-                }
-                else
-                {
-                    if( !in_faces )
+                    else
                     {
-                        in_faces = true ;
+                        if ( !in_faces )
+                        {
+                            in_faces = true ;
+                        }
+                    }
+
+                    if ( tok.size() == 2 && tok[ 0 ] == 'v' && tok[ 1 ] == 'n' )
+                    {
+                        ++num_normals ;
+                    }
+                    else if ( tok.size() == 2 && tok[ 0 ] == 'v' && tok[ 1 ] == 't' )
+                    {
+                        ++num_texcoords ;
+                    }
+                    else if ( tok.size() == 1 && tok[ 0 ] == 'v' )
+                    {
+                        ++num_positions ;
+                    }
+                    else if ( tok.size() >= 6 && tok[ 0 ] == 'm' && tok[ 1 ] == 't' && tok[ 2 ] == 'l' &&
+                        tok[ 3 ] == 'l' && tok[ 4 ] == 'i' && tok[ 5 ] == 'b' )
+                    {
+                       // mtl_files.emplace_back( line.substr( 7 ) ) ;
                     }
                 }
 
-                if ( line[ 0 ] == 'v' && line[ 1 ] == 'n' )
+
+                for ( size_t i = 0; i < line.get_num_tokens(); ++i )
                 {
-                    ++num_normals ;
-                    coord_lines.emplace_back( std::move( line ) ) ;
+                    auto const tok = line.get_token( i ) ;
+                    int bp = 0 ;
                 }
-                else if ( line[ 0 ] == 'v' && line[ 1 ] == 't' )
-                {
-                    ++num_texcoords ;
-                    coord_lines.emplace_back( std::move( line ) ) ;
-                }
-                else if ( line[ 0 ] == 'v' )
-                {
-                    ++num_positions ;
-                    coord_lines.emplace_back( std::move( line ) ) ;
-                }
-                else if( line.size() >= 6 && line[0] == 'm' && line[1] == 't' && line[2] == 'l' && 
-                    line[3] == 'l' && line[4] == 'i' && line[5] == 'b' )
-                {
-                    mtl_files.emplace_back( line.substr( 7 ) ) ;
-                }
-                else
-                {
-                    lines.emplace_back( std::move( line ) ) ;
-                }
-            }
+            } ) ;
 
             if( in_faces )
             {
@@ -411,6 +336,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         }
 
         // issue material file loading
+        #if 0
         {
             if( mtl_files.size() > 0 )
             {
@@ -420,10 +346,11 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             // files are loaded at the end before generate msl shaders.
             // for the shader, the vertex layout is required.
         }
+        #endif
 
         // read out coords
         {
-            auto read_out_vec3 = [] ( size_t s, motor::string_in_t line, size_t & num_elems, char * tmp_buffer )
+            auto read_out_vec3 = [] ( size_t s, std::string_view line, size_t & num_elems, char * tmp_buffer )
             {
                 float_t coords[ 3 ] = { 0.0f, 0.0f, 0.0f };
 
@@ -461,27 +388,29 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             } ;
 
             char tmp_buffer[1024] ;
-
-            for ( auto const & line : coord_lines )
+            
+            doc.for_each_line( [&] ( motor::core::document::line_view const & line )
             {
+                auto const tok = line.get_token( 0 ) ;
+
                 size_t num_elems = 0 ;
                 // normal
-                if ( line[ 0 ] == 'v' && line[ 1 ] == 'n' )
+                if ( tok.size() == 2 && tok[ 0 ] == 'v' && tok[ 1 ] == 'n' )
                 {
-                    normals.emplace_back( read_out_vec3( 3, line, num_elems, tmp_buffer ) ) ;
+                    normals.emplace_back( read_out_vec3( 3, line.get_line(), num_elems, tmp_buffer ) ) ;
                 }
                 // tex-coord
-                else if ( line[ 0 ] == 'v' && line[ 1 ] == 't' )
+                else if ( tok.size() == 2 && tok[ 0 ] == 'v' && tok[ 1 ] == 't' )
                 {
-                    texcoords.emplace_back( read_out_vec3( 3, line, num_elems, tmp_buffer ) ) ;
+                    texcoords.emplace_back( read_out_vec3( 3, line.get_line(), num_elems, tmp_buffer ) ) ;
                     num_texcoord_elems = std::min( num_elems, num_texcoord_elems ) ;
                 }
                 // position
-                else if ( line[ 0 ] == 'v' )
+                else if ( tok.size() == 1 && tok[ 0 ] == 'v' )
                 {
-                    positions.emplace_back( read_out_vec3( 2, line, num_elems, tmp_buffer ) ) ;
+                    positions.emplace_back( read_out_vec3( 2, line.get_line(), num_elems, tmp_buffer ) ) ;
                 }
-            }
+            } ) ;
 
             if( texcoords.size() == 0 )
                 num_texcoord_elems = 0 ;
@@ -540,39 +469,49 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             size_t offset_idx = size_t(-1) ;
 
             mesh_data cur_data ;
-            for ( auto const & l : lines )
+
+            // cache
+            motor::vector< this_file::tripple > tripples ;
+
+            doc.for_each_line( [&] ( motor::core::document::line_view const & line )
             {
+                auto const l = line.get_line() ;
+
                 // I think 's' should not be supported.
                 // do not know how to smooth faces within
                 // a single mesh. This is not supported.
-                if ( l[ 0 ] == 's' || l[ 0 ] == '#' ) continue ;
+                if ( l[ 0 ] == 's' || l[ 0 ] == '#' ) return ;
 
-                if( l[ 0 ] != 'f' && in_faces )
+                if ( l[ 0 ] != 'f' && in_faces )
                 {
                     in_faces = false ;
                 }
 
                 if ( l[ 0 ] == 'o' || l[ 0 ] == 'g' )
                 {
-                    if( !cur_data.name.empty() && cur_data.faces.size() != 0 )
+                    if ( !cur_data.name.empty() && cur_data.faces.size() != 0 )
                         meshes.emplace_back( std::move( cur_data ) ) ;
 
-                    cur_data.name = l.substr( 2 ) ;
+                    if( l.size() >= 2 ) cur_data.name = l.substr( 2 ) ;
+                    else cur_data.name = "unnamed_group" ;
+
                     cur_data.faces.clear() ;
                 }
-                else if( l.size() >= 6 && 
-                    l[0] == 'u' && l[1] == 's' && l[2] == 'e' && 
-                    l[3] == 'm' && l[4] == 't' && l[5] == 'l' )
+                else if ( l.size() >= 6 &&
+                    l[ 0 ] == 'u' && l[ 1 ] == 's' && l[ 2 ] == 'e' &&
+                    l[ 3 ] == 'm' && l[ 4 ] == 't' && l[ 5 ] == 'l' )
                 {
                     cur_data.material = l.substr( 7, l.size() - 7 ) ;
                 }
-                else if( l[ 0 ] == 'f' )
+                else if ( l[ 0 ] == 'f' )
                 {
-                    if( !in_faces )
+                    if ( !in_faces )
                     {
                         ++offset_idx ;
                         in_faces = true ;
                     }
+
+                    tripples.reserve( line.get_num_tokens() ) ;
 
                     // f usually looks like this:
                     // pos/tx/nrm
@@ -586,37 +525,37 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     // attributes. It also converts from relative negative 
                     // to positive absolute indices.
                     {
-                        auto tripples = this_file::dissect_tripples( l ) ;
-                        for( auto & t : tripples )
+                        this_file::dissect_tripples( l, tripples ) ;
+                        for ( auto & t : tripples )
                         {
-                            if( t.pid == 0 ) 
+                            if ( t.pid == 0 )
                             {
                                 t.pid = 1 ;
                                 motor::log::global_t::warning( "[wavefront obj importer] : "
                                     "zero based indices not supported/valid." ) ;
                             }
 
-                            uint_t const pid = t.pid < 0 ? 
-                                uint_t(offsets[offset_idx].num_pos + t.pid) : (uint_t) t.pid - 1 ;
+                            uint_t const pid = t.pid < 0 ?
+                                uint_t( offsets[ offset_idx ].num_pos + t.pid ) : (uint_t) t.pid - 1 ;
 
                             uint_t const tid = t.tid < 0 ?
                                 uint_t( offsets[ offset_idx ].num_tx + t.tid ) : (uint_t) t.tid - 1 ;
 
                             uint_t const nid = t.nid < 0 ?
                                 uint_t( offsets[ offset_idx ].num_nrm + t.nid ) : (uint_t) t.nid - 1 ;
-                            
+
                             f.indices.emplace_back( mesh_data::index_tripple
-                            {
-                                pid,
-                                tid,
-                                nid
-                            } ) ;
+                                {
+                                    pid,
+                                    tid,
+                                    nid
+                                } ) ;
                         }
                         f.num_vertices = tripples.size() ;
                     }
                     cur_data.faces.emplace_back( std::move( f ) ) ;
                 }
-            }
+            } ) ;
 
             if( cur_data.faces.size() != 0 ) 
                 meshes.push_back( std::move( cur_data ) ) ;
