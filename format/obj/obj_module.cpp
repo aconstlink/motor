@@ -32,55 +32,42 @@ namespace this_file
 
     // dissect tokens and make indices tripple
     // @param l must be a "f" line
-    static void_t dissect_tripples( std::string_view const & l, motor::vector< tripple > & ret ) noexcept
+    static size_t dissect_tripples( motor::core::document::line_view const & line, motor::vector< tripple > & ret ) noexcept
     {
-        ret.clear() ;
+        ret.resize( line.get_num_tokens() ) ;
 
-        motor::vector< motor::string_t > tokens ;
+        char tmp_buf[1024] ;
 
-        // tokenize string line for indices
+        size_t tr_pos = 0 ;
+        tripple tr ;
+
+        for( size_t i=1; i<line.get_num_tokens(); ++i )
         {
-            size_t s = 2 ;
-            size_t p = l.find_first_of( ' ', s ) ;
-            while ( p != std::string::npos )
-            {
-                tokens.emplace_back( l.substr( s, p - s ) ) ;
-                s = p + 1 ;
-                p = l.find_first_of( ' ', s ) ;
-            }
+            auto const & t = line.get_token( i ) ;
 
-            tokens.emplace_back( l.substr( s, l.size() - s ) ) ;
-        }
-
-        size_t const sot = 3 ;
-
-        for ( auto const & t : tokens )
-        {
-            tripple tr ;
-            int32_t * ptr = (int32_ptr_t) ( &tr ) ;
-
-            size_t idx = 0 ;
             size_t s = 0 ;
-            size_t p = t.find_first_of( '/', s ) ;
-            while ( p != std::string::npos )
+            size_t p = 0 ;
+            
+            do
             {
-                motor::string_t const number = t.substr( s, p - s ) ;
-                if ( number.empty() ) ++idx ;
-                else ptr[ idx++ ] = std::stoi( std::string( number ) ) ;
-                s = p + 1 ;
-                p = t.find_first_of( '/', s ) ;
-            }
+                while ( p < t.size() && t[ p ] != '/' ) ++p ;
 
-            {
-                auto const number = t.substr( s, l.size() - s ) ;
-                if ( !number.empty() )
-                    ptr[ idx ] = std::stol( std::string( number ) ) ;
-            }
+                size_t const dist = p - s ;
+                std::memcpy( tmp_buf, t.data() + s, dist ) ;
+                tmp_buf[ dist ] = '\0' ;
 
-            ret.emplace_back( std::move( tr ) ) ;
+                ((int32_ptr_t)(&tr))[tr_pos++] = std::atoi( tmp_buf ) ;
+                s = ++p ;
+                
+            } while ( p < t.size() ) ;
+            
+            tr_pos = 0 ;
+            ret[i-1] = tr ;
+
+            std::memset( (void_ptr_t)&tr, 0, sizeof(tripple) ) ;
         }
 
-        tokens.clear() ;
+        return line.get_num_tokens() - 1 ;
     }
 
     static void_t _pl_( size_t const indent, motor::string_in_t ln, motor::string_ref_t shader, bool_t const b ) noexcept
@@ -208,6 +195,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
+        using _clock_t = std::chrono::high_resolution_clock ;
+        _clock_t::time_point tp_begin = _clock_t::now() ;
+
         motor::format::mesh_item_t ret ;
 
         motor::mtr_release_guard< motor::property::property_sheet_t > psr( ps ) ;
@@ -244,6 +234,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         // index.
         struct index_offset_capture
         {
+            // abuse this struct for 
+            // counting the number of faces.
+            size_t num_faces = 0 ;
             size_t num_pos = 0 ;
             size_t num_nrm = 0 ;
             size_t num_tx = 0 ;
@@ -253,6 +246,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // filter lines
         {
+            size_t num_faces = 0 ;
             size_t num_positions = 0 ;
             size_t num_texcoords = 0 ;
             size_t num_normals = 0 ;
@@ -279,6 +273,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                             in_faces = false ;
                             offsets.emplace_back( index_offset_capture
                             {
+                                num_faces,
                                 num_positions,
                                 num_normals,
                                 num_texcoords
@@ -290,7 +285,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         if ( !in_faces )
                         {
                             in_faces = true ;
+                            num_faces = 1 ;
                         }
+                        ++num_faces;
                     }
 
                     if ( tok.size() == 2 && tok[ 0 ] == 'v' && tok[ 1 ] == 'n' )
@@ -311,19 +308,13 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                        // mtl_files.emplace_back( line.substr( 7 ) ) ;
                     }
                 }
-
-
-                for ( size_t i = 0; i < line.get_num_tokens(); ++i )
-                {
-                    auto const tok = line.get_token( i ) ;
-                    int bp = 0 ;
-                }
             } ) ;
 
             if( in_faces )
             {
                 offsets.emplace_back( index_offset_capture
                     {
+                        num_faces,
                         num_positions,
                         num_normals,
                         num_texcoords
@@ -468,10 +459,15 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             bool_t in_faces = false ;
             size_t offset_idx = size_t(-1) ;
 
+            size_t cur_mesh_idx = 0 ;
             mesh_data cur_data ;
+            //cur_data.faces.reserve( offsets[0].num_faces ) ;
 
             // cache
             motor::vector< this_file::tripple > tripples ;
+
+            // cache for every face
+            mesh_data::face cache_f ;
 
             doc.for_each_line( [&] ( motor::core::document::line_view const & line )
             {
@@ -493,7 +489,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         meshes.emplace_back( std::move( cur_data ) ) ;
 
                     if( l.size() >= 2 ) cur_data.name = l.substr( 2 ) ;
-                    else cur_data.name = "unnamed_group" ;
+                    else cur_data.name = "unnamed_group_" + motor::to_string( cur_mesh_idx++ ) ;
 
                     cur_data.faces.clear() ;
                 }
@@ -503,31 +499,34 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 {
                     cur_data.material = l.substr( 7, l.size() - 7 ) ;
                 }
+
+                // f usually looks like this:
+                // pos/tx/nrm
+                // example:
+                // 1//1 or 1/2/3 or 1
+                // the latter is position only
                 else if ( l[ 0 ] == 'f' )
                 {
+                    cache_f.num_vertices = 0 ;
+
                     if ( !in_faces )
                     {
                         ++offset_idx ;
                         in_faces = true ;
+                        //cur_data.faces.reserve( offsets[offset_idx].num_faces ) ;
                     }
-
-                    tripples.reserve( line.get_num_tokens() ) ;
-
-                    // f usually looks like this:
-                    // pos/tx/nrm
-                    // example:
-                    // 1//1 or 1/2/3 or 1
-                    // the latter is position only
-
-                    mesh_data::face f ;
 
                     // this section extracts the indices of the vertex
                     // attributes. It also converts from relative negative 
                     // to positive absolute indices.
                     {
-                        this_file::dissect_tripples( l, tripples ) ;
-                        for ( auto & t : tripples )
+                        auto num_tripples = this_file::dissect_tripples( line, tripples ) ;
+                        cache_f.indices.reserve( num_tripples ) ;
+
+                        for ( size_t nt = 0; nt < num_tripples; ++nt )
                         {
+                            auto & t = tripples[nt] ;
+
                             if ( t.pid == 0 )
                             {
                                 t.pid = 1 ;
@@ -544,16 +543,16 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                             uint_t const nid = t.nid < 0 ?
                                 uint_t( offsets[ offset_idx ].num_nrm + t.nid ) : (uint_t) t.nid - 1 ;
 
-                            f.indices.emplace_back( mesh_data::index_tripple
+                            cache_f.indices.emplace_back( mesh_data::index_tripple
                                 {
                                     pid,
                                     tid,
                                     nid
                                 } ) ;
                         }
-                        f.num_vertices = tripples.size() ;
+                        cache_f.num_vertices = num_tripples ;
                     }
-                    cur_data.faces.emplace_back( std::move( f ) ) ;
+                    cur_data.faces.emplace_back( std::move( cache_f ) ) ;
                 }
             } ) ;
 
@@ -769,6 +768,14 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         has_tx
                     } ) ;
             }
+        }
+
+        {
+            size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds > 
+                ( _clock_t::now() - tp_begin ).count() ;
+
+            motor::log::global_t::status( "[obj_loader] : loading file " + loc.as_string() + " took " + 
+                motor::to_string(milli) + " ms."  ) ;
         }
 
         return motor::shared( std::move( ret ), "mesh_item" ) ;
