@@ -216,7 +216,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             return motor::shared( motor::format::status_item_t( "error" ) ) ;
         }
 
-        motor::vector< motor::io::database_t::cache_access_t > mtl_caches ;
+        motor::vector< std::pair< motor::io::location_t, 
+            motor::io::database_t::cache_access_t > > mtl_caches ;
 
         motor::core::document doc( data_buffer ) ;
 
@@ -246,6 +247,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
         // filter lines
         {
+            motor::vector< motor::string_t > mtl_files ;
+
             size_t num_faces = 0 ;
             size_t num_positions = 0 ;
             size_t num_texcoords = 0 ;
@@ -305,7 +308,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     else if ( tok.size() >= 6 && tok[ 0 ] == 'm' && tok[ 1 ] == 't' && tok[ 2 ] == 'l' &&
                         tok[ 3 ] == 'l' && tok[ 4 ] == 'i' && tok[ 5 ] == 'b' )
                     {
-                       // mtl_files.emplace_back( line.substr( 7 ) ) ;
+                       mtl_files.emplace_back( line.get_line().substr( 7 ) ) ;
                     }
                 }
             } ) ;
@@ -324,20 +327,19 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             positions.reserve( num_positions ) ;
             normals.reserve( num_normals ) ;
             texcoords.reserve( num_texcoords ) ;
-        }
 
-        // issue material file loading
-        #if 0
-        {
-            if( mtl_files.size() > 0 )
+            // issue material file loading
+            if ( mtl_files.size() > 0 )
             {
-                mtl_caches.emplace_back( db->load( loc ) ) ;
-            }
+                for( auto const & mtlf : mtl_files )
+                {
+                    motor::io::location_t mtl_loc = motor::io::location_t::from_path( 
+                        loc.as_path().parent_path().append( mtlf ) ) ;
 
-            // files are loaded at the end before generate msl shaders.
-            // for the shader, the vertex layout is required.
+                    mtl_caches.emplace_back( std::make_pair( mtl_loc, db->load( mtl_loc ) ) ) ;
+                }
+            }
         }
-        #endif
 
         // read out coords
         {
@@ -734,16 +736,18 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         {
             for( auto ca : mtl_caches )
             {
-                auto const res = ca.wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const )
+                auto const res = ca.second.wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const )
                 {
                     data_buffer = motor::string_t( data, sib ) ;
                 } ) ;
 
                 if ( !res )
                 {
-                    motor::log::global_t::error( "[obl_import] : can not load location " + loc.as_string() ) ;
+                    motor::log::global_t::error( "[obl_import] : can not load material at location " + ca.first.as_string() ) ;
                     continue ;
                 }
+
+                int bp = 0 ;
             }
         }
 
