@@ -83,6 +83,7 @@ namespace motor
 
             document( motor::string_in_t s ) noexcept : _doc( s )
             {
+                this_t::exchange( '\t', ' ' ) ;
                 this_t::dissect_lines() ;
                 this_t::remove_multi_whitespaces() ;
                 this_t::tokenize() ;
@@ -90,6 +91,7 @@ namespace motor
 
             document( motor::string_rref_t s ) noexcept : _doc( std::move( s ) )
             {
+                this_t::exchange( '\t', ' ' ) ;
                 this_t::dissect_lines() ;
                 this_t::remove_multi_whitespaces() ;
                 this_t::tokenize() ;
@@ -202,6 +204,15 @@ namespace motor
                         }
                         l.tokens[t] = this_t::token { s, l.e } ;
                     }
+                }
+            }
+
+            // go through the document and exchange a single character
+            void_t exchange( char_t const from, char_t const to ) noexcept
+            {
+                for( size_t i=0; i<_doc.size(); ++i )
+                {
+                    if( _doc[i] == from ) _doc[i] = to ;
                 }
             }
 
