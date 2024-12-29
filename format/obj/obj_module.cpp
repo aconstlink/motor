@@ -15,7 +15,7 @@
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
 
-#include <motor/core/document.hpp>
+#include <motor/core/read_doc.hpp>
 
 #include <cstdlib>
 
@@ -32,7 +32,7 @@ namespace this_file
 
     // dissect tokens and make indices tripple
     // @param l must be a "f" line
-    static size_t dissect_tripples( motor::core::document::line_view const & line, motor::vector< tripple > & ret ) noexcept
+    static size_t dissect_tripples( motor::core::read_doc::line_view const & line, motor::vector< tripple > & ret ) noexcept
     {
         ret.resize( line.get_num_tokens() ) ;
 
@@ -221,7 +221,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         motor::vector< std::pair< motor::io::location_t, 
             motor::io::database_t::cache_access_t > > mtl_caches ;
 
-        motor::core::document doc( data_buffer ) ;
+        motor::core::read_doc doc( data_buffer ) ;
 
         motor::vector< motor::math::vec3f_t > positions ;
         motor::vector< motor::math::vec3f_t > normals ;
@@ -258,7 +258,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
             bool_t in_faces = false ;
 
-            doc.for_each_line( [&] ( motor::core::document::line_view const & line )
+            doc.for_each_line( [&] ( motor::core::read_doc::line_view const & line )
             {
                 if ( line.get_line().size() < 2 ) return ;
 
@@ -384,7 +384,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
             char tmp_buffer[1024] ;
             
-            doc.for_each_line( [&] ( motor::core::document::line_view const & line )
+            doc.for_each_line( [&] ( motor::core::read_doc::line_view const & line )
             {
                 auto const tok = line.get_token( 0 ) ;
 
@@ -473,7 +473,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             // cache for every face
             mesh_data::face cache_f ;
 
-            doc.for_each_line( [&] ( motor::core::document::line_view const & line )
+            doc.for_each_line( [&] ( motor::core::read_doc::line_view const & line )
             {
                 auto const l = line.get_line() ;
 

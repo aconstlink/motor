@@ -9,9 +9,9 @@ namespace motor
 {
     namespace core
     {
-        class document
+        class read_doc
         {
-            motor_this_typedefs( document ) ;
+            motor_this_typedefs( read_doc ) ;
 
         private:
 
@@ -46,16 +46,16 @@ namespace motor
 
             class line_view
             {
-                friend class document ;
+                friend class read_doc ;
 
             private:
 
-                document const * _doc ;
+                read_doc const * _doc ;
 
                 size_t _lidx ;
                 std::string_view _line ;
 
-                line_view( document const * doc, size_t const idx, std::string_view && line ) noexcept:
+                line_view( read_doc const * doc, size_t const idx, std::string_view && line ) noexcept:
                     _doc( doc ), _lidx( idx ), _line( line )
                 {}
 
@@ -81,7 +81,7 @@ namespace motor
 
         public:
 
-            document( motor::string_in_t s ) noexcept : _doc( s )
+            read_doc( motor::string_in_t s ) noexcept : _doc( s )
             {
                 this_t::exchange( '\t', ' ' ) ;
                 this_t::dissect_lines() ;
@@ -89,7 +89,7 @@ namespace motor
                 this_t::tokenize() ;
             }
 
-            document( motor::string_rref_t s ) noexcept : _doc( std::move( s ) )
+            read_doc( motor::string_rref_t s ) noexcept : _doc( std::move( s ) )
             {
                 this_t::exchange( '\t', ' ' ) ;
                 this_t::dissect_lines() ;

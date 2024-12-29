@@ -1,7 +1,7 @@
 
 #include "obj_module.h"
 
-#include <motor/core/document.hpp>
+#include <motor/core/read_doc.hpp>
 
 using namespace motor::format ;
 
@@ -10,11 +10,11 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
     motor::format::mtl_file ret ;
     motor::format::mtl_file::material cur_mat ;
 
-    motor::core::document doc( std::move( the_file ) ) ;
+    core::read_doc doc( std::move( the_file ) ) ;
     
     size_t mat_idx = size_t( -1 ) ;
 
-    doc.for_each_line( [&](motor::core::document::line_view const & line)
+    doc.for_each_line( [&](core::read_doc::line_view const & line)
     {  
         auto const & l = line.get_line() ;
         size_t const num_tokens = line.get_num_tokens() ;
