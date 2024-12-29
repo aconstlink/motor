@@ -88,6 +88,8 @@ namespace this_file
 
         bool_t has_nrm ;
         bool_t has_tx ;
+
+        motor::format::mtl_file::material mat ;
     };
     motor_typedef( material_info ) ;
 
@@ -733,12 +735,16 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         ret.name = loc.as_string() ;
         replace_specials( ret.name ) ;
         
+        motor::vector< motor::format::mtl_file > mtl_files ;
+
         {
             for( auto ca : mtl_caches )
             {
+                motor::string_t mtl_file_content ;
+
                 auto const res = ca.second.wait_for_operation( [&] ( char_cptr_t data, size_t const sib, motor::io::result const )
                 {
-                    data_buffer = motor::string_t( data, sib ) ;
+                    mtl_file_content = motor::string_t( data, sib ) ;
                 } ) ;
 
                 if ( !res )
@@ -747,7 +753,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     continue ;
                 }
 
-                int bp = 0 ;
+                mtl_files.emplace_back( motor::format::wav_obj_module::load_mtl_file( 
+                    ca.first, std::move( mtl_file_content ) ) ) ;
             }
         }
 
@@ -762,6 +769,23 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             size_t midx = 0 ;
             for ( auto & m : meshes )
             {
+                motor::format::mtl_file::material mtl ;
+
+                for( auto const & mtlf : mtl_files )
+                {
+                    auto const iter = std::find_if( mtlf.materials.begin(), mtlf.materials.end(), 
+                        [&]( motor::format::mtl_file::material const & v ) 
+                    {
+                        return v.name == m.material ;
+                    } ) ;
+
+                    if( iter != mtlf.materials.end() ) 
+                    {
+                        mtl = *iter ;
+                        break ;
+                    }
+                }
+
                 replace_specials( m.name ) ;
                 motor::string_t name = ret.name + "." + m.name ;
                 ret.geos[midx].name = name ;
@@ -769,7 +793,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     {
                         name,
                         has_nrm,
-                        has_tx
+                        has_tx,
+                        mtl
                     } ) ;
             }
         }

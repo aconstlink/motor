@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../imodule.h"
+#include "obj_module_structs.h"
+
 #include "../module_factory.hpp"
 #include "../module_registry.hpp"
 
@@ -28,6 +30,9 @@ namespace motor
             virtual motor::format::future_item_t export_to( motor::io::location_cref_t loc,
                 motor::io::database_mtr_t, motor::format::item_mtr_safe_t ) noexcept ;
 
+        private:
+
+            static mtl_file load_mtl_file( motor::io::location_in_t loc, motor::string_rref_t the_file ) noexcept ;
         };
         motor_typedef( wav_obj_module ) ;
         typedef motor::format::module_factory<wav_obj_module> wav_obj_factory_t ;

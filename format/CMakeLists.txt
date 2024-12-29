@@ -12,7 +12,9 @@ set( sources
 
     "imodule.h"
     
+    "obj/obj_module_structs.h"
     "obj/obj_module.cpp"
+    "obj/obj_module_mtl.cpp"
     "obj/obj_module.h"
 
     "stb/stb_module.cpp"
