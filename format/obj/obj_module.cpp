@@ -69,113 +69,6 @@ namespace this_file
 
         return line.get_num_tokens() - 1 ;
     }
-
-    static void_t _pl_( size_t const indent, motor::string_in_t ln, motor::string_ref_t shader, bool_t const b ) noexcept
-    {
-        if ( !b ) return ;
-        for ( size_t i = 0; i < indent << 2; ++i ) shader += " " ;
-        shader += ln + "\n" ;
-    }
-
-    static void_t _pl_( size_t const indent, motor::string_in_t ln, motor::string_ref_t shader ) noexcept
-    {
-        return _pl_( indent, ln, shader, true ) ;
-    }
-
-    struct material_info
-    {
-        motor::string_t name ;
-
-        bool_t has_nrm ;
-        bool_t has_tx ;
-
-        motor::format::mtl_file::material mat ;
-    };
-    motor_typedef( material_info ) ;
-
-    // positions
-    // no normals
-    // no texcoords
-    static motor::string_t generate_forward_shader( material_info_in_t mi ) noexcept
-    {
-        size_t indent = 0 ;
-        motor::string_t shader ;
-
-        _pl_( indent, "config " + mi.name, shader ) ;
-        _pl_( indent, "{", shader ) ;
-        ++indent ;
-
-        // vertex shader
-        {
-            _pl_( indent, "vertex_shader", shader ) ;
-            _pl_( indent, "{", shader ) ;
-            ++indent ;
-
-
-            _pl_( indent, "in vec3_t pos : position ;", shader ) ;
-            _pl_( indent, "in vec3_t nrm : normal ;", shader, mi.has_nrm ) ;
-            _pl_( indent, "in vec3_t tx : texcoord0 ;", shader, mi.has_tx ) ;
-
-            _pl_( indent, "", shader ) ;
-            _pl_( indent, "out vec4_t pos : position ;", shader ) ;
-            _pl_( indent, "out vec3_t nrm : normal ;", shader, mi.has_nrm ) ;
-            _pl_( indent, "out vec3_t tx : texcoord0 ;", shader, mi.has_tx ) ;
-
-            _pl_( indent, "", shader ) ;
-            _pl_( indent, "mat4_t world : world ;", shader ) ;
-            _pl_( indent, "mat4_t view : view ;", shader ) ;
-            _pl_( indent, "mat4_t proj : proj ;", shader ) ;
-            _pl_( indent, "", shader ) ;
-
-            _pl_( indent, "void main()", shader ) ;
-            _pl_( indent, "{", shader ) ;
-            ++indent ;
-            {
-                _pl_( indent, "out.nrm = in.nrm ;", shader, mi.has_nrm ) ;
-                _pl_( indent, "out.pos = proj * view * world * vec4_t( in.pos, 1.0 ) ;", shader ) ;
-            }
-            --indent ;
-            _pl_( indent, "}", shader ) ;
-
-
-            --indent ;
-            _pl_( indent, "}", shader ) ;
-        }
-
-        {
-            _pl_( indent, "pixel_shader", shader ) ;
-            _pl_( indent, "{", shader ) ;
-            ++indent ;
-
-            _pl_( indent, "in vec3_t nrm : normal ;", shader, mi.has_nrm ) ;
-            _pl_( indent, "in vec3_t tx : texcoord0 ;", shader, mi.has_tx ) ;
-
-            _pl_( indent, "vec3_t light_dir ;", shader, mi.has_nrm ) ;
-            _pl_( indent, "out vec4_t color : color ;", shader ) ;
-
-            _pl_( indent, "void main()", shader ) ;
-            _pl_( indent, "{", shader ) ;
-            ++indent ;
-            if( mi.has_nrm )
-            {
-                _pl_( indent, "float_t ndl = dot( in.nrm, light_dir ) ;", shader ) ;
-                _pl_( indent, "out.color = vec4_t(ndl, ndl, ndl, 1.0 ) ;", shader ) ;
-            }
-            else
-            {
-                _pl_( indent, "out.color = vec4_t(1.0, 1.0, 1.0, 1.0 ) ;", shader ) ;
-            }
-            --indent ;
-            _pl_( indent, "}", shader ) ;
-            --indent ;
-            _pl_( indent, "}", shader ) ;
-        }
-
-        --indent ;
-        _pl_( indent, "}", shader ) ;
-
-        return shader ;
-    }
 }
 
 // *****************************************************************************************
@@ -221,7 +114,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         motor::vector< std::pair< motor::io::location_t, 
             motor::io::database_t::cache_access_t > > mtl_caches ;
 
-        motor::core::read_doc doc( data_buffer ) ;
+        motor::core::read_doc const doc( data_buffer ) ;
 
         motor::vector< motor::math::vec3f_t > positions ;
         motor::vector< motor::math::vec3f_t > normals ;
@@ -771,6 +664,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             {
                 motor::format::mtl_file::material mtl ;
 
+                bool_t material_found = false ;
+
                 for( auto const & mtlf : mtl_files )
                 {
                     auto const iter = std::find_if( mtlf.materials.begin(), mtlf.materials.end(), 
@@ -782,14 +677,18 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     if( iter != mtlf.materials.end() ) 
                     {
                         mtl = *iter ;
+                        material_found = true ;
                         break ;
                     }
                 }
 
+                if( !material_found )
+                    motor::log::global::warning( "[wav_obj_module] : could not find material " + m.material ) ;
+
                 replace_specials( m.name ) ;
                 motor::string_t name = ret.name + "." + m.name ;
                 ret.geos[midx].name = name ;
-                ret.geos[midx++].shader = this_file::generate_forward_shader( this_file::material_info_t
+                ret.geos[midx++].shader = this_t::generate_forward_shader( motor::format::material_info_t
                     {
                         name,
                         has_nrm,

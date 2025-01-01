@@ -17,6 +17,8 @@ namespace motor
 
         class MOTOR_FORMAT_API wav_obj_module : public imodule
         {
+            motor_this_typedefs( wav_obj_module ) ;
+
         public:
 
             virtual ~wav_obj_module( void_t ) {}
@@ -33,6 +35,7 @@ namespace motor
         private:
 
             static mtl_file load_mtl_file( motor::io::location_in_t loc, motor::string_rref_t the_file ) noexcept ;
+            static motor::string_t generate_forward_shader( material_info_in_t mi ) noexcept ;
         };
         motor_typedef( wav_obj_module ) ;
         typedef motor::format::module_factory<wav_obj_module> wav_obj_factory_t ;

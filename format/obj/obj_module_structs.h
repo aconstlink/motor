@@ -33,5 +33,16 @@ namespace motor
 
             motor::vector< material > materials ;
         };
+
+        struct material_info
+        {
+            motor::string_t name ;
+
+            bool_t has_nrm ;
+            bool_t has_tx ;
+
+            motor::format::mtl_file::material mat ;
+        };
+        motor_typedef( material_info ) ;
     }
 }
