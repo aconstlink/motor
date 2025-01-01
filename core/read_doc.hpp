@@ -33,14 +33,16 @@ namespace motor
                 size_t s ;
                 size_t e ;
 
+                size_t first_token ;
+                size_t num_token ;
+
                 size_t dist( void_t ) const noexcept
                 {
                     return e - s ;
                 }
-
-                motor::vector< token > tokens ;
             };
             motor::vector< line > _lines ;
+            motor::vector< token > _tokens ;
 
         public: 
 
@@ -68,7 +70,7 @@ namespace motor
 
                 size_t get_num_tokens( void_t ) const noexcept 
                 {
-                    return _doc->_lines[ _lidx ].tokens.size() ;
+                    return _doc->_lines[ _lidx ].num_token ;
                 }
 
                 std::string_view get_token( size_t const tidx ) const noexcept
@@ -122,12 +124,11 @@ namespace motor
             {
                 for( auto const & l : _lines )
                 {
-                    if( l.tokens.empty() ) continue ;
+                    if( l.num_token == 0 ) continue ;
                     
-                    size_t i = 0 ;
-                    for( auto const & t : l.tokens )
+                    for( size_t i=0; i<l.num_token; ++i )
                     {
-                        funk( i++, this_t::make_token( t ) ) ;
+                        funk( i, this_t::make_token( _tokens[ l.first_token + i] ) ) ;
                     }
                 }
             }
@@ -174,23 +175,34 @@ namespace motor
             // @precondition requires lines to be white space handled.
             void_t tokenize( void_t ) noexcept
             {
+                // count number of tokens
+                {
+                    size_t num_tokens = 0 ;
+                    for ( auto const & c : _doc )
+                    {
+                        if ( c == ' ' ) ++num_tokens ;
+                    }
+                    _tokens.reserve( ++num_tokens ) ;
+                }
+
+                size_t cur_token = 0 ;
                 for( auto & l : _lines )
                 {
                     // count tokens
                     {
                         size_t num_tokens = 0 ;
-                        for( size_t i=l.s; i<=l.e; ++i )
+                        for ( size_t i = l.s; i <= l.e; ++i )
                         {
-                            if( _doc[i] == ' ' ) ++num_tokens ;
+                            if ( _doc[ i ] == ' ' ) ++num_tokens ;
                         }
-                        // there is no whitespace at the end, so
-                        // increment by one.
-                        l.tokens.resize( ++num_tokens ) ;
+
+                        l.first_token = cur_token ;
+                        l.num_token = ++num_tokens ;
+                        cur_token += num_tokens ;
                     }
 
                     // add token meta
                     {
-                        size_t t = 0 ;
                         size_t s = l.s ;
                         for ( size_t i = l.s; i <= l.e; ++i )
                         {
@@ -198,11 +210,11 @@ namespace motor
                             while( _doc[e] != ' ' && e <= l.e ) ++e ;
                             if( e >= l.e ) break ;
 
-                            l.tokens[t++] = this_t::token { s, e } ;
+                            _tokens.emplace_back( this_t::token { s, e } ) ;
 
                             s = e + 1 ;
                         }
-                        l.tokens[t] = this_t::token { s, l.e } ;
+                        _tokens.emplace_back( this_t::token { s, l.e } ) ;
                     }
                 }
             }
@@ -277,7 +289,7 @@ namespace motor
 
             this_t::token get_token_us( size_t const lidx, size_t const tidx ) const noexcept
             {
-                return _lines[lidx].tokens[tidx] ;
+                return _tokens[ _lines[lidx].first_token + tidx ] ;
             }
 
             std::string_view make_view( this_t::line const & l ) const noexcept
