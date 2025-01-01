@@ -15,7 +15,13 @@ namespace motor
 
         private:
 
-            motor::string_t _doc ;
+            char * _doc = nullptr ;
+            size_t _cur_pos = 0 ;
+
+            size_t _grow_by = 500 ;
+            size_t _size = 1000 ;
+
+        private:
 
             struct token
             {
@@ -84,20 +90,30 @@ namespace motor
 
         public:
 
-            read_doc( motor::string_in_t s ) noexcept : _doc( s )
+            read_doc( void_t ) noexcept
             {
+                _doc = motor::memory::global::alloc_raw<char_t>( _size ) ;
+                _doc[ 0 ] = '\0' ;
+            }
+
+            read_doc( motor::string_in_t s ) noexcept
+            {
+                _size = s.size() ;
+                _doc = motor::memory::global::alloc_raw<char_t>( _size + 1 ) ;
+                std::memcpy( _doc, s.data(), _size ) ;
+                _doc[ _size ] = '\0' ;
+                _cur_pos = _size ;
+
+
                 this_t::dissect_lines() ;
                 this_t::exchange( '\t', ' ' ) ;
                 this_t::remove_multi_whitespaces() ;
                 this_t::tokenize() ;
             }
 
-            read_doc( motor::string_rref_t s ) noexcept : _doc( std::move( s ) )
+            ~read_doc( void_t ) noexcept
             {
-                this_t::dissect_lines() ;
-                this_t::exchange( '\t', ' ' ) ;
-                this_t::remove_multi_whitespaces() ;
-                this_t::tokenize() ;
+                motor::memory::global::dealloc_raw( _doc ) ;
             }
 
             using line_string_funk_t = std::function< void_t ( std::string_view const &  ) > ;
@@ -136,6 +152,13 @@ namespace motor
                 }
             }
 
+        public: // 
+
+            this_ref_t println( char const * text, size_t const len = size_t( -1 ) ) noexcept
+            {
+                
+            }
+
         private:
 
             void_t dissect_lines( void_t ) noexcept
@@ -143,21 +166,23 @@ namespace motor
                 // count number of lines
                 {
                     size_t num_lines = 0 ;
-                    for ( auto const & c : _doc )
+                    for ( size_t i=0; i<_size; ++i )
                     {
-                        if ( c == '\n' ) ++num_lines ;
+                        if ( _doc[i] == '\n' ) ++num_lines ;
                     }
                     _lines.reserve( num_lines ) ;
                 }
 
                 // create line meta
                 {
+                    auto const doc = std::string_view( _doc ) ;
+
                     size_t s = 0 ;
-                    size_t p = _doc.find_first_of( '\n' ) ;
+                    size_t p =  doc.find_first_of( '\n' ) ;
                     while ( p != std::string::npos )
                     {
                         size_t const pb = p - 1 ;
-                        size_t const e = ( pb < _doc.size() && _doc[ pb ] == '\r' ) ? pb : p ;
+                        size_t const e = ( pb < doc.size() && _doc[ pb ] == '\r' ) ? pb : p ;
 
                         // move start of line to first
                         // non whitespace char
@@ -177,9 +202,10 @@ namespace motor
                         }
 
                         s = p + 1 ;
-                        p = _doc.find_first_of( '\n', s ) ;
+                        p = doc.find_first_of( '\n', s ) ;
                     }
-                    _lines.emplace_back( this_t::line { s, _doc.size(), 0, 0, 0 } ) ;
+                    if( s < doc.size() )
+                        _lines.emplace_back( this_t::line { s, doc.size(), 0, 0, 0 } ) ;
                 }
             }
 
@@ -190,9 +216,9 @@ namespace motor
                 // count number of tokens
                 {
                     size_t num_tokens = 0 ;
-                    for ( auto const & c : _doc )
+                    for ( size_t i=0; i<_size; ++i )
                     {
-                        if ( c == ' ' ) ++num_tokens ;
+                        if ( _doc[i] == ' ' ) ++num_tokens ;
                     }
                     _tokens.reserve( ++num_tokens ) ;
                 }
@@ -234,7 +260,7 @@ namespace motor
             // go through the document and exchange a single character
             void_t exchange( char_t const from, char_t const to ) noexcept
             {
-                for( size_t i=0; i<_doc.size(); ++i )
+                for( size_t i=0; i<_size; ++i )
                 {
                     if( _doc[i] == from ) _doc[i] = to ;
                 }
@@ -254,16 +280,19 @@ namespace motor
                     // @todo this can be removed from release code.
                     // those positions are not used anyways.
                     {
-                        size_t const len = l.s - kill_beg ;
-                        _doc.replace( kill_beg, len, len, 'x' ) ;
+                        //size_t const len = l.s - kill_beg ;
+                        //_doc.replace( kill_beg, len, len, 'x' ) ;
+
+                        for( size_t i=kill_beg; i<l.s; ++i ) _doc[i] = 'x' ;
                     }
 
-                    std::memcpy( buffer, _doc.data()+l.s, l.dist() ) ;
+                    std::memcpy( buffer, _doc + l.s, l.dist() ) ;
                     size_t const new_dist = this_t::remove_multi_whitespaces( buffer, l.dist() ) ;
 
                     buffer[new_dist] = '\n' ;
                     buffer[new_dist + 1] = '\0' ;
-                    _doc.replace( l.s, new_dist+1, buffer ) ;
+                    //_doc.replace( l.s, new_dist+1, buffer ) ;
+                    for( size_t j=0, i=l.s; i<l.s+new_dist+1; ++i, ++j ) _doc[i] = buffer[j] ;
                     l.e = l.s + new_dist ;
                     kill_beg = l.e + 1 ;
                 }
@@ -306,12 +335,40 @@ namespace motor
 
             std::string_view make_view( this_t::line const & l ) const noexcept
             {
-                return std::string_view( _doc.data() + l.s, l.dist() ) ;
+                return std::string_view( _doc + l.s, l.dist() ) ;
             }
 
             std::string_view make_token( this_t::token const & t ) const noexcept
             {
-                return std::string_view( _doc.data() + t.s, t.dist() ) ;
+                return std::string_view( _doc + t.s, t.dist() ) ;
+            }
+
+        private: // size issues
+
+            void_t resize( size_t const num_elems ) noexcept
+            {
+                size_t const new_size = num_elems * sizeof( char ) + 1 ;
+                size_t const actual = std::min( _size, new_size ) ;
+                char_ptr_t tmp = motor::memory::global::alloc_raw<char_t>( new_size ) ;
+                std::memcpy( tmp, _doc, actual ) ;
+                motor::memory::global::dealloc_raw( _doc ) ;
+                _doc = tmp ;
+                _size = actual ;
+                if ( _cur_pos >= _size ) _cur_pos = _size - 1 ;
+            }
+
+            this_ref_t ensure_fit( size_t const num_elems ) noexcept
+            {
+                if ( this_t::reserved() <= _cur_pos + num_elems + 1 )
+                {
+                    this_t::resize( _cur_pos + num_elems + _grow_by ) ;
+                }
+                return *this ;
+            }
+
+            size_t reserved( void_t ) const noexcept
+            {
+                return _size ;
             }
         };
     }
