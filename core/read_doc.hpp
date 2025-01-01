@@ -33,6 +33,7 @@ namespace motor
                 size_t s ;
                 size_t e ;
 
+                size_t indent ;
                 size_t first_token ;
                 size_t num_token ;
 
@@ -85,16 +86,16 @@ namespace motor
 
             read_doc( motor::string_in_t s ) noexcept : _doc( s )
             {
-                this_t::exchange( '\t', ' ' ) ;
                 this_t::dissect_lines() ;
+                this_t::exchange( '\t', ' ' ) ;
                 this_t::remove_multi_whitespaces() ;
                 this_t::tokenize() ;
             }
 
             read_doc( motor::string_rref_t s ) noexcept : _doc( std::move( s ) )
             {
-                this_t::exchange( '\t', ' ' ) ;
                 this_t::dissect_lines() ;
+                this_t::exchange( '\t', ' ' ) ;
                 this_t::remove_multi_whitespaces() ;
                 this_t::tokenize() ;
             }
@@ -118,18 +119,20 @@ namespace motor
                 }
             }
 
-            using for_each_token_funk_t = std::function< void_t ( size_t const, std::string_view const & ) > ;
+            using for_each_token_funk_t = std::function< void_t ( size_t const, size_t const, std::string_view const & ) > ;
 
             void_t for_each_token( for_each_token_funk_t funk ) noexcept
             {
+                size_t line_number = 0 ;
                 for( auto const & l : _lines )
                 {
                     if( l.num_token == 0 ) continue ;
                     
                     for( size_t i=0; i<l.num_token; ++i )
                     {
-                        funk( i, this_t::make_token( _tokens[ l.first_token + i] ) ) ;
+                        funk( line_number, i, this_t::make_token( _tokens[ l.first_token + i] ) ) ;
                     }
+                    ++line_number ;
                 }
             }
 
@@ -155,19 +158,28 @@ namespace motor
                     {
                         size_t const pb = p - 1 ;
                         size_t const e = ( pb < _doc.size() && _doc[ pb ] == '\r' ) ? pb : p ;
-                        
+
                         // move start of line to first
                         // non whitespace char
                         {
-                            while ( _doc[ s ] == ' ' && s < e ) ++s ;
-                        }
+                            size_t indent = 0 ;
 
-                        // s == e would be an empty line.
-                        if( s != e ) _lines.emplace_back( this_t::line{ s, e } ) ;
+                            do
+                            {
+                                if( _doc[s] == '\t' ) ++indent ;
+                                
+                                else if( _doc[s] != ' ' ) break ;
+                                
+                            } while( ++s < e ) ;
+
+                            // s == e would be an empty line.
+                            if ( s != e ) _lines.emplace_back( this_t::line { s, e, indent, 0, 0 } ) ;
+                        }
 
                         s = p + 1 ;
                         p = _doc.find_first_of( '\n', s ) ;
                     }
+                    _lines.emplace_back( this_t::line { s, _doc.size(), 0, 0, 0 } ) ;
                 }
             }
 
