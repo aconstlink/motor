@@ -15,14 +15,6 @@ namespace motor
 
         private:
 
-            char * _doc = nullptr ;
-            size_t _cur_pos = 0 ;
-
-            size_t _grow_by = 500 ;
-            size_t _size = 1000 ;
-
-        private:
-
             struct token
             {
                 size_t s ;
@@ -88,6 +80,18 @@ namespace motor
 
             friend class line_view ;
 
+        private:
+
+            char * _doc = nullptr ;
+            size_t _cur_pos = 0 ;
+
+            size_t _grow_by = 500 ;
+            size_t _size = 1000 ;
+
+        private: // for writing to this document
+
+            size_t _indent = 0 ;
+
         public:
 
             document( void_t ) noexcept
@@ -108,7 +112,7 @@ namespace motor
                 this_t::dissect_lines() ;
                 this_t::exchange( '\t', ' ' ) ;
                 this_t::remove_multi_whitespaces() ;
-                this_t::tokenize() ;
+                this_t::tokenize_all() ;
             }
 
             ~document( void_t ) noexcept
@@ -121,7 +125,7 @@ namespace motor
             {
                 for( auto const & l : _lines )
                 {
-                    f( this_t::make_view( l ) ) ;
+                    f( this_t::make_line_view( l ) ) ;
                 }
             }
 
@@ -131,7 +135,7 @@ namespace motor
                 size_t i=0; 
                 for ( auto const & l : _lines )
                 {
-                    f( this_t::line_view( this, i++, this_t::make_view( l ) ) ) ;
+                    f( this_t::line_view( this, i++, this_t::make_line_view( l ) ) ) ;
                 }
             }
 
@@ -154,9 +158,40 @@ namespace motor
 
         public: // 
 
-            this_ref_t println( char const * text, size_t const len = size_t( -1 ) ) noexcept
+            this_ref_t section_open( void_t ) noexcept
             {
+                ++_indent ;
+                return *this ;
+            }
+
+            this_ref_t section_close( void_t ) noexcept
+            {
+                assert( _indent > 0 ) ;
+                --_indent ;
+                return *this ;
+            }
+
+            this_ref_t println( char const * text, size_t len = size_t( -1 ) ) noexcept
+            {
+                if( len == size_t (-1) ) while( text[++len] != '\0' ) ;
+
+                this_t::ensure_fit( len + 1 ) ;
+
+                size_t const s = _cur_pos ;
+                size_t const e = _cur_pos + len ;
+
+                std::memcpy( _doc + _cur_pos, text, len * sizeof( char ) ) ;
+                _doc[ e ] = '\0' ;
+
+                if( _lines.size() == _lines.capacity() ) _lines.reserve( _lines.size() + 100 ) ;
+
+                _lines.emplace_back( this_t::line { s, e, _indent, 0, 0 } ) ;
                 
+                _cur_pos = e ;
+
+                this_t::tokenize_last_line() ;
+
+                return *this ;
             }
 
         private:
@@ -209,9 +244,62 @@ namespace motor
                 }
             }
 
+            // tokenize only the last line
+            void_t tokenize_last_line( void_t ) noexcept
+            {
+                auto & ll = _lines.back() ;
+
+                // count tokens
+                {
+                    size_t last_i = ll.s ;
+                    size_t num_tokens = 0 ;
+                    for ( size_t i = ll.s; i <= ll.e; ++i )
+                    {
+                        if ( _doc[ i ] != ' ' ) continue ;
+
+                        size_t const dist = i - last_i ;
+
+                        last_i = i ;
+
+                        if ( dist <= 1 ) continue ;
+
+                        ++num_tokens ;
+                    }
+
+                    if ( num_tokens == 0 ) return ;
+
+                    ll.first_token = _tokens.size() ;
+                    ll.num_token = (ll.e - last_i) > 1 ? ++num_tokens : num_tokens ;
+
+                    size_t const required = _tokens.size() + ( ++num_tokens ) ;
+                    if ( _tokens.capacity() <= required ) _tokens.reserve( required ) ;
+                }
+
+                // add token meta
+                {
+                    size_t s = ll.s ;
+                    for ( size_t i = ll.s; i <= ll.e; ++i )
+                    {
+                        size_t e = s ;
+                        while ( _doc[ e ] != ' ' && e <= ll.e ) ++e ;
+                        if ( e >= ll.e ) break ;
+
+                        if( (e - s) <= 1 ) continue ;
+
+                        _tokens.emplace_back( this_t::token { s, e } ) ;
+
+                        s = e + 1 ;
+                    }
+                    
+                    if( (ll.e - s) > 1 )
+                        _tokens.emplace_back( this_t::token { s, ll.e } ) ;
+                }
+            }
+
+            // tokenize the whole document
             // determine tokens per line
             // @precondition requires lines to be white space handled.
-            void_t tokenize( void_t ) noexcept
+            void_t tokenize_all( void_t ) noexcept
             {
                 // count number of tokens
                 {
@@ -333,7 +421,7 @@ namespace motor
                 return _tokens[ _lines[lidx].first_token + tidx ] ;
             }
 
-            std::string_view make_view( this_t::line const & l ) const noexcept
+            std::string_view make_line_view( this_t::line const & l ) const noexcept
             {
                 return std::string_view( _doc + l.s, l.dist() ) ;
             }

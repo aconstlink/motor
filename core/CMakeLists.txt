@@ -3,7 +3,6 @@
 set( sources 
     "double_dispatch.hpp"
     "document.hpp"
-    "write_doc.hpp"
     "dummy.cpp"
     )
 
