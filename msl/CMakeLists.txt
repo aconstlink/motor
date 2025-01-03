@@ -27,6 +27,9 @@ set( sources
     "generators/hlsl5_generator.h"
     "generators/hlsl5_generator.cpp"
 
+    "shader/forward_rendering_shader.h"
+    "shader/forward_rendering_shader.cpp"
+
     "parser_structs.hpp"
     )
 

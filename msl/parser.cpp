@@ -1113,12 +1113,13 @@ motor::string_t parser::clear_line( motor::string_rref_t s ) const noexcept
 {
     if( s.empty() ) return std::move( s ) ;
 
-    // clear all line breaks
+    // clear all escapes
     {
         for( size_t i = 0; i < s.size(); ++i )
         {
             if( s[ i ] == '\r' ) s[ i ] = ' ' ;
             if( s[ i ] == '\n' ) s[ i ] = ' ' ;
+            if( s[ i ] == '\t' ) s[ i ] = ' ' ;
         }
     }
                 
