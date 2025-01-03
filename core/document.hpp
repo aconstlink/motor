@@ -5,6 +5,8 @@
 #include <motor/std/string>
 #include <motor/std/vector>
 
+#include <cstring>
+
 namespace motor
 {
     namespace core
