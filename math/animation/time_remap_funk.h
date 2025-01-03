@@ -26,17 +26,17 @@ namespace motor
             static const time_remap_funk_t time_remap_funks[] =
             {
                 // none
-                [=]( size_t const t, size_t const /*a*/, size_t const /*b*/ )
+                []( size_t const t, size_t const /*a*/, size_t const /*b*/ )
                 {
                     return t ;
                 },
                     // clamp
-                    [=]( size_t const t, size_t const a, size_t const b )
+                    []( size_t const t, size_t const a, size_t const b )
                 {
                     return motor::math::fn< size_t >::clamp( t, a, b ) ;
                 },
                     // cycle
-                    [=]( size_t const t, size_t const a, size_t const b )
+                    []( size_t const t, size_t const a, size_t const b )
                 {
                     return ( t - a ) % ( b - a ) ;
                 }
