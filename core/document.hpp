@@ -150,8 +150,6 @@ namespace motor
             {
                 motor::memory::global::dealloc_raw( _doc ) ;
                 _doc = motor::move( rhv._doc ) ;
-
-                std::memset( void_ptr_t(&rhv), 0, sizeof( this_t ) ) ;
             }
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
@@ -165,8 +163,6 @@ namespace motor
 
                 motor::memory::global::dealloc_raw( _doc ) ;
                 _doc = motor::move( rhv._doc ) ;
-
-                std::memset( void_ptr_t(&rhv), 0, sizeof( this_t ) ) ;
 
                 return *this ;
             }
