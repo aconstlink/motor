@@ -436,6 +436,7 @@ struct d3d11_backend::pimpl
             motor::string_t name ;
             motor::graphics::type t ;
             motor::graphics::type_struct ts ;
+            uint_t offset ;
         };
         motor_typedef( data_variable ) ;
 
@@ -759,7 +760,8 @@ struct d3d11_backend::pimpl
             motor::graphics::ivariable_ptr_t ivar = nullptr ;
             motor::graphics::type t ;
             motor::graphics::type_struct ts ;
-
+            
+            size_t offset = 0 ;
             size_t sib = 0 ;
 
             size_t do_copy_funk( void_ptr_t dest )
@@ -767,6 +769,14 @@ struct d3d11_backend::pimpl
                 if( ivar == 0 ) return 0 ;
 
                 std::memcpy( dest, ivar->data_ptr(), sib ) ;
+                return sib ;
+            }
+
+            size_t do_copy_funk_from_origin( void_ptr_t origin_no_shift )
+            {
+                if ( ivar == 0 ) return 0 ;
+
+                std::memcpy( uint8_ptr_t(origin_no_shift)+offset, ivar->data_ptr(), sib ) ;
                 return sib ;
             }
         } ;
@@ -2142,6 +2152,29 @@ public: // functions
                 continue ;
             }
 
+            // inject default variable values into the 
+            // variable sets
+            {
+                for ( auto & shd_ : res.config.shaders )
+                {
+                    for ( auto & var_ : shd_.variables )
+                    {
+                        if ( var_.def_val == size_t( -1 ) ) continue ;
+
+                        auto * df = res.config.def_values[ var_.def_val ] ;
+                        if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
+                        {
+                            using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
+                            ptr_t gdv = static_cast<ptr_t>( df ) ;
+                            for ( auto & vs : obj.borrow_varibale_sets() )
+                            {
+                                vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
+                            }
+                        }
+                    }
+                }
+            }
+
             motor::msl::generator_t gen( std::move( res ) ) ;
 
             {
@@ -3130,6 +3163,7 @@ public: // functions
                         dv.name = var.name ;
                         dv.t = var.t ;
                         dv.ts = var.ts ;
+                        dv.offset = var.offset ;
                         cb.data_variables.emplace_back( dv ) ;
                     }
                     cbs.emplace_back( std::move( cb ) ) ;
@@ -3565,8 +3599,6 @@ public: // functions
 
                     auto * vs = rnd.var_sets[ vsid ] ;
 
-                    size_t offset = 0 ;
-
                     for ( auto iter = cb.data_variables.begin(); iter != cb.data_variables.end(); ++iter )
                     {
                         // if a variable was not there at construction time, 
@@ -3583,8 +3615,10 @@ public: // functions
                         }
                         if ( iter == cb.data_variables.end() ) break ;
 
-                        iter->do_copy_funk( uint8_ptr_t( cb.mem ) + offset ) ;
-                        offset += iter->sib ;
+                        // the offset to write to is stored within 
+                        // the variable itself which is read out from 
+                        // the reflection framework
+                        iter->do_copy_funk_from_origin( cb.mem ) ;
                     }
 
                     ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
@@ -4070,6 +4104,7 @@ public: // functions
 
                     shader_data_t::data_variable_t dv ;
                     dv.name = motor::string_t( var_desc.Name ) ;
+                    dv.offset = var_desc.StartOffset ;
                     dv.t = t ;
                     dv.ts = ts ;
 
