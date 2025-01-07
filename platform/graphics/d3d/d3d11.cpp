@@ -2142,6 +2142,29 @@ public: // functions
                 continue ;
             }
 
+            // inject default variable values into the 
+            // variable sets
+            {
+                for ( auto & shd_ : res.config.shaders )
+                {
+                    for ( auto & var_ : shd_.variables )
+                    {
+                        if ( var_.def_val == size_t( -1 ) ) continue ;
+
+                        auto * df = res.config.def_values[ var_.def_val ] ;
+                        if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
+                        {
+                            using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
+                            ptr_t gdv = static_cast<ptr_t>( df ) ;
+                            for ( auto & vs : obj.borrow_varibale_sets() )
+                            {
+                                vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
+                            }
+                        }
+                    }
+                }
+            }
+
             motor::msl::generator_t gen( std::move( res ) ) ;
 
             {
