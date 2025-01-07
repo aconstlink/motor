@@ -56,8 +56,30 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
             shader.println_if( "in vec3_t nrm : normal ;", gi.has_normals() ) ;
             shader.println_if( "in vec3_t tx : texcoord0 ;", gi.has_texcoords() ) ;
 
-            shader.println( "vec3_t Ka ;" ) ;
-            shader.println( "vec3_t Kd ;" ) ;
+            if( gi.use_ambient )
+            {
+                char buffer[2048]  ;
+                sprintf_s( buffer, 2048, "vec3_t Ka( %.5f, %.5f, %.5f ) ;", gi.ambient.x(), gi.ambient.y(), gi.ambient.z() ) ;
+                shader.println( buffer ) ;
+            }
+            else
+            {
+                shader.println( "vec3_t Ka ;" ) ;
+            }
+
+            if( gi.use_diffuse )
+            {
+                char buffer[ 2048 ]  ;
+                sprintf_s( buffer, 2048, "vec3_t Kd( %.5f, %.5f, %.5f ) ;", gi.diffuse.x(), gi.diffuse.y(), gi.diffuse.z() ) ;
+                shader.println( buffer ) ;
+            }
+            else
+            {
+                shader.println( "vec3_t Kd ;" ) ;
+            }
+
+            
+            
             shader.println( "vec3_t Ks ;" ) ;
 
             shader.println_if( "vec3_t light_dir ;", gi.has_normals() && gi.has_any_light() ) ;

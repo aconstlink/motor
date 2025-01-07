@@ -5,7 +5,7 @@
 #include "../typedefs.h"
 
 #include <motor/std/string>
-
+#include <motor/math/vector/vector3.hpp>
 #include <motor/core/document.hpp>
 
 namespace motor
@@ -33,6 +33,11 @@ namespace motor
                 // only 1 or 0 supported
                 byte_t num_lights ;
 
+                bool_t use_ambient ;
+                motor::math::vec3f_t ambient ;
+
+                bool_t use_diffuse ;
+                motor::math::vec3f_t diffuse ;
 
                 bool_t has_normals( void_t ) const noexcept
                 {

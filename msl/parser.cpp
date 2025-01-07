@@ -163,9 +163,59 @@ motor::msl::parse::configs_t parser::filter_config_statements( this_t::statement
                         v.type = token[ base + 0 ] ;
                         v.name = token[ base + 1 ] ;
 
-                        if( ( token.size() >= 4 + base ) && token[ base + 2 ] == ":" )
+                        // looking for a binding
                         {
-                            v.binding = token[ base + 3 ] ;
+                            for ( size_t i = 0; i < token.size(); ++i )
+                            {
+                                if ( token[ i ] == ":" && token.size() > ( i + 1 ) )
+                                {
+                                    v.binding = token[ i + 1 ] ;
+                                    break ;
+                                }
+                            }
+                        }
+
+                        // looking for a default value
+                        {
+                            size_t f = 0 ;
+                            size_t l = 0 ;
+
+                            for ( size_t i = 0; i < token.size(); ++i )
+                            {
+                                if ( token[ i ] == "(" && f == 0 )
+                                {
+                                    f = i ;
+                                }
+                                else if ( token[ i ] == ")" )
+                                {
+                                    l = i ;
+                                }
+                            }
+
+                            for( size_t p=f; p<l; ++p )
+                            {
+                                if( token[p] == "__float__" )
+                                {
+                                    motor::string_t const type = "float_t" ;
+                                    motor::string_t const value = token[p+2] + "." + token[p+4] ;
+                                    v.default_value.emplace_back( std::make_pair( type, value ) ) ;
+                                    p += 4 ;
+                                }
+                                else if ( token[ p ] == "__int__" )
+                                {
+                                    motor::string_t const type = "int_t" ;
+                                    motor::string_t const value = token[p+2] ;
+                                    v.default_value.emplace_back( std::make_pair( type, value ) ) ;
+                                    p += 2 ;
+                                }
+                                else if ( token[ p ] == "__uint__" )
+                                {
+                                    motor::string_t const type = "uint_t" ;
+                                    motor::string_t const value = token[p+2] ;
+                                    v.default_value.emplace_back( std::make_pair( type, value ) ) ;
+                                    p += 2 ;
+                                }
+                            }
                         }
 
                         s.variables.emplace_back( std::move( v ) ) ;
@@ -299,6 +349,17 @@ motor::msl::post_parse::configs_t parser::analyse_configs( motor::msl::parse::co
                 v.line = var.line ;
                 v.name = var.name ;
                 v.type = motor::msl::to_type( var.type ) ;
+                v.def_val = size_t( -1 ) ;
+
+                {
+                    auto * ptr = motor::msl::create_default_value( v.type, var.default_value ) ;
+                    if( ptr != nullptr )
+                    {
+                        v.def_val = c.def_values.size() ;
+                        c.def_values.emplace_back( ptr ) ;
+                    }
+                }
+
                 if( v.fq == motor::msl::flow_qualifier::inout )
                 {
                     {

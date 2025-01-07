@@ -16,6 +16,7 @@ set( sources
     "function_signature_analyser.hpp"
     "nodes.h"
     "nodes.cpp"
+    "default_variable.hpp"
 
     "generators/generator.h"
     "generators/generator.cpp"
