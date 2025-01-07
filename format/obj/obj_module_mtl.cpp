@@ -89,7 +89,10 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
 motor::string_t wav_obj_module::generate_forward_shader( material_info_in_t mi ) noexcept
 {
     motor::msl::forward_rendering_shader shader( 
-        motor::msl::forward_rendering_shader::generator_info{ mi.name, 3, 3, 1 } )  ;
-
+        motor::msl::forward_rendering_shader::generator_info
+        { 
+            mi.name, 3, 3, 0, true, mi.mat.ambient_color, true, mi.mat.diffuse_color 
+        } )  ;
+    
     return shader.to_string() ;
 }
