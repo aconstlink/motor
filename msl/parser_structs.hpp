@@ -11,6 +11,7 @@
 #include <motor/std/string>
 
 #include <cstdlib>
+#include <cstring>
 
 namespace motor
 {
