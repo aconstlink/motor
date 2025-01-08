@@ -3,6 +3,8 @@
 
 #include <motor/core/document.hpp>
 
+#include <stdio.h>
+
 using namespace motor::msl ;
 
 //************************************************************************
