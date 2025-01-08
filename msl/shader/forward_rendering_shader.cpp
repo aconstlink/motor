@@ -3,7 +3,7 @@
 
 #include <motor/core/document.hpp>
 
-#include <stdio.h>
+#include <cstdio>
 
 using namespace motor::msl ;
 
@@ -61,7 +61,7 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
             if( gi.use_ambient )
             {
                 char buffer[2048]  ;
-                sprintf_s( buffer, 2048, "vec3_t Ka( %.5f, %.5f, %.5f ) ;", gi.ambient.x(), gi.ambient.y(), gi.ambient.z() ) ;
+                std::snprintf( buffer, 2048, "vec3_t Ka( %.5f, %.5f, %.5f ) ;", gi.ambient.x(), gi.ambient.y(), gi.ambient.z() ) ;
                 shader.println( buffer ) ;
             }
             else
@@ -72,7 +72,7 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
             if( gi.use_diffuse )
             {
                 char buffer[ 2048 ]  ;
-                sprintf_s( buffer, 2048, "vec3_t Kd( %.5f, %.5f, %.5f ) ;", gi.diffuse.x(), gi.diffuse.y(), gi.diffuse.z() ) ;
+                std::snprintf( buffer, 2048, "vec3_t Kd( %.5f, %.5f, %.5f ) ;", gi.diffuse.x(), gi.diffuse.y(), gi.diffuse.z() ) ;
                 shader.println( buffer ) ;
             }
             else
