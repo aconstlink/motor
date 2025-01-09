@@ -1,5 +1,6 @@
 
 #include "msl_module.h"
+#include "../module_registry.hpp"
 
 #include <motor/io/database.h>
 #include <motor/memory/malloc_guard.hpp>
@@ -20,18 +21,21 @@ void_t msl_module_register::register_module( motor::format::module_registry_mtr_
 }
 
 // ***
-motor::format::future_item_t msl_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db ) noexcept
+motor::format::future_item_t msl_module::import_from( 
+    motor::io::location_cref_t loc, motor::io::database_mtr_t db, motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
-    return this_t::import_from( loc, std::move( db ), motor::shared( motor::property::property_sheet_t() ) ) ;
+    return this_t::import_from( loc, std::move( db ), motor::shared( motor::property::property_sheet_t() ), motor::move( mod_reg_ ) ) ;
 }
 
 // ***
 motor::format::future_item_t msl_module::import_from( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps ) noexcept 
+                motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps, 
+                motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept 
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
         motor::mtr_release_guard< motor::property::property_sheet_t > psr( ps ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
 
         motor::msl::post_parse::document_t doc ;
 
@@ -57,10 +61,12 @@ motor::format::future_item_t msl_module::import_from( motor::io::location_cref_t
 
 // ***
 motor::format::future_item_t msl_module::export_to( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t, motor::format::item_mtr_safe_t what ) noexcept 
+                motor::io::database_mtr_t, motor::format::item_mtr_safe_t what, 
+                motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept 
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable ->item_mtr_t
     {
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
         motor::mtr_release_guard< motor::format::item_t > releaser( what ) ;
         return motor::shared( motor::format::status_item_t( "Export not implemented" ) ) ;
     } ) ;

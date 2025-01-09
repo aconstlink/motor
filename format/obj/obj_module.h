@@ -22,19 +22,23 @@ namespace motor
         public:
 
             virtual ~wav_obj_module( void_t ) {}
-            virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t ) noexcept ;
+            virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t, 
+                motor::format::module_registry_mtr_safe_t ) noexcept ;
 
             // properties:
             // normalize_coordinate : normalize coordinates so that they only are in [-1;1]
             virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc,
-                motor::io::database_mtr_t, motor::property::property_sheet_mtr_safe_t ) noexcept ;
+                motor::io::database_mtr_t, motor::property::property_sheet_mtr_safe_t,
+                motor::format::module_registry_mtr_safe_t ) noexcept ;
 
             virtual motor::format::future_item_t export_to( motor::io::location_cref_t loc,
-                motor::io::database_mtr_t, motor::format::item_mtr_safe_t ) noexcept ;
+                motor::io::database_mtr_t, motor::format::item_mtr_safe_t,
+                motor::format::module_registry_mtr_safe_t ) noexcept ;
 
         private:
 
-            static mtl_file load_mtl_file( motor::io::location_in_t loc, motor::string_rref_t the_file ) noexcept ;
+            static mtl_file load_mtl_file( motor::io::location_in_t loc, motor::string_rref_t the_file, 
+                motor::io::database_mtr_t, motor::format::module_registry_mtr_safe_t ) noexcept ;
             static motor::string_t generate_forward_shader( material_info_in_t mi ) noexcept ;
         };
         motor_typedef( wav_obj_module ) ;

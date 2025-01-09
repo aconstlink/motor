@@ -121,7 +121,7 @@ namespace motor
                     } ) ;
                 }
                 
-                return fac->borrow_module( loc.extension() )->import_from( loc, std::move( db ), std::move( ps ) ) ;
+                return fac->borrow_module( loc.extension() )->import_from( loc, std::move( db ), std::move( ps ), motor::share( this ) ) ;
             }
 
             //**********************************************************************************
@@ -146,7 +146,7 @@ namespace motor
                     } ) ;
                 }
 
-                return fac->borrow_module( loc.extension() )->import_from( loc, db ) ;
+                return fac->borrow_module( loc.extension() )->import_from( loc, db, motor::share( this ) ) ;
             }
 
             //**********************************************************************************
@@ -171,7 +171,7 @@ namespace motor
                     } ) ;
                 }
                 
-                return fac->borrow_module( loc.extension() )->export_to( loc, std::move( db ), std::move(what) ) ;
+                return fac->borrow_module( loc.extension() )->export_to( loc, std::move( db ), std::move(what), motor::share( this ) ) ;
             }
 
         private:

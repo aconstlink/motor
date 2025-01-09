@@ -1,6 +1,7 @@
 
 
 #include "obj_module.h"
+#include "../module_registry.hpp"
 
 #include "../future_items.hpp"
 
@@ -79,14 +80,16 @@ void_t wav_obj_module_register::register_module( motor::format::module_registry_
 }
 
 // *****************************************************************************************
-motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db ) noexcept
+motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
+    motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
 {
-    return wav_obj_module::import_from( loc, db, motor::shared( motor::property::property_sheet_t() ) ) ;
+    return wav_obj_module::import_from( loc, db, motor::shared( motor::property::property_sheet_t() ), motor::move( mod_reg ) ) ;
 }
 
 // *****************************************************************************************
 motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cref_t loc,
-    motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps ) noexcept
+    motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps,
+    motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
@@ -647,7 +650,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 }
 
                 mtl_files.emplace_back( motor::format::wav_obj_module::load_mtl_file( 
-                    ca.first, std::move( mtl_file_content ) ) ) ;
+                    ca.first, std::move( mtl_file_content ), db, motor::share( mod_reg ) ) ) ;
             }
         }
 
@@ -706,17 +709,22 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 motor::to_string(milli) + " ms."  ) ;
         }
 
+        motor::release( mod_reg ) ;
+
         return motor::shared( std::move( ret ), "mesh_item" ) ;
     } ) ;
 }
 
 // ***************************************************************************
 motor::format::future_item_t wav_obj_module::export_to( motor::io::location_cref_t loc,
-    motor::io::database_mtr_t, motor::format::item_mtr_safe_t what ) noexcept
+    motor::io::database_mtr_t, motor::format::item_mtr_safe_t what,
+    motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
         motor::mtr_release_guard< motor::format::item_t > rel( what ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
+
         return motor::shared( motor::format::status_item_t( "Wavefront OBJ export not implemented" ) ) ;
     } ) ;
 }
