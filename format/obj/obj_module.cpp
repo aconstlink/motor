@@ -635,7 +635,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
         {
             for ( size_t i = 0; i < name.size(); ++i )
             {
-                if ( name[ i ] == '(' || name[ i ] == ')' )
+                if ( name[ i ] == '(' || name[ i ] == ')' || name[ i ] == ' ' )
                 {
                     name[ i ] = '_' ;
                 }
@@ -703,7 +703,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     motor::log::global::warning( "[wav_obj_module] : could not find material " + m.material ) ;
 
                 replace_specials( m.name ) ;
-                motor::string_t name = ret.name + "." + m.name ;
+                motor::string_t const name = ret.name + "." + m.name ;
                 ret.geos[midx].name = name ;
                 ret.geos[midx++].shader = this_t::generate_forward_shader( motor::format::material_info_t
                     {
