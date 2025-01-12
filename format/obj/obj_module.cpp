@@ -369,6 +369,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             // cache for every face
             mesh_data::face cache_f ;
 
+            motor::string_t group_name ;
+            size_t count = 0 ;
+
             doc.for_each_line( [&] ( motor::core::document::line_view const & line )
             {
                 auto const l = line.get_line() ;
@@ -382,9 +385,10 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                 {
                     in_faces = false ;
                 }
-
+               
                 if ( l[ 0 ] == 'o' || l[ 0 ] == 'g' )
                 {
+                    #if 0
                     if ( !cur_data.name.empty() && cur_data.faces.size() != 0 )
                         meshes.emplace_back( std::move( cur_data ) ) ;
 
@@ -392,12 +396,22 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     else cur_data.name = "unnamed_group_" + motor::to_string( cur_mesh_idx++ ) ;
 
                     cur_data.faces.clear() ;
+                    #endif
+
+                    if ( l.size() >= 2 ) group_name = l.substr( 2 ) ;
+                    else group_name = "unnamed_group_" + motor::to_string( cur_mesh_idx++ ) + ".";
+
                 }
                 else if ( l.size() >= 6 &&
                     l[ 0 ] == 'u' && l[ 1 ] == 's' && l[ 2 ] == 'e' &&
                     l[ 3 ] == 'm' && l[ 4 ] == 't' && l[ 5 ] == 'l' )
                 {
+                    if ( !cur_data.name.empty() && cur_data.faces.size() != 0 )
+                        meshes.emplace_back( std::move( cur_data ) ) ;
+
                     cur_data.material = l.substr( 7, l.size() - 7 ) ;
+                    cur_data.name = group_name + "." + cur_data.material + "." + motor::to_string( count++ ) ;
+                    cur_data.faces.clear() ;
                 }
 
                 // f usually looks like this:
@@ -696,6 +710,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         name,
                         has_nrm,
                         has_tx,
+                        byte_t(num_texcoord_elems),
                         mtl
                     } ) ;
             }

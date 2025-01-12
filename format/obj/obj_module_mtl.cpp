@@ -41,7 +41,6 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
             auto const & l = line.get_line() ;
             size_t const num_tokens = line.get_num_tokens() ;
 
-            // newmtl
             if ( num_tokens == 2 && line.get_token( 0 ) == "newmtl" )
             {
                 if ( mat_idx++ != size_t( -1 ) )
@@ -59,7 +58,6 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
                 float_t const z = std::atof( line.get_token( 3 ).data() ) ;
 
                 cur_mat.specular_color = motor::math::vec3f_t( x, y, z ) ;
-
             }
             else if ( line.get_token( 0 ) == "Kd" && num_tokens == 4 )
             {
@@ -100,7 +98,7 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
                         loc.as_path().parent_path().append( loc_name ) ) ;
 
                     tx_caches.emplace_back( image_info {
-                        mat_idx + 1, image_info::image_type::diffuse,
+                        mat_idx, image_info::image_type::diffuse,
                         tx_loc, mod_reg->import_from( tx_loc, db )
                         } )  ;
                 }
@@ -118,11 +116,9 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
             }
             else if ( line.get_token( 0 ) == "map_Ks" && num_tokens == 2 )
             {
-
             }
             else if ( line.get_token( 0 ) == "map_Ka" && num_tokens == 2 )
             {
-
             }
             else if ( line.get_token( 0 ) == "illum" && num_tokens >= 2 )
             {
@@ -131,7 +127,7 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
             }
         } ) ;
 
-        ret.materials.emplace_back( std::move( cur_mat ) ) ;
+        if( mat_idx != size_t(-1) ) ret.materials.emplace_back( std::move( cur_mat ) ) ;
     }
 
     // loading textures
@@ -176,10 +172,18 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
 //*******************************************************************************************
 motor::string_t wav_obj_module::generate_forward_shader( material_info_in_t mi ) noexcept
 {
+    byte_t const nrm_comps = mi.has_nrm ? 3 : 0 ;
+    byte_t const txc_comps = mi.has_tx ? mi.tx_comps : 0 ;
+
     motor::msl::forward_rendering_shader shader( 
         motor::msl::forward_rendering_shader::generator_info
         { 
-            mi.name, 3, 3, 0, true, mi.mat.ambient_color, true, mi.mat.diffuse_color 
+            mi.name, 
+            nrm_comps,  // normal component
+            txc_comps,  // texcoords components,
+            0,          // num lights 
+
+            true, mi.mat.ambient_color, true, mi.mat.diffuse_color 
         } )  ;
     
     return shader.to_string() ;
