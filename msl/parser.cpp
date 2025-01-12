@@ -28,11 +28,11 @@ motor::msl::post_parse::document_t parser::process( motor::string_rref_t file ) 
     {
         return std::move( doc ) ;
     }
-
-    file = this_t::insert_spaces( std::move( file ) ) ;
+    
     auto statements = this_t::replace_open_close( this_t::scan( std::move( file ) ) ) ;
-
+    
     statements = this_t::repackage( std::move( statements ) ) ;
+    statements = this_t::insert_whitesapces( std::move( statements ) ) ;
     statements = this_t::replace_numbers( std::move( statements ) ) ;
     statements = this_t::replace_operators( std::move( statements ) ) ;
     statements = this_t::replace_buildins( std::move( statements ) ) ;
@@ -473,6 +473,17 @@ motor::msl::parse::libraries_t parser::filter_library_statements( this_t::statem
     return std::move( libs ) ;
 }
 
+parser::statements_t parser::insert_whitesapces( statements_rref_t ss ) const 
+{
+    for ( auto & s : ss )
+    {
+        if( s.find("config ") != std::string::npos ) continue ;
+
+        s = this_t::insert_spaces( std::move( s ) ) ;
+    }
+    return std::move( ss ) ;
+}
+
 parser::statements_t parser::replace_numbers( statements_rref_t ss ) const
 {
     for( auto& s : ss )
@@ -697,6 +708,8 @@ parser::statements_t parser::replace_operators( statements_rref_t ss ) const
 
         for( auto & line : ss )
         {
+            if( line.find("config ") != std::string::npos ) continue ;
+
             for( auto const & r : repls )
             {
                 do_replacement( line, r, is_stop ) ;
@@ -1129,44 +1142,82 @@ parser::statements_t parser::scan( motor::string_rref_t file ) const noexcept
 // this makes later code analysis much easier and just less character checking.
 motor::string_t parser::insert_spaces( motor::string_rref_t s ) const noexcept
 {
-    for( auto iter = s.begin(); iter != s.end(); ++iter )
+    if( s.size() <= 2 ) return s ;
+
+    // test operators
     {
-        if( *iter == '+' || *iter == '-' || *iter == '*' || *iter == '/' || 
-            *iter == '<' || *iter == '>' || *iter == '/' || *iter == '!' || 
-            *iter == '=' || *iter == '\'' )
+        char_t const operators[] =
         {
-            auto iter_next = iter + 1 ;
-            auto iter_last = iter - 1 ;
+            '+', '-', '*', '\'', '/', '<', '>', '/', '!', '='
+        } ;
 
-            if( iter_next == iter_last ) continue ;
+        size_t const num_ops = sizeof( operators ) ;
 
-            // do not insert spaces inbetween operator combos
-            // like +=, -=, <=...
-            if( *iter_next == '=' ) 
-            { 
-                iter = ++s.insert( iter, ' ' ) ;
-                iter = s.insert( iter + 2, ' ' ) ; 
-                continue ; 
+        auto test_insert = [&]( string_in_t aline, size_t const ic, size_t const io )
+        {
+            char_t const cur = aline[ic] ;
+            if( cur == ' ' ) return false ;
+
+            for ( size_t o = 0; o < num_ops; ++o )
+            {
+                if( cur != operators[o] ) continue ;
+
+                char_t const other = aline[ io ] ;
+                for ( size_t o2 = 0; o2 < num_ops; ++o2 )
+                {
+                    if( other == operators[o2] ) return false ;
+                }
+                return true ;
+            }
+            return false ;
+        } ;
+        
+        // @note here we test previous and next first so
+        // we can start at 1 and end at -1
+        for ( size_t i = 1; i < s.size()-1; ++i )
+        {
+            if( s[i] == ' ' ) continue ;
+
+            // before
+            if( test_insert( s, i-1, i ) )
+            {
+                s = s.insert( i, 1, ' ' ) ; ++i ;
             }
 
-            // in front
-            if( *iter != *iter_last ) iter = ++s.insert( iter, ' ' ) ;
-
-            iter_next = iter + 1 ;
-
             // behind
-            if( *iter != *iter_next ) iter = s.insert( ++iter, ' ' ) ;
-        }
-
-        if( *iter == '(' || *iter == ')' || *iter == ';'  || *iter == ','
-            || *iter == ':' || *iter == '[' || *iter == ']' )
-        {
-            // in front
-            iter = ++s.insert( iter, ' ' ) ;
-            // behind
-            iter = s.insert( ++iter, ' ' ) ;
+            if ( test_insert( s, i+1, i ) )
+            {
+                s = s.insert( i+1, 1, ' ' ) ; ++i ;
+            }
         }
     }
+
+    // test other characters which need whitespaces
+    {
+        char const specials[] =
+        {
+            ',', ':', '[', ']', '(', ')', ';'
+        } ;
+
+        size_t const num_spec = sizeof( specials ) ;
+
+        for( size_t i=0; i<s.size()-1; ++i )
+        {
+            char_t const cur = s[i + 0]  ;
+            char_t const nxt = s[i + 1]  ;
+
+            if( cur == ' ' ) continue ;
+
+            for( size_t o=0; o<num_spec;++o )
+            {
+                if( nxt != specials[o] ) continue ;
+                
+                s = s.insert( i+1, 1, ' ' ) ; i+=2 ;
+                break ;
+            }
+        }
+    }
+
     return std::move( s )  ;
 }
 

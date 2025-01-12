@@ -43,6 +43,7 @@ namespace motor
 
             motor::msl::parse::libraries_t filter_library_statements( this_t::statements_rref_t ss ) const noexcept ;
 
+            statements_t insert_whitesapces( statements_rref_t ss ) const ;
             statements_t replace_numbers( statements_rref_t ss ) const ;
 
             statements_t replace_operators( statements_rref_t ss ) const ;
