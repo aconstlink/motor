@@ -40,6 +40,8 @@ namespace motor
         };
         motor_typedef( glyph_atlas_item ) ;
 
+        //***********************************************
+        // used when im/exporting meshes
         struct mesh_item : public item
         {
             mesh_item( void_t ) noexcept {}
@@ -55,6 +57,14 @@ namespace motor
             };
 
             motor::vector< geometry > geos ;
+
+            struct image
+            {
+                motor::string_t name ;
+                motor::graphics::image_mtr_t img_ptr ;
+            };
+
+            motor::vector< image > images ;
             
         };
         motor_typedef( mesh_item ) ;

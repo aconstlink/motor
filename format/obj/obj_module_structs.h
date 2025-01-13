@@ -27,14 +27,27 @@ namespace motor
                 byte_t illum_model ; // illum
 
                 motor::string_t map_diffuse ; // map_Kd
-                motor::graphics::image_mtr_t image_diffuse = nullptr ;
                 motor::string_t map_ambient ; // map_Ka
-                motor::graphics::image_mtr_t image_ambient = nullptr ;
                 motor::string_t map_specular ; // map_Ks
-                motor::graphics::image_mtr_t image_specular = nullptr ;
+            };
+
+            struct image
+            {
+                enum image_type
+                {
+                    unknown,
+                    diffuse,
+                    specular,
+                    ambient
+                };
+
+                image_type it ;
+                motor::string_t name ;
+                motor::graphics::image_mtr_t the_image = nullptr ;
             };
 
             motor::vector< material > materials ;
+            motor::vector< image > images ;
         };
 
         struct material_info

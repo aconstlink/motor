@@ -16,15 +16,8 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
 
     struct image_info
     {
-        enum image_type
-        {
-            unknown,
-            diffuse,
-            specular,
-            ambient
-        };
-        size_t idx ;
-        image_type it ;
+        motor::format::mtl_file::image::image_type it ;
+        motor::string_t name ;
         motor::io::location_t loc ;
         motor::format::future_item_t item ;
     };
@@ -93,26 +86,38 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
                     cur_mat.map_diffuse += line.get_token( i ) ;
                 }
 
-                {
-                    motor::io::location_t tx_loc = motor::io::location_t::from_path(
-                        loc.as_path().parent_path().append( loc_name ) ) ;
-
-                    tx_caches.emplace_back( image_info {
-                        mat_idx, image_info::image_type::diffuse,
-                        tx_loc, mod_reg->import_from( tx_loc, db )
-                        } )  ;
-                }
-
                 // use the locations' name as the resource locator
                 {
                     motor::io::location_t tx_loc = motor::io::location_t::from_path(
                         loc.as_path().parent_path().append( cur_mat.map_diffuse ) ) ;
-                    
-                    auto const name = motor::io::location_t::from_path( 
-                        tx_loc.as_path().replace_extension("") ).as_string() ;
-                    
+
+                    auto const name = motor::io::location_t::from_path(
+                        tx_loc.as_path().replace_extension( "" ) ).as_string() ;
+
                     cur_mat.map_diffuse = name ;
                 }
+
+                // load texture from location.
+                // but only load if not already issued.
+                {
+                    motor::io::location_t tx_loc = motor::io::location_t::from_path(
+                        loc.as_path().parent_path().append( loc_name ) ) ;
+
+                    auto const iter = std::find_if( tx_caches.begin(), tx_caches.end(), [&]( image_info const & ii )
+                    {
+                        return ii.loc == tx_loc ;
+                    } ) ;
+
+                    if( iter == tx_caches.end() )
+                    {
+                        tx_caches.emplace_back( image_info {
+                            motor::format::mtl_file::image::image_type::diffuse,
+                            cur_mat.map_diffuse, tx_loc, mod_reg->import_from( tx_loc, db )
+                            } )  ;
+                    }
+                }
+
+                
             }
             else if ( line.get_token( 0 ) == "map_Ks" && num_tokens == 2 )
             {
@@ -138,17 +143,30 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
 
             if( auto * image_item = dynamic_cast<motor::format::image_item_ptr_t>( iitem ); image_item != nullptr  )
             {
+                #if 1
+
+                motor::format::mtl_file::image img ;
+
+                img.name = ca.name ;
+                img.the_image = motor::move( image_item->img ) ;
+                img.it = ca.it ;
+
+                ret.images.emplace_back( std::move( img ) ) ;
+
+                #else // old stuff
                 motor::format::mtl_file::material & cur_mat = ret.materials[ca.idx] ;
 
-                if( ca.it == image_info::image_type::diffuse )
+                if( ca.it == motor::format::mtl_file::image::image_type::diffuse )
                 {
-                    cur_mat.image_diffuse = motor::move( image_item->img ) ;
+                    cur_mat.image_diffuse = ...
                 }
-                else if ( ca.it == image_info::image_type::specular )
+                else if ( ca.it == motor::format::mtl_file::image::image_type::specular )
                 {
                     cur_mat.image_specular = motor::move( image_item->img ) ;
                 }
                 
+                #endif
+
                 motor::release( motor::move( image_item ) ) ;
             }
             else if( auto * status_item = dynamic_cast<motor::format::status_item_ptr_t>( iitem ); status_item != nullptr )
@@ -175,6 +193,9 @@ motor::string_t wav_obj_module::generate_forward_shader( material_info_in_t mi )
     byte_t const nrm_comps = mi.has_nrm ? 3 : 0 ;
     byte_t const txc_comps = mi.has_tx ? mi.tx_comps : 0 ;
 
+    motor::string_t ka_map = mi.mat.map_ambient ;
+    motor::string_t kd_map = mi.mat.map_diffuse ;
+
     motor::msl::forward_rendering_shader shader( 
         motor::msl::forward_rendering_shader::generator_info
         { 
@@ -183,7 +204,10 @@ motor::string_t wav_obj_module::generate_forward_shader( material_info_in_t mi )
             txc_comps,  // texcoords components,
             0,          // num lights 
 
-            true, mi.mat.ambient_color, true, mi.mat.diffuse_color 
+            true, mi.mat.ambient_color, true, mi.mat.diffuse_color,
+
+            ka_map.empty() ? "" : "ka_map", std::move( ka_map ),
+            kd_map.empty() ? "" : "kd_map", std::move( kd_map ),
         } )  ;
     
     return shader.to_string() ;

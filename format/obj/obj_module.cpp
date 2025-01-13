@@ -683,6 +683,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
                 bool_t material_found = false ;
 
+                // find proper material. It is required for shader gen.
                 for( auto const & mtlf : mtl_files )
                 {
                     auto const iter = std::find_if( mtlf.materials.begin(), mtlf.materials.end(), 
@@ -713,6 +714,14 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         byte_t(num_texcoord_elems),
                         mtl
                     } ) ;
+            }
+
+            for ( auto & mtlf : mtl_files )
+            {
+                for ( auto & i : mtlf.images )
+                {
+                    ret.images.emplace_back( motor::format::mesh_item_t::image{ i.name, i.the_image } ) ;
+                }
             }
         }
 
