@@ -184,7 +184,7 @@ motor::msl::parse::configs_t parser::filter_config_statements( this_t::statement
                             {
                                 if ( token[ i ] == "(" && f == 0 )
                                 {
-                                    f = i ;
+                                    f = i+1 ;
                                 }
                                 else if ( token[ i ] == ")" )
                                 {
@@ -214,6 +214,21 @@ motor::msl::parse::configs_t parser::filter_config_statements( this_t::statement
                                     motor::string_t const value = token[p+2] ;
                                     v.default_value.emplace_back( std::make_pair( type, value ) ) ;
                                     p += 2 ;
+                                }
+                                else
+                                {
+                                    std::string_view const the_line( *iter ) ;
+                                    
+                                    size_t beg = the_line.find_first_of( "\"" ) ;
+                                    size_t const end = the_line.find_last_of( "\"" ) ;
+
+                                    if ( beg != std::string::npos && end != std::string::npos )
+                                    {
+                                        beg += 1 ;
+                                        motor::string_t const type = "string_t" ;
+                                        motor::string_t const def = motor::string_t( the_line.substr( beg, end - beg ) ) ;
+                                        v.default_value.emplace_back( std::make_pair( type, def ) ) ;
+                                    }
                                 }
                             }
                         }
@@ -479,7 +494,12 @@ parser::statements_t parser::insert_whitesapces( statements_rref_t ss ) const
     {
         if( s.find("config ") != std::string::npos ) continue ;
 
-        s = this_t::insert_spaces( std::move( s ) ) ;
+        bool_t const is_decl = 
+            s.find("tex1d_t ") != std::string::npos ||
+            s.find("tex2d_t ") != std::string::npos ||
+            s.find("tex3d_t ") != std::string::npos ;
+
+        s = this_t::insert_spaces( std::move( s ), !is_decl ) ;
     }
     return std::move( ss ) ;
 }
@@ -709,6 +729,7 @@ parser::statements_t parser::replace_operators( statements_rref_t ss ) const
         for( auto & line : ss )
         {
             if( line.find("config ") != std::string::npos ) continue ;
+            if( line.find("tex2d_t ") != std::string::npos ) continue ;
 
             for( auto const & r : repls )
             {
@@ -1140,11 +1161,12 @@ parser::statements_t parser::scan( motor::string_rref_t file ) const noexcept
 
 // ensures that certain characters have spaces in front or behind.
 // this makes later code analysis much easier and just less character checking.
-motor::string_t parser::insert_spaces( motor::string_rref_t s ) const noexcept
+motor::string_t parser::insert_spaces( motor::string_rref_t s, bool_t const test_operators ) const noexcept
 {
     if( s.size() <= 2 ) return s ;
 
     // test operators
+    if( test_operators )
     {
         char_t const operators[] =
         {
