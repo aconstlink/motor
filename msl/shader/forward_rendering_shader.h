@@ -39,6 +39,13 @@ namespace motor
                 bool_t use_diffuse ;
                 motor::math::vec3f_t diffuse ;
 
+                motor::string_t ambient_tx_name ;
+                motor::string_t ambient_tx_defv ;
+
+                motor::string_t diffuse_tx_name ;
+                motor::string_t diffuse_tx_defv ;
+                
+
                 bool_t has_normals( void_t ) const noexcept
                 {
                     return normal_comps > 0 ;

@@ -44,11 +44,14 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
                 motor::core::document::section_guard main_section( &shader ) ;
                 shader.println_if( "out.nrm = in.nrm ;", gi.has_normals()  ) ;
                 shader.println( "out.pos = proj * view * world * vec4_t( in.pos, 1.0 ) ;" ) ;
+
+                shader.println_if( "out.tx = in.tx ;", gi.has_texcoords()  ) ;
             }
             shader.println( "}" ) ;
         }
         shader.println( "}" ) ;
 
+        shader.println( "" ) ;
 
         shader.println( "pixel_shader" ) ;
         shader.println( "{" ) ;
@@ -57,6 +60,23 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
 
             shader.println_if( "in vec3_t nrm : normal ;", gi.has_normals() ) ;
             shader.println_if( "in vec3_t tx : texcoord0 ;", gi.has_texcoords() ) ;
+            shader.println( "" ) ;
+
+            if( !gi.ambient_tx_name.empty() )
+            {
+                char buffer[2048]  ;
+                std::snprintf( buffer, 2048, "tex2d_t %s( \"%s\" ) ;", gi.ambient_tx_name.c_str(), gi.ambient_tx_defv.c_str() ) ;
+                shader.println( buffer ) ;
+            }
+
+            if( !gi.diffuse_tx_name.empty() )
+            {
+                char buffer[ 2048 ]  ;
+                std::snprintf( buffer, 2048, "tex2d_t %s( \"%s\" ) ;", gi.diffuse_tx_name.c_str(), gi.diffuse_tx_defv.c_str() ) ;
+                shader.println( buffer ) ;
+            }
+
+            shader.println( "" ) ;
 
             if( gi.use_ambient )
             {
@@ -66,7 +86,7 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
             }
             else
             {
-                shader.println( "vec3_t Ka ;" ) ;
+                shader.println( "vec3_t Ka( 0.0, 0.0, 0.0 ) ;" ) ;
             }
 
             if( gi.use_diffuse )
@@ -77,16 +97,17 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
             }
             else
             {
-                shader.println( "vec3_t Kd ;" ) ;
+                shader.println( "vec3_t Kd( 0.0, 0.0, 0.0 ) ;" ) ;
             }
-
             
             
             shader.println( "vec3_t Ks ;" ) ;
+            shader.println( "" ) ;
 
             shader.println_if( "vec3_t light_dir ;", gi.has_normals() && gi.has_any_light() ) ;
 
             shader.println( "out vec4_t color : color ;" ) ;
+            shader.println( "" ) ;
 
             shader.println( "void main()" ) ;
             shader.println( "{" ) ;
@@ -101,7 +122,26 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi) no
                 }
                 else
                 {
-                    shader.println( "out.color = vec4_t(Kd.x, Kd.y, Kd.z, 1.0 ) ;" ) ;
+                    shader.println( "vec4_t color_ambient_accum = vec4_t( Ka, 1.0 ) ; ") ;
+                    shader.println( "vec4_t color_diffuse_accum = vec4_t( Kd, 1.0 ) ; ") ;
+
+                    if ( !gi.ambient_tx_name.empty() && gi.has_texcoords() )
+                    {
+                        char buffer[ 2048 ]  ;
+                        std::snprintf( buffer, 2048, "color_ambient_accum.xyz = color_ambient_accum.xyz * texture( %s, tx.xy ).xyz ;", gi.ambient_tx_name.c_str() ) ;
+                        shader.println( buffer ) ;
+                    }
+
+                    if ( !gi.diffuse_tx_name.empty() && gi.has_texcoords() )
+                    {
+                        char buffer[ 2048 ]  ;
+                        std::snprintf( buffer, 2048, "color_diffuse_accum.xyz = color_diffuse_accum.xyz * texture( %s, in.tx.xy ).xyz ;", gi.diffuse_tx_name.c_str() ) ;
+                        shader.println( buffer ) ;
+                    }
+
+                    shader.println( "out.color = vec4_t( color_ambient_accum.xyz + color_diffuse_accum.xyz, 1.0 ) ;" ) ;
+                    //shader.println( "out.color = vec4_t(in.tx*3, 1.0) ;" ) ;
+
                 }
             }
             shader.println( "}" ) ;

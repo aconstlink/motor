@@ -14,6 +14,19 @@ namespace motor
 {
     namespace msl
     {
+        struct texture_tag_dv
+        {
+            enum class type
+            {
+                unknown,
+                tex1d,
+                tex2d,
+                tex3d
+            };
+            type t ;
+            motor::string_t name ;
+        };
+
         //****************************************************
         class idefault_value
         {
@@ -61,5 +74,7 @@ namespace motor
         motor_typedefs( generic_default_value< motor::math::vec4ui_t >, vec4ui_dv ) ;
         
         motor_typedefs( generic_default_value< motor::string_t >, string_dv ) ;
+
+        motor_typedefs( generic_default_value< motor::msl::texture_tag_dv >, texture_dv ) ;
     }
 }

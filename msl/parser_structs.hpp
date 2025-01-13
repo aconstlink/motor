@@ -377,6 +377,16 @@ namespace motor
             else if ( t == motor::msl::type::as_vec4( motor::msl::type_base::tuint ) )
             {
             }
+            else if ( t == motor::msl::type::as_tex1d()  )
+            {
+                ret = motor::shared( motor::msl::texture_dv_t( motor::msl::texture_tag_dv 
+                    { motor::msl::texture_tag_dv::type::tex1d, values[ 0 ].second } ) ) ;
+            }
+            else if( t == motor::msl::type::as_tex2d() )
+            {
+                ret = motor::shared( motor::msl::texture_dv_t( motor::msl::texture_tag_dv 
+                    { motor::msl::texture_tag_dv::type::tex2d, values[0].second }) ) ;
+            }
 
             return ret ;
         }
