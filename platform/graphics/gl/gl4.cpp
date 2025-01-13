@@ -2081,6 +2081,17 @@ struct gl4_backend::pimpl
                                 vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
                             }
                         }
+                        else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
+                        {
+                            using ptr_t = motor::msl::texture_dv_ptr_t ;
+                            ptr_t gdv = static_cast<ptr_t>( df ) ;
+                            for ( auto & vs : obj.borrow_varibale_sets() )
+                            {
+                                // have the type here
+                                // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
+                                vs->texture_variable( var_.name )->set( gdv->get().name ) ;
+                            }
+                        }
                     }
                 }
             }
