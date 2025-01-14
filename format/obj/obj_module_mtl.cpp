@@ -202,7 +202,8 @@ motor::string_t wav_obj_module::generate_forward_shader( material_info_in_t mi )
             mi.name, 
             nrm_comps,  // normal component
             txc_comps,  // texcoords components,
-            0,          // num lights 
+            1,          // num lights 
+            false,
 
             true, mi.mat.ambient_color, true, mi.mat.diffuse_color,
 

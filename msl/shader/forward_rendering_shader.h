@@ -32,6 +32,7 @@ namespace motor
 
                 // only 1 or 0 supported
                 byte_t num_lights ;
+                bool_t per_pixel_lighing ;
 
                 bool_t use_ambient ;
                 motor::math::vec3f_t ambient ;
