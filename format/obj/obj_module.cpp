@@ -676,53 +676,108 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             bool_t const has_nrm = normals.size() != 0 ;
             bool_t const has_tx = texcoords.size() != 0 ;
 
-            size_t midx = 0 ;
-            for ( auto & m : meshes )
+            // handle material return
             {
-                motor::format::mtl_file::material mtl ;
-
-                bool_t material_found = false ;
-
-                // find proper material. It is required for shader gen.
-                for( auto const & mtlf : mtl_files )
                 {
-                    auto const iter = std::find_if( mtlf.materials.begin(), mtlf.materials.end(), 
-                        [&]( motor::format::mtl_file::material const & v ) 
+                    size_t num_materials = 0 ;
+                    for ( auto & mtlf : mtl_files )
                     {
-                        return v.name == m.material ;
-                    } ) ;
+                        num_materials += mtlf.materials.size() ;
+                    }
+                    ret.materials.resize( num_materials ) ;
+                }
 
-                    if( iter != mtlf.materials.end() ) 
+                size_t midx = 0 ;
+
+                for ( auto & mtlf : mtl_files )
+                {
+                    for( auto & mtl : mtlf.materials )
                     {
-                        mtl = *iter ;
-                        material_found = true ;
-                        break ;
+                        replace_specials( mtl.name ) ;
+                        motor::string_t const name = ret.name + "." + mtl.name ;
+
+                        ret.materials[ midx ].material_name = name ;
+                        ret.materials[ midx ].original_name = mtl.name ;
+                        ret.materials[ midx++ ].shader = this_t::generate_forward_shader( motor::format::material_info_t
+                            {
+                                name,
+                                has_nrm,
+                                has_tx,
+                                byte_t( num_texcoord_elems ),
+                                mtl
+                            } ) ;
+                    }
+                    
+
+                    for ( auto & i : mtlf.images )
+                    {
+                        ret.images.emplace_back( motor::format::mesh_item_t::image { i.name, i.the_image } ) ;
                     }
                 }
-
-                if( !material_found )
-                    motor::log::global::warning( "[wav_obj_module] : could not find material " + m.material ) ;
-
-                replace_specials( m.name ) ;
-                motor::string_t const name = ret.name + "." + m.name ;
-                ret.geos[midx].name = name ;
-                ret.geos[midx++].shader = this_t::generate_forward_shader( motor::format::material_info_t
-                    {
-                        name,
-                        has_nrm,
-                        has_tx,
-                        byte_t(num_texcoord_elems),
-                        mtl
-                    } ) ;
             }
 
-            for ( auto & mtlf : mtl_files )
+            // handle meshes
             {
-                for ( auto & i : mtlf.images )
+                size_t midx = 0 ;
+
+                for ( auto & m : meshes )
                 {
-                    ret.images.emplace_back( motor::format::mesh_item_t::image{ i.name, i.the_image } ) ;
-                }
-            }
+                    #if 0
+                    motor::format::mtl_file::material mtl ;
+
+                    bool_t material_found = false ;
+
+                    // find proper material. It is required for shader gen.
+                    for ( auto const & mtlf : mtl_files )
+                    {
+                        auto const iter = std::find_if( mtlf.materials.begin(), mtlf.materials.end(),
+                            [&] ( motor::format::mtl_file::material const & v )
+                        {
+                            return v.name == m.material ;
+                        } ) ;
+
+                        if ( iter != mtlf.materials.end() )
+                        {
+                            mtl = *iter ;
+                            material_found = true ;
+                            break ;
+                        }
+                    }
+
+                    if ( !material_found )
+                        motor::log::global::warning( "[wav_obj_module] : could not find material " + m.material ) ;
+                    #endif
+
+                    replace_specials( m.name ) ;
+                    replace_specials( m.material ) ;
+
+                    motor::string_t const name = ret.name + "." + m.name ;
+                    ret.geos[ midx ].name = name ;
+
+                    #if 1
+                    ret.geos[midx].material_idx = size_t(-1) ;
+
+                    for( size_t i=0; i<ret.materials.size(); ++i )
+                    {
+                        if( ret.materials[i].original_name == m.material )
+                        {
+                            ret.geos[midx].material_idx = i ;
+                            break ;
+                        }
+                    }
+                    ++midx ;
+                    #else
+                    ret.geos[ midx++ ].shader = this_t::generate_forward_shader( motor::format::material_info_t
+                        {
+                            name,
+                            has_nrm,
+                            has_tx,
+                            byte_t( num_texcoord_elems ),
+                            mtl
+        } ) ;
+                    #endif
+                        }
+                        }
         }
 
         {

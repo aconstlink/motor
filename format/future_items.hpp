@@ -53,10 +53,22 @@ namespace motor
             {
                 motor::string_t name ;
                 motor::geometry::polygon_mesh_t poly ;
-                motor::string_t shader ;
+                
+                // index into materials
+                size_t material_idx ;
             };
 
             motor::vector< geometry > geos ;
+
+            struct material
+            {
+                motor::string_t material_name ;
+                motor::string_t original_name ;
+                // some material info
+                motor::string_t shader ;
+            } ;
+
+            motor::vector< material > materials ;
 
             struct image
             {

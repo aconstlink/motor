@@ -88,8 +88,9 @@ namespace motor
             this_ref_t fill_variable_sets( size_t const ) noexcept ;
             motor::graphics::variable_set_mtr_safe_t get_varibale_set( size_t const id ) noexcept ;
             motor::graphics::variable_set_mtr_t borrow_varibale_set( size_t const id ) const noexcept ;
-            motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets( void_t ) const noexcept ;            
-            motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > borrow_varibale_sets( void_t ) const noexcept ;
+            motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets( void_t ) const noexcept ;
+            motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > & borrow_varibale_sets( void_t ) noexcept ;
+            motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const & borrow_varibale_sets( void_t ) const noexcept ;
 
             typedef std::function< void_t ( size_t const i, motor::graphics::variable_set_mtr_t ) > for_each_var_funk_t ;
             void_t for_each( for_each_var_funk_t funk ) noexcept ;
