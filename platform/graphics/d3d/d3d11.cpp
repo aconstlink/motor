@@ -2189,8 +2189,18 @@ public: // functions
             motor::msl::generator_t gen( std::move( res ) ) ;
 
             {
+                auto tp_begin = std::chrono::high_resolution_clock::now() ;
+
                 auto const code = gen.generate<motor::msl::hlsl::hlsl5_generator_t>() ;
                 motor::graphics::msl_bridge::create_by_api_type( motor::graphics::shader_api_type::hlsl_5_0, code, so ) ;
+
+                {
+                    size_t const milli = std::chrono::duration_cast<std::chrono::milliseconds>
+                        ( std::chrono::high_resolution_clock::now() - tp_begin ).count() ;
+
+                    motor::log::global_t::status( "[d3d11] : generating hlsl shader took " +
+                        motor::to_string( milli ) + " ms." ) ;
+                }
             }
 
             {
