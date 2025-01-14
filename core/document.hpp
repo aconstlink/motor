@@ -539,8 +539,7 @@ namespace motor
                 std::memcpy( tmp, _doc, actual ) ;
                 motor::memory::global::dealloc_raw( _doc ) ;
                 _doc = tmp ;
-                _size = actual ;
-                if ( _cur_pos >= _size ) _cur_pos = _size - 1 ;
+                _size = new_size ;
             }
 
             this_ref_t ensure_fit( size_t const num_elems ) noexcept
