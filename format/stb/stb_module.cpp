@@ -149,7 +149,7 @@ motor::format::future_item_t stb_image_module::import_from( motor::io::location_
         }
         stbi_image_free( stb_data_ptr ) ;
 
-        return motor::shared( motor::format::image_item_t( motor::shared( std::move( img ) ) ), "fitem" ) ;
+        return motor::shared( motor::format::image_item_t( motor::shared( std::move( img ), "[stb module] : image" ) ), "fitem" ) ;
     } ) ;
 }
 
