@@ -2168,6 +2168,8 @@ public: // functions
                             ptr_t gdv = static_cast<ptr_t>( df ) ;
                             for ( auto & vs : obj.borrow_varibale_sets() )
                             {
+                                // for @overwrite specifier
+                                //if( vs->has_data_variable( var_.name ) ) continue ;
                                 vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
                             }
                         }
@@ -2177,6 +2179,10 @@ public: // functions
                             ptr_t gdv = static_cast<ptr_t>( df ) ;
                             for ( auto & vs : obj.borrow_varibale_sets() )
                             {
+                                // for @overwrite specifier
+                                // if variable is already in the variable set, do not overwrite it
+                                //if( vs->has_texture_variable( var_.name ) ) continue ;
+
                                 // have the type here
                                 // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
                                 vs->texture_variable( var_.name )->set( gdv->get().name ) ;
