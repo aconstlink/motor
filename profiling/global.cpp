@@ -21,21 +21,6 @@ global::~global( void_t ) noexcept
 
 }
 
-#if MOTOR_PROFILING
-//******************************************************
-void_t global::push( motor::string_cref_t name ) noexcept
-{
-    this_t::manager().push( name ) ;
-}
-
-//******************************************************
-void_t global::pop( void_t ) noexcept
-{
-    this_t::manager().pop() ;
-}
-
-#endif
-
 //******************************************************
 void_t global::deinit( void_t ) noexcept
 {

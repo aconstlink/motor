@@ -14,7 +14,7 @@ manager::manager( void_t ) noexcept
 //************************************************************
 manager::manager( this_rref_t rhv ) noexcept
 {
-    _pt_timings = std::move( rhv._pt_timings ) ;
+    _pt_stacks = std::move( rhv._pt_stacks ) ;
     _data_points[ 0 ] = std::move( rhv._data_points[ 0 ] ) ;
     _data_points[ 1 ] = std::move( rhv._data_points[ 1 ] ) ;
 
@@ -42,69 +42,6 @@ size_t manager::gen_id( char_cptr_t cat, char_cptr_t name ) noexcept
 }
 
 //************************************************************
-void_t manager::push( motor::string_rref_t name ) noexcept
-{
-    this_t::push( name ) ;
-} 
-
-//************************************************************
-void_t manager::push( motor::string_cref_t name ) noexcept
-{
-    auto const tid = std::this_thread::get_id() ;
-    
-    std::lock_guard< std::mutex > lk( _mtx_ptt ) ;
-    auto iter = std::find_if( _pt_timings.begin(), _pt_timings.end(),
-        [&] ( per_thread_data_cref_t d )
-    {
-        return d.tid == tid ;
-    } ) ;
-
-    size_t idx = std::distance( _pt_timings.begin(), iter ) ;
-
-    if ( idx == _pt_timings.size() )
-    {
-        idx = _pt_timings.size() ;
-
-        this_t::per_thread_data_t ptd { tid } ;
-        _pt_timings.emplace_back( std::move( ptd ) ) ;
-    }
-    _pt_timings[ idx ].timings.push( this_t::per_thread_data_t::stack_data_t 
-        { name, motor::profiling::clock_t::now() } ) ;
-}
-
-//************************************************************
-void_t manager::pop( void_t ) noexcept
-{
-    auto const tid = std::this_thread::get_id() ;
-    
-    size_t idx = 0 ;
-
-    this_t::per_thread_data_t::stack_data_t data ;
-
-    {
-        std::lock_guard< std::mutex > lk( _mtx_ptt ) ;
-        auto iter = std::find_if( _pt_timings.begin(), _pt_timings.end(), 
-            [&] ( per_thread_data_cref_t d )
-        {
-            return d.tid == tid ;
-        } ) ;
-
-        assert( iter != _pt_timings.end() ) ;
-        data = std::move( iter->timings.pop() ) ;
-    }
-     
-    #if 0
-    auto dur = motor::profiling::clock_t::now() - data.tp ;
-
-    // place data point
-    {
-        std::lock_guard< std::mutex > lk( _mtx_dp ) ;
-        _data_points[ this_t::dp_widx() ].emplace_back(this_t::data_point_t {std::move(data.name), dur}) ;
-    }
-    #endif
-}
-
-//************************************************************
 char_cptr_t manager::get_category( size_t const probe_id ) noexcept
 {
     assert( probe_id <= _per_probe_id_datas.size() ) ;
@@ -127,7 +64,60 @@ size_t manager::begin_probe( size_t const id ) noexcept
 {
     assert( id <= _probe_id ) ;
 
-    this_t::probe_data const pd { true, id, std::this_thread::get_id(),
+    auto const tid = std::this_thread::get_id() ;
+
+    // prepare for per thread call stack and parent child
+    // function call relation : disabled for now and still not .
+    #if EXPERIMENTAL_PER_THREAD_CLASS_STACK_PROFILING
+    // place probe id on per thread call stack
+    {
+        bool_t found = false ;
+
+        std::lock_guard< std::mutex > lk( _mtx_ptt ) ;
+
+        for( size_t i=0; i<_pt_stacks.size(); ++i )
+        {
+            auto & item = _pt_stacks[i] ;
+
+            if( item.tid == tid )
+            {
+                item.the_stack.push( id ) ;
+                found = true ;
+                break ;
+            }
+        }
+
+        if( !found )
+        {
+            // find a free stack
+            for ( size_t i = 0; i < _pt_stacks.size(); ++i )
+            {
+                auto & item = _pt_stacks[i] ;
+
+                if ( item.tid == std::thread::id() )
+                {
+                    assert( item.the_stack.size() == 0 ) ;
+
+                    item.tid = tid ;
+                    item.the_stack.push( id ) ;
+                    found = true ;
+                    break ;
+                }
+            }
+
+            if( !found )
+            {
+                _pt_stacks.emplace_back( this_t::per_thread_data
+                    {
+                        tid,
+                        this_t::per_thread_data::stack_t::create_with_first_item( id )
+                    } ) ;
+            }
+        }
+    }
+    #endif
+
+    this_t::probe_data pd { true, id, tid,
         motor::profiling::clock_t::now() } ;
 
     std::lock_guard< std::mutex > lk( _mtx_probes ) ;
@@ -162,13 +152,40 @@ void_t manager::end_probe( size_t const idx ) noexcept
         _probes[ idx ].used = false ;
     }
 
-    // #2 place data point
+    #if EXPERIMENTAL_PER_THREAD_CLASS_STACK_PROFILING
+    // #2 clear thread call stack
+    {
+        auto const tid = std::this_thread::get_id() ;
+
+        assert( tid == pd.tid ) ;
+
+        std::lock_guard< std::mutex > lk( _mtx_ptt ) ;
+        for ( auto & i : _pt_stacks )
+        {
+            if( i.tid == tid ) 
+            {
+                assert( i.the_stack.top() == pd.probe_id ) ;
+                i.the_stack.pop() ;
+
+                if( i.the_stack.size() == 0 )
+                    i.tid = std::thread::id() ;
+                break ;
+            }
+        }
+    }
+    #endif
+
+    // #3 place data point
     auto dur = motor::profiling::clock_t::now() - pd.tp ;
     
     // place data point
     {
         std::lock_guard< std::mutex > lk( _mtx_dp ) ;
-        _data_points[ this_t::dp_widx() ].emplace_back( this_t::data_point_t { pd.probe_id, dur } ) ;
+
+        auto & dps = _data_points[ this_t::dp_widx() ] ;
+
+        if( dps.capacity() == dps.size() ) dps.reserve( dps.size() + 1000 ) ;
+        dps.emplace_back( this_t::data_point_t { pd.probe_id, dur } ) ;
     }
 }
 

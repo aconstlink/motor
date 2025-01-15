@@ -47,40 +47,15 @@ namespace motor{ namespace profiling {
 
         struct per_thread_data
         {
-            struct stack_data
-            {
-                motor::string_t name ;
-                motor::profiling::clock_t::time_point tp ;
-
-                stack_data( void_t ) noexcept {}
-                stack_data( motor::string_cref_t name_, 
-                    motor::profiling::clock_t::time_point const & tp_ ) noexcept : 
-                    name( name_ ), tp( tp_ ) {}
-
-                stack_data( stack_data const & ) = delete ;
-                stack_data( stack_data && rhv ) noexcept
-                {
-                    *this = std::move( rhv ) ;
-                }
-
-                stack_data & operator = ( stack_data && rhv ) noexcept
-                {
-                    name = std::move( rhv.name ) ;
-                    tp = std::move( rhv.tp ) ;
-                    return *this ;
-                }
-            };
-            motor_typedef( stack_data ) ;
-
-            using stack_t = motor::stack< stack_data, 20 > ;
+            using stack_t = motor::stack< size_t, 20 > ;
 
             std::thread::id tid ;
-            stack_t timings ;
+            stack_t the_stack ;
         };
         motor_typedef( per_thread_data ) ;
 
         std::mutex _mtx_ptt ;
-        motor::vector< per_thread_data_t > _pt_timings ;
+        motor::vector< per_thread_data_t > _pt_stacks ;
 
     private: // probe run-time data
 
@@ -118,14 +93,6 @@ namespace motor{ namespace profiling {
         manager( this_rref_t ) noexcept ;
         ~manager( void_t ) noexcept ;
 
-
-    public: // stack interface
-        
-        void_t push( motor::string_rref_t ) noexcept ;
-        void_t push( motor::string_cref_t ) noexcept ;
-
-        void_t pop( void_t ) noexcept ;
-
     public: // probe interface
 
         static size_t gen_id( char_cptr_t cat, char_cptr_t name ) noexcept ;
@@ -138,27 +105,6 @@ namespace motor{ namespace profiling {
     public:
 
         data_points_cref_t swap_and_clear( void_t ) noexcept ;
-
-    public: // other interface
-
-        #if 0
-
-        // opens a named data point 
-        id_t open( motor::string_cref_t name ) noexcept ;
-        
-        // closes the last point
-        void_t close( void_t ) noexcept ;
-        #endif
-
-        #if 0
-        // opens a named data point attached to 
-        id_t open( id_t const id_parent, motor::string_cref_t name ) noexcept ;
-
-        // opens a named data point 
-        id_t open( motor::string_cref_t name_parent, motor::string_cref_t name ) noexcept ;
-
-        id_t search_id( motor::string_cref_t name ) noexcept ;
-        #endif
     };
     motor_typedef( manager ) ;
 } }
