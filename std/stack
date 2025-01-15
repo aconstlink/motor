@@ -82,7 +82,6 @@ namespace motor
             check_and_resize() ;
             _stack[ _cur_pos ] = std::move( rhv ) ;
             ++_cur_pos ;
-            
         }
 
         void push( object_cref_t rhv ) noexcept
@@ -155,6 +154,15 @@ namespace motor
             {
                 funk( _stack[ i ], i == 0, i == _cur_pos - 1 ) ;
             }
+        }
+
+    public:
+
+        static this_t create_with_first_item( O const & item ) noexcept
+        {
+            this_t ret ;
+            ret.push( item ) ;
+            return ret ;
         }
     };
 }
