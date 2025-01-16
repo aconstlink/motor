@@ -12,6 +12,12 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
 {
     motor::core::document shader ;
 
+    // if the diffuse and disslove textures have the same namee
+    // read from the alpha channel of the diffuse texture.
+    // otherwise, read from the dissolve texture.
+    bool_t const read_alpha_from_diffuse = 
+        gi.diffuse_tx_defv == gi.dissolve_tx_defv ;
+
     shader.println( motor::string_t( "config " ) + gi.name ) ;
     shader.println( "{" ) ;
 
@@ -96,7 +102,7 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
                 shader.println( buffer ) ;
             }
 
-            if ( !gi.dissolve_tx_name.empty() )
+            if ( !gi.dissolve_tx_name.empty() && !read_alpha_from_diffuse)
             {
                 char buffer[ 2048 ]  ;
                 std::snprintf( buffer, 2048, "tex2d_t %s( \"%s\" ) ;", gi.dissolve_tx_name.c_str(), gi.dissolve_tx_defv.c_str() ) ;
@@ -168,9 +174,19 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
 
                 if ( !gi.dissolve_tx_name.empty() && gi.has_texcoords() )
                 {
-                    char buffer[ 2048 ]  ;
-                    std::snprintf( buffer, 2048, "alpha = texture( %s, in.tx.xy ).r ;", gi.dissolve_tx_name.c_str() ) ;
-                    shader.println( buffer ) ;
+                    if( !read_alpha_from_diffuse )
+                    {
+                        char buffer[ 2048 ]  ;
+                        std::snprintf( buffer, 2048, "alpha = texture( %s, in.tx.xy ).r ;", gi.dissolve_tx_name.c_str() ) ;
+                        shader.println( buffer ) ;
+                    }
+                    else
+                    {
+                        char buffer[ 2048 ]  ;
+                        std::snprintf( buffer, 2048, "alpha = texture( %s, in.tx.xy ).a ;", gi.diffuse_tx_name.c_str() ) ;
+                        shader.println( buffer ) ;
+                    }
+                    
                 }
 
 

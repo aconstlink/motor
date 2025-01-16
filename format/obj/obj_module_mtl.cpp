@@ -235,7 +235,7 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
             else if ( line.get_token( 0 ) == "d" && num_tokens >= 2 )
             {
                 // not used right now
-                cur_mat.requires_alpha_blending = true ;
+                //cur_mat.requires_alpha_blending = true ;
                 cur_mat.dissolve = std::atof( line.get_token( 1 ).data() ) ;
             }
         } ) ;
@@ -279,8 +279,17 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
             }
             else if( auto * status_item = dynamic_cast<motor::format::status_item_ptr_t>( iitem ); status_item != nullptr )
             {
-                motor::log::global::error( "[obj material] : " + status_item->msg ) ;
+                motor::log::global::error( "[obj material] : " + ca.name + " : " + status_item->msg ) ;
                 motor::release( motor::move( status_item ) ) ;
+
+                for( auto & m : ret.materials )
+                {
+                    if( m.map_dissolve == ca.name ) 
+                    {
+                        m.requires_alpha_blending = false ;
+                        m.map_dissolve = "" ;
+                    }
+                }
             }
             else
             {
