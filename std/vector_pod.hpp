@@ -29,19 +29,42 @@ namespace motor{ namespace mstd {
             this_t::resize( num_elems ) ;
         }
 
-        vector_pod( this_cref_t rhv ) noexcept
+        vector_pod( this_cref_t rhv ) noexcept : _capacity( rhv._capacity ),
+            _size( rhv._size ), _ptr( motor::memory::global::alloc_raw<T>( _size ) )
         {
-            _capacity = rhv._capacity ;
-            _size = rhv._size ;
+            std::memcpy( _ptr, rhv._ptr, sizeof( T ) * _size ) ;
         }
 
-        vector_pod( this_rref_t rhv ) noexcept
+        vector_pod( this_rref_t rhv ) noexcept : _capacity( rhv._capacity ),
+            _size( rhv._size ), _ptr ( motor::move( rhv._ptr ) )
         {
-            _capacity = rhv._capacity ;
+            rhv._capacity = 0 ;
+            rhv._size = 0 ;
+        }
+
+        this_ref_t operator = ( this_rref_t rhv ) noexcept
+        {
             _size = rhv._size ;
+            _capacity = rhv._capacity ;
+
+            motor::memory::global::dealloc_raw( _ptr ) ;
+            _ptr = motor::move( rhv._ptr ) ;
 
             rhv._capacity = 0 ;
             rhv._size = 0 ;
+            return *this ;
+        }
+
+        this_ref_t operator = ( this_cref_t rhv ) noexcept
+        {
+            _size = rhv._size ;
+            _capacity = rhv._capacity ;
+
+            motor::memory::global::dealloc_raw( _ptr ) ;
+            _ptr = motor::memory::global::alloc_raw<T>( _size  ) ;
+            std::memcpy( _ptr, rhv._ptr, sizeof( T ) * _size ) ;
+            
+            return *this ;
         }
 
         size_t size( void_t ) const noexcept
@@ -57,6 +80,21 @@ namespace motor{ namespace mstd {
         void_t clear( void_t ) noexcept
         {
             _size = 0 ;
+        }
+
+        void_t reseve( size_t const num_elems, size_t const grow = 10 ) noexcept
+        {
+            if ( _capacity > num_elems ) return ;
+
+            _capacity = num_elems + grow ;
+
+            auto * new_mem = motor::memory::global_t::alloc_raw<T>( _capacity ) ;
+            if ( _ptr != nullptr )
+            {
+                std::memcpy( new_mem, _ptr, sizeof( T ) * _size ) ;
+            }
+            motor::memory::global::dealloc_raw( _ptr ) ;
+            _ptr = new_mem ;
         }
 
         size_t resize( size_t const num_elems, size_t const grow = 10 ) noexcept
@@ -95,6 +133,12 @@ namespace motor{ namespace mstd {
         {
             assert( i < _capacity ) ;
             return _ptr[ i ] ;
+        }
+
+        void_t push_back( T const & v, size_t const grow_by = 10 ) noexcept
+        {
+            this_t::reseve( _capacity + 1, grow_by ) ;
+            _ptr[ _size++ ] = v ;
         }
     };
 
