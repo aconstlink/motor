@@ -5,6 +5,7 @@
 #include <motor/memory/allocator.hpp>
 
 #include <motor/std/vector>
+#include <motor/std/vector_pod>
 #include <motor/std/string>
 
 #include <motor/math/vector/vector2.hpp>
@@ -23,10 +24,10 @@ namespace motor
         motor_typedefs( motor::string_t, string ) ;
         motor_typedefs( motor::string_t, key ) ;
 
-        motor_typedefs( motor::vector< uint_t >, uints ) ;
+        motor_typedefs( motor::vector_pod< uint_t >, uints ) ;
         motor_typedefs( motor::vector< uints_t >, more_uints ) ;
 
-        motor_typedefs( motor::vector< float_t >, floats ) ;
+        motor_typedefs( motor::vector_pod< float_t >, floats ) ;
         motor_typedefs( motor::vector< floats_t >, more_floats ) ;
     }
      
