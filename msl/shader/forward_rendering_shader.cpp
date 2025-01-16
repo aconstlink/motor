@@ -147,14 +147,14 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
                 if ( !gi.ambient_tx_name.empty() && gi.has_texcoords() )
                 {
                     char buffer[ 2048 ]  ;
-                    std::snprintf( buffer, 2048, "ambient = ambient * texture( %s, tx.xy ).xyz ;", gi.ambient_tx_name.c_str() ) ;
+                    std::snprintf( buffer, 2048, "ambient = ambient ' texture( %s, tx.xy ).xyz ;", gi.ambient_tx_name.c_str() ) ;
                     shader.println( buffer ) ;
                 }
 
                 if ( !gi.diffuse_tx_name.empty() && gi.has_texcoords() )
                 {
                     char buffer[ 2048 ]  ;
-                    std::snprintf( buffer, 2048, "diffuse = diffuse * texture( %s, in.tx.xy ).xyz ;", gi.diffuse_tx_name.c_str() ) ;
+                    std::snprintf( buffer, 2048, "diffuse = diffuse ' texture( %s, in.tx.xy ).xyz ;", gi.diffuse_tx_name.c_str() ) ;
                     shader.println( buffer ) ;
                 }
 
