@@ -7,6 +7,44 @@
 
 using namespace motor::format ;
 
+namespace this_file
+{
+    // returns 
+    // [ 
+    // location name : where is the resource located in fs
+    // resource locator : internally usable name
+    // ]
+    auto image_loc_extraction = [] ( motor::io::location_cref_t loc, motor::core::document::line_view const & line )
+    {
+        motor::string_t res_loc ;
+
+        motor::string_t loc_name = motor::string_t( line.get_token( 1 ) ) ;
+        res_loc = line.get_token( 1 ) ;
+
+        for ( size_t i = 2; i < line.get_num_tokens(); ++i )
+        {
+            loc_name += motor::string_t( " " ) ;
+            loc_name += line.get_token( i ) ;
+
+            res_loc += motor::string_t( "_" ) ;
+            res_loc += line.get_token( i ) ;
+        }
+
+        // use the locations' name as the resource locator
+        {
+            motor::io::location_t tx_loc = motor::io::location_t::from_path(
+                loc.as_path().parent_path().append( res_loc ) ) ;
+
+            auto const name = motor::io::location_t::from_path(
+                tx_loc.as_path().replace_extension( "" ) ).as_string() ;
+
+            res_loc = name ;
+        }
+
+        return std::make_pair( loc_name, res_loc ) ;
+    } ;
+}
+
 //*******************************************************************************************
 motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t loc, motor::string_rref_t the_file,
     motor::io::database_mtr_t db, motor::format::module_registry_mtr_safe_t mod_reg ) noexcept 
@@ -22,11 +60,13 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
         motor::format::future_item_t item ;
     };
     motor::vector< image_info > tx_caches ;
+    tx_caches.reserve( 100 ) ;
 
     // load material info
     // also issues async image imports
     {
         motor::format::mtl_file::material cur_mat ;
+
         size_t mat_idx = size_t( -1 ) ;
 
         doc.for_each_line( [&] ( core::document::line_view const & line )
@@ -74,61 +114,129 @@ motor::format::mtl_file wav_obj_module::load_mtl_file( motor::io::location_in_t 
             }
             else if ( line.get_token( 0 ) == "map_Kd" && num_tokens >= 2 )
             {
-                motor::string_t loc_name = motor::string_t( line.get_token( 1 ) ) ;
-                cur_mat.map_diffuse = line.get_token( 1 ) ;
-
-                for ( size_t i = 2; i < line.get_num_tokens(); ++i )
-                {
-                    loc_name += motor::string_t( " " ) ;
-                    loc_name += line.get_token( i ) ;
-
-                    cur_mat.map_diffuse += motor::string_t( "_" ) ;
-                    cur_mat.map_diffuse += line.get_token( i ) ;
-                }
-
-                // use the locations' name as the resource locator
-                {
-                    motor::io::location_t tx_loc = motor::io::location_t::from_path(
-                        loc.as_path().parent_path().append( cur_mat.map_diffuse ) ) ;
-
-                    auto const name = motor::io::location_t::from_path(
-                        tx_loc.as_path().replace_extension( "" ) ).as_string() ;
-
-                    cur_mat.map_diffuse = name ;
-                }
+                auto [loc_name, res_loc] = this_file::image_loc_extraction( loc, line ) ;
 
                 // load texture from location.
                 // but only load if not already issued.
                 {
                     motor::io::location_t tx_loc = motor::io::location_t::from_path(
-                        loc.as_path().parent_path().append( loc_name ) ) ;
+                        loc.parent_path().append( loc_name ) ) ;
 
-                    auto const iter = std::find_if( tx_caches.begin(), tx_caches.end(), [&]( image_info const & ii )
+                    size_t i = 0 ;
+                    for ( i; i < tx_caches.size(); ++i )
                     {
-                        return ii.loc == tx_loc ;
-                    } ) ;
+                        image_info const & ii = tx_caches[ i ] ;
+                        if ( ii.loc == tx_loc ) break ;
+                    }
 
-                    if( iter == tx_caches.end() )
+                    if ( i == tx_caches.size() )
                     {
                         tx_caches.emplace_back( image_info {
                             motor::format::mtl_file::image::image_type::diffuse,
-                            cur_mat.map_diffuse, tx_loc, mod_reg->import_from( tx_loc, db )
+                            res_loc, tx_loc, mod_reg->import_from( tx_loc, db )
                             } )  ;
                     }
                 }
 
-                
+                cur_mat.map_diffuse = res_loc ;
             }
             else if ( line.get_token( 0 ) == "map_Ks" && num_tokens == 2 )
             {
+                auto [loc_name, res_loc] = this_file::image_loc_extraction( loc, line ) ;
+
+                // load texture from location.
+                // but only load if not already issued.
+                {
+                    motor::io::location_t tx_loc = motor::io::location_t::from_path(
+                        loc.parent_path().append( loc_name ) ) ;
+
+                    size_t i = 0 ;
+                    for ( i; i < tx_caches.size(); ++i )
+                    {
+                        image_info const & ii = tx_caches[ i ] ;
+                        if ( ii.loc == tx_loc ) break ;
+                    }
+
+                    if ( i == tx_caches.size() )
+                    {
+                        tx_caches.emplace_back( image_info {
+                            motor::format::mtl_file::image::image_type::specular,
+                            res_loc, tx_loc, mod_reg->import_from( tx_loc, db )
+                            } )  ;
+                    }
+                }
+
+                cur_mat.map_specular = res_loc ;
+
             }
             else if ( line.get_token( 0 ) == "map_Ka" && num_tokens == 2 )
             {
+                auto [loc_name, res_loc] = this_file::image_loc_extraction( loc, line ) ;
+
+                // load texture from location.
+                // but only load if not already issued.
+                {
+                    motor::io::location_t tx_loc = motor::io::location_t::from_path(
+                        loc.parent_path().append( loc_name ) ) ;
+
+                    size_t i = 0 ;
+                    for ( i; i < tx_caches.size(); ++i )
+                    {
+                        image_info const & ii = tx_caches[ i ] ;
+                        if ( ii.loc == tx_loc ) break ;
+                    }
+
+                    if ( i == tx_caches.size() )
+                    {
+                        tx_caches.emplace_back( image_info {
+                            motor::format::mtl_file::image::image_type::ambient,
+                            res_loc, tx_loc, mod_reg->import_from( tx_loc, db )
+                            } )  ;
+                    }
+                }
+
+                cur_mat.map_ambient = res_loc ;
+            }
+            else if ( line.get_token( 0 ) == "map_d" && num_tokens == 2 )
+            {
+                auto [loc_name, res_loc] = this_file::image_loc_extraction( loc, line ) ;
+
+                // load texture from location.
+                // but only load if not already issued.
+                {
+                    motor::io::location_t tx_loc = motor::io::location_t::from_path(
+                        loc.parent_path().append( loc_name ) ) ;
+
+                    size_t i = 0 ;
+                    for ( i; i < tx_caches.size(); ++i )
+                    {
+                        image_info const & ii = tx_caches[ i ] ;
+                        if ( ii.loc == tx_loc ) break ;
+                    }
+
+                    if ( i == tx_caches.size() )
+                    {
+                        tx_caches.emplace_back( image_info {
+                            motor::format::mtl_file::image::image_type::alpha,
+                            res_loc, tx_loc, mod_reg->import_from( tx_loc, db )
+                            } )  ;
+                    }
+                }
+
+                cur_mat.requires_alpha_blending = true ;
+                cur_mat.map_dissolve = res_loc ;
             }
             else if ( line.get_token( 0 ) == "illum" && num_tokens >= 2 )
             {
                 // not used right now
                 cur_mat.illum_model = 0 ;
+            }
+
+            else if ( line.get_token( 0 ) == "d" && num_tokens >= 2 )
+            {
+                // not used right now
+                cur_mat.requires_alpha_blending = true ;
+                cur_mat.dissolve = std::atof( line.get_token( 1 ).data() ) ;
             }
         } ) ;
 
@@ -195,6 +303,8 @@ motor::string_t wav_obj_module::generate_forward_shader( material_info_in_t mi )
 
     motor::string_t ka_map = mi.mat.map_ambient ;
     motor::string_t kd_map = mi.mat.map_diffuse ;
+    motor::string_t ks_map = mi.mat.map_specular ;
+    motor::string_t d_map = mi.mat.map_dissolve ;
 
     motor::msl::forward_rendering_shader shader( 
         motor::msl::forward_rendering_shader::generator_info
@@ -209,6 +319,8 @@ motor::string_t wav_obj_module::generate_forward_shader( material_info_in_t mi )
 
             ka_map.empty() ? "" : "ka_map", std::move( ka_map ),
             kd_map.empty() ? "" : "kd_map", std::move( kd_map ),
+            ks_map.empty() ? "" : "ks_map", std::move( ks_map ),
+            d_map.empty() ? "" : "d_map", std::move( d_map ),
         } )  ;
     
     return shader.to_string() ;

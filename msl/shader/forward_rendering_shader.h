@@ -41,10 +41,16 @@ namespace motor
                 motor::math::vec3f_t diffuse ;
 
                 motor::string_t ambient_tx_name ;
-                motor::string_t ambient_tx_defv ;
+                motor::string_t ambient_tx_defv ; // default value
 
                 motor::string_t diffuse_tx_name ;
-                motor::string_t diffuse_tx_defv ;
+                motor::string_t diffuse_tx_defv ; // default value
+
+                motor::string_t specular_tx_name ;
+                motor::string_t specular_tx_defv ; // default value
+
+                motor::string_t dissolve_tx_name ;
+                motor::string_t dissolve_tx_defv ; // default value
                 
 
                 bool_t has_normals( void_t ) const noexcept

@@ -29,6 +29,10 @@ namespace motor
                 motor::string_t map_diffuse ; // map_Kd
                 motor::string_t map_ambient ; // map_Ka
                 motor::string_t map_specular ; // map_Ks
+                motor::string_t map_dissolve ; // map_d
+
+                // set if dissolve or map_dissolve is set
+                bool_t requires_alpha_blending = false ;
             };
 
             struct image
@@ -38,7 +42,8 @@ namespace motor
                     unknown,
                     diffuse,
                     specular,
-                    ambient
+                    ambient,
+                    alpha
                 };
 
                 image_type it ;

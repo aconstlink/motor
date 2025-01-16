@@ -95,6 +95,13 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
                 std::snprintf( buffer, 2048, "tex2d_t %s( \"%s\" ) ;", gi.diffuse_tx_name.c_str(), gi.diffuse_tx_defv.c_str() ) ;
                 shader.println( buffer ) ;
             }
+
+            if ( !gi.dissolve_tx_name.empty() )
+            {
+                char buffer[ 2048 ]  ;
+                std::snprintf( buffer, 2048, "tex2d_t %s( \"%s\" ) ;", gi.dissolve_tx_name.c_str(), gi.dissolve_tx_defv.c_str() ) ;
+                shader.println( buffer ) ;
+            }
             
             shader.println( "" ) ;
 
@@ -143,11 +150,12 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
 
                 shader.println( "vec3_t ambient = Ka ; " ) ;
                 shader.println( "vec3_t diffuse = Kd ; " ) ;
+                shader.println( "float_t alpha = 1.0 ; " ) ;
 
                 if ( !gi.ambient_tx_name.empty() && gi.has_texcoords() )
                 {
                     char buffer[ 2048 ]  ;
-                    std::snprintf( buffer, 2048, "ambient = ambient ' texture( %s, tx.xy ).xyz ;", gi.ambient_tx_name.c_str() ) ;
+                    std::snprintf( buffer, 2048, "ambient = ambient ' texture( %s, in.tx.xy ).xyz ;", gi.ambient_tx_name.c_str() ) ;
                     shader.println( buffer ) ;
                 }
 
@@ -158,18 +166,25 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
                     shader.println( buffer ) ;
                 }
 
+                if ( !gi.dissolve_tx_name.empty() && gi.has_texcoords() )
+                {
+                    char buffer[ 2048 ]  ;
+                    std::snprintf( buffer, 2048, "alpha = texture( %s, in.tx.xy ).r ;", gi.dissolve_tx_name.c_str() ) ;
+                    shader.println( buffer ) ;
+                }
+
 
                 if ( gi.has_normals() && gi.has_any_light() && gi.per_pixel_lighing  )
                 {
                     shader.println( "float_t ndl = dot( in.nrm, light_dir ) ;" ) ;
                     shader.println( "vec3_t color = Ka + Kd ' ndl ;" ) ;
-                    shader.println( "out.color = vec4_t( color, 1.0 ) ;" ) ;
+                    shader.println( "out.color = vec4_t( color, alpha ) ;" ) ;
                 }
                 else if ( gi.has_normals() && gi.has_any_light() && !gi.per_pixel_lighing )
                 {
                     shader.println( "float_t ndl = in.ndl ; " ) ;
                     shader.println( "diffuse = diffuse * ndl ;" ) ;
-                    shader.println( "out.color = vec4_t( ambient + diffuse, 1.0 ) ;" ) ;
+                    shader.println( "out.color = vec4_t( ambient + diffuse, alpha ) ;" ) ;
                     //shader.println( "out.color = vec4_t(in.tx*3, 1.0) ;" ) ;
                 }
 

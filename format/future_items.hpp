@@ -62,6 +62,7 @@ namespace motor
 
             struct material
             {
+                bool_t alpha_blending ;
                 motor::string_t material_name ;
                 motor::string_t original_name ;
                 // some material info

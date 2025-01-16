@@ -696,6 +696,7 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         replace_specials( mtl.name ) ;
                         motor::string_t const name = ret.name + "." + mtl.name ;
 
+                        ret.materials[ midx ].alpha_blending = mtl.requires_alpha_blending ;
                         ret.materials[ midx ].material_name = name ;
                         ret.materials[ midx ].original_name = mtl.name ;
                         ret.materials[ midx++ ].shader = this_t::generate_forward_shader( motor::format::material_info_t
@@ -722,39 +723,12 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
 
                 for ( auto & m : meshes )
                 {
-                    #if 0
-                    motor::format::mtl_file::material mtl ;
-
-                    bool_t material_found = false ;
-
-                    // find proper material. It is required for shader gen.
-                    for ( auto const & mtlf : mtl_files )
-                    {
-                        auto const iter = std::find_if( mtlf.materials.begin(), mtlf.materials.end(),
-                            [&] ( motor::format::mtl_file::material const & v )
-                        {
-                            return v.name == m.material ;
-                        } ) ;
-
-                        if ( iter != mtlf.materials.end() )
-                        {
-                            mtl = *iter ;
-                            material_found = true ;
-                            break ;
-                        }
-                    }
-
-                    if ( !material_found )
-                        motor::log::global::warning( "[wav_obj_module] : could not find material " + m.material ) ;
-                    #endif
-
                     replace_specials( m.name ) ;
                     replace_specials( m.material ) ;
 
                     motor::string_t const name = ret.name + "." + m.name ;
                     ret.geos[ midx ].name = name ;
 
-                    #if 1
                     ret.geos[midx].material_idx = size_t(-1) ;
 
                     for( size_t i=0; i<ret.materials.size(); ++i )
@@ -766,18 +740,8 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                         }
                     }
                     ++midx ;
-                    #else
-                    ret.geos[ midx++ ].shader = this_t::generate_forward_shader( motor::format::material_info_t
-                        {
-                            name,
-                            has_nrm,
-                            has_tx,
-                            byte_t( num_texcoord_elems ),
-                            mtl
-        } ) ;
-                    #endif
-                        }
-                        }
+                }
+            }
         }
 
         {
