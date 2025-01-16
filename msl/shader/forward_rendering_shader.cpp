@@ -193,8 +193,8 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
                 if ( gi.has_normals() && gi.has_any_light() && gi.per_pixel_lighing  )
                 {
                     shader.println( "float_t ndl = dot( in.nrm, light_dir ) ;" ) ;
-                    shader.println( "vec3_t color = Ka + Kd ' ndl ;" ) ;
-                    shader.println( "out.color = vec4_t( color, alpha ) ;" ) ;
+                    shader.println( "diffuse = diffuse * ndl ;" ) ;
+                    shader.println( "out.color = vec4_t( ambient + diffuse, alpha ) ;" ) ;
                 }
                 else if ( gi.has_normals() && gi.has_any_light() && !gi.per_pixel_lighing )
                 {
@@ -203,9 +203,11 @@ forward_rendering_shader::forward_rendering_shader( generator_info_rref_t gi ) n
                     shader.println( "out.color = vec4_t( ambient + diffuse, alpha ) ;" ) ;
                     //shader.println( "out.color = vec4_t(in.tx*3, 1.0) ;" ) ;
                 }
-
-                
-
+                // no lights
+                else
+                {
+                    shader.println( "out.color = vec4_t( /*ambient +*/ diffuse, alpha ) ;" ) ;
+                }
             }
             shader.println( "}" ) ;
 
