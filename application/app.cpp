@@ -3,7 +3,7 @@
 
 #include "carrier.h"
 
-#include <motor/profiling/global.h>
+#include <motor/profiling/probe_guard.hpp>
 #include <motor/tool/imgui/custom_widgets.h>
 
 using namespace motor::application ;
@@ -194,6 +194,8 @@ bool_t app::carrier_init( motor::application::carrier_ptr_t carrier ) noexcept
 //**************************************************************************************************************
 bool_t app::carrier_update( void_t ) noexcept
 {
+    MOTOR_PROBE( "system", "carrier_update" ) ;
+
     std::chrono::microseconds dt_micro ;
     float_t dt_sec = 0.0f ;
 
