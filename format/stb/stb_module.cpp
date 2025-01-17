@@ -24,7 +24,7 @@ using namespace motor::format ;
 // ***
 void_t stb_module_register::register_module( motor::format::module_registry_mtr_t reg ) 
 {
-    reg->register_import_factory( { "png", "jpg", "tga" }, motor::shared( stb_image_factory_t(), "stb_image_factory" ) ) ;
+    reg->register_import_factory( { "png", "jpg", "tga", "JPG" }, motor::shared( stb_image_factory_t(), "stb_image_factory" ) ) ;
     reg->register_export_factory( { "png" }, motor::shared( stb_image_factory_t(), "stb_image_factory" ) ) ;
 
     reg->register_import_factory( { "ogg" }, motor::shared( stb_audio_factory_t(), "stb_audio_factory" ) ) ;

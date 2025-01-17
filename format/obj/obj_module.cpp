@@ -679,7 +679,9 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
             // handle material return
             {
                 {
-                    size_t num_materials = 0 ;
+                    // at least, we need one material
+                    // see below when no mtl files are present
+                    size_t num_materials = 1 ;
                     for ( auto & mtlf : mtl_files )
                     {
                         num_materials += mtlf.materials.size() ;
@@ -713,6 +715,32 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                     for ( auto & i : mtlf.images )
                     {
                         ret.images.emplace_back( motor::format::mesh_item_t::image { i.name, i.the_image } ) ;
+                    }
+                }
+
+                // no material files, so just pace a random default shader
+                if( mtl_files.size() == 0 )
+                {
+                    auto mtl = motor::format::mtl_file::material::make_default( "material" );
+                    motor::format::mtl_file mtlf ;
+
+                    motor::string_t const name = ret.name + ".material" ;
+
+                    ret.materials[ midx ].alpha_blending = false ;
+                    ret.materials[ midx ].material_name = name ;
+                    ret.materials[ midx ].original_name = "material" ;
+                    ret.materials[ midx++ ].shader = this_t::generate_forward_shader( motor::format::material_info_t
+                        {
+                            name,
+                            has_nrm,
+                            has_tx,
+                            byte_t( num_texcoord_elems ),
+                            mtl
+                        } ) ;
+
+                    for( auto & m : meshes )
+                    {
+                        m.material = "material" ;
                     }
                 }
             }

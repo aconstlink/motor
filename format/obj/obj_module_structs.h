@@ -33,6 +33,22 @@ namespace motor
 
                 // set if dissolve or map_dissolve is set
                 bool_t requires_alpha_blending = false ;
+
+                static material make_default( motor::string_in_t name ) noexcept
+                {
+                    return material
+                    {
+                        name,
+                        motor::math::vec3f_t(1.0f),
+                        motor::math::vec3f_t(0.0f),
+                        motor::math::vec3f_t(0.0f),
+                        0.0,
+                        1.0,
+                        1.0,
+                        1,
+                        "", "", "", "", false
+                    } ;
+                }
             };
 
             struct image

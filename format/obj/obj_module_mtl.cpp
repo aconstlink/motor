@@ -16,11 +16,11 @@ namespace this_file
     // ]
     auto image_loc_extraction = [] ( motor::io::location_cref_t loc, motor::core::document::line_view const & line )
     {
-        motor::string_t res_loc ;
-
         motor::string_t loc_name = motor::string_t( line.get_token( 1 ) ) ;
-        res_loc = line.get_token( 1 ) ;
-
+        motor::string_t res_loc = motor::string_t( line.get_token( 1 ) ) ;
+       
+        // sometimes file location path names are given
+        // with white spaces.
         for ( size_t i = 2; i < line.get_num_tokens(); ++i )
         {
             loc_name += motor::string_t( " " ) ;
@@ -40,6 +40,30 @@ namespace this_file
 
             res_loc = name ;
         }
+
+        // can not do, otherwise other importers will fail
+        // to load the image resource
+
+        #if 0
+        // post: replace extension with lowercase
+        {
+            auto loc_p = motor::io::path_t( loc_name ) ;
+            auto ext = loc_p.extension().string() ;
+
+            char buf[ 125 ] ;
+
+            // lower extension
+            {
+                assert( ext.size() < 125 ) ;
+                for ( size_t i = 1; i < ext.size(); ++i )
+                {
+                    buf[ i - 1 ] = std::tolower( ext[ i ] ) ;
+                }
+                buf[ ext.size() - 1 ] = '\0' ;
+            }
+            loc_name = loc_p.replace_extension( buf ).string() ;
+        }
+        #endif
 
         return std::make_pair( loc_name, res_loc ) ;
     } ;
