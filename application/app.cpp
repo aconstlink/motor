@@ -199,8 +199,20 @@ bool_t app::carrier_update( void_t ) noexcept
     std::chrono::microseconds dt_micro ;
     float_t dt_sec = 0.0f ;
 
+    // compute dt micro seconds. Here it also yield if the micro seconds == 0
+    // this can happen in small projects, so we have to wait until micro != 0
+    // I think this is not that much of a problem, because in more complex
+    // applications, that will be != 0 anyways
     {
         dt_micro = std::chrono::duration_cast<std::chrono::microseconds>( this_t::platform_clock_t::now() - _tp_platform ) ;
+
+        while( dt_micro == std::chrono::microseconds(0) )
+        {
+            // best way I figured to slow down the thread.
+            std::this_thread::yield() ;
+            dt_micro = std::chrono::duration_cast<std::chrono::microseconds>( this_t::platform_clock_t::now() - _tp_platform ) ;
+        }
+
         dt_sec = float_t( double_t( dt_micro.count() ) / 1000000.0 ) ;
         _tp_platform = this_t::platform_clock_t::now() ;
     }
