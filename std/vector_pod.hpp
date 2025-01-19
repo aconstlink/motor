@@ -19,6 +19,17 @@ namespace motor{ namespace mstd {
 
         vector_pod( void_t ) noexcept {}
 
+        vector_pod( std::initializer_list< T > && l ) noexcept
+        {
+            this_t::resize( l.size() ) ;
+
+            size_t i=size_t(-1); 
+            for( auto && v : l ) 
+            {
+                _ptr[++i] = std::move( v ) ;
+            }
+        }
+
         ~vector_pod( void_t ) noexcept
         {
             motor::memory::global::dealloc_raw( _ptr ) ;
@@ -67,6 +78,37 @@ namespace motor{ namespace mstd {
             return *this ;
         }
 
+        bool_t contains( T const & v ) const noexcept
+        {
+            return this_t::find( v ) != _size ;
+        }
+
+        size_t find( T const & v ) const noexcept
+        {
+            size_t i = size_t(-1) ;
+            while ( ++i < _size && _ptr[ i ] != v ) ;
+            return i ;
+        }
+
+        // erases one element v
+        void_t erase( T const & v ) noexcept
+        {
+            return this_t::erase_by_index( this_t::find( v ) ) ;
+        }
+
+        // erase the ith entry
+        void_t erase_by_index( size_t const i ) noexcept
+        {
+            if( i >= _size ) return ;
+
+            size_t const src = i ;
+            size_t const dst = i + 1 ;
+
+            std::memcpy( _ptr + src, _ptr + dst, sizeof( T ) * (_size - dst) ) ;
+
+            _size -= 1 ;
+        }
+
         size_t size( void_t ) const noexcept
         {
             return _size ;
@@ -82,7 +124,7 @@ namespace motor{ namespace mstd {
             _size = 0 ;
         }
 
-        void_t reseve( size_t const num_elems, size_t const grow = 10 ) noexcept
+        void_t reserve( size_t const num_elems, size_t const grow = 10 ) noexcept
         {
             if ( _capacity > num_elems ) return ;
 
@@ -137,8 +179,20 @@ namespace motor{ namespace mstd {
 
         void_t push_back( T const & v, size_t const grow_by = 10 ) noexcept
         {
-            this_t::reseve( _capacity + 1, grow_by ) ;
+            this_t::reserve( _capacity + 1, grow_by ) ;
             _ptr[ _size++ ] = v ;
+        }
+
+    public: // for each
+
+        void_t for_each( std::function< void_t ( size_t const i, T const & v ) > f ) const noexcept
+        {
+            for ( size_t i = 0; i < _size; ++i ) f( i, _ptr[ i ] ) ;
+        }
+        
+        void_t for_each( std::function< void_t ( size_t const, T & ) > f ) noexcept
+        {
+            for ( size_t i = 0; i < _size; ++i ) f( i, _ptr[ i ] ) ;
         }
     };
 

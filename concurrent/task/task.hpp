@@ -7,7 +7,7 @@
 #include "../mrsw.hpp"
 
 #include <motor/std/hash_map>
-#include <motor/std/vector>
+#include <motor/std/vector_pod>
 
 #include <atomic>
 
@@ -25,7 +25,7 @@ namespace motor
             motor_typedef( task_funk_param ) ;
 
             typedef std::function< void_t ( task_funk_param_in_t ) > task_funk_t ;
-            motor_typedefs( motor::vector< this_mtr_t >, tasks ) ;
+            motor_typedefs( motor::vector_pod< this_mtr_t >, tasks ) ;
 
         private: // user execution function
 
@@ -61,17 +61,11 @@ namespace motor
 
         public:
 
-            task( void_t ) noexcept : _ins( tasks_t::allocator_type("incomings") ), 
-                _outs( tasks_t::allocator_type("outgoings") )
-            {
-                _funk = [=]( this_t::task_funk_param_in_t ){} ;
-            }
+            task( void_t ) noexcept : _funk( [=]( this_t::task_funk_param_in_t ){} ) 
+            {}
 
-            task( task_funk_t f ) noexcept: _ins( tasks_t::allocator_type("incomings") ), 
-                _outs( tasks_t::allocator_type("outgoings"))
-            {
-                _funk = f ;
-            }
+            task( task_funk_t f ) noexcept : _funk( std::move( f ) ) 
+            {}
 
             task( this_cref_t ) = delete ;
             task( this_rref_t rhv ) noexcept
@@ -86,22 +80,31 @@ namespace motor
 
             ~task( void_t ) noexcept
             {
-                for( auto & t : _ins )
-                {
-                    motor::memory::release_ptr( t ) ;
-                }
+                this_t::release_ins() ;
+                this_t::release_outs() ;
+            }
 
-                for( auto & t : _outs )
-                {
-                    motor::memory::release_ptr( t ) ;
-                }
+            void_t release_ins( void_t ) noexcept
+            {
+                for ( size_t i = 0; i < _ins.size(); ++i )
+                    motor::memory::release_ptr( _ins[ i ] ) ;
+            }
+            void_t release_outs( void_t ) noexcept
+            {
+                for ( size_t i = 0; i < _outs.size(); ++i )
+                    motor::memory::release_ptr( _outs[ i ] ) ;
             }
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
-                _funk = std::move( rhv._funk ) ;
+                this_t::release_ins() ;
+                this_t::release_outs() ;
+
                 _ins = std::move( rhv._ins ) ;
                 _outs = std::move( rhv._outs ) ;
+
+                _funk = std::move( rhv._funk ) ;
+                
                 _incomings = rhv._incomings ;
                 _is_executing = rhv._is_executing ;
                 _so = std::move( rhv._so ) ;
@@ -137,8 +140,12 @@ namespace motor
 
             bool_t add_incoming( this_mtr_t ptr ) noexcept
             {
+                #if 1
+                if( _ins.contains(ptr) ) return false ;
+                #else
                 auto iter = std::find( _ins.begin(), _ins.end(), ptr ) ;
                 if ( iter != _ins.end() ) return false ;
+                #endif
 
                 this_t::inc_incoming() ;
                 _ins.push_back( motor::memory::copy_ptr( ptr ) ) ;
@@ -147,20 +154,27 @@ namespace motor
 
             void_t disconnect_incoming( this_ptr_t ptr ) noexcept
             {
+                #if 1
+                _ins.erase( ptr ) ;
+                #else
                 auto iter = std::find( _ins.begin(), _ins.end(), ptr ) ;
                 if ( iter == _ins.end() ) return ;
-
                 _ins.erase( iter ) ;
+                #endif
+                
                 motor::memory::release_ptr( ptr ) ;
                 this_t::dec_incoming() ;
             }
 
             void_t disconnect_outgoing( this_ptr_t ptr ) noexcept
             {
+                #if 1
+                _outs.erase( ptr ) ;
+                #else
                 auto iter = std::find( _outs.begin(), _outs.end(), ptr ) ;
                 if ( iter == _outs.end() ) return ;
-
                 _outs.erase( iter ) ;
+                #endif
                 motor::memory::release_ptr( ptr ) ;
             }
 
@@ -169,27 +183,27 @@ namespace motor
             this_mtr_safe_t then( this_mtr_safe_t other ) noexcept
             {
                 other->add_incoming( this ) ;
-                _outs.emplace_back( other ) ;
+                _outs.push_back( other ) ;
                 return other ;
             }
 
             void_t disconnect( void_t ) noexcept
             {
                 // disconnect from all incomings
-                for( auto * ptr : _ins )
+                for( size_t i=0; i<_ins.size(); ++i )
                 {
                     // disconnect this from ptr
-                    ptr->disconnect_outgoing( this ) ;
-                    motor::memory::release_ptr( ptr ) ;
+                    _ins[i]->disconnect_outgoing( this ) ;
+                    motor::memory::release_ptr( _ins[i] ) ;
                 }
                 _ins.clear() ;
 
                 // disconnect from all outgoings
-                for ( auto * ptr : _outs )
+                for( size_t i=0; i<_outs.size(); ++i )
                 {
                     // disconnect this from ptr
-                    ptr->disconnect_incoming( this ) ;
-                    motor::memory::release_ptr( ptr ) ;
+                    _outs[i]->disconnect_incoming( this ) ;
+                    motor::memory::release_ptr( _outs[i] ) ;
                 }
                 _outs.clear() ;
             }
@@ -217,7 +231,7 @@ namespace motor
 
             struct cleaner_accessor
             {
-                static void_t move_out_all( this_mtr_t t, motor::vector< this_mtr_t > & tasks ) noexcept
+                static void_t move_out_all( this_mtr_t t, this_t::tasks_t & tasks ) noexcept
                 {
                     t->move_out_all( tasks ) ;
                 }
@@ -261,10 +275,16 @@ namespace motor
                     {
                         tiers.resize( tiers.size() + 1 ) ;
 
-                        for( auto * t : tiers[cur_tier].tasks )
+                        for( size_t ti=0; ti< tiers[cur_tier].tasks.size(); ++ti )
+                        //for( auto * t : tiers[cur_tier].tasks )
                         {
-                            for( auto * t2 : t->_outs )
+                            auto * t = tiers[cur_tier].tasks[ti] ;
+
+                            for( size_t ti2=0; ti2<t->_outs.size(); ++ti2)
+                            //for( auto * t2 : t->_outs )
                             {
+                                auto * t2 = t->_outs[ti2] ;
+
                                 // self check
                                 {
                                     auto iter = ids.find( t2 ) ;
@@ -274,8 +294,11 @@ namespace motor
                                 // check if candidate for tier
                                 {
                                     bool_t complete = true ;
-                                    for ( auto * input_task : t2->_ins )
+                                    for( size_t ti3=0; ti3<t2->_ins.size(); ++ti3 )
+                                    //for ( auto * input_task : t2->_ins )
                                     {
+                                        auto * input_task = t2->_ins[ti3] ;
+
                                         auto iter = ids.find( input_task ) ;
                                         if ( iter == ids.end() )
                                         {
@@ -290,8 +313,11 @@ namespace motor
                                 // if candidate, check cycles
                                 {
                                     bool_t has_cycle = false ;
-                                    for ( auto * output_task : t2->_outs )
+                                    for( size_t ti3=0; ti3<t2->_outs.size(); ++ti3 )
+                                    //for ( auto * output_task : t2->_outs )
                                     {
+                                        auto * output_task = t2->_outs[ti3] ;
+
                                         auto iter = ids.find( output_task ) ;
                                         if ( iter != ids.end() )
                                         {
@@ -323,8 +349,10 @@ namespace motor
                 {
                     for( auto const & tiEr : res.tiers )
                     {
-                        for( auto * t : tiEr.tasks )
+                        for( size_t i=0; i<tiEr.tasks.size(); ++i )
+                        //for( auto * t : tiEr.tasks )
                         {
+                            auto * t = tiEr.tasks[i] ;
                             f( t, t->_outs ) ;
                         }
                     }
@@ -338,7 +366,8 @@ namespace motor
             {
                 tasks.reserve( tasks.capacity() + _outs.size() ) ;
 
-                for ( auto & t : _outs ) tasks.emplace_back( motor::memory::copy_ptr( t ) ) ;
+                //for ( auto & t : _outs ) tasks.emplace_back( motor::memory::copy_ptr( t ) ) ;
+                for ( size_t i=0; i<_outs.size(); ++i ) tasks.emplace_back( motor::memory::copy_ptr( _outs[i] ) ) ;
             }
 
             bool_t will_execute( void_t ) noexcept
@@ -368,11 +397,11 @@ namespace motor
                 return this_t::dec_incoming() ;
             }
 
-            void_t move_out_all( motor::vector< this_mtr_t > & tasks ) noexcept
+            void_t move_out_all( this_t::tasks_t & tasks ) noexcept
             {
                 tasks.reserve( tasks.capacity() + _ins.size() + _outs.size() )  ;
-                for ( auto & t : _ins ) tasks.emplace_back( t ) ;
-                for ( auto & t : _outs ) tasks.emplace_back( t ) ;
+                for ( size_t i=0; i<_ins.size(); ++i ) tasks.push_back( _ins[i] ) ;
+                for ( size_t i=0; i<_outs.size(); ++i ) tasks.push_back( _outs[i] ) ;
                 _incomings = 0 ;
                 _outs.clear() ;
                 _ins.clear() ;
