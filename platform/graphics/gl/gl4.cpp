@@ -693,6 +693,22 @@ struct gl4_backend::pimpl
         return oid ;
     }
 
+    //******************************************************************************************************************************
+    void_t update_state( size_t const oid, motor::graphics::state_object_ref_t obj ) noexcept
+    {
+        assert( oid < _states.size() ) ;
+
+        if( !obj.check_and_reset_changed( _bid ) ) return ;
+
+        
+        obj.for_each( [&]( size_t const i, motor::graphics::render_state_sets_cref_t rs )
+        {
+            if( i >= _states[oid].states.size() ) return ;
+            _states[oid].states[i] = rs ;
+        } ) ;
+
+    }
+
     //****************************************************************************************
     void_t handle_render_state( motor::graphics::render_state_sets_cref_t new_states, bool_t const popped = false )
     {
@@ -4100,6 +4116,7 @@ motor::graphics::result gl4_backend::push( motor::graphics::state_object_mtr_t o
         return this_t::pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
     
+    _pimpl->update_state( oid, *obj ) ;
     _pimpl->handle_render_state( oid, sid ) ;
 
     return motor::graphics::result::ok ;

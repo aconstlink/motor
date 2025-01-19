@@ -1310,6 +1310,22 @@ public: // functions
     }
 
     //******************************************************************************************************************************
+    void_t update_state( size_t const oid, motor::graphics::state_object_ref_t obj ) noexcept
+    {
+        assert( oid < state_sets.size() ) ;
+
+        if( !obj.check_and_reset_changed( _bid ) ) return ;
+
+        
+        obj.for_each( [&]( size_t const i, motor::graphics::render_state_sets_cref_t rs )
+        {
+            if( i >= state_sets[oid].states.size() ) return ;
+            state_sets[oid].states[i] = rs ;
+        } ) ;
+
+    }
+
+    //******************************************************************************************************************************
     void_t release_state( size_t const oid ) noexcept 
     {
     }
@@ -4661,6 +4677,7 @@ motor::graphics::result d3d11_backend::push( motor::graphics::state_object_mtr_t
         return this_t::pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
     }
 
+    _pimpl->update_state( oid, *obj ) ;
     _pimpl->handle_render_state( oid, sid ) ;
 
     return motor::graphics::result::ok ;

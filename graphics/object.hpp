@@ -23,6 +23,7 @@ namespace motor
             {
                 size_t bid ;
                 size_t oid ;
+                bool_t changed ;
             } id_t ;
 
             mutable motor::concurrent::mrsw_t _mutex ;
@@ -67,7 +68,7 @@ namespace motor
                 // ... or create new
                 {
                     motor::concurrent::mrsw_t::writer_lock_t lk( _mutex ) ;
-                    _ids.emplace_back( id_t({bid, oid}) ) ;
+                    _ids.emplace_back( id_t({bid, oid, false}) ) ;
                 }
 
                 return oid ;
@@ -97,6 +98,55 @@ namespace motor
                 if( iter == _ids.end() ) return ;
 
                 _ids.erase( iter ) ;
+            }
+
+        public:
+
+            void_t set_changed( void_t ) noexcept
+            {
+                motor::concurrent::mrsw_t::writer_lock_t lk( _mutex ) ;
+                for( auto & id : _ids )
+                {
+                    id.changed = true ;
+                }
+            }
+
+            bool_t has_changed( size_t const bid ) const noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( _mutex ) ;
+                for ( size_t i = 0; i < _ids.size(); ++i )
+                {
+                    if( _ids[i].bid == bid ) return _ids[i].changed ;
+                }
+                return false ;
+            }
+
+            void_t reset_changed( size_t const bid ) noexcept
+            {
+                motor::concurrent::mrsw_t::writer_lock_t lk( _mutex ) ;
+                for( size_t i=0; i<_ids.size(); ++i )
+                {
+                    if( _ids[i].bid == bid ) 
+                    {
+                        _ids[i].changed = false ;
+                        break ;
+                    }
+                }
+            }
+
+            bool_t check_and_reset_changed( size_t const bid ) noexcept
+            {
+                motor::concurrent::mrsw_t::writer_lock_t lk( _mutex ) ;
+                for ( size_t i = 0; i < _ids.size(); ++i )
+                {
+                    if ( _ids[ i ].bid == bid )
+                    {
+                        bool_t const ret = _ids[i].changed ;
+                        _ids[ i ].changed = false ;
+                        return ret ;
+                    }
+                }
+                return false ;
             }
         };
     }
