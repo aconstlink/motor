@@ -16,6 +16,10 @@ namespace motor
         {
             motor_this_typedefs( timeline ) ;
 
+
+            // temporary buffer for producing the time string
+            char _time_string_buffer[2048] ;
+
         private:
 
             // unit: milli_per_pixel
@@ -85,6 +89,11 @@ namespace motor
 
             motor::string_t make_time_string( size_t const milli ) const noexcept ;
             motor::string_t make_time_string2( size_t const milli ) const noexcept ;
+
+        private:
+
+            char const * const make_time_string( size_t const milli ) noexcept ;
+            char const * const make_time_string2( size_t const milli ) noexcept ;
 
 
         } ;

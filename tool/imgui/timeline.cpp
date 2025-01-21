@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <cstdio>
 
 using namespace motor::tool ;
 
@@ -178,7 +179,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
                 #if 1
                 ImGui::SetCursorScreenPos( p0 + ImVec2(2.0f, height * 0.25f) + ImVec2(0.0f, ((the_big+i)%2)*ImGui::GetTextLineHeight()*0.5) ) ;
                 ImGui::SetWindowFontScale( 1.0f ) ;
-                ImGui::Text( this_t::make_time_string2( cur_milli ).c_str() ) ;
+                ImGui::Text( this_t::make_time_string2( cur_milli ) ) ;
                 ImGui::SetWindowFontScale( 1.0f ) ;
                 ImGui::SameLine() ;
                 #endif
@@ -284,8 +285,8 @@ void_t timeline::end( void_t ) noexcept
     
     // play
     {
-        motor::string_t const s = this_t::make_time_string( _play ) ;
-        ImGui::TextColored( ImVec4(0.0f, 1.0f, 0.0f, 1.0f), s.c_str() ) ;
+        auto s = this_t::make_time_string( _play ) ;
+        ImGui::TextColored( ImVec4(0.0f, 1.0f, 0.0f, 1.0f), s ) ;
     }
 
     ImGui::SameLine() ;
@@ -294,8 +295,8 @@ void_t timeline::end( void_t ) noexcept
     {
         if( _hover != size_t( -1 ) )
         {
-            motor::string_t const s = this_t::make_time_string( _hover ) ;
-            ImGui::TextColored( ImVec4(1.0f, 1.0f, 0.0f, 1.0f), s.c_str() ) ;
+            auto s = this_t::make_time_string( _hover ) ;
+            ImGui::TextColored( ImVec4(1.0f, 1.0f, 0.0f, 1.0f), s ) ;
         }
         else
         {
@@ -308,8 +309,8 @@ void_t timeline::end( void_t ) noexcept
 
     // max milli
     {
-        motor::string_t const s = this_t::make_time_string( _max_milli ) ;
-        ImGui::TextColored( ImVec4(1.0f, 0.0f, 0.0f, 1.0f), s.c_str() ) ;
+        auto s = this_t::make_time_string( _max_milli ) ;
+        ImGui::TextColored( ImVec4(1.0f, 0.0f, 0.0f, 1.0f), s ) ;
     }
     
     ImGui::SameLine() ;
@@ -386,4 +387,27 @@ motor::string_t timeline::make_time_string2( size_t const milli ) const noexcept
     }
 
     return s ;
+}
+
+//***************************************************************
+char const * const timeline::make_time_string( size_t const milli ) noexcept 
+{
+    uint_t const min = milli / 60000 ;
+    uint_t const sec = (milli / 1000) % 60 ;
+    uint_t const mil = milli % 1000 ;
+
+    std::snprintf( _time_string_buffer, sizeof( _time_string_buffer ), "%02d:%02d:%03d", min, sec, mil ) ;
+
+    return _time_string_buffer ;
+}
+
+//***************************************************************
+char const * const timeline::make_time_string2( size_t const milli ) noexcept 
+{
+    uint_t const min = milli / 60000 ;
+    uint_t const sec = ( milli / 1000 ) % 60 ;
+
+    std::snprintf( _time_string_buffer, sizeof( _time_string_buffer ), "%02d:%02d", min, sec ) ;
+
+    return _time_string_buffer ;
 }
