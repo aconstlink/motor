@@ -181,6 +181,8 @@ namespace motor
 
                     auto thd = std::thread( [=]( void_t )
                     {
+                        tasks_t tmp_tasks ;
+
                         while( _sd->threads_max != 0 )
                         {
                             if( !_sd->wait_for_thread_wakeup() ) break ;
@@ -204,11 +206,12 @@ namespace motor
                                 if( motor::concurrent::task::scheduler_accessor::will_execute( task ) ) 
                                 {
                                     motor::concurrent::task::scheduler_accessor::execute( task ) ;
+                                    motor::concurrent::task::scheduler_accessor::schedule( task, tmp_tasks ) ;
 
-                                    tasks_t tasks ;
-                                    motor::concurrent::task::scheduler_accessor::schedule( task, tasks ) ;
-
-                                    for( auto & t : tasks ) this->schedule( motor::move(t)  ) ;
+                                    for( auto & t : tmp_tasks ) this->schedule( motor::move(t)  ) ;
+                                    
+                                    //@todo this might be unnecessary because tasks are moved out
+                                    tmp_tasks.clear() ;
                                 }
 
                                 motor::memory::release_ptr( task ) ;
