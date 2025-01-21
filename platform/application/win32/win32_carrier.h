@@ -71,7 +71,7 @@ namespace motor
                     HWND hwnd ;
                     d3d11_pimpl * ptr ;
                     size_t micro_rnd ;
-                    size_t frame_miss ;
+                    uint_t frame_miss ;
                 };
                 motor_typedef( d3d11_window_data ) ;
 
