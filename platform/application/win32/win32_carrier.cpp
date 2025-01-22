@@ -296,7 +296,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             char buffer[100] ;
 
-                            std::snprintf( buffer, 100, "[%3d ms; %3d fps ; %3d miss]", milli, fps, d.frame_miss ) ;
+                            std::snprintf( buffer, 100, "%s [%3d ms; %3d fps ; %3d miss]", wd.window_text.c_str(), milli, fps, d.frame_miss ) ;
                             SetWindowText( wd.hwnd, buffer ) ;
                         }
 

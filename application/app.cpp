@@ -424,6 +424,7 @@ bool_t app::carrier_update( void_t ) noexcept
         }
     }
 
+    if( _closed )
     {
         for ( auto iter = _creation_queue.begin(); iter != _creation_queue.end(); )
         {
