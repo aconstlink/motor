@@ -1037,6 +1037,12 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
         d.sv.vsync_msg_changed = true ;
         d.sv.vsync_msg = states.vsync_msg ;
     }
+
+    if ( states.close_changed )
+    {
+        CloseWindow( d.hwnd ) ;
+        DestroyWindow( d.hwnd ) ;
+    }
 }
 
 //*******************************************************************************************
