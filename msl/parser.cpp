@@ -31,7 +31,10 @@ motor::msl::post_parse::document_t parser::process( motor::string_rref_t file ) 
     
     auto statements = this_t::replace_open_close( this_t::scan( std::move( file ) ) ) ;
     
+    // @note repackage need to be here due to correctly repackage make_array  
     statements = this_t::repackage( std::move( statements ) ) ;
+    // @note insert_whitespaces need to be here because it need to exclude default values.
+    // which need the statements to be repackaged.
     statements = this_t::insert_whitesapces( std::move( statements ) ) ;
     statements = this_t::replace_numbers( std::move( statements ) ) ;
     statements = this_t::replace_operators( std::move( statements ) ) ;
@@ -741,9 +744,10 @@ parser::statements_t parser::replace_operators( statements_rref_t ss ) const
     return std::move( ss ) ;
 }
 
-
+//*******************************************************************************
 parser::statements_t parser::replace_buildins( statements_rref_t ss ) const 
 {
+    // buildinss
     for( size_t i=0; i<size_t(buildin_type::num_build_ins); ++i )
     {
         auto const bi = motor::msl::get_build_in( buildin_type(i) ) ;
@@ -954,31 +958,33 @@ parser::statements_t parser::repackage( statements_rref_t ss ) const noexcept
         }
     }
 
-    // 2. repackage array construction
+    // 2. array construction
+    // make_array need to be repackaged in its own way. So it
+    // need to stay here for now.
     {
-        for( auto iter = ss.begin(); iter != ss.end(); ++iter )
+        for ( auto iter = ss.begin(); iter != ss.end(); ++iter )
         {
             // at the moment, only = {...} arrays are supported.
             // arrays like {...}[num] is not supported
-            if( (*iter).back() != '=' || *(iter+1) != "{" ) continue ;            
-            
+            if ( ( *iter ).back() != '=' || *( iter + 1 ) != "{" ) continue ;
+
             {
-                auto const tokens = this_t::tokenize( (*iter).substr( 0, iter->size() - 2 ) ) ;
-                *iter = ":make_array: ( " ;
-                *iter += tokens[0] + " , " ;
-                *iter += tokens[1] + " , " ;
+                auto const tokens = this_t::tokenize( ( *iter ).substr( 0, iter->size() - 2 ) ) ;
+                *iter = "__make_array__ ( " ;
+                *iter += tokens[ 0 ] + " , " ;
+                *iter += tokens[ 1 ] + " , " ;
             }
-            
+
             auto iter0 = ss.erase( iter + 1 ) ; // first argument
             auto iter1 = iter ; // running iter
-            while( *(++iter1) != "}" )
+            while ( *( ++iter1 ) != "}" )
             {
-                if( (*iter1).size() >= 2 )
+                if ( ( *iter1 ).size() >= 2 )
                 {
-                    size_t count = 0 ; 
-                    count += (*iter1)[0] == ',' ? 1 : 0 ;
-                    count += (*iter1)[1] == ' ' ? 1 : 0 ;
-                    if( count != 0 ) *iter1 = (*iter1).substr( count, (*iter1).size() - count ) ;
+                    size_t count = 0 ;
+                    count += ( *iter1 )[ 0 ] == ',' ? 1 : 0 ;
+                    count += ( *iter1 )[ 1 ] == ' ' ? 1 : 0 ;
+                    if ( count != 0 ) *iter1 = ( *iter1 ).substr( count, ( *iter1 ).size() - count ) ;
                 }
             }
 
@@ -986,7 +992,7 @@ parser::statements_t parser::repackage( statements_rref_t ss ) const noexcept
             {
                 size_t const num_args = iter1 - iter0 ;
                 *iter += motor::to_string( num_args ) + " , " ;
-                for( auto i = iter0; i<iter1; ++i )
+                for ( auto i = iter0; i < iter1; ++i )
                 {
                     *iter += *i + " , " ;
                 }
@@ -1003,18 +1009,20 @@ parser::statements_t parser::repackage( statements_rref_t ss ) const noexcept
     {
         for( auto iter = ss.begin(); iter != ss.end(); ++iter )
         {
-            if( *iter == ";" )
+            if( (*iter == ";") )
             {
                 iter = --ss.erase( iter ) ;
                 *iter += " ;" ;
 
-                while( *( iter - 1 ) != "{" &&
+                if( (*iter)[0] == '}' ) continue ;
+
+                while( iter != ss.begin() && *( iter - 1 ) != "{" &&
                     *( iter - 1 ) != "}" &&
                     ( iter - 1 )->find( ';' ) == std::string::npos &&
                     ( iter - 1 )->find( "open " ) == std::string::npos )
                 {
                     *( iter - 1 ) += " " + *iter ;
-                    iter = ss.erase( iter ) ;
+                    iter = --ss.erase( iter ) ;
                 }
             }
         }
@@ -1232,9 +1240,18 @@ motor::string_t parser::insert_spaces( motor::string_rref_t s, bool_t const test
 
             for( size_t o=0; o<num_spec;++o )
             {
+                // behind
+                if( cur == specials[o] && nxt != ' ' )
+                {
+                    s = s.insert( ++i, 1, ' ' ) ; 
+                    break ;
+                }
+
+                // before
                 if( nxt != specials[o] ) continue ;
                 
-                s = s.insert( i+1, 1, ' ' ) ; i+=2 ;
+                s = s.insert( ++i, 1, ' ' ) ;
+
                 break ;
             }
         }

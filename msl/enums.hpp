@@ -564,7 +564,7 @@ namespace motor
             iqnoise,
             fbm_1d,
             ////////////////////////////////////////////////////////////////////
-
+            make_array, // pseudo. Can not be used in the shader. It is done by the parser
             num_build_ins
         };
 
@@ -659,7 +659,8 @@ namespace motor
             { buildin_type::snoise_2d, "snoise_2d", ":snoise_2:" },
             { buildin_type::snoise_3d, "snoise_3d", ":snoise_3:" },
             { buildin_type::iqnoise, "iqnoise", ":iqnoise:" },
-            { buildin_type::fbm_1d, "fbm_1d", ":fbm_1:" }
+            { buildin_type::fbm_1d, "fbm_1d", ":fbm_1:" },
+            { buildin_type::make_array, "__make_array__", ":make_array:" }
         } ;
 
         static build_in get_build_in( buildin_type t ) noexcept
