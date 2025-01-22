@@ -39,6 +39,7 @@ namespace motor
             };
             motor_typedef( texture_data ) ;
             motor::vector< texture_data > _textures ;
+            mutable motor::concurrent::mrsw_t _tex_mtx ;
 
             struct array_data
             {
@@ -47,6 +48,7 @@ namespace motor
             };
             motor_typedef( array_data ) ;
             motor::vector< array_data > _arrays ;
+            mutable motor::concurrent::mrsw_t _avar_mtx ;
 
             struct streamout_data
             {
@@ -122,15 +124,13 @@ namespace motor
             }
 
             //***************************************************************************************
-            motor::graphics::ivariable_ptr_t find_data_variable( char const * const name,
+            motor::graphics::ivariable_ptr_t find_data_variable_us( char const * const name,
                 motor::graphics::type const t, motor::graphics::type_struct const ts ) noexcept
             {
-                motor::concurrent::mrsw_t::reader_lock_t lk( _data_mtx ) ;
-
                 size_t i = size_t( -1 ) ;
                 while ( ++i < _variables.size() && _variables[ i ].name != name ) ;
                 if ( i == _variables.size() ) return nullptr ;
-                
+
                 {
                     auto & d = _variables[ i ] ;
 
@@ -143,6 +143,14 @@ namespace motor
                     }
                     return d.var ;
                 }
+            }
+
+            //***************************************************************************************
+            motor::graphics::ivariable_ptr_t find_data_variable( char const * const name,
+                motor::graphics::type const t, motor::graphics::type_struct const ts ) noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( _data_mtx ) ;
+                return this_t::find_data_variable_us( name, t, ts ) ;
             }
 
             //***************************************************************************************
@@ -202,132 +210,183 @@ namespace motor
             motor::graphics::ivariable_ptr_t data_variable( motor::string_cref_t name,
                 motor::graphics::type const t, motor::graphics::type_struct const ts ) noexcept
             {
+                // quick check with reader locking
                 motor::graphics::ivariable_ptr_t var = this_t::find_data_variable( name, t, ts ) ;
                 if( var != nullptr ) return var ;
 
-                // before inserting, check if name and type match
                 {
                     motor::concurrent::mrsw_t::writer_lock_t lk( _data_mtx ) ;
 
+                    // second check with writer locking
+                    var = this_t::find_data_variable_us( name.c_str(), t, ts ) ;
+                    if( var != nullptr ) return var ;
+                    
+                    switch ( t )
                     {
-                        switch( t )
-                        {
-                        case motor::graphics::type::tchar: var = this_t::from_type_struct<char_t>( name, ts ) ; break ;
-                        case motor::graphics::type::tuchar: var = this_t::from_type_struct<uchar_t>( name, ts ) ; break ; 
-                        case motor::graphics::type::tshort: var = this_t::from_type_struct<short_t>( name, ts ) ; break ;
-                        case motor::graphics::type::tushort: var = this_t::from_type_struct<ushort_t>( name, ts ) ; break ;
-                        case motor::graphics::type::tint: var = this_t::from_type_struct<int_t>( name, ts ) ; break ;
-                        case motor::graphics::type::tuint: var = this_t::from_type_struct<uint_t>( name, ts ) ; break ;
-                        case motor::graphics::type::tfloat: var = this_t::from_type_struct<float_t>( name, ts ) ; break ;
-                        case motor::graphics::type::tdouble: var = this_t::from_type_struct<double_t>( name, ts ) ; break ;
-                        case motor::graphics::type::tbool: var = this_t::from_type_struct<bool_t>( name, ts ) ; break ;
-                        default: break ;
-                        }
-
-                        if( var == nullptr ) 
-                        {
-                            char buffer[ 1024 ] ;
-                            std::snprintf( buffer, 1024, "[variable_set] : type mismatch for %s", name.c_str() ) ;
-                            motor::log::global_t::error( buffer ) ;
-                            return var ;
-                        }
-
-                        this_t::data_t d ;
-                        d.name = name ;
-                        d.type = t ;
-                        d.type_struct = ts ;
-                        d.var = var ;
-
-                        _variables.emplace_back( d ) ;
+                    case motor::graphics::type::tchar: var = this_t::from_type_struct<char_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tuchar: var = this_t::from_type_struct<uchar_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tshort: var = this_t::from_type_struct<short_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tushort: var = this_t::from_type_struct<ushort_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tint: var = this_t::from_type_struct<int_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tuint: var = this_t::from_type_struct<uint_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tfloat: var = this_t::from_type_struct<float_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tdouble: var = this_t::from_type_struct<double_t>( name, ts ) ; break ;
+                    case motor::graphics::type::tbool: var = this_t::from_type_struct<bool_t>( name, ts ) ; break ;
+                    default: break ;
                     }
+
+                    if ( var == nullptr )
+                    {
+                        char buffer[ 1024 ] ;
+                        std::snprintf( buffer, 1024, "[variable_set] : type mismatch for %s", name.c_str() ) ;
+                        motor::log::global_t::error( buffer ) ;
+                        return var ;
+                    }
+
+                    this_t::data_t d ;
+                    d.name = name ;
+                    d.type = t ;
+                    d.type_struct = ts ;
+                    d.var = var ;
+
+                    _variables.emplace_back( d ) ;
                 }
 
                 return var ;
             }
 
-        public:
+        private: // texture variable
 
-            motor::graphics::texture_variable_t * texture_variable( motor::string_in_t name ) noexcept
+            //***************************************************************************************
+            motor::graphics::texture_variable_t * find_texture_variable_us( char const * const name ) const noexcept
             {
-                motor::graphics::ivariable_ptr_t var = motor::memory::global_t::alloc(
-                    motor::graphics::texture_variable_t(), "texture variable" ) ;
-
-                // before inserting, check if name and type match
-                {
-                    std::lock_guard< std::mutex > lk( _mtx ) ;
-
-                    auto iter = std::find_if( _textures.begin(), _textures.end(),
-                        [&] ( this_t::texture_data const& d )
-                    {
-                        return d.name == name ;
-                    } ) ;
-
-                    if( iter != _textures.end() )
-                    {
-                        motor::memory::global_t::dealloc( var ) ;
-
-                        return static_cast< motor::graphics::texture_variable_t* >( iter->var ) ;
-                    }
-
-                    this_t::texture_data_t d ;
-                    d.name = name ;
-                    d.var = var ;
-
-                    _textures.emplace_back( d ) ;
-                }
-
-                return static_cast< motor::graphics::texture_variable_t* >( var ) ;
+                size_t i = size_t( -1 ) ;
+                while ( ++i < _textures.size() && _textures[ i ].name != name ) ;
+                return ( i == _textures.size() ) ? nullptr :
+                    static_cast<motor::graphics::texture_variable_t *>( _textures[ i ].var ) ;
             }
 
+            //***************************************************************************************
+            motor::graphics::texture_variable_t * find_texture_variable( char const * const name ) const noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( _tex_mtx ) ;
+                return this_t::find_texture_variable_us( name ) ;
+            }
+
+        public: // texture variable
+
+            //***************************************************************************************
             bool_t has_texture_variable( motor::string_in_t name ) const noexcept
             {
-                for ( auto const & d : _textures )
-                {
-                    if ( d.name == name ) return true ;
-                }
-                return false ;
+                return this_t::find_texture_variable( name.c_str() ) != nullptr ;
             }
 
-            motor::graphics::array_variable_t * array_variable( motor::string_in_t name ) noexcept
+            //***************************************************************************************
+            motor::graphics::texture_variable_t * texture_variable( char const * const name ) noexcept
             {
-                motor::graphics::ivariable_ptr_t var = motor::memory::global_t::alloc(
-                    motor::graphics::array_variable_t(), "array variable" ) ;
-
-                // before inserting, check if name and type match
+                // quick search first with reader lock
                 {
-                    std::lock_guard< std::mutex > lk( _mtx ) ;
+                    auto * var = this_t::find_texture_variable( name ) ;
+                    if ( var != nullptr ) return var ;
+                }
+                
+                // second search and creation with writer lock
+                {
+                    motor::concurrent::mrsw_t::writer_lock_t lk( _tex_mtx ) ;
 
-                    auto iter = std::find_if( _arrays.begin(), _arrays.end(),
-                        [&] ( this_t::array_data const& d )
+                    auto * var = this_t::find_texture_variable_us( name ) ;
+                    if ( var != nullptr ) return var ;
+
                     {
-                        return d.name == name ;
-                    } ) ;
+                        var = motor::memory::global_t::alloc(
+                            motor::graphics::texture_variable_t(), "texture variable" ) ;
 
-                    if( iter != _arrays.end() )
-                    {
-                        motor::memory::global_t::dealloc( var ) ;
+                        this_t::texture_data_t d ;
+                        d.name = name ;
+                        d.var = var ;
 
-                        return static_cast< motor::graphics::array_variable_t* >( iter->var ) ;
+                        _textures.emplace_back( d ) ;
                     }
+
+                    return static_cast<motor::graphics::texture_variable_t *>( var ) ;
+                }
+            }
+
+            //***************************************************************************************
+            motor::graphics::texture_variable_t * texture_variable( motor::string_in_t name ) noexcept
+            {
+                return this_t::texture_variable( name.c_str() ) ;
+            } 
+
+
+        private: // array variable
+
+            //***************************************************************************************
+            motor::graphics::array_variable_t * find_array_variable_us( char const * const name ) const noexcept
+            {
+                size_t i = size_t( -1 ) ;
+                while ( ++i < _arrays.size() && _arrays[ i ].name != name ) ;
+                return ( i == _arrays.size() ) ? nullptr :
+                    static_cast<motor::graphics::array_variable_t *>( _arrays[ i ].var ) ;
+            }
+
+            //***************************************************************************************
+            motor::graphics::array_variable_t * find_array_variable( char const * const name ) const noexcept
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( _avar_mtx ) ;
+                return this_t::find_array_variable_us( name ) ;
+            }
+
+            //***************************************************************************************
+            bool_t has_array_variable( motor::string_in_t name ) const noexcept
+            {
+                return this_t::find_array_variable( name.c_str() ) != nullptr ;
+            }
+
+            //***************************************************************************************
+            bool_t has_array_variable( char const * const name ) const noexcept
+            {
+                return this_t::find_array_variable( name ) != nullptr ;
+            }
+
+        public: // array variable
+
+            //***************************************************************************************
+            motor::graphics::array_variable_t * array_variable( char const * const name ) noexcept
+            {
+                // quick search first with reader lock
+                {
+                    auto * var = this_t::find_array_variable( name ) ;
+                    if ( var != nullptr ) return var ;
+                }
+
+                // second search and creation with writer lock
+                {
+                    motor::concurrent::mrsw_t::writer_lock_t lk( _avar_mtx ) ;
+
+                    auto var = this_t::find_array_variable_us( name ) ;
+                    if ( var != nullptr ) return var ;
+
+                    var = motor::memory::global_t::alloc( motor::graphics::array_variable_t(), 
+                        "array variable" ) ; ;
 
                     this_t::array_data_t d ;
                     d.name = name ;
                     d.var = var ;
 
                     _arrays.emplace_back( d ) ;
-                }
 
-                return static_cast< motor::graphics::array_variable_t* >( var ) ;
+                    return static_cast< motor::graphics::array_variable_t* >( var ) ;
+                }
             }
 
-            bool_t has_array_variable( motor::string_in_t name ) const noexcept
+            //***************************************************************************************
+            motor::graphics::array_variable_t * array_variable( motor::string_in_t name ) noexcept
             {
-                for ( auto const & d : _arrays )
-                {
-                    if ( d.name == name ) return true ;
-                }
-                return false ;
+                return this_t::array_variable( name.c_str() ) ;
             }
+
+        public: // streamout array vars
 
             // allows to connect a streamout object with a data buffer in the shader
             motor::graphics::streamout_variable_t * array_variable_streamout( 
