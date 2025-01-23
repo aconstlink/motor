@@ -27,7 +27,7 @@ namespace motor
         private:
 
             // particle array
-            motor::vector< particle_t > _particles ;
+            motor::vector_pod< particle_t > _particles ;
 
             struct emitter_data
             {
@@ -71,11 +71,16 @@ namespace motor
             motor::math::vec4f_cref_t get_extend( void_t ) const noexcept { return _extend ; }
             std::array< motor::math::vec2f_t, 4 > get_extend_rect( void_t ) const noexcept ;
             
+            size_t get_num_particles( void_t ) const noexcept 
+            {
+                return _particles.size() ;
+            }
+
         public: 
 
             void_t update( float_t const dt ) noexcept ;
 
-            typedef std::function< void_t ( motor::vector< particle_t > const &  ) > on_particles_funk_t ;
+            typedef std::function< void_t ( motor::vector_pod< particle_t > const &  ) > on_particles_funk_t ;
             void_t on_particles( on_particles_funk_t funk ) noexcept ;
         };
         motor_typedef( particle_system ) ;

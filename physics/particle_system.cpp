@@ -204,8 +204,9 @@ void_t particle_system::update( float_t const dt ) noexcept
         motor::math::vec2f_t min_xy( std::numeric_limits<float_t>::max(), std::numeric_limits<float_t>::max() ) ;
         motor::math::vec2f_t max_xy( std::numeric_limits<float_t>::min(), std::numeric_limits<float_t>::min() ) ;
 
-        for( auto & p : _particles )
+        for( size_t i=0; i<_particles.size(); ++i )
         {
+            auto & p = _particles[i] ;
             min_xy = min_xy.greater_than( p.pos ).select( p.pos, min_xy ) ;
             max_xy = max_xy.less_than( p.pos ).select( p.pos, max_xy ) ;
         }

@@ -5,7 +5,7 @@
 
 #include <motor/math/interpolation/interpolate.hpp>
 #include <motor/math/matrix/matrix2.hpp>
-#include <motor/std/vector>
+#include <motor/std/vector_pod>
 
 #include <random>
 #include <functional>
@@ -233,7 +233,7 @@ namespace motor
                 return tq >= eq ? this_t::get_amount() : 0 ;
             }
 
-            virtual void_t emit( size_t const, size_t const, motor::vector< particle_t > & ) noexcept = 0 ;
+            virtual void_t emit( size_t const, size_t const, motor::vector_pod< particle_t > & ) noexcept = 0 ;
         };
         motor_typedef( emitter ) ;
 
@@ -335,7 +335,7 @@ namespace motor
 
         public:
 
-            virtual void_t emit( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) noexcept 
+            virtual void_t emit( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) noexcept 
             {
                 float_t const angle = this_t::get_angle_funk()() ;
 
@@ -459,7 +459,7 @@ namespace motor
 
         public:
 
-            virtual void_t emit( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) noexcept 
+            virtual void_t emit( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) noexcept 
             {
                 float_t const parallel = this_t::get_parallel_funk()() ;
                 float_t const step = (2.0f * parallel) / float_t(n-1) ;

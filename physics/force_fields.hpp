@@ -4,7 +4,7 @@
 #include "particle.h"
 
 #include <motor/concurrent/parallel_for.hpp>
-#include <motor/std/vector>
+#include <motor/std/vector_pod>
 #include <motor/math/utility/constants.hpp>
 
 namespace motor
@@ -31,7 +31,7 @@ namespace motor
 
         public:
 
-            virtual void_t apply( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) const noexcept = 0 ;
+            virtual void_t apply( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) const noexcept = 0 ;
         } ;
         motor_typedef( force_field ) ;
 
@@ -52,7 +52,7 @@ namespace motor
 
         public:
 
-            virtual void_t apply( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) const noexcept 
+            virtual void_t apply( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) const noexcept 
             {
                 #if !MOTOR_PHYSICS_USE_PARALLEL_FOR
                 for( size_t i=beg; i<beg+n; ++i )
@@ -97,7 +97,7 @@ namespace motor
 
         public:
 
-            virtual void_t apply( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) const noexcept 
+            virtual void_t apply( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) const noexcept 
             {
                 #if !MOTOR_PHYSICS_USE_PARALLEL_FOR
                 for( size_t i=beg; i<beg+n; ++i )
@@ -132,7 +132,7 @@ namespace motor
         
         public:
 
-            virtual void_t apply( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) const noexcept 
+            virtual void_t apply( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) const noexcept 
             {
                 #if !MOTOR_PHYSICS_USE_PARALLEL_FOR
                 for( size_t i=beg; i<beg+n; ++i )
@@ -172,7 +172,7 @@ namespace motor
 
         public:
 
-            virtual void_t apply( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) const noexcept 
+            virtual void_t apply( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) const noexcept 
             {
                 #if !MOTOR_PHYSICS_USE_PARALLEL_FOR
                 for( size_t i=beg; i<beg+n; ++i )
@@ -249,7 +249,7 @@ namespace motor
 
         public:
 
-            virtual void_t apply( size_t const beg, size_t const n, motor::vector< particle_t > & particles ) const noexcept 
+            virtual void_t apply( size_t const beg, size_t const n, motor::vector_pod< particle_t > & particles ) const noexcept 
             {
                 #if !MOTOR_PHYSICS_USE_PARALLEL_FOR
                 for( size_t i=beg; i<beg+n; ++i )
