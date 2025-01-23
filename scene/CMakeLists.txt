@@ -73,11 +73,12 @@ target_link_libraries( ${cur_lib_name}
     PUBLIC motor::core
     )
 
-option( MOTOR_PROFILING "motor profile timing" False )
+# copy and paste mistake here?
+#option( MOTOR_PROFILING "motor profile timing" False )
 
-if( MOTOR_PROFILING )
-target_compile_definitions( ${cur_lib_name} PUBLIC MOTOR_PROFILING )
-endif()
+#if( MOTOR_PROFILING )
+#target_compile_definitions( ${cur_lib_name} PUBLIC MOTOR_PROFILING )
+#endif()
 
 ###########################################################
 # SECTION: Build Tree

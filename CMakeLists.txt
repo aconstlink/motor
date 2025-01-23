@@ -151,8 +151,7 @@ list( APPEND subdirs
     "social"
     "scene"
     "wire"
-    #"physics"
-    #"profile"
+    "physics"
     #${subdirs_header_only}
     )
 
