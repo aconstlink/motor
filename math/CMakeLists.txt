@@ -68,7 +68,7 @@ set( non_arch_sources
     utility/index_1d_to_2d.hpp
     utility/index_2d_to_1d.hpp
     utility/index_3d_to_1d.hpp
-
+    utility/time.hpp
     
     utility/3d/ortho_basis.hpp
     utility/3d/transformation.hpp

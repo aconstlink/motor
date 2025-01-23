@@ -344,52 +344,6 @@ size_t timeline::pixel_to_milli( size_t const pixel ) const noexcept
 }
 
 //***************************************************************
-motor::string_t timeline::make_time_string( size_t const milli ) const noexcept 
-{
-    motor::string_t s ;
-
-    {
-        std::stringstream ss;
-        ss << std::setw(2) << std::setfill('0') << milli / 60000 ;
-        s += ss.str();
-    }
-    s += ":" ;
-    {
-        std::stringstream ss;
-        ss << std::setw(2) << std::setfill('0') << (milli / 1000) % 60 ;
-        s += ss.str();
-    }
-    s += ":" ;
-    {
-        std::stringstream ss;
-        ss << std::setw(3) << std::setfill('0') << milli % 1000 ;
-        s += ss.str();
-    }
-
-    return s ;
-}
-
-//***************************************************************
-motor::string_t timeline::make_time_string2( size_t const milli ) const noexcept 
-{
-    motor::string_t s ;
-
-    {
-        std::stringstream ss;
-        ss << std::setw(2) << std::setfill('0') << milli / 60000 ;
-        s += ss.str();
-    }
-    s += ":" ;
-    {
-        std::stringstream ss;
-        ss << std::setw(2) << std::setfill('0') << (milli / 1000) % 60 ;
-        s += ss.str();
-    }
-
-    return s ;
-}
-
-//***************************************************************
 char const * const timeline::make_time_string( size_t const milli ) noexcept 
 {
     uint_t const min = milli / 60000 ;
