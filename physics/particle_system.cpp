@@ -11,6 +11,15 @@ particle_system::particle_system( this_rref_t rhv ) noexcept
     _emitter = std::move( rhv._emitter ) ;
 }
 
+particle_system::~particle_system( void_t ) noexcept 
+{
+    for( size_t i=0; i<_emitter.size(); ++i ) 
+        motor::release( motor::move( _emitter[i].emt ) ) ;
+
+    for ( size_t i = 0; i < _forces.size(); ++i )
+        motor::release( motor::move( _forces[ i ].ff ) ) ;
+}
+
             
 particle_system::this_ref_t particle_system::operator = ( this_rref_t rhv ) noexcept 
 {

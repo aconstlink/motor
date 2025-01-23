@@ -19,6 +19,7 @@ namespace motor
             particle_system( void_t ) noexcept ;
             particle_system( this_cref_t rhv ) noexcept = delete ;
             particle_system( this_rref_t rhv ) noexcept ;
+            ~particle_system( void_t ) noexcept ;
 
             this_ref_t operator = ( this_cref_t ) = delete ;
             this_ref_t operator = ( this_rref_t rhv ) noexcept  ;
