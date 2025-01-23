@@ -1,5 +1,9 @@
 #pragma once
 
+#include <motor/memory/global.h>
+#include <motor/memory/allocator.hpp>
+#include <motor/std/vector_pod>
+
 #include <motor/base/types.hpp>
 #include <motor/base/macros/typedef.h>
 #include <motor/base/macros/move.h>

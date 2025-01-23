@@ -5,7 +5,6 @@
 
 #include <motor/math/interpolation/interpolate.hpp>
 #include <motor/math/matrix/matrix2.hpp>
-#include <motor/std/vector_pod>
 
 #include <random>
 #include <functional>
