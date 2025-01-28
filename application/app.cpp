@@ -328,7 +328,7 @@ bool_t app::carrier_update( void_t ) noexcept
             this->on_audio( fptr, this_t::audio_data { _first_audio, sec_dt, micro_dt, milli_dt } ) ;
         } )  ;
 
-        this_t::after_audio(0) ;
+        this_t::after_audio( exec ) ;
     }
 
     if ( this_t::before_profile( dt_micro ) )
@@ -662,8 +662,9 @@ bool_t app::before_audio( std::chrono::microseconds const & dt ) noexcept
 }
 
 //************************************************************************
-void_t app::after_audio( size_t const ) noexcept
+void_t app::after_audio( bool_t const exec ) noexcept
 {
+    if( !exec ) return ;
     _physics_residual = std::chrono::microseconds( 0 ) ;
     _first_audio = false ;
 }
