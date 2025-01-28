@@ -22,8 +22,17 @@ namespace motor
         {
             motor_this_typedefs( line_render_3d ) ;
 
-        private:
+        public: // data
 
+            struct draw_line_data
+            {
+                motor::math::vec3f_t points[ 2 ] ;
+                motor::math::vec4f_t color ;
+            };
+            motor_typedef( draw_line_data ) ;
+
+        private:
+        
             struct line
             {
                 typedef struct
@@ -118,6 +127,9 @@ namespace motor
         public: // draw functions
 
             void_t draw( motor::math::vec3f_cref_t p0, motor::math::vec3f_cref_t p1, motor::math::vec4f_cref_t color ) noexcept ;
+
+            using draw_lines_funk_t = std::function< draw_line_data_t ( size_t const ) > ;
+            void_t draw_lines( size_t const num_lines, draw_lines_funk_t ) noexcept ;
 
             #if 0 // for later
             void_t draw_cube( motor::math::vec3f_cref_t center, float_t const half, motor::math::vec4f_cref_t color ) noexcept ;
