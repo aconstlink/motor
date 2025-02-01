@@ -622,8 +622,8 @@ void_t text_render_2d::draw_text( size_t const group, size_t const font_id, size
                 auto const res2 = _ga->find_glyph( font_id, motor::font::utf32_t( '?' ), idx, gi ) ;
                 if( !res2 )
                 {
-                    motor::log::global_t::error( motor_log_fn( 
-                        "glyph atlas requires ? glyph for unknown glyphs" ) ) ;
+                    motor::log::global_t::error(  
+                        "glyph atlas requires ? glyph for unknown glyphs"  ) ;
                     continue ;
                 }
             }
@@ -633,8 +633,8 @@ void_t text_render_2d::draw_text( size_t const group, size_t const font_id, size
             auto const res2 = _ga->find_glyph( font_id, motor::font::utf32_t( '?' ), idx, gi ) ;
             if( !res2 )
             {
-                motor::log::global_t::error( motor_log_fn( 
-                    "glyph atlas requires ? glyph for unknown glyphs" ) ) ;
+                motor::log::global_t::error(  
+                    "glyph atlas requires ? glyph for unknown glyphs"  ) ;
                 continue ;
             }
 
