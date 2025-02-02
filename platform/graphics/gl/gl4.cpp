@@ -316,6 +316,13 @@ struct gl4_backend::pimpl
             size_t uniform_id ;
             GLint tex_id ;
             size_t img_id ;
+            // the hash value of the images' name
+            // so we can change the image linked
+            // at run time. 
+            size_t img_hash ;
+
+            // the user variable holding the data.
+            motor::graphics::texture_variable_t * var ;
 
             // pointing into the mem_block
             void_ptr_t mem = nullptr ;
@@ -2800,6 +2807,8 @@ struct gl4_backend::pimpl
                     link.uniform_id = id++ ;
                     link.tex_id = _images[ i ].tex_id ;
                     link.img_id = i ;
+                    link.img_hash = var->get().hash() ;
+                    link.var = var ;
                     config.var_sets_texture.emplace_back( link ) ;
                 }
             }
@@ -3305,6 +3314,28 @@ struct gl4_backend::pimpl
                         auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ link.uniform_id ] ;
 
+                        // automatic image update
+                        if( link.img_hash != link.var->get().hash() )
+                        {
+                            size_t i=size_t(-1) ;
+                            while( ++i < _images.size() && 
+                                _images[i].name != link.var->get().name() ) ;
+                            
+                            if( i != _images.size() )
+                            {
+                                link.img_hash = link.var->get().hash() ;
+                                link.img_id = i ;
+                                link.tex_id = _images[i].tex_id ;
+                            }
+                            else
+                            {
+                                motor::log::global::warning("[gl4] : image variable value not found : " +
+                                    link.var->get().name() + ". Resetting to old name." ) ;
+
+                                link.var->set( _images[link.img_id].name ) ;
+                            }
+                        }
+                        
                         uv.do_copy_funk( link.mem, &var ) ;
 
                         ++tex_unit ;

@@ -788,6 +788,11 @@ struct d3d11_backend::pimpl
             // into var_sets
             size_t var_set_idx ;
 
+            // if initially assigned, this is computed
+            // and can be used if the image changes during
+            // the course of the application.
+            size_t value_hash = 0 ;
+
             // texture and its sampler must be on the same slot
             motor::string_t name ;
             UINT slot ;
@@ -1192,7 +1197,7 @@ public: // variables
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     template< typename T >
     static size_t find_index_by_resource_name( motor::string_in_t name, motor::vector< T > const & resources ) noexcept
     {
@@ -1207,7 +1212,7 @@ public: // variables
 
 public: // functions
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     pimpl( size_t const bid, motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept : _bid( bid )
     {
         _ctx = ctx ;
@@ -1234,7 +1239,7 @@ public: // functions
         }
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     // @todo is the move required? pimpl is only used via
     // pointer movement.
     pimpl( pimpl && rhv ) noexcept
@@ -1254,7 +1259,7 @@ public: // functions
         _bid = rhv._bid ;
     }
     
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     ~pimpl( void_t ) 
     {
         for( auto & g : geo_datas ) g.invalidate() ;
@@ -1289,7 +1294,7 @@ public: // functions
         _cur_fb_active = size_t( -1 ) ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_state( size_t oid, motor::graphics::state_object_ref_t obj ) noexcept
     {
         oid = determine_oid( obj.get_oid(_bid), obj.name(), state_sets ) ;
@@ -1309,7 +1314,7 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t update_state( size_t const oid, motor::graphics::state_object_ref_t obj ) noexcept
     {
         assert( oid < state_sets.size() ) ;
@@ -1325,12 +1330,12 @@ public: // functions
 
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_state( size_t const oid ) noexcept 
     {
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t handle_render_state( this_t::render_state_sets & incoming_states, bool_t const popped )
     {
         //  viewport
@@ -1544,7 +1549,7 @@ public: // functions
         }
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     // if oid == -1, the state is popped.
     void_t handle_render_state( size_t const oid, size_t const rs_id ) noexcept
     {
@@ -1576,7 +1581,7 @@ public: // functions
         }
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_framebuffer( size_t oid, motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
         oid = determine_oid( obj.get_oid(_bid), obj.name(), framebuffers ) ;
@@ -1875,14 +1880,14 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_framebuffer( size_t const oid ) noexcept 
     {
         auto & fb = framebuffers[ oid ] ;
         fb.invalidate() ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t activate_framebuffer( size_t const oid ) noexcept
     {
         framebuffer_data_ref_t fb = framebuffer_data_ref_t( framebuffers[ oid ] ) ;
@@ -1894,7 +1899,7 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t deactivate_framebuffer( void_t )
     {
         _ctx->ctx()->OMSetRenderTargets( 0, nullptr, nullptr ) ;
@@ -1917,7 +1922,7 @@ public: // functions
         _cur_fb_active = size_t( -1 ) ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_streamout( size_t oid, motor::graphics::streamout_object_ref_t obj ) noexcept
     {
         oid = this_t::determine_oid( oid, obj.name(), _streamouts ) ;
@@ -2008,7 +2013,7 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_streamout( size_t const oid ) noexcept
     {
         auto & d = _streamouts[ oid ] ;
@@ -2018,7 +2023,7 @@ public: // functions
         d.invalidate() ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t update( size_t const oid, motor::graphics::streamout_object_ref_t obj, bool_t const is_config )
     {
         auto & d = _streamouts[oid] ;
@@ -2052,7 +2057,7 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t activate_streamout( size_t const oid ) noexcept
     {
         _cur_streamout_active = oid ;
@@ -2077,7 +2082,7 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t deactivate_streamout( void_t )
     {
         if( _cur_streamout_active == size_t(-1) ) return ;
@@ -2091,7 +2096,7 @@ public: // functions
         _cur_streamout_active = size_t( -1 ) ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_msl( size_t oid, motor::graphics::msl_object_ref_t obj_ )
     {
         // if the incoming msl shader is a library shader for example,
@@ -2294,7 +2299,7 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj )
     {
         oid = this_t::determine_oid( oid, obj.name(), geo_datas ) ;
@@ -2416,7 +2421,7 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_geometry( size_t const oid ) noexcept 
     {
         for( size_t i=0; i<renders.size(); ++i )
@@ -2426,7 +2431,7 @@ public: // functions
         o.invalidate() ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::geometry_object_mtr_t geo )
     {
         auto& config = geo_datas[ id ] ;
@@ -2530,7 +2535,7 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_shader_config( size_t oid, motor::graphics::shader_object_ref_t obj )
     {
         oid = this_t::determine_oid( oid, obj.name(), shaders ) ;
@@ -2832,7 +2837,7 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_shader_data( size_t const oid ) noexcept 
     {
         for( auto & r : renders )
@@ -2844,7 +2849,7 @@ public: // functions
         o.invalidate() ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_render_config( size_t oid, motor::graphics::render_object_ref_t obj )
     {
         oid = this_t::determine_oid( oid, obj.name(), renders ) ;
@@ -2874,14 +2879,14 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_render_data( size_t const oid ) noexcept 
     {
         auto & o = renders[ oid ] ;
         o.invalidate() ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::render_object_ref_t rc )
     {
         auto& rd = renders[ id ] ;
@@ -3239,6 +3244,7 @@ public: // functions
                     
                     this_t::render_data_t::image_variable_t iv ;
                     iv.var_set_idx = vs_id ;
+                    iv.value_hash = dv->get().hash() ;
                     iv.id = i ;
                     iv.name = t.name ;
                     iv.slot = t.slot ;
@@ -3309,7 +3315,18 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
+    bool_t update( size_t const id, motor::graphics::msl_object_ref_t obj, size_t const vs_id )
+    {
+        size_t const num_ros = _msl_datas[id].ros.size() ;
+        for( size_t i=0; i<num_ros; ++i )
+        {
+            this_t::update( _msl_datas[id].ros[i].get_oid( _bid ), _msl_datas[id].ros[i], vs_id ) ;
+        }
+        return true ;return true ;
+    }
+
+    //************************************************************************************************************
     size_t construct_image_config( size_t oid, motor::graphics::image_object_ref_t obj )
     {
         oid = this_t::determine_oid( oid, obj.name(), images ) ;
@@ -3434,14 +3451,14 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_image_data( size_t const oid ) noexcept 
     {
         auto & o = images[ oid ] ;
         o.invalidate() ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     size_t construct_array_data( size_t oid, motor::graphics::array_object_ref_t obj ) noexcept
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : construct array object" ) ;
@@ -3532,14 +3549,14 @@ public: // functions
         return oid ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t release_array_data( size_t const oid ) noexcept 
     {
         auto & o = arrays[ oid ] ;
         o.invalidate() ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::array_object_ref_t obj, bool_t const is_config )
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update array object" ) ;
@@ -3571,7 +3588,7 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::image_object_ref_t obj, bool_t const is_config ) noexcept
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update image object" ) ;
@@ -3623,7 +3640,8 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
+    // update the variable data in the api, i.e. it copies the data from engine to api memory
     bool_t update( size_t const id, motor::graphics::render_object_ref_t obj, size_t const varset_id )
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update render object" ) ;
@@ -3632,9 +3650,31 @@ public: // functions
 
         if( !rnd.valid ) return false ;
         
+        // data variables
         {
             auto update_funk = [&]( ID3D11DeviceContext * ctx_, size_t const vsid, this_t::render_data::cbuffers_t & cbuffers )
             {
+                #if 1
+                size_t idx = size_t(-1) ;
+                while( ++idx < cbuffers.size() 
+                    && cbuffers[idx].var_set_idx < vsid ) ;
+
+                if( idx == cbuffers.size() ) return ;
+                if( cbuffers[idx].var_set_idx != vsid ) return ;
+
+                auto * vs = rnd.var_sets[ vsid ] ;
+                
+                auto & cb = cbuffers[idx] ;
+                for( size_t i = 0; i < cb.data_variables.size(); ++i )
+                {
+                    auto & dv = cb.data_variables[i] ;
+
+                    if( dv.ivar == nullptr ) continue ;
+                    dv.do_copy_funk_from_origin( cb.mem ) ;
+                }
+                ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
+
+                #else
                 for ( auto & cb : cbuffers )
                 {
                     if ( cb.var_set_idx != vsid ) continue ;
@@ -3666,6 +3706,7 @@ public: // functions
 
                     ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
                 }
+                #endif
             } ;
 
             update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_vs ) ;
@@ -3673,10 +3714,55 @@ public: // functions
             update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_ps ) ;
         }
 
+        // textures
+        // all we need to do is to figure out if a texture variable has
+        // changed its name. If so, assign correct image id.
+        {
+            auto update_funk = [&] ( size_t const vsid, this_t::render_data::image_variables_t & image_variables )
+            {
+                auto * vs = rnd.var_sets[ vsid ] ;
+
+                for( size_t i=0; i<image_variables.size(); ++i ) 
+                {
+                    auto & iv = image_variables[i] ;
+                    if( iv.var_set_idx != vsid ) continue ;
+                    
+                    auto * tx_var = vs->find_texture_variable( iv.name.c_str() ) ;
+                    
+                    // if nullptr, variable does not exist anymore
+                    // what to do then?
+                    if( tx_var == nullptr ) continue ;
+
+                    if( tx_var->get().hash() == iv.value_hash ) continue ;
+                    iv.value_hash = tx_var->get().hash() ;
+
+                    size_t idx = size_t(-1) ;
+                    while( ++idx < images.size() && images[idx].name != tx_var->get().name() ) ;
+                    
+                    // image not in images
+                    // what to do then?
+                    if( idx == images.size() ) continue ;
+
+                    iv.id = idx ;
+                }
+            } ;
+
+            update_funk( varset_id, rnd.var_sets_imgs_vs ) ;
+            update_funk( varset_id, rnd.var_sets_imgs_ps ) ;
+
+            #if 0
+            size_t idx = size_t( -1 ) ;
+            while ( ++idx < cbuffers.size()
+                && cbuffers[ idx ].var_set_idx < vsid ) ;
+
+            rnd.var_sets_imgs_ps
+                #endif
+        }
+
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     bool_t render( size_t const id, size_t const geo_idx = 0, bool_t feed_from_so = false, bool_t use_streamout_count = false, size_t const varset_id = size_t( 0 ), UINT const start_element = UINT( 0 ),
         UINT const num_elements = UINT( -1 ) )
     {        
@@ -3904,7 +3990,7 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t begin_frame( void_t )
     {
         // set the viewport to the default new state, 
@@ -3937,7 +4023,7 @@ public: // functions
         }
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     void_t end_frame( void_t )
     {
         auto const ids_new = std::make_pair( size_t( 0 ), size_t( 0 ) ) ;
@@ -3950,7 +4036,7 @@ public: // functions
         this->handle_render_state( rss, true ) ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     motor::string_t remove_unwanded_characters( motor::string_cref_t code_in ) const noexcept
     {
         auto code = code_in ;
@@ -3976,7 +4062,7 @@ public: // functions
         return std::move( code ) ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     static bool_t determine_texture( ID3DBlob * blob,
         shader_data_t::image_variables_out_t img_vars, 
         shader_data_t::buffer_variables_out_t buf_vars ) noexcept
@@ -4048,7 +4134,7 @@ public: // functions
         return true ;
     }
 
-    //******************************************************************************************************************************
+    //************************************************************************************************************
     // performs reflection on the constant buffers present in
     // a shader for user variable binding
     static shader_data_t::cbuffers_t determine_cbuffer( ID3DBlob * blob ) noexcept
@@ -4166,28 +4252,28 @@ public: // functions
 //
 //************************************************************************************************
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 d3d11_backend::d3d11_backend( motor::platform::d3d11::rendering_context_ptr_t ctx ) noexcept 
 {
     _pimpl = motor::memory::global_t::alloc( this_t::pimpl( this_t::get_bid(), ctx ), "d3d11_backend::pimpl" ) ;
     _context = ctx ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 d3d11_backend::d3d11_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv ) )
 {
     _pimpl = motor::move( rhv._pimpl ) ;
     _context = motor::move( rhv._context ) ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 d3d11_backend::~d3d11_backend( void_t ) 
 {
     this_t::report_live_device_objects( D3D11_RLDO_SUMMARY ) ;
     motor::memory::global_t::dealloc( _pimpl ) ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 void_t d3d11_backend::set_window_info( window_info_cref_t wi ) noexcept 
 {
     {
@@ -4220,7 +4306,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4245,7 +4331,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::geometry_obje
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::render_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4262,7 +4348,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::render_object
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::shader_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4290,7 +4376,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::shader_object
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4317,7 +4403,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::image_object_
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::framebuffer_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4334,7 +4420,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::framebuffer_o
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::state_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4351,7 +4437,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::state_object_
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4371,7 +4457,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::array_object_
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::configure( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4392,7 +4478,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::streamout_obj
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4407,7 +4493,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::geometry_object
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::render_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4422,7 +4508,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::render_object_m
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::shader_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4437,7 +4523,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::shader_object_m
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4452,7 +4538,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::image_object_mt
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::framebuffer_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4467,7 +4553,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::framebuffer_obj
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::state_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4482,7 +4568,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::state_object_mt
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::array_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4497,7 +4583,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::array_object_mt
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )
@@ -4513,7 +4599,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::streamout_objec
 }
 
 #if 0
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_mtr_t config, motor::graphics::variable_set_mtr_t vs ) noexcept
 {
     #if 0
@@ -4534,7 +4620,7 @@ motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_m
     return motor::graphics::result::ok ;
 }
 #endif  
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {    
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
@@ -4551,7 +4637,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
@@ -4564,7 +4650,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::array_object_mtr
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
@@ -4577,7 +4663,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::streamout_object
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
@@ -4590,7 +4676,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::image_object_mtr
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::render_object_mtr_t obj, size_t const varset ) noexcept 
 {
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
@@ -4606,7 +4692,7 @@ motor::graphics::result d3d11_backend::update( motor::graphics::render_object_mt
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::use( motor::graphics::framebuffer_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr )
@@ -4627,7 +4713,7 @@ motor::graphics::result d3d11_backend::use( motor::graphics::framebuffer_object_
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::use( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr )
@@ -4648,7 +4734,7 @@ motor::graphics::result d3d11_backend::use( motor::graphics::streamout_object_mt
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::unuse( motor::graphics::gen4::backend::unuse_type const t ) noexcept 
 {
     switch( t )
@@ -4662,7 +4748,7 @@ motor::graphics::result d3d11_backend::unuse( motor::graphics::gen4::backend::un
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::push( motor::graphics::state_object_mtr_t obj, size_t const sid, bool_t const ) noexcept 
 {
     if( obj == nullptr )
@@ -4683,14 +4769,14 @@ motor::graphics::result d3d11_backend::push( motor::graphics::state_object_mtr_t
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::pop( motor::graphics::gen4::backend::pop_type const ) noexcept 
 {
     _pimpl->handle_render_state( size_t( -1 ), size_t( -1 ) ) ;
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mtr_t obj, motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept 
 {     
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
@@ -4715,7 +4801,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mt
     return motor::graphics::result::ok ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t obj, motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept 
 {
     if( obj == nullptr ) return motor::graphics::result::invalid_argument ;
@@ -4735,19 +4821,19 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
     return this_t::render( ro, detail ) ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 void_t d3d11_backend::render_begin( void_t ) noexcept 
 {
     _pimpl->begin_frame() ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 void_t d3d11_backend::render_end( void_t ) noexcept 
 {
     _pimpl->end_frame() ;
 }
 
-//******************************************************************************************************************************
+//************************************************************************************************************
 void_t d3d11_backend::report_live_device_objects( D3D11_RLDO_FLAGS const flags ) noexcept 
 {
     #ifdef D3D_DEBUG

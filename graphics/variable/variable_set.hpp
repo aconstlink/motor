@@ -266,14 +266,14 @@ namespace motor
                     static_cast<motor::graphics::texture_variable_t *>( _textures[ i ].var ) ;
             }
 
+        public: // texture variable
+
             //***************************************************************************************
             motor::graphics::texture_variable_t * find_texture_variable( char const * const name ) const noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _tex_mtx ) ;
                 return this_t::find_texture_variable_us( name ) ;
             }
-
-        public: // texture variable
 
             //***************************************************************************************
             bool_t has_texture_variable( motor::string_in_t name ) const noexcept
