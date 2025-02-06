@@ -38,8 +38,7 @@ namespace motor
             {
             }
 
-            data_buffer( this_cref_t rhv ) noexcept :
-                _layout( rhv._layout ), _num_elems( rhv._num_elems )
+            data_buffer( this_cref_t rhv ) noexcept : _layout( rhv._layout )
             {
                 this_t::resize( rhv._num_elems ) ;
                 std::memcpy( _data, rhv._data, rhv.get_sib() ) ;
@@ -69,7 +68,9 @@ namespace motor
             {
                 _layout = std::move( rhv._layout ) ;
                 _num_elems = rhv._num_elems ;
-                motor_move_member_ptr( _data, rhv ) ;
+                motor::memory::global_t::dealloc( _data ) ;
+                _data = rhv._data ;
+                rhv._data = nullptr ;
                 return *this ;
             }
 
