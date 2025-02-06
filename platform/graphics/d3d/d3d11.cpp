@@ -4479,6 +4479,12 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::streamout_obj
 }
 
 //************************************************************************************************************
+motor::graphics::result d3d11_backend::release( motor::graphics::msl_object_mtr_t ) noexcept 
+{
+    return motor::graphics::result::failed ;
+}
+
+//************************************************************************************************************
 motor::graphics::result d3d11_backend::release( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
     if( obj == nullptr || obj->name().empty() )

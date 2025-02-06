@@ -3852,6 +3852,12 @@ motor::graphics::result gl4_backend::configure( motor::graphics::streamout_objec
     return motor::graphics::result::ok ;
 }
 
+//************************************************************************************************************
+motor::graphics::result gl4_backend::release( motor::graphics::msl_object_mtr_t ) noexcept 
+{
+    return motor::graphics::result::failed ;
+}
+
 //******************************************************************************************************
 motor::graphics::result gl4_backend::release( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {

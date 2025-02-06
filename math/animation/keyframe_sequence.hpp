@@ -138,6 +138,11 @@ namespace motor
                 return true ;
             }
 
+            keyframe_t front( void_t ) const noexcept
+            {
+                return _keyframes.front() ;
+            }
+
             keyframe_t back( void_t ) const noexcept
             {
                 return _keyframes.back() ;

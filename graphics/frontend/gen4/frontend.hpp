@@ -69,7 +69,7 @@ namespace motor
                 {
                     _re->send_execute( [=]( void_t )
                     {
-                        _be->release( o.mtr() ) ;
+                        _be->release( o ) ;
                     } ) ;
 
                     return *this ;

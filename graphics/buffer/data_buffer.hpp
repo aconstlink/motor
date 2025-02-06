@@ -38,14 +38,18 @@ namespace motor
             {
             }
 
-            data_buffer( this_cref_t rhv ) noexcept
+            data_buffer( this_cref_t rhv ) noexcept :
+                _layout( rhv._layout ), _num_elems( rhv._num_elems )
             {
-                *this = rhv ;
+                this_t::resize( rhv._num_elems ) ;
+                std::memcpy( _data, rhv._data, rhv.get_sib() ) ;
             }
 
-            data_buffer( this_rref_t rhv ) noexcept 
+            data_buffer( this_rref_t rhv ) noexcept :
+                _layout( std::move( rhv._layout ) ), _num_elems( rhv._num_elems ),
+                _data( rhv._data )
             {
-                *this = std::move( rhv ) ;
+                rhv._data = nullptr ;
             }
 
             ~data_buffer( void_t ) noexcept
