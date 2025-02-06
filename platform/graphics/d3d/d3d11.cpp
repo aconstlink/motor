@@ -28,6 +28,7 @@
 #include <d3dcompiler.h>
 #include <d3d11shader.h>
 #include <directxcolors.h>
+#include <cstdio>
 
 #if _DEBUG
 #define D3D_DEBUG
@@ -1161,6 +1162,14 @@ public: // variables
         
         // this code is required if we only know the name
         // but do not have any oid.
+        #if 1
+        {
+            while( ++oid < v.size() && 
+                std::strcmp( v[oid].name.c_str(), name.c_str() ) != 0 ) ;
+            
+            oid = oid == v.size() ? size_t(-1) : oid ;
+        }
+        #else
         {
             auto iter = std::find_if( v.begin(), v.end(), [&] ( T const& c )
             {
@@ -1172,7 +1181,14 @@ public: // variables
                 oid = std::distance( v.begin(), iter ) ;
             }
         }
+        #endif
 
+        #if 1
+        if ( oid == size_t( -1 ) )
+        {
+            while( ++oid < v.size() && v[oid].valid ) ;
+        }
+        #else
         if( oid == size_t( -1 ) )
         {
             for( size_t i = 0 ; i < v.size(); ++i )
@@ -1184,6 +1200,7 @@ public: // variables
                 }
             }
         }
+        #endif
 
         if( oid >= v.size() )
         {
@@ -2123,6 +2140,8 @@ public: // functions
 
         for( auto const & c : config_symbols )
         {
+            auto const c_exp = c.expand() ;
+
             if( oid == size_t(-1) )
             {
                 // this most likely came from a library dependency.
@@ -2140,7 +2159,7 @@ public: // functions
 
                     auto iter = std::find_if( d.ros.begin(), d.ros.end(), [&]( motor::graphics::render_object_cref_t di )
                     {
-                        return di.name() == c.expand() ;
+                        return di.name() == c_exp ;
                     } ) ;
                     
                     if( iter == d.ros.end() ) continue ;
@@ -2155,17 +2174,14 @@ public: // functions
             // which has not been configured by the user...
             if( oid == size_t(-1) ) 
             {
-                motor::log::global_t::warning( "[gl4::construct_msl_data] : render configuration not found : " + c.expand() ) ;
+                motor::log::global_t::warning( "[d3d11::construct_msl_data] : render configuration not found : " + c_exp ) ;
                 continue ;
             }
-
-            motor::graphics::render_object_t ro( c.expand() ) ;
-            motor::graphics::shader_object_t so( c.expand() ) ;
 
             motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &_mdb, c ) ;
             if( res.missing.size() != 0 )
             {
-                motor::log::global_t::warning( "We have missing symbols for " + c.expand() + " :" ) ;
+                motor::log::global_t::warning( "We have missing symbols for " + c_exp + " :" ) ;
                 for( auto const& s : res.missing )
                 {
                     motor::log::global_t::status( s.expand() ) ;
@@ -2213,11 +2229,14 @@ public: // functions
                 }
             }
 
-            motor::msl::generator_t gen( std::move( res ) ) ;
+            motor::graphics::render_object_t ro( c_exp ) ;
+            motor::graphics::shader_object_t so( c_exp ) ;
 
+            // generate code
             {
                 auto tp_begin = std::chrono::high_resolution_clock::now() ;
 
+                motor::msl::generator_t gen( std::move( res ) ) ;
                 auto const code = gen.generate<motor::msl::hlsl::hlsl5_generator_t>() ;
                 motor::graphics::msl_bridge::create_by_api_type( motor::graphics::shader_api_type::hlsl_5_0, code, so ) ;
 
@@ -2225,8 +2244,9 @@ public: // functions
                     size_t const milli = std::chrono::duration_cast<std::chrono::milliseconds>
                         ( std::chrono::high_resolution_clock::now() - tp_begin ).count() ;
 
-                    motor::log::global_t::status( "[d3d11] : generating hlsl shader took " +
-                        motor::to_string( milli ) + " ms." ) ;
+                    char buffer[2048] ;
+                    std::snprintf( buffer, 2048, "[d3d11] : generating hlsl shader took %zu ms", milli ) ;
+                    motor::log::global_t::status( buffer ) ;
                 }
             }
 
@@ -2241,7 +2261,7 @@ public: // functions
                 }
             }
             
-            ro.link_shader( c.expand() ) ;
+            ro.link_shader( c_exp ) ;
 
             ro.add_variable_sets( obj.get_varibale_sets() ) ;
 
@@ -2252,19 +2272,12 @@ public: // functions
 
             // render object
             {
-                auto iter = std::find_if( msl.ros.begin(), msl.ros.end(), [&]( motor::graphics::render_object_cref_t rol )
-                {
-                    return rol.name() == c.expand() ;
-                } ) ;
+                size_t i = size_t( -1 ) ;
+                while( ++i < msl.ros.size() && 
+                    std::strcmp( c_exp.c_str(), msl.ros[i].name().c_str() ) != 0 ) ;
 
-                if( iter != msl.ros.end() )
-                {
-                    *iter = std::move( ro ) ;
-                }
-                else
-                {
-                    msl.ros.emplace_back( std::move( ro ) ) ;
-                }
+                if( i == msl.ros.size() ) msl.ros.emplace_back( std::move( ro ) ) ;
+                else msl.ros[i] = std::move( ro ) ;
             }
 
             // shader object
@@ -2279,18 +2292,13 @@ public: // functions
                     } ) ;
                 }
 
-                auto iter = std::find_if( msl.sos.begin(), msl.sos.end(), [&]( motor::graphics::shader_object_cref_t rol )
                 {
-                    return rol.name() == c.expand() ;
-                } ) ;
-
-                if( iter != msl.sos.end() )
-                {
-                    *iter = std::move( so ) ;
-                }
-                else
-                {
-                    msl.sos.emplace_back( std::move( so ) ) ;
+                    size_t i = size_t(-1) ;
+                    while( ++i < msl.sos.size() && 
+                        std::strcmp( msl.sos[i].name().c_str(), c_exp.c_str() ) != 0 ) ;
+                    
+                    if( i == msl.sos.size() ) msl.sos.emplace_back( std::move( so ) ) ;
+                    else msl.sos[i] = std::move( so ) ;
                 }
             }
             
@@ -2538,6 +2546,8 @@ public: // functions
     //************************************************************************************************************
     size_t construct_shader_config( size_t oid, motor::graphics::shader_object_ref_t obj )
     {
+        auto tp_begin = std::chrono::high_resolution_clock::now() ;
+
         oid = this_t::determine_oid( oid, obj.name(), shaders ) ;
 
         //
@@ -2833,6 +2843,15 @@ public: // functions
         motor::log::global_t::status( "[D3D11] : Compilation Successful : [" + shd.name + "]" ) ;
 
         shd.compiled = true ;
+
+        {
+            size_t const milli = std::chrono::duration_cast<std::chrono::milliseconds>
+                ( std::chrono::high_resolution_clock::now() - tp_begin ).count() ;
+
+            char buffer[ 4096 ] ;
+            std::snprintf( buffer, 4096, "[d3d11] : shader compilation %zu ms [%s]", milli, shd.name.c_str() ) ;
+            motor::log::global_t::status( buffer ) ;
+        }
 
         return oid ;
     }
