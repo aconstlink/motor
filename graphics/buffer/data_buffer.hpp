@@ -83,7 +83,7 @@ namespace motor
                 // check realloc when getting smaller
                 // do not realloc if larger than thes
                 {
-                    auto const c = double_t(ne) / double_t(_num_elems) ;
+                    auto const c = double_t(ne) / double_t( std::max( _num_elems, size_t(1) ) ) ;
                     if( c < 1.0f && c > thres ) return *this ;
                 }
 
