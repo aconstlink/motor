@@ -17,6 +17,10 @@
 
 #include <motor/profiling/probe_guard.hpp>
 
+#include <motor/concurrent/mrsw.hpp>
+#include <motor/concurrent/task/task.hpp>
+#include <motor/concurrent/global.h>
+
 #include <motor/memory/global.h>
 #include <motor/memory/malloc_guard.hpp>
 #include <motor/std/vector>
@@ -495,6 +499,7 @@ struct d3d11_backend::pimpl
         {
             valid = rhv.valid ;
             name = std::move( rhv.name ) ;
+            compiled = rhv.compiled ;
 
             vs = std::move( rhv.vs ) ;
             gs = std::move( rhv.gs ) ;
@@ -520,6 +525,7 @@ struct d3d11_backend::pimpl
         {
             valid = rhv.valid ;
             name = std::move( rhv.name ) ;
+            compiled = rhv.compiled ;
 
             vs = std::move( rhv.vs ) ;
             gs = std::move( rhv.gs ) ;
@@ -547,6 +553,7 @@ struct d3d11_backend::pimpl
         {
             valid = false ;
             name = "" ;
+            compiled = false ;
 
             vs = guard< ID3D11VertexShader >() ;
             gs = guard< ID3D11GeometryShader >() ;
@@ -1111,8 +1118,51 @@ public: // variables
     motor::platform::d3d11::rendering_context_mtr_t _ctx ;
 
     motor::msl::database_t _mdb ;
-    typedef motor::vector< this_t::msl_data > msl_datas_t ;
-    msl_datas_t _msl_datas ;
+    struct msl_datas
+    {
+        motor_this_typedefs( msl_datas ) ;
+
+        mutable motor::concurrent::mrsw_t mtx ;
+        motor::vector< pimpl::msl_data > items ;
+
+        msl_datas( void_t ) noexcept{}
+        msl_datas( this_rref_t rhv ) noexcept : items( std::move( rhv.items ) ){}
+        this_ref_t operator = ( this_rref_t rhv ) noexcept
+        {
+            items = std::move( rhv.items ) ;
+            return *this ;
+        }
+
+        // lock: reader over items
+        // structured binding usage: 
+        // auto [ idx, msl_obj ] = d.find_by_name( "some_name" ) ;
+        std::pair< size_t, motor::graphics::msl_object_t > find_by_name( motor::string_in_t name ) const noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+
+            auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object() ) ;
+
+            for ( size_t i = 0; i < items.size(); ++i )
+            {
+                auto & d = items[ i ] ;
+
+                // search
+                {
+                    auto j = size_t( -1 ) ;
+                    while ( ++j < d.ros.size() &&
+                        std::strcmp( d.ros[ j ].name().c_str(), name.c_str() ) != 0 ) ;
+                    if ( j == d.ros.size() ) continue ;
+                }
+
+                ret = std::make_pair( i, d.msl_obj ) ;
+                break ;
+            }
+
+            return ret ;
+        }
+    };
+    using msl_datas_t = msl_datas ;
+    msl_datas_t _msls ;
 
     typedef motor::vector< this_t::so_data > so_datas_t ;
     so_datas_t _streamouts ;
@@ -1147,6 +1197,12 @@ public: // variables
 
     // set by the backend using this pimpl
     size_t _bid = size_t(-1) ;
+
+    template< typename T >
+    static size_t determine_oid( size_t oid, motor::string_cref_t name, T & v ) noexcept
+    {
+        return determine_oid( oid, name, v.items ) ;
+    }
 
     template< typename T >
     static size_t determine_oid( size_t oid, motor::string_cref_t name, motor::vector< T >& v ) noexcept
@@ -1227,6 +1283,241 @@ public: // variables
         return size_t( -1 ) ;
     }
 
+public: // compilation thread ;
+
+    struct compilation_work_item
+    {
+        motor::graphics::msl_object_t obj ;
+    };
+    motor_typedef( compilation_work_item ) ;
+
+    struct compilation_shared_data
+    {
+        bool_t running = false ;
+        bool_t has_work = false ;
+        this_ptr_t owner = nullptr ;
+
+        std::mutex mtx ;
+        std::condition_variable cv ;
+
+        motor::vector< compilation_work_item > items ;
+
+        void_t add_item( compilation_work_item_rref_t item ) noexcept
+        {
+            std::unique_lock< std::mutex > lk( mtx ) ;
+
+            if ( items.size() == items.capacity() )
+                items.reserve( items.size() + 50 ) ;
+
+            items.emplace_back( std::move( item ) ) ;
+
+            has_work = true ;
+        }
+
+        void_t notify_thread( void_t ) noexcept
+        {
+            if ( has_work ) cv.notify_one() ;
+        }
+    };
+    motor_typedef( compilation_shared_data ) ;
+
+    compilation_shared_data_ptr_t _ctsd = nullptr ;
+    std::thread _compilation_thread ;
+
+    void_t start_compilation_thread( void_t ) noexcept
+    {
+        assert( _ctsd == nullptr && "Just start/stop the thread." ) ;
+
+        if ( _ctsd == nullptr )
+        {
+            _ctsd = motor::memory::global::alloc<compilation_shared_data>( "compilation shared data" ) ;
+            _ctsd->running = true ;
+            _ctsd->owner = this ;
+        }
+
+        auto * ctsd = _ctsd ;
+
+        _compilation_thread = std::thread( [ctsd] ( void_t )
+        {
+            motor::log::global_t::status( "[d3d11] : compilation thread started" ) ;
+
+            motor::msl::database_t mdb ;
+
+            motor::vector< this_t::compilation_work_item_t > items ;
+            items.reserve( 50 ) ;
+
+            while ( ctsd->running )
+            {
+                {
+                    std::unique_lock< std::mutex > lk( ctsd->mtx ) ;
+                    while ( !ctsd->has_work && ctsd->running ) ctsd->cv.wait( lk ) ;
+
+                    auto tmp = std::move( items ) ;
+                    items = std::move( ctsd->items ) ;
+                    ctsd->items = std::move( tmp ) ;
+
+                    ctsd->has_work = false ;
+                }
+
+                auto & msls = ctsd->owner->_msls ;
+                auto const bid = ctsd->owner->_bid;
+
+                // do work here
+                for ( auto & item : items )
+                {
+                    auto obj = std::move( item.obj ) ;
+
+                    motor::vector< motor::msl::symbol_t > config_symbols ;
+
+                    obj.for_each_msl( motor::graphics::msl_api_type::msl_4_0,
+                        [&] ( motor::string_in_t code )
+                    {
+                        motor::msl::post_parse::document_t doc =
+                            motor::msl::parser_t( "d3d11" ).process( code ) ;
+
+                        mdb.insert( std::move( doc ), config_symbols ) ;
+                    } ) ;
+
+                    size_t oid = obj.get_oid( bid ) ;
+                    oid = !obj.name().empty() ?
+                        this_t::determine_oid( oid, obj.name(), msls ) : size_t( -1 ) ;
+
+                    for ( auto const & c : config_symbols )
+                    {
+                        auto const c_exp = c.expand() ;
+
+                        if ( oid == size_t( -1 ) )
+                        {
+                            auto [i, o] = msls.find_by_name( c_exp ) ;
+                            oid = i ;
+                            obj = o ;
+                        }
+
+                        // msl database contains render configuration 
+                        // which has not been configured by the user...
+                        if ( oid == size_t( -1 ) )
+                        {
+                            motor::log::global_t::warning(
+                                "[d3d11::construct_msl_data] : "
+                                "render configuration not found : " + c_exp ) ;
+                            continue ;
+                        }
+
+                        motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &mdb, c ) ;
+                        if ( res.missing.size() != 0 )
+                        {
+                            motor::log::global_t::warning( "[d3d11] : We have missing symbols for " + c_exp + " :" ) ;
+                            for ( auto const & s : res.missing )
+                            {
+                                motor::log::global_t::status( s.expand() ) ;
+                            }
+                            continue ;
+                        }
+                        
+                        // inject default variable values into the 
+                        // variable sets
+                        for ( auto & shd_ : res.config.shaders )
+                        {
+                            for ( auto & var_ : shd_.variables )
+                            {
+                                if ( var_.def_val == size_t( -1 ) ) continue ;
+
+                                auto * df = res.config.def_values[ var_.def_val ] ;
+                                if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
+                                {
+                                    using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
+                                    ptr_t gdv = static_cast<ptr_t>( df ) ;
+                                    for ( auto & vs : obj.borrow_varibale_sets() )
+                                    {
+                                        // for @overwrite specifier
+                                        //if( vs->has_data_variable( var_.name ) ) continue ;
+                                        vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
+                                    }
+                                }
+                                else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
+                                {
+                                    using ptr_t = motor::msl::texture_dv_ptr_t ;
+                                    ptr_t gdv = static_cast<ptr_t>( df ) ;
+                                    for ( auto & vs : obj.borrow_varibale_sets() )
+                                    {
+                                        // for @overwrite specifier
+                                        // if variable is already in the variable set, do not overwrite it
+                                        //if( vs->has_texture_variable( var_.name ) ) continue ;
+
+                                        // have the type here
+                                        // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
+                                        vs->texture_variable( var_.name )->set( gdv->get().name ) ;
+                                    }
+                                }
+                            }
+                        }
+
+                        motor::graphics::render_object_t ro( c_exp ) ;
+                        motor::graphics::shader_object_t so( c_exp ) ;
+
+                        // generate code
+                        {
+                            auto tp_begin = std::chrono::high_resolution_clock::now() ;
+
+                            motor::msl::generator_t gen( std::move( res ) ) ;
+                            auto const code = gen.generate<motor::msl::hlsl::hlsl5_generator_t>() ;
+                            motor::graphics::msl_bridge::create_by_api_type( 
+                                motor::graphics::shader_api_type::hlsl_5_0, code, so ) ;
+
+                            {
+                                size_t const milli = std::chrono::duration_cast<std::chrono::milliseconds>
+                                    ( std::chrono::high_resolution_clock::now() - tp_begin ).count() ;
+
+                                char buffer[ 2048 ] ;
+                                std::snprintf( buffer, 2048, "[d3d11] : generating hlsl shader took %zu ms", milli ) ;
+                                motor::log::global_t::status( buffer ) ;
+                            }
+                        }
+
+                        {
+                            if ( obj.get_streamout().size() != 0 && obj.get_geometry().size() != 0 )
+                            {
+                                ro.link_geometry( obj.get_geometry()[ 0 ], obj.get_streamout()[ 0 ] ) ;
+                            }
+                            else
+                            {
+                                ro.link_geometry( obj.get_geometry() ) ;
+                            }
+
+                            ro.link_shader( c_exp ) ;
+
+                            ro.add_variable_sets( obj.get_varibale_sets() ) ;
+
+                            so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
+                            ro.set_oid( bid, this_t::construct_render_config( ro.get_oid( bid ), ro ) ) ;
+                        }
+                    }
+                }
+                int bp = 0 ;
+            }
+
+            motor::log::global_t::status( "[d3d11] : compilation thread shut down" ) ;
+        } ) ;
+    }
+
+    void_t stop_compilation_thread( void_t ) noexcept
+    {
+        if ( _ctsd == nullptr ) return ;
+
+        if ( _ctsd->running )
+        {
+            {
+                std::unique_lock<std::mutex> lk( _ctsd->mtx ) ;
+                _ctsd->running = false ;
+            }
+            _ctsd->cv.notify_one() ;
+            if ( _compilation_thread.joinable() )
+                _compilation_thread.join() ;
+        }
+
+        motor::memory::global::dealloc<compilation_shared_data>( motor::move( _ctsd ) ) ;
+    }
+
 public: // functions
 
     //************************************************************************************************************
@@ -1254,6 +1545,8 @@ public: // functions
 
             size_t const oid = this->construct_state( size_t( -1 ), obj ) ;
         }
+
+        this_t::start_compilation_thread() ;
     }
 
     //************************************************************************************************************
@@ -1261,6 +1554,8 @@ public: // functions
     // pointer movement.
     pimpl( pimpl && rhv ) noexcept
     {
+        rhv.stop_compilation_thread() ;
+
         motor_move_member_ptr( _ctx, rhv ) ;
         geo_datas = std::move( rhv.geo_datas ) ;
         images = std::move( rhv.images ) ;
@@ -1268,17 +1563,21 @@ public: // functions
         arrays = std::move( rhv.arrays ) ;
         renders = std::move( rhv.renders ) ;
 
-        _msl_datas = std::move( rhv._msl_datas ) ;
+        _msls = std::move( rhv._msls ) ;
         _state_stack = std::move( rhv._state_stack ) ;
         state_sets = std::move( rhv.state_sets ) ;
         _cur_fb_active = rhv._cur_fb_active ;
 
         _bid = rhv._bid ;
+
+        this_t::start_compilation_thread() ;
     }
     
     //************************************************************************************************************
     ~pimpl( void_t ) 
     {
+        this_t::stop_compilation_thread() ;
+
         for( auto & g : geo_datas ) g.invalidate() ;
         geo_datas.clear() ;
 
@@ -1300,11 +1599,11 @@ public: // functions
         for( auto & so : _streamouts ) so.invalidate() ;
         _streamouts.clear() ;
 
-        for( auto & msl : _msl_datas )
+        for( auto & msl : _msls.items )
         {
             msl.msl_obj.~msl_object() ;
         }
-        _msl_datas.clear() ;
+        _msls.items.clear() ;
 
         state_sets.clear() ;
 
@@ -2114,11 +2413,19 @@ public: // functions
     }
 
     //************************************************************************************************************
+    void_t construct_msl2( motor::graphics::msl_object_mtr_t obj_ )
+    {
+        motor::graphics::msl_object_t obj = *obj_ ;
+
+        _ctsd->add_item( pimpl::compilation_work_item{ std::move( obj ) } ) ;
+    }
+
+    //************************************************************************************************************
     size_t construct_msl( size_t oid, motor::graphics::msl_object_ref_t obj_ )
     {
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
-        oid = !obj_.name().empty() ? this_t::determine_oid( oid, obj_.name(), _msl_datas ) : size_t(-1) ;
+        oid = !obj_.name().empty() ? this_t::determine_oid( oid, obj_.name(), _msls ) : size_t(-1) ;
 
         // @todo list
         // [r] get msl shader from object
@@ -2126,9 +2433,11 @@ public: // functions
         // [r] resolve dependencies
         // [ ] update dependencies
 
+        motor::graphics::msl_object_t obj = obj_ ;
+
         motor::vector< motor::msl::symbol_t > config_symbols ;
 
-        obj_.for_each_msl( motor::graphics::msl_api_type::msl_4_0, [&]( motor::string_in_t code )
+        obj.for_each_msl( motor::graphics::msl_api_type::msl_4_0, [&]( motor::string_in_t code )
         {
             motor::msl::post_parse::document_t doc = 
                 motor::msl::parser_t( "d3d11" ).process( code ) ;
@@ -2136,26 +2445,36 @@ public: // functions
             _mdb.insert( std::move( doc ), config_symbols ) ;
         } ) ; 
 
-        motor::graphics::msl_object_t obj = obj_ ;
+        
 
         for( auto const & c : config_symbols )
         {
             auto const c_exp = c.expand() ;
 
+            // this most likely came from a library dependency.
+            // need to figure out the msl object associated
+            // with this render configuration/object.
+            // the msl object is required in order to reconstruct
+            // the render_object and the shader_object.
+
+            // 1. find the msl object associated to c
+            // 2. use the found oid for further processing
+
+            #if 1
+            if ( oid == size_t( -1 ) )
+            {
+                auto [i, o] = _msls.find_by_name( c_exp ) ;
+                oid = i ;
+                obj = o ;
+
+            }
+            #else
             if( oid == size_t(-1) )
             {
-                // this most likely came from a library dependency.
-                // need to figure out the msl object associated
-                // with this render configuration/object.
-                // the msl object is required in order to reconstruct
-                // the render_object and the shader_object.
 
-                // 1. find the msl object associated to c
-                // 2. use the found oid for further processing
-
-                for( size_t i=0; i<_msl_datas.size(); ++i )
+                for( size_t i=0; i<_msls.items.size(); ++i )
                 {
-                    auto & d = _msl_datas[i] ;
+                    auto & d = _msls.items[i] ;
 
                     auto iter = std::find_if( d.ros.begin(), d.ros.end(), [&]( motor::graphics::render_object_cref_t di )
                     {
@@ -2165,11 +2484,11 @@ public: // functions
                     if( iter == d.ros.end() ) continue ;
                     
                     oid = i ;
-                    obj = _msl_datas[oid].msl_obj ;
+                    obj = _msls.items[oid].msl_obj ;
                     break ;
                 }
             }
-
+            #endif
             // msl database contains render configuration 
             // which has not been configured by the user...
             if( oid == size_t(-1) ) 
@@ -2268,7 +2587,7 @@ public: // functions
             so.set_oid( _bid, this_t::construct_shader_config( so.get_oid( _bid ), so ) ) ;
             ro.set_oid( _bid, this_t::construct_render_config( ro.get_oid( _bid ), ro ) ) ;
             
-            auto & msl = _msl_datas[oid] ;
+            auto & msl = _msls.items[oid] ;
 
             // render object
             {
@@ -2288,7 +2607,11 @@ public: // functions
 
                     obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
                     {
-                        lst->set( shd.compiled, so.shader_bindings() ) ;
+                        auto const s = shd.compiled ? 
+                            motor::graphics::compilation_listener::state::successful :
+                            motor::graphics::compilation_listener::state::failed ;
+
+                        lst->set( s, so.shader_bindings() ) ;
                     } ) ;
                 }
 
@@ -2544,43 +2867,33 @@ public: // functions
     }
 
     //************************************************************************************************************
-    size_t construct_shader_config( size_t oid, motor::graphics::shader_object_ref_t obj )
+    bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj, this_t::shader_data_inout_t shd ) const noexcept
     {
         auto tp_begin = std::chrono::high_resolution_clock::now() ;
 
-        oid = this_t::determine_oid( oid, obj.name(), shaders ) ;
-
-        //
-        // Do Configuration
-        //
-        auto & shd = shaders[ oid ] ;
         shd.name = obj.name() ;
-
-        // reset flags
-        {
-            shd.compiled = false ;
-        }
+        shd.compiled = false ;
 
         // shader code
         motor::graphics::shader_set_t ss ;
         {
             auto const res = obj.shader_set( this->sapi, ss ) ;
-            if( !res )
+            if ( !res )
             {
                 motor::log::global_t::warning( d3d11_backend_log(
-                    "config [" + obj.name() + "] has no shaders for " + 
+                    "config [" + obj.name() + "] has no shaders for " +
                     motor::graphics::gen4::to_string( this->bt ) ) ) ;
-                return oid ;
+                return false ;
             }
         }
 
-        ID3DBlob* pVSBlob = nullptr;
-        ID3DBlob* pGSBlob = nullptr;
-        ID3DBlob* pPSBlob = nullptr;
+        ID3DBlob * pVSBlob = nullptr;
+        ID3DBlob * pGSBlob = nullptr;
+        ID3DBlob * pPSBlob = nullptr;
 
         // compile
         {
-            ID3DBlob* errblob = nullptr;
+            ID3DBlob * errblob = nullptr;
 
             // vertex shader
             {
@@ -2594,18 +2907,19 @@ public: // functions
                 // "vs_4_1" : Direct3D 10.1
                 // "vs_4_0" : Direct3D 10
                 {
-                    auto const hr = D3DCompile( cptr, sib, obj.name().c_str(), Shader_Macros, nullptr, "VS", "vs_5_0", 0, 0, &pVSBlob, &errblob );
+                    auto const hr = D3DCompile( cptr, sib, obj.name().c_str(), 
+                        Shader_Macros, nullptr, "VS", "vs_5_0", 0, 0, &pVSBlob, &errblob );
 
-                    if( FAILED( hr ) )
+                    if ( FAILED( hr ) )
                     {
                         motor::log::global_t::warning( d3d11_backend_log(
                             "vertex shader [" + obj.name() + "] failed " +
                             motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
-                        if( errblob != nullptr )
+                        if ( errblob != nullptr )
                         {
-                            char_cptr_t ptr = ( char_cptr_t ) errblob->GetBufferPointer() ;
-                            size_t const ssib = ( size_t ) errblob->GetBufferSize() ;
+                            char_cptr_t ptr = (char_cptr_t) errblob->GetBufferPointer() ;
+                            size_t const ssib = (size_t) errblob->GetBufferSize() ;
                             motor::string_t s( ptr, ssib ) ;
 
                             auto const pos = s.find( obj.name() ) ;
@@ -2614,22 +2928,21 @@ public: // functions
                             errblob->Release() ;
                         }
 
-                        return oid ;
-                    }
+                        shd.invalidate() ;
 
+                        return false ;
+                    }
                 }
 
                 // find shader variables in constant buffer
                 {
-                    shd.vs_textures.clear() ;
-                    shd.vs_buffers.clear() ;
                     shd.vs_cbuffers = this_t::determine_cbuffer( pVSBlob ) ;
                     this_t::determine_texture( pVSBlob, shd.vs_textures, shd.vs_buffers ) ;
                 }
             }
 
             // geometry shader
-            if( ss.has_geometry_shader() )
+            if ( ss.has_geometry_shader() )
             {
                 D3D_SHADER_MACRO Shader_Macros[] = { NULL, NULL };
 
@@ -2640,18 +2953,19 @@ public: // functions
                 // "gs_5_0" : Direct3D 11 and 11.1
                 // "gs_4_1" : Direct3D 10.1
                 // "gs_4_0" : Direct3D 10
-                auto const hr = D3DCompile( cptr, sib, obj.name().c_str(), Shader_Macros, nullptr, "GS", "gs_5_0", 0, 0, &pGSBlob, &errblob );
+                auto const hr = D3DCompile( cptr, sib, obj.name().c_str(), 
+                    Shader_Macros, nullptr, "GS", "gs_5_0", 0, 0, &pGSBlob, &errblob );
 
-                if( FAILED( hr ) )
+                if ( FAILED( hr ) )
                 {
                     motor::log::global_t::warning( d3d11_backend_log(
                         "geometry shader [" + obj.name() + "] failed " +
                         motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
-                    if( errblob != nullptr )
+                    if ( errblob != nullptr )
                     {
-                        char_cptr_t ptr = ( char_cptr_t ) errblob->GetBufferPointer() ;
-                        size_t const ssib = ( size_t ) errblob->GetBufferSize() ;
+                        char_cptr_t ptr = (char_cptr_t) errblob->GetBufferPointer() ;
+                        size_t const ssib = (size_t) errblob->GetBufferSize() ;
                         motor::string_t s( ptr, ssib ) ;
 
                         auto const pos = s.find( obj.name() ) ;
@@ -2659,25 +2973,21 @@ public: // functions
                         motor::log::global_t::error( s ) ;
                         errblob->Release() ;
                     }
-                    return oid ;
+
+                    shd.invalidate() ;
+
+                    return false ;
                 }
 
                 // find shader variables in constant buffer
                 {
-                    shd.gs_textures.clear() ;
-                    shd.gs_cbuffers.clear() ;
                     shd.gs_cbuffers = this_t::determine_cbuffer( pGSBlob ) ;
                     this_t::determine_texture( pGSBlob, shd.gs_textures, shd.gs_buffers ) ;
                 }
             }
-            else if( shd.gs != nullptr )
-            {
-                shd.gs->Release() ;
-                shd.gs = nullptr ;
-            }
 
             // pixel shader
-            if( ss.has_pixel_shader() )
+            if ( ss.has_pixel_shader() )
             {
                 D3D_SHADER_MACRO Shader_Macros[] = { NULL, NULL };
 
@@ -2688,18 +2998,19 @@ public: // functions
                 // "ps_5_0" : Direct3D 11 and 11.1
                 // "ps_4_1" : Direct3D 10.1
                 // "ps_4_0" : Direct3D 10
-                auto const hr = D3DCompile( cptr, sib, obj.name().c_str(), Shader_Macros, nullptr, "PS", "ps_5_0", 0, 0, &pPSBlob, &errblob );
+                auto const hr = D3DCompile( cptr, sib, obj.name().c_str(), 
+                    Shader_Macros, nullptr, "PS", "ps_5_0", 0, 0, &pPSBlob, &errblob );
 
-                if( FAILED( hr ) )
+                if ( FAILED( hr ) )
                 {
                     motor::log::global_t::warning( d3d11_backend_log(
                         "pixel shader [" + obj.name() + "] failed " +
                         motor::graphics::gen4::to_string( this->bt ) ) ) ;
 
-                    if( errblob != nullptr )
+                    if ( errblob != nullptr )
                     {
-                        char_cptr_t ptr = ( char_cptr_t ) errblob->GetBufferPointer() ;
-                        size_t const ssib = ( size_t ) errblob->GetBufferSize() ;
+                        char_cptr_t ptr = (char_cptr_t) errblob->GetBufferPointer() ;
+                        size_t const ssib = (size_t) errblob->GetBufferSize() ;
                         motor::string_t s( ptr, ssib ) ;
 
                         auto const pos = s.find( obj.name() ) ;
@@ -2708,80 +3019,53 @@ public: // functions
                         errblob->Release() ;
                     }
 
-                    return oid ;
+                    shd.invalidate() ;
+
+                    return false ;
                 }
 
                 // find shader variables in constant buffer
                 {
-                    shd.ps_textures.clear() ;
-                    shd.ps_buffers.clear() ;
                     shd.ps_cbuffers = this_t::determine_cbuffer( pPSBlob ) ;
                     this_t::determine_texture( pPSBlob, shd.ps_textures, shd.ps_buffers ) ;
                 }
             }
-            else if( shd.ps != nullptr )
-            {
-                shd.ps->Release() ;
-                shd.ps = nullptr ;
-            }
-        }
-
-        // new shaders compiled, so release the old
-        {
-            if( shd.vs != nullptr )
-            {
-                shd.vs->Release() ;
-                shd.vs = nullptr ;
-            }
-
-            if( shd.gs != nullptr )
-            {
-                shd.gs->Release() ;
-                shd.gs = nullptr ;
-            }
-
-            if( shd.ps != nullptr )
-            {
-                shd.ps->Release() ;
-                shd.ps = nullptr ;
-            }
         }
 
         // vertex shader
-        if( pVSBlob != nullptr )
+        if ( pVSBlob != nullptr )
         {
-            auto const hr = _ctx->dev()->CreateVertexShader( 
+            auto const hr = _ctx->dev()->CreateVertexShader(
                 pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, shd.vs ) ;
-            
+
             motor::log::global_t::error( FAILED( hr ), "[d3d11] : CreateVertexShader" ) ;
 
             // the vs blob is required for later layout creation
-            if( shd.vs_blob != nullptr ) shd.vs_blob->Release() ;
             shd.vs_blob = pVSBlob ;
         }
 
         // Create Streamout shader w or w/o geometry shader
-        if( obj.shader_bindings().get_num_output_bindings() > 0 && 
+        if ( obj.shader_bindings().get_num_output_bindings() > 0 &&
             obj.get_streamout_mode() != motor::graphics::streamout_mode::unknown )
         {
             static size_t const max_entries = 10 ;
-            D3D11_SO_DECLARATION_ENTRY decl[max_entries] ;
-            if( obj.shader_bindings().get_num_output_bindings() > max_entries ) 
+            D3D11_SO_DECLARATION_ENTRY decl[ max_entries ] ;
+            if ( obj.shader_bindings().get_num_output_bindings() > max_entries )
             {
-                motor::log::global_t::warning( "[d3d11_backend] : you can not have more than " + 
-                    motor::to_string(max_entries) + " vertex output bindings for stream out" ) ;
+                motor::log::global_t::warning( "[d3d11_backend] : you can not have more than " +
+                    motor::to_string( max_entries ) + " vertex output bindings for stream out" ) ;
             }
 
-            obj.shader_bindings().for_each_vertex_output_binding( [&]( size_t const i, motor::graphics::vertex_attribute const va, 
+            obj.shader_bindings().for_each_vertex_output_binding( [&] ( size_t const i, motor::graphics::vertex_attribute const va,
                 motor::graphics::ctype const ct, motor::string_in_t )
             {
-                D3D11_SO_DECLARATION_ENTRY e 
+                D3D11_SO_DECLARATION_ENTRY e
                 {
                     0,
                     motor::platform::d3d11::vertex_output_binding_to_semantic( va ),
                     motor::platform::d3d11::vertex_output_binding_to_semantic_index( va ),
                     0,
-                    (BYTE)motor::graphics::num_components_of( ct.ts ),
+                    (BYTE) motor::graphics::num_components_of( ct.ts ),
                     0
                 } ;
                 decl[ std::min( max_entries, i ) ] = e ;
@@ -2791,33 +3075,33 @@ public: // functions
             UINT const rasterized_stream = pPSBlob == nullptr ? D3D11_SO_NO_RASTERIZED_STREAM : 0 ;
 
             // if no geometry shader, use vertex shader
-            if( pGSBlob == nullptr )
+            if ( pGSBlob == nullptr )
             {
-                auto const hr = _ctx->dev()->CreateGeometryShaderWithStreamOutput( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), decl, 
-                    std::min( UINT(max_entries), UINT(obj.shader_bindings().get_num_output_bindings()) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
+                auto const hr = _ctx->dev()->CreateGeometryShaderWithStreamOutput( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), decl,
+                    std::min( UINT( max_entries ), UINT( obj.shader_bindings().get_num_output_bindings() ) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
                 motor::log::global_t::error( FAILED( hr ), "[d3d11] : CreateGeometryShaderWithStreamOutput" ) ;
             }
             else
             {
-                auto const hr = _ctx->dev()->CreateGeometryShaderWithStreamOutput( pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), decl, 
-                    std::min( UINT(max_entries), UINT(obj.shader_bindings().get_num_output_bindings()) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
+                auto const hr = _ctx->dev()->CreateGeometryShaderWithStreamOutput( pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), decl,
+                    std::min( UINT( max_entries ), UINT( obj.shader_bindings().get_num_output_bindings() ) ), NULL, 0, rasterized_stream, NULL, shd.gs ) ;
                 motor::log::global_t::error( FAILED( hr ), "[d3d11] : CreateGeometryShaderWithStreamOutput" ) ;
             }
         }
 
         // geometry shader w/o streamout
-        else if( pGSBlob != nullptr )
+        else if ( pGSBlob != nullptr )
         {
             auto const hr = _ctx->dev()->CreateGeometryShader(
                 pGSBlob->GetBufferPointer(), pGSBlob->GetBufferSize(), nullptr, shd.gs ) ;
-                
+
             motor::log::global_t::error( FAILED( hr ), "[d3d11] : CreateGeometryShader" ) ;
             pGSBlob->Release();
             pGSBlob = nullptr ;
         }
 
         // pixel shader
-        if( pPSBlob != nullptr )
+        if ( pPSBlob != nullptr )
         {
             auto const hr = _ctx->dev()->CreatePixelShader(
                 pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, shd.ps ) ;
@@ -2831,7 +3115,6 @@ public: // functions
         // the final layout elements for the d3d input layout
         // is done if the render configuration is known.
         {
-            shd.vertex_inputs.clear() ;
             obj.shader_bindings().for_each_vertex_input_binding( [&] ( size_t const,
                 motor::graphics::vertex_attribute const va, motor::string_cref_t name )
             {
@@ -2851,6 +3134,27 @@ public: // functions
             char buffer[ 4096 ] ;
             std::snprintf( buffer, 4096, "[d3d11] : shader compilation %zu ms [%s]", milli, shd.name.c_str() ) ;
             motor::log::global_t::status( buffer ) ;
+        }
+
+        return true ;
+    }
+
+    //************************************************************************************************************
+    // old interface for constructing shader data. @see construct_shader_data.
+    size_t construct_shader_config( size_t oid, motor::graphics::shader_object_ref_t obj )
+    {
+        this_t::shader_data_t new_shader ;
+        if( this_t::construct_shader_data( obj, new_shader ) ) 
+        {
+            oid = this_t::determine_oid( oid, obj.name(), shaders ) ;
+            auto & old_shader = shaders[ oid ] ;
+
+            new_shader.valid = true ;
+            old_shader = std::move( new_shader ) ;
+        }
+        else
+        {
+            // compilation failed.
         }
 
         return oid ;
@@ -3337,10 +3641,10 @@ public: // functions
     //************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::msl_object_ref_t obj, size_t const vs_id )
     {
-        size_t const num_ros = _msl_datas[id].ros.size() ;
+        size_t const num_ros = _msls.items[id].ros.size() ;
         for( size_t i=0; i<num_ros; ++i )
         {
-            this_t::update( _msl_datas[id].ros[i].get_oid( _bid ), _msl_datas[id].ros[i], vs_id ) ;
+            this_t::update( _msls.items[id].ros[i].get_oid( _bid ), _msls.items[id].ros[i], vs_id ) ;
         }
         return true ;return true ;
     }
@@ -4053,6 +4357,8 @@ public: // functions
         // and also release all state objects.
         auto rss = _state_stack.pop() ;
         this->handle_render_state( rss, true ) ;
+
+        _ctsd->notify_thread() ;
     }
 
     //************************************************************************************************************
@@ -4317,6 +4623,11 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
     {
         motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
+    }
+
+    // experimental
+    {
+        _pimpl->construct_msl2( obj ) ;
     }
 
     size_t const oid = obj->set_oid( this_t::get_bid(), 
@@ -4839,7 +5150,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
         return motor::graphics::result::failed ;
     }
 
-    auto & msl = _pimpl->_msl_datas[oid] ;
+    auto & msl = _pimpl->_msls.items[oid] ;
     
     motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
 

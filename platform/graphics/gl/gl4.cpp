@@ -2178,7 +2178,11 @@ struct gl4_backend::pimpl
 
                     obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
                     {
-                        lst->set( shd.is_linkage_ok, so.shader_bindings() ) ;
+                        auto const s = shd.is_linkage_ok ?
+                            motor::graphics::compilation_listener::state::successful :
+                            motor::graphics::compilation_listener::state::failed ;
+
+                        lst->set( s, so.shader_bindings() ) ;
                     } ) ;
                 }
 
