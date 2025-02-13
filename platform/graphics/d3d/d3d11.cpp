@@ -132,6 +132,201 @@ struct d3d11_backend::pimpl
 {
     motor_this_typedefs( d3d11_backend::pimpl ) ;
 
+    template< typename T >
+    static size_t check_oid( size_t const oid, motor::vector< T > & v ) noexcept
+    {
+        return oid < v.size() ? oid : size_t(-1) ;
+    }
+
+    template< typename T >
+    static size_t determine_oid( size_t oid, motor::string_cref_t name, motor::vector< T > & v ) noexcept
+    {
+        if( pimpl::check_oid( oid, v ) != size_t(-1) ) return oid ;
+        if( name.empty() ) return oid ;
+
+        assert( oid == size_t(-1) && "must be -1. if oid != -1 => object MUST be valid!" ) ;
+
+        // look for the next invalid item to be reused.
+        while ( ++oid < v.size() && v[ oid ].valid ) ;
+
+        if ( oid >= v.size() )
+        {
+            oid = v.size() ;
+            v.resize( oid + 10 ) ;
+        }
+
+        v[ oid ].valid = true ;
+        v[ oid ].name = name ;
+
+        return oid ;
+
+        #if 0
+        // this code is required if we only know the name
+        // but do not have any oid.
+        #if 1
+        {
+            while ( ++oid < v.size() &&
+                std::strcmp( v[ oid ].name.c_str(), name.c_str() ) != 0 ) ;
+
+            oid = oid == v.size() ? size_t( -1 ) : oid ;
+        }
+        #else
+        {
+            auto iter = std::find_if( v.begin(), v.end(), [&] ( T const & c )
+            {
+                return c.name == name ;
+            } ) ;
+
+            if ( iter != v.end() )
+            {
+                oid = std::distance( v.begin(), iter ) ;
+            }
+        }
+        #endif
+
+        #if 1
+        if ( oid == size_t( -1 ) )
+        {
+            while ( ++oid < v.size() && v[ oid ].valid ) ;
+        }
+        #else
+        if ( oid == size_t( -1 ) )
+        {
+            for ( size_t i = 0 ; i < v.size(); ++i )
+            {
+                if ( !v[ i ].valid )
+                {
+                    oid = i ;
+                    break ;
+                }
+            }
+        }
+        #endif
+
+        if ( oid >= v.size() )
+        {
+            oid = v.size() ;
+            v.resize( oid + 1 ) ;
+        }
+
+        v[ oid ].valid = true ;
+        v[ oid ].name = name ;
+
+        return oid ;
+        #endif
+    }
+
+    //*******************************************************************************************
+    template< typename T >
+    struct datas
+    {
+        motor_this_typedefs( datas< T > ) ;
+
+    private:
+
+        mutable motor::concurrent::mrsw_t mtx ;
+        motor::vector< T > items ;
+
+    public:
+
+        datas( void_t ) noexcept {}
+        datas( this_rref_t rhv ) noexcept : items( std::move( rhv.items ) ) {}
+        this_ref_t operator = ( this_rref_t rhv ) noexcept
+        {
+            items = std::move( rhv.items ) ;
+            return *this ;
+        }
+
+        size_t access( size_t oid, motor::string_in_t name, std::function< void_t ( T & ) > funk ) noexcept
+        {
+            // #1 quick check if id is still valid
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+                oid = pimpl::check_oid( oid, items ) ;
+            }
+
+            // #2 if new or invalid, create new oid
+            if ( oid == size_t( -1 ) )
+            {
+                motor::concurrent::mrsw_t::writer_lock_t lk( mtx ) ;
+                oid = pimpl::determine_oid( oid, name, items ) ;
+            }
+
+            // #3 oid is safe, can access now.
+            if( oid != size_t( -1 ) )
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+                funk( items[ oid ] ) ;
+            }
+
+            return oid ;
+        }
+
+        size_t validate( size_t const oid ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            return pimpl::check_oid( oid, items ) ;
+        }
+
+        bool_t find( motor::string_in_t name, std::function< void_t ( size_t const, T & ) > funk ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            
+            auto i=size_t(-1) ;
+            while( ++i < items.size() && items[i].name != name ) ;
+
+            if( i == items.size() ) return false ;
+
+            funk( i, items[ i ] ) ;
+
+            return true ;
+        }
+
+        size_t find_by_name( motor::string_in_t name ) const noexcept
+        {
+            if( name.empty() ) return size_t(-1) ;
+
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+
+            size_t i = size_t(-1) ;
+            while( ++i < items.size() && items[i].name != name ) ;
+            return i == items.size() ? size_t(-1) : i ;
+        }
+
+        void_t for_each( std::function < void_t ( T & ) > funk ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            for( auto & i : items ) funk( i ) ;
+        }
+
+    public: // unsave
+
+        T & operator[] ( size_t const idx ) noexcept
+        {
+            return items[idx] ;
+        }
+
+        size_t size( void_t ) const noexcept
+        {
+            return items.size() ;
+        }
+
+        void_t resize( size_t const ni ) noexcept
+        {
+            motor::concurrent::mrsw_t::writer_lock_t lk( mtx ) ;
+            items.resize( ni ) ;
+        }
+
+    public:
+
+        void invalidate_and_clear( void_t ) noexcept
+        {
+            for( auto & i : items ) i.invalidate() ;
+            items.clear() ;
+        }
+    } ;
+
+
     //*******************************************************************************************
     struct so_data
     {
@@ -261,6 +456,12 @@ struct d3d11_backend::pimpl
         }
     };
     motor_typedef( so_data ) ;
+
+    
+    using streamout_datas_t = datas< pimpl::so_data > ;
+    streamout_datas_t _streamouts ;
+    size_t _cur_streamout_active = size_t( -1 ) ;
+
 
     //*******************************************************************************************
     struct geo_data
@@ -411,6 +612,9 @@ struct d3d11_backend::pimpl
         }
     };
     motor_typedef( geo_data ) ;
+    
+    using geometry_datas_t = datas< geo_data > ;
+    geometry_datas_t _geos ;
 
     //*******************************************************************************************
     struct shader_data
@@ -678,6 +882,9 @@ struct d3d11_backend::pimpl
         }
     };
     motor_typedef( array_data ) ;
+    using array_datas_t = datas< array_data > ;
+
+    array_datas_t _arrays ;
 
     //*******************************************************************************************
     struct render_state_sets
@@ -1060,6 +1267,112 @@ struct d3d11_backend::pimpl
         }
     };
     motor_typedef( render_data ) ;
+    
+    using render_datas_t = datas< render_data > ;
+    render_datas_t _renders ;
+
+
+public: // msl data
+
+    //*******************************************************************************************
+    struct msl_data
+    {
+        bool_t valid = false ;
+        // empty names indicate free configs
+        motor::string_t name ;
+
+        // purpose: keep track of the data within the msl object
+        // if recompilation is triggered. On recompilation, there
+        // might be no/lost data of the original msl object, so 
+        // in that case, only the new shader code is passed and
+        // the old data is used.
+        motor::graphics::msl_object_t msl_obj ;
+
+        motor::vector< motor::graphics::render_object_t > ros ; 
+        motor::vector< motor::graphics::shader_object_t > sos ; 
+
+        void_t invalidate( void_t ) noexcept
+        {
+            msl_obj.~msl_object() ;
+        }
+    } ;
+    motor_typedef( msl_data ) ;
+
+    //*******************************************************************************************
+    #if 0
+    struct msl_datas
+    {
+        motor_this_typedefs( msl_datas ) ;
+
+        mutable motor::concurrent::mrsw_t mtx ;
+        motor::vector< pimpl::msl_data > items ;
+
+        msl_datas( void_t ) noexcept{}
+        msl_datas( this_rref_t rhv ) noexcept : items( std::move( rhv.items ) ){}
+        this_ref_t operator = ( this_rref_t rhv ) noexcept
+        {
+            items = std::move( rhv.items ) ;
+            return *this ;
+        }
+
+        // lock: reader over items
+        // structured binding usage: 
+        // auto [ idx, msl_obj ] = d.find_by_name( "some_name" ) ;
+        std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_name( motor::string_in_t name ) const noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+
+            auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object() ) ;
+
+            for ( size_t i = 0; i < items.size(); ++i )
+            {
+                auto & d = items[ i ] ;
+
+                // search
+                {
+                    auto j = size_t( -1 ) ;
+                    while ( ++j < d.ros.size() &&
+                        std::strcmp( d.ros[ j ].name().c_str(), name.c_str() ) != 0 ) ;
+                    if ( j == d.ros.size() ) continue ;
+                }
+
+                ret = std::make_pair( i, d.msl_obj ) ;
+                break ;
+            }
+
+            return ret ;
+        }
+
+        size_t find_id_by_name( motor::string_in_t name ) const noexcept
+        {
+            if( name.empty() ) return size_t(-1) ;
+
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+
+            size_t i = size_t(-1) ;
+            while( ++i < items.size() && items[i].name != name ) ;
+
+            return i == items.size() ? size_t(-1) : i ;
+        }
+    };
+    #endif
+    using msl_datas_t = datas< msl_data > ;
+    msl_datas_t _msls ;
+
+    static std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_name( motor::string_in_t name, msl_datas_t & msls ) noexcept
+    {
+        auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object_t() ) ;
+        auto const res = msls.find( name, [&]( size_t const id, pimpl::msl_data_ref_t d )
+        {
+            ret = std::make_pair( id, d.msl_obj ) ;
+        } ) ;
+        
+        return ret ;
+    }
+
+    motor::msl::database_t _mdb ;
+
+public: // framebuffer
 
     //*******************************************************************************************
     struct framebuffer_data
@@ -1091,101 +1404,25 @@ struct d3d11_backend::pimpl
         }
     };
     motor_typedef( framebuffer_data ) ;
+    typedef motor::vector< this_t::framebuffer_data > framebuffer_datas_t ;
+    framebuffer_datas_t framebuffers ;
+    size_t _cur_fb_active = size_t( -1 ) ;
 
-    //*******************************************************************************************
-    struct msl_data
-    {
-        bool_t valid = false ;
-        // empty names indicate free configs
-        motor::string_t name ;
-
-        // purpose: keep track of the data within the msl object
-        // if recompilation is triggered. On recompilation, there
-        // might be no/lost data of the original msl object, so 
-        // in that case, only the new shader code is passed and
-        // the old data is used.
-        motor::graphics::msl_object_t msl_obj ;
-
-        motor::vector< motor::graphics::render_object_t > ros ; 
-        motor::vector< motor::graphics::shader_object_t > sos ; 
-    } ;
-    motor_typedef( msl_data ) ;
-
-public: // variables
+public: // other variables
 
     motor::graphics::gen4::backend_type const bt = motor::graphics::gen4::backend_type::d3d11 ;
     motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0 ;
     motor::platform::d3d11::rendering_context_mtr_t _ctx ;
 
-    motor::msl::database_t _mdb ;
-    struct msl_datas
-    {
-        motor_this_typedefs( msl_datas ) ;
-
-        mutable motor::concurrent::mrsw_t mtx ;
-        motor::vector< pimpl::msl_data > items ;
-
-        msl_datas( void_t ) noexcept{}
-        msl_datas( this_rref_t rhv ) noexcept : items( std::move( rhv.items ) ){}
-        this_ref_t operator = ( this_rref_t rhv ) noexcept
-        {
-            items = std::move( rhv.items ) ;
-            return *this ;
-        }
-
-        // lock: reader over items
-        // structured binding usage: 
-        // auto [ idx, msl_obj ] = d.find_by_name( "some_name" ) ;
-        std::pair< size_t, motor::graphics::msl_object_t > find_by_name( motor::string_in_t name ) const noexcept
-        {
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-
-            auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object() ) ;
-
-            for ( size_t i = 0; i < items.size(); ++i )
-            {
-                auto & d = items[ i ] ;
-
-                // search
-                {
-                    auto j = size_t( -1 ) ;
-                    while ( ++j < d.ros.size() &&
-                        std::strcmp( d.ros[ j ].name().c_str(), name.c_str() ) != 0 ) ;
-                    if ( j == d.ros.size() ) continue ;
-                }
-
-                ret = std::make_pair( i, d.msl_obj ) ;
-                break ;
-            }
-
-            return ret ;
-        }
-    };
-    using msl_datas_t = msl_datas ;
-    msl_datas_t _msls ;
-
-    typedef motor::vector< this_t::so_data > so_datas_t ;
-    so_datas_t _streamouts ;
-    size_t _cur_streamout_active = size_t(-1) ;
-
-    typedef motor::vector< this_t::geo_data > geo_configs_t ;
-    geo_configs_t geo_datas ;
-
     typedef motor::vector< this_t::shader_data > shader_datas_t ;
     shader_datas_t shaders ;
-
-    typedef motor::vector< this_t::render_data > render_datas_t ;
-    render_datas_t renders ;
 
     typedef motor::vector< this_t::image_data > image_datas_t ;
     image_datas_t images ;
 
-    typedef motor::vector< this_t::array_data > array_datas_t ;
-    array_datas_t arrays ;
+    
 
-    typedef motor::vector< this_t::framebuffer_data > framebuffer_datas_t ;
-    framebuffer_datas_t framebuffers ;
-    size_t _cur_fb_active = size_t( -1 ) ;
+    
 
     typedef motor::vector< this_t::state_data_t > states_t ;
     states_t state_sets ;
@@ -1197,91 +1434,6 @@ public: // variables
 
     // set by the backend using this pimpl
     size_t _bid = size_t(-1) ;
-
-    template< typename T >
-    static size_t determine_oid( size_t oid, motor::string_cref_t name, T & v ) noexcept
-    {
-        return determine_oid( oid, name, v.items ) ;
-    }
-
-    template< typename T >
-    static size_t determine_oid( size_t oid, motor::string_cref_t name, motor::vector< T >& v ) noexcept
-    {
-        // just reuse the same object
-        if( v.size() > oid && v[oid].name == name )
-        {
-            v[ oid ].valid = true ;
-            return oid ;
-        }
-
-        oid = size_t(-1) ;
-        
-        // this code is required if we only know the name
-        // but do not have any oid.
-        #if 1
-        {
-            while( ++oid < v.size() && 
-                std::strcmp( v[oid].name.c_str(), name.c_str() ) != 0 ) ;
-            
-            oid = oid == v.size() ? size_t(-1) : oid ;
-        }
-        #else
-        {
-            auto iter = std::find_if( v.begin(), v.end(), [&] ( T const& c )
-            {
-                return c.name == name ;
-            } ) ;
-
-            if( iter != v.end() )
-            {
-                oid = std::distance( v.begin(), iter ) ;
-            }
-        }
-        #endif
-
-        #if 1
-        if ( oid == size_t( -1 ) )
-        {
-            while( ++oid < v.size() && v[oid].valid ) ;
-        }
-        #else
-        if( oid == size_t( -1 ) )
-        {
-            for( size_t i = 0 ; i < v.size(); ++i )
-            {
-                if( !v[ i ].valid )
-                {
-                    oid = i ;
-                    break ;
-                }
-            }
-        }
-        #endif
-
-        if( oid >= v.size() )
-        {
-            oid = v.size() ;
-            v.resize( oid + 1 ) ;
-        }
-
-        v[ oid ].valid = true ;
-        v[ oid ].name = name ;
-
-        return oid ;
-    }
-
-    //************************************************************************************************************
-    template< typename T >
-    static size_t find_index_by_resource_name( motor::string_in_t name, motor::vector< T > const & resources ) noexcept
-    {
-        size_t i = 0 ; 
-        for( auto const & r : resources ) 
-        {
-            if( r.name == name ) return i ;
-            ++i ;
-        }
-        return size_t( -1 ) ;
-    }
 
 public: // compilation thread ;
 
@@ -1359,8 +1511,8 @@ public: // compilation thread ;
                     ctsd->has_work = false ;
                 }
 
+                size_t const bid = ctsd->owner->_bid ;
                 auto & msls = ctsd->owner->_msls ;
-                auto const bid = ctsd->owner->_bid;
 
                 // do work here
                 for ( auto & item : items )
@@ -1378,17 +1530,23 @@ public: // compilation thread ;
                         mdb.insert( std::move( doc ), config_symbols ) ;
                     } ) ;
 
-                    size_t oid = obj.get_oid( bid ) ;
-                    oid = !obj.name().empty() ?
-                        this_t::determine_oid( oid, obj.name(), msls ) : size_t( -1 ) ;
+                    // cases:
+                    // obj.oid == -1 && obj.name.empty() : library/config shader
+                    // obj.oid == -1 && !obj.name.empty() : initial configuration
 
+                    // obj.oid != -1 && obj.name.empty() : invalid
+                    // obj.oid != -1 && !obj.name.empty() : was already configured
+
+                    size_t oid = obj.get_oid( bid ) ;
+
+                    #if 0
                     for ( auto const & c : config_symbols )
                     {
                         auto const c_exp = c.expand() ;
 
                         if ( oid == size_t( -1 ) )
                         {
-                            auto [i, o] = msls.find_by_name( c_exp ) ;
+                            auto [i, o] = pimpl::find_pair_by_name( c_exp, msls ) ;
                             oid = i ;
                             obj = o ;
                         }
@@ -1488,10 +1646,27 @@ public: // compilation thread ;
 
                             ro.add_variable_sets( obj.get_varibale_sets() ) ;
 
-                            so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
-                            ro.set_oid( bid, this_t::construct_render_config( ro.get_oid( bid ), ro ) ) ;
+                            
+                            
                         }
+
+                        {
+                            //so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
+                            if ( !ctsd->owner->construct_shader_config( so ) )
+                            {
+                                // construction/compilation failed
+                                // @todo return here.
+                            }
+                            int bp = 0 ;
+                            // @todo construct render config
+                            //ro.set_oid( bid, this_t::construct_render_config( ro.get_oid( bid ), ro ) ) ;
+                        }
+
+
+
+
                     }
+                    #endif
                 }
                 int bp = 0 ;
             }
@@ -1524,7 +1699,7 @@ public: // functions
     pimpl( size_t const bid, motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept : _bid( bid )
     {
         _ctx = ctx ;
-        geo_datas.resize( 10 ) ;
+        _geos.resize( 10 ) ;
 
         {
             motor::graphics::state_object_t obj( "d3d11_default_states" ) ;
@@ -1557,11 +1732,11 @@ public: // functions
         rhv.stop_compilation_thread() ;
 
         motor_move_member_ptr( _ctx, rhv ) ;
-        geo_datas = std::move( rhv.geo_datas ) ;
+        _geos = std::move( rhv._geos ) ;
         images = std::move( rhv.images ) ;
         shaders = std::move( rhv.shaders ) ;
-        arrays = std::move( rhv.arrays ) ;
-        renders = std::move( rhv.renders ) ;
+        _arrays = std::move( rhv._arrays ) ;
+        _renders = std::move( rhv._renders ) ;
 
         _msls = std::move( rhv._msls ) ;
         _state_stack = std::move( rhv._state_stack ) ;
@@ -1578,32 +1753,51 @@ public: // functions
     {
         this_t::stop_compilation_thread() ;
 
-        for( auto & g : geo_datas ) g.invalidate() ;
-        geo_datas.clear() ;
+        #if 1
+        _geos.invalidate_and_clear() ;
+        #else
+        for( auto & g : _geos ) g.invalidate() ;
+        _geos.clear() ;
+        #endif
 
         for( auto & s : shaders ) s.invalidate() ;
         shaders.clear() ;
 
-        for( auto & r : renders ) r.invalidate() ;
-        renders.clear() ;
+        #if 1
+        _renders.invalidate_and_clear() ;
+        #else
+        for( auto & r : _renders ) r.invalidate() ;
+        _renders.clear() ;
+        #endif
 
         for( auto & i : images ) i.invalidate() ;
         images.clear() ;
 
-        for( auto & a : arrays ) a.invalidate() ;
-        arrays.clear() ;
-
+        #if 1
+        _arrays.invalidate_and_clear() ;
+        #else
+        for( auto & a : _arrays ) a.invalidate() ;
+        _arrays.clear() ;
+        #endif
         for( auto & f : framebuffers ) f.invalidate() ;
         framebuffers.clear() ;
 
+        #if 1
+        _streamouts.invalidate_and_clear() ;
+        #else
         for( auto & so : _streamouts ) so.invalidate() ;
         _streamouts.clear() ;
+        #endif
 
+        #if 1
+        _msls.invalidate_and_clear() ;
+        #else
         for( auto & msl : _msls.items )
         {
             msl.msl_obj.~msl_object() ;
         }
         _msls.items.clear() ;
+        #endif
 
         state_sets.clear() ;
 
@@ -2241,9 +2435,96 @@ public: // functions
     //************************************************************************************************************
     size_t construct_streamout( size_t oid, motor::graphics::streamout_object_ref_t obj ) noexcept
     {
+        #if 1
+        oid = _streamouts.access( oid, obj.name(), [&] ( this_t::so_data_ref_t config )
+        {
+            config.valid = true ;
+            config.name = obj.name() ;
+
+            // capture the vertex layout for stream out
+            if ( obj.num_buffers() > 0 )
+            {
+                obj.get_buffer( 0 ).for_each_layout_element(
+                    [&] ( motor::graphics::vertex_buffer_t::data_cref_t d )
+                {
+                    this_t::so_data::layout_element le ;
+                    le.va = d.va ;
+                    le.type = d.type ;
+                    le.type_struct = d.type_struct ;
+                    config.elements.push_back( le ) ;
+                } ) ;
+
+                config.stride = UINT( obj.get_buffer( 0 ).get_layout_sib() ) ;
+            }
+
+            // create buffers
+            {
+                obj.for_each( [&] ( size_t const i, motor::graphics::vertex_buffer_cref_t vb )
+                {
+                    if ( i >= this_t::so_data::max_buffers ) return ;
+
+                    size_t const byte_width = obj.size() * obj.get_buffer( i ).get_layout_sib() ;
+
+                    // create buffer
+                    {
+                        D3D11_BUFFER_DESC bd = {} ;
+                        bd.ByteWidth = UINT( byte_width ) ;
+                        bd.Usage = D3D11_USAGE_DEFAULT ;
+                        bd.BindFlags = D3D11_BIND_STREAM_OUTPUT | D3D11_BIND_VERTEX_BUFFER | D3D10_BIND_SHADER_RESOURCE ;
+
+                        for ( size_t j = 0; j < 2; ++j )
+                        {
+                            auto & b = config._ping_pong[ j ].buffers[ i ].invalidate() ;
+
+                            HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, NULL, b ) ;
+                            motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) ) ;
+                        }
+                    }
+
+                    // create the resource view
+                    {
+                        auto const le = obj.get_buffer( i ).get_layout_element_zero() ;
+                        D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {} ;
+                        res_desc.Format = motor::platform::d3d11::convert_type_to_vec_format( le.type, le.type_struct ) ;
+                        res_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER ;
+
+                        res_desc.Buffer.FirstElement = 0 ;
+
+                        // somehow, this can not be 0
+                        // otherwise, hr will be in valid.
+                        res_desc.Buffer.NumElements = UINT( obj.size() * obj.get_buffer( i ).get_num_layout_elements() ) ;
+
+                        for ( size_t j = 0; j < 2; ++j )
+                        {
+                            auto & b = config._ping_pong[ j ].buffers[ i ] ;
+                            auto & v = config._ping_pong[ j ].views[ i ].invalidate() ;
+                            auto const hr = _ctx->dev()->CreateShaderResourceView( b, &res_desc, v ) ;
+                            motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateShaderResourceView for buffer : [" + config.name + "]" ) ) ;
+                        }
+                    }
+                } ) ;
+
+                config.buffers_used = std::min( obj.num_buffers(), this_t::so_data::max_buffers ) ;
+            }
+
+            // create query objects
+            {
+                D3D11_QUERY_DESC qd ;
+                qd.Query = D3D11_QUERY_SO_STATISTICS ;
+                qd.MiscFlags = 0 ;
+
+                for ( size_t j = 0; j < 2; ++j )
+                {
+                    HRESULT const hr = _ctx->dev()->CreateQuery( &qd, config._ping_pong[ j ].query ) ;
+                    motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateQuery - D3D11_QUERY_SO_STATISTICS" ) ) ;
+                }
+            }
+        } ) ;
+        #else
         oid = this_t::determine_oid( oid, obj.name(), _streamouts ) ;
 
         auto & config = _streamouts[ oid ] ;
+
         config.valid = true ;
         config.name = obj.name() ;
 
@@ -2325,7 +2606,7 @@ public: // functions
                 motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateQuery - D3D11_QUERY_SO_STATISTICS" ) ) ;
             }
         }
-
+        #endif
         return oid ;
     }
 
@@ -2333,8 +2614,8 @@ public: // functions
     void_t release_streamout( size_t const oid ) noexcept
     {
         auto & d = _streamouts[ oid ] ;
-        for( size_t i=0; i<renders.size(); ++i )
-            renders[i].unlink_streamout( oid ) ;
+        for( size_t i=0; i<_renders.size(); ++i )
+            _renders[i].unlink_streamout( oid ) ;
 
         d.invalidate() ;
     }
@@ -2421,12 +2702,8 @@ public: // functions
     }
 
     //************************************************************************************************************
-    size_t construct_msl( size_t oid, motor::graphics::msl_object_ref_t obj_ )
+    size_t construct_msl( motor::graphics::msl_object_ref_t obj_ )
     {
-        // if the incoming msl shader is a library shader for example,
-        // it does not need to have a associated background object
-        oid = !obj_.name().empty() ? this_t::determine_oid( oid, obj_.name(), _msls ) : size_t(-1) ;
-
         // @todo list
         // [r] get msl shader from object
         // [r] insert in database
@@ -2445,7 +2722,10 @@ public: // functions
             _mdb.insert( std::move( doc ), config_symbols ) ;
         } ) ; 
 
-        
+     
+        // if the incoming msl shader is a library shader for example,
+        // it does not need to have a associated background object
+        size_t oid = _msls.access( obj.get_oid( _bid ), obj.name(), []( this_t::msl_data_ref_t ){} ) ;
 
         for( auto const & c : config_symbols )
         {
@@ -2463,7 +2743,7 @@ public: // functions
             #if 1
             if ( oid == size_t( -1 ) )
             {
-                auto [i, o] = _msls.find_by_name( c_exp ) ;
+                auto [i, o] = this_t::find_pair_by_name( c_exp, _msls ) ;
                 oid = i ;
                 obj = o ;
 
@@ -2584,48 +2864,55 @@ public: // functions
 
             ro.add_variable_sets( obj.get_varibale_sets() ) ;
 
+            #if 1
+            this_t::construct_shader_config( so ) ;
+            #else
             so.set_oid( _bid, this_t::construct_shader_config( so.get_oid( _bid ), so ) ) ;
+            #endif
             ro.set_oid( _bid, this_t::construct_render_config( ro.get_oid( _bid ), ro ) ) ;
             
-            auto & msl = _msls.items[oid] ;
+            //auto & msl = _msls.items[oid] ;
 
-            // render object
+            oid = _msls.access( oid, obj.name(), [&]( this_t::msl_data_ref_t msl )
             {
-                size_t i = size_t( -1 ) ;
-                while( ++i < msl.ros.size() && 
-                    std::strcmp( c_exp.c_str(), msl.ros[i].name().c_str() ) != 0 ) ;
-
-                if( i == msl.ros.size() ) msl.ros.emplace_back( std::move( ro ) ) ;
-                else msl.ros[i] = std::move( ro ) ;
-            }
-
-            // shader object
-            {
-                // reflect compilation result to the user
+                // render object
                 {
-                    auto & shd = shaders[ so.get_oid( _bid ) ] ;
+                    size_t i = size_t( -1 ) ;
+                    while ( ++i < msl.ros.size() &&
+                        std::strcmp( c_exp.c_str(), msl.ros[ i ].name().c_str() ) != 0 ) ;
 
-                    obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
+                    if ( i == msl.ros.size() ) msl.ros.emplace_back( std::move( ro ) ) ;
+                    else msl.ros[ i ] = std::move( ro ) ;
+                }
+
+                // shader object
+                {
+                    // reflect compilation result to the user
                     {
-                        auto const s = shd.compiled ? 
-                            motor::graphics::compilation_listener::state::successful :
-                            motor::graphics::compilation_listener::state::failed ;
+                        auto & shd = shaders[ so.get_oid( _bid ) ] ;
 
-                        lst->set( s, so.shader_bindings() ) ;
-                    } ) ;
+                        obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
+                        {
+                            auto const s = shd.compiled ?
+                                motor::graphics::compilation_listener::state::successful :
+                                motor::graphics::compilation_listener::state::failed ;
+
+                            lst->set( s, so.shader_bindings() ) ;
+                        } ) ;
+                    }
+
+                    {
+                        size_t i = size_t( -1 ) ;
+                        while ( ++i < msl.sos.size() &&
+                            std::strcmp( msl.sos[ i ].name().c_str(), c_exp.c_str() ) != 0 ) ;
+
+                        if ( i == msl.sos.size() ) msl.sos.emplace_back( std::move( so ) ) ;
+                        else msl.sos[ i ] = std::move( so ) ;
+                    }
                 }
 
-                {
-                    size_t i = size_t(-1) ;
-                    while( ++i < msl.sos.size() && 
-                        std::strcmp( msl.sos[i].name().c_str(), c_exp.c_str() ) != 0 ) ;
-                    
-                    if( i == msl.sos.size() ) msl.sos.emplace_back( std::move( so ) ) ;
-                    else msl.sos[i] = std::move( so ) ;
-                }
-            }
-            
-            msl.msl_obj = obj ;
+                msl.msl_obj = obj ;
+            } ) ;
         }
         return oid ;
     }
@@ -2633,121 +2920,127 @@ public: // functions
     //************************************************************************************************************
     size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj )
     {
-        oid = this_t::determine_oid( oid, obj.name(), geo_datas ) ;
+        #if 0
+        oid = this_t::determine_oid( oid, obj.name(), _geos ) ;
 
-        auto & config = geo_datas[ oid ] ;
-        config.valid = true ;
-        config.name = obj.name() ;
+        auto & config = _geos[ oid ] ;
+        #endif
 
-        config.pt = obj.primitive_type() ;
-
-        // vertex buffer object
+        oid = _geos.access( oid, obj.name(), [&]( this_t::geo_data_ref_t config )
         {
-            obj.vertex_buffer().for_each_layout_element(
-                [&] ( motor::graphics::vertex_buffer_t::data_cref_t d )
+            config.valid = true ;
+            config.name = obj.name() ;
+
+            config.pt = obj.primitive_type() ;
+
+            // vertex buffer object
             {
-                this_t::geo_data::layout_element le ;
-                le.va = d.va ;
-                le.type = d.type ;
-                le.type_struct = d.type_struct ;
-                config.elements.push_back( le ) ;
-            } ) ;
-
-            config.stride = UINT( obj.vertex_buffer().get_layout_sib() ) ;
-
-            // = number of vertices * sizeof( vertex )
-            // if there are vertices already setup, take the numbers
-            size_t const byte_width = obj.vertex_buffer().get_sib() ;
-
-            D3D11_BUFFER_DESC bd = { } ;
-            bd.Usage = D3D11_USAGE_DYNAMIC ;
-            // using max of 1 sib so empty vbs will create and will 
-            // be resized in the update function. Important for now
-            // is that the buffer will be NOT nullptr.
-            bd.ByteWidth = UINT( std::max( byte_width, size_t( 1 ) ) ) ;
-            bd.BindFlags = D3D11_BIND_VERTEX_BUFFER ;
-            bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
-
-            motor::memory::global_t::dealloc_raw( config.vb_mem ) ;
-            config.vb_mem = motor::memory::global_t::alloc_raw< uint8_t >( 
-                byte_width, "[d3d11] : vertex buffer memory" ) ;
-
-            if( config.vb != nullptr ) 
-            {
-                config.vb->Release() ;
-                config.vb = nullptr ;
-            }
-
-            if( byte_width != 0 )
-            {
-                D3D11_SUBRESOURCE_DATA init_data = { } ;
-                init_data.pSysMem = ( void_cptr_t ) config.vb_mem ;
-
-                std::memcpy( config.vb_mem, obj.vertex_buffer().data(), byte_width ) ;
-
-                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.vb ) ;
-                if( FAILED( hr ) )
+                obj.vertex_buffer().for_each_layout_element(
+                    [&] ( motor::graphics::vertex_buffer_t::data_cref_t d )
                 {
-                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    this_t::geo_data::layout_element le ;
+                    le.va = d.va ;
+                    le.type = d.type ;
+                    le.type_struct = d.type_struct ;
+                    config.elements.push_back( le ) ;
+                } ) ;
+
+                config.stride = UINT( obj.vertex_buffer().get_layout_sib() ) ;
+
+                // = number of vertices * sizeof( vertex )
+                // if there are vertices already setup, take the numbers
+                size_t const byte_width = obj.vertex_buffer().get_sib() ;
+
+                D3D11_BUFFER_DESC bd = {} ;
+                bd.Usage = D3D11_USAGE_DYNAMIC ;
+                // using max of 1 sib so empty vbs will create and will 
+                // be resized in the update function. Important for now
+                // is that the buffer will be NOT nullptr.
+                bd.ByteWidth = UINT( std::max( byte_width, size_t( 1 ) ) ) ;
+                bd.BindFlags = D3D11_BIND_VERTEX_BUFFER ;
+                bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
+
+                motor::memory::global_t::dealloc_raw( config.vb_mem ) ;
+                config.vb_mem = motor::memory::global_t::alloc_raw< uint8_t >(
+                    byte_width, "[d3d11] : vertex buffer memory" ) ;
+
+                if ( config.vb != nullptr )
+                {
+                    config.vb->Release() ;
+                    config.vb = nullptr ;
+                }
+
+                if ( byte_width != 0 )
+                {
+                    D3D11_SUBRESOURCE_DATA init_data = {} ;
+                    init_data.pSysMem = (void_cptr_t) config.vb_mem ;
+
+                    std::memcpy( config.vb_mem, obj.vertex_buffer().data(), byte_width ) ;
+
+                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.vb ) ;
+                    if ( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    }
+                }
+                else
+                {
+                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.vb ) ;
+                    if ( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    }
                 }
             }
-            else
+
+            // index buffer object
+            if ( obj.index_buffer().get_num_elements() != 0 )
             {
-                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.vb ) ;
-                if( FAILED( hr ) )
+                // = number of vertices * sizeof( index_t )
+                size_t const byte_width = obj.index_buffer().get_sib() ;
+
+                D3D11_BUFFER_DESC bd = {} ;
+                bd.Usage = D3D11_USAGE_DYNAMIC ;
+                // using max of 1 sib so empty ibs will create and will 
+                // be resized in the update function. Important for now
+                // is that the buffer will be NOT nullptr.
+                bd.ByteWidth = uint_t( std::max( byte_width, size_t( 1 ) ) ) ;
+                bd.BindFlags = D3D11_BIND_INDEX_BUFFER ;
+                bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
+
+                motor::memory::global_t::dealloc_raw( config.ib_mem ) ;
+                config.ib_mem = motor::memory::global_t::alloc_raw< uint8_t >(
+                    byte_width, "[d3d11] : index buffer memory" ) ;
+
+                if ( config.ib != nullptr )
                 {
-                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    config.ib->Release() ;
+                    config.ib = nullptr ;
+                }
+
+                if ( byte_width != 0 )
+                {
+                    D3D11_SUBRESOURCE_DATA init_data = {} ;
+                    init_data.pSysMem = (void_cptr_t) config.ib_mem ;
+
+                    std::memcpy( config.ib_mem, obj.index_buffer().data(), byte_width ) ;
+
+                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.ib ) ;
+                    if ( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
+                    }
+                }
+                else
+                {
+                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.ib ) ;
+                    if ( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
+                    }
                 }
             }
-        }
-
-        // index buffer object
-        if( obj.index_buffer().get_num_elements() != 0 )
-        {
-            // = number of vertices * sizeof( index_t )
-            size_t const byte_width = obj.index_buffer().get_sib() ;
-
-            D3D11_BUFFER_DESC bd = { } ;
-            bd.Usage = D3D11_USAGE_DYNAMIC ;
-            // using max of 1 sib so empty ibs will create and will 
-            // be resized in the update function. Important for now
-            // is that the buffer will be NOT nullptr.
-            bd.ByteWidth = uint_t( std::max( byte_width, size_t( 1 ) ) ) ;
-            bd.BindFlags = D3D11_BIND_INDEX_BUFFER ;
-            bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
-
-            motor::memory::global_t::dealloc_raw( config.ib_mem ) ;
-            config.ib_mem = motor::memory::global_t::alloc_raw< uint8_t >(
-                byte_width, "[d3d11] : index buffer memory" ) ;
-
-            if( config.ib != nullptr )
-            {
-                config.ib->Release() ;
-                config.ib = nullptr ;
-            }
-
-            if( byte_width != 0 )
-            {
-                D3D11_SUBRESOURCE_DATA init_data = { } ;
-                init_data.pSysMem = ( void_cptr_t ) config.ib_mem ;
-
-                std::memcpy( config.ib_mem, obj.index_buffer().data(), byte_width ) ;
-
-                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.ib ) ;
-                if( FAILED( hr ) )
-                {
-                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
-                }
-            }
-            else
-            {
-                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.ib ) ;
-                if( FAILED( hr ) )
-                {
-                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
-                }
-            }
-        }
+        } ) ;
 
         return oid ;
     }
@@ -2755,17 +3048,17 @@ public: // functions
     //************************************************************************************************************
     void_t release_geometry( size_t const oid ) noexcept 
     {
-        for( size_t i=0; i<renders.size(); ++i )
-            renders[i].unlink_geometry( oid ) ;
+        for( size_t i=0; i<_renders.size(); ++i )
+            _renders[i].unlink_geometry( oid ) ;
 
-        auto & o = geo_datas[ oid ] ;
+        auto & o = _geos[ oid ] ;
         o.invalidate() ;
     }
 
     //************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::geometry_object_mtr_t geo )
     {
-        auto& config = geo_datas[ id ] ;
+        auto& config = _geos[ id ] ;
         if( !config.valid ) return false ;
 
         if( geo->index_buffer().get_num_elements() != 0 && config.ib == nullptr )
@@ -3140,9 +3433,10 @@ public: // functions
     }
 
     //************************************************************************************************************
-    // old interface for constructing shader data. @see construct_shader_data.
-    size_t construct_shader_config( size_t oid, motor::graphics::shader_object_ref_t obj )
+    bool_t construct_shader_config( motor::graphics::shader_object_ref_t obj )
     {
+        size_t oid = obj.get_oid( _bid ) ;
+
         this_t::shader_data_t new_shader ;
         if( this_t::construct_shader_data( obj, new_shader ) ) 
         {
@@ -3151,33 +3445,69 @@ public: // functions
 
             new_shader.valid = true ;
             old_shader = std::move( new_shader ) ;
-        }
-        else
-        {
-            // compilation failed.
-        }
 
-        return oid ;
+            obj.set_oid( _bid, oid ) ;
+
+            return true ;
+        }
+        
+        
+        // compilation failed.
+        
+
+        return false ;
     }
 
     //************************************************************************************************************
     void_t release_shader_data( size_t const oid ) noexcept 
     {
-        for( auto & r : renders )
+        #if 1
+        _renders.for_each( [&]( this_t::render_data & rd )
+        {
+            if( rd.shd_id == oid ) rd.shd_id = size_t( -1 ) ;
+        } ) ;
+        #else
+        for( auto & r : _renders )
         {
             if( r.shd_id == oid ) r.shd_id = size_t( -1 ) ;
         }
-        
+        #endif
+
         auto & o = shaders[ oid ] ;
         o.invalidate() ;
     }
 
     //************************************************************************************************************
-    size_t construct_render_config( size_t oid, motor::graphics::render_object_ref_t obj )
+    // @param sid shader oid if known
+    size_t construct_render_config( size_t oid, motor::graphics::render_object_ref_t obj, size_t const sid = size_t(-1) )
     {
-        oid = this_t::determine_oid( oid, obj.name(), renders ) ;
+        #if 1
+        oid = _renders.access( oid, obj.name(), [&]( this_t::render_data_ref_t rd )
+        {
+            if ( rd.vertex_layout != nullptr )
+            {
+                rd.vertex_layout->Release() ;
+                rd.vertex_layout = nullptr ;
+            }
+
+            if ( rd.vertex_layout_so != nullptr )
+            {
+                rd.vertex_layout_so->Release() ;
+                rd.vertex_layout_so = nullptr ;
+            }
+
+            std::memset( rd.layout, 0, ARRAYSIZE( rd.layout ) ) ;
+
+            {
+                auto const res = this_t::update( rd, obj ) ;
+                motor::log::global_t::error( !res, "[d3d11] : update from construct_render_config" ) ;
+            }
+
+        } ) ;
+        #else
+        oid = this_t::determine_oid( oid, obj.name(), _renders ) ;
         
-        this_t::render_data_ref_t rd = renders[ oid ] ;
+        this_t::render_data_ref_t rd = _renders[ oid ] ;
         rd.name = obj.name() ;
 
         if( rd.vertex_layout != nullptr )
@@ -3198,21 +3528,20 @@ public: // functions
             auto const res = this_t::update( oid, obj ) ;
             motor::log::global_t::error( !res, "[d3d11] : update from construct_render_config") ;
         }
-
+        #endif
         return oid ;
     }
 
     //************************************************************************************************************
     void_t release_render_data( size_t const oid ) noexcept 
     {
-        auto & o = renders[ oid ] ;
+        auto & o = _renders[ oid ] ;
         o.invalidate() ;
     }
 
     //************************************************************************************************************
-    bool_t update( size_t const id, motor::graphics::render_object_ref_t rc )
+    bool_t update( this_t::render_data_ref_t rd, motor::graphics::render_object_ref_t rc )
     {
-        auto& rd = renders[ id ] ;
         rd.shd_id = size_t( -1 ) ;
 
         // find geometry
@@ -3220,20 +3549,32 @@ public: // functions
             rd.geo_ids.clear() ;
             for( size_t i=0; i<rc.get_num_geometry(); ++i )
             {
-                auto const iter = std::find_if( geo_datas.begin(), geo_datas.end(),
+                #if 1 
+                auto const id_ = _geos.find_by_name( rc.get_geometry( i ) ) ;
+                if ( id_ == size_t( -1 ) )
+                {
+                    motor::log::global_t::warning( d3d11_backend_log(
+                        "no geometry with name [" + rc.get_geometry( i ) + "] for render_config [" + rc.name() + "]" ) ) ;
+                    continue ;
+                }
+
+                rd.geo_ids.emplace_back( id_ ) ;
+                #else
+                auto const iter = std::find_if( _geos.begin(), _geos.end(),
                 [&] ( this_t::geo_data_cref_t d )
                 {
                     return d.name == rc.get_geometry( i ) ;
                 } ) ;
 
-                if( iter == geo_datas.end() )
+                if( iter == _geos.end() )
                 {
                     motor::log::global_t::warning( d3d11_backend_log(
                         "no geometry with name [" + rc.get_geometry() + "] for render_config [" + rc.name() + "]" ) ) ;
                     continue ;
                 }
 
-                rd.geo_ids.emplace_back( std::distance( geo_datas.begin(), iter ) ) ;
+                rd.geo_ids.emplace_back( std::distance( _geos.begin(), iter ) ) ;
+                #endif
             }
         }
 
@@ -3242,6 +3583,17 @@ public: // functions
             rd.so_ids.clear() ;
             for( size_t i=0; i<rc.get_num_streamout(); ++i )
             {
+                #if 1
+                auto const id_ = _streamouts.find_by_name( rc.get_streamout( i ) ) ;
+                if ( id_ == size_t( -1 ) )
+                {
+                    motor::log::global_t::warning( d3d11_backend_log(
+                        "no streamout with name [" + rc.get_streamout( i ) + "] for render_config [" + rc.name() + "]" ) ) ;
+                    continue ;
+                }
+
+                rd.so_ids.emplace_back( id_ ) ;
+                #else
                 auto const iter = std::find_if( _streamouts.begin(), _streamouts.end(),
                     [&] ( this_t::so_data const& d )
                 {
@@ -3256,6 +3608,7 @@ public: // functions
                 }
 
                 rd.so_ids.emplace_back( std::distance( _streamouts.begin(), iter ) ) ;
+                #endif
             }
         }
 
@@ -3301,7 +3654,7 @@ public: // functions
             // used geometry layout (next section) and the shader input
             // attribute order.
             {
-                this_t::geo_data_ref_t geo = geo_datas[ rd.geo_ids[0] ] ;
+                this_t::geo_data_ref_t geo = _geos[ rd.geo_ids[0] ] ;
 
                 for( size_t i = 0; i<vibs.size(); ++i )
                 {
@@ -3335,7 +3688,7 @@ public: // functions
                 {
                     char_cptr_t name = motor::platform::d3d11::vertex_binding_to_semantic( b.va ) ;
                     UINT const semantic_index = motor::platform::d3d11::vertex_output_binding_to_semantic_index( b.va ) ;
-                    DXGI_FORMAT const fmt = geo_datas[rd.geo_ids[0]].get_format_from_element( b.va ) ;
+                    DXGI_FORMAT const fmt = _geos[rd.geo_ids[0]].get_format_from_element( b.va ) ;
                     UINT input_slot = 0 ;
                     UINT aligned_byte_offset = offset ;
                     D3D11_INPUT_CLASSIFICATION const iclass = D3D11_INPUT_PER_VERTEX_DATA ;
@@ -3344,7 +3697,7 @@ public: // functions
                     rd.layout[ i++ ] = { name, semantic_index, fmt, input_slot, 
                         aligned_byte_offset, iclass, instance_data_step_rate } ;
 
-                    offset += geo_datas[rd.geo_ids[0]].get_sib( b.va ) ;
+                    offset += _geos[rd.geo_ids[0]].get_sib( b.va ) ;
                 }
 
                 UINT const num_elements = UINT( i ) ;
@@ -3583,7 +3936,7 @@ public: // functions
         }
 
         auto array_variable_mapping = [&]( motor::graphics::render_object_ref_t rc_,
-            pimpl::so_datas_t & streamouts, 
+            pimpl::streamout_datas_t & streamouts, 
             this_t::render_data_t::varsets_to_buffers_t & var_sets_buffers, 
             this_t::render_data_t::varsets_to_buffers_t & var_sets_buffers_so,
              pimpl::shader_data_t::buffer_variables_ref_t the_buffer )
@@ -3596,10 +3949,10 @@ public: // functions
                 {
                     // first try data_buffers...
                     motor::string_t const name = vs->array_variable( t.name )->get().name() ;
-                    size_t const i = this_t::find_index_by_resource_name( name, arrays ) ;
+                    size_t const i = _arrays.find_by_name( name ) ;
 
                     // ... if the stored variable name is found in the data_buffers array, it is used ...
-                    if( i < arrays.size() )
+                    if( i < _arrays.size() )
                     {
                         this_t::render_data_t::buffer_variable_t bv ;
                         bv.id = i ;
@@ -3611,7 +3964,7 @@ public: // functions
                     else
                     {
                         motor::string_t const name2 = vs->array_variable_streamout( t.name )->get().name() ;
-                        size_t const i2 = this_t::find_index_by_resource_name( name2, streamouts ) ;
+                        size_t const i2 = streamouts.find_by_name( name2 ) ;
                         
                         if( i2 < streamouts.size() )
                         {
@@ -3639,14 +3992,18 @@ public: // functions
     }
 
     //************************************************************************************************************
-    bool_t update( size_t const id, motor::graphics::msl_object_ref_t obj, size_t const vs_id )
+    bool_t update( size_t const oid, motor::graphics::msl_object_ref_t obj, size_t const vs_id )
     {
-        size_t const num_ros = _msls.items[id].ros.size() ;
-        for( size_t i=0; i<num_ros; ++i )
+        _msls.access( oid, obj.name(), [&]( this_t::msl_data_ref_t msl )
         {
-            this_t::update( _msls.items[id].ros[i].get_oid( _bid ), _msls.items[id].ros[i], vs_id ) ;
-        }
-        return true ;return true ;
+            size_t const num_ros = msl.ros.size() ;
+            for ( size_t i = 0; i < num_ros; ++i )
+            {
+                this_t::update( msl.ros[ i ].get_oid( _bid ), msl.ros[ i ], vs_id ) ;
+            }
+        } ) ;
+        
+        return true ;
     }
 
     //************************************************************************************************************
@@ -3786,88 +4143,90 @@ public: // functions
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : construct array object" ) ;
 
-        oid = this_t::determine_oid( oid, obj.name(), arrays ) ;
-
         // only vec4 float allowed
         {
             bool_t valid = true ;
-            obj.data_buffer().for_each_layout_element( [&]( motor::graphics::data_buffer::layout_element_cref_t le )
+            obj.data_buffer().for_each_layout_element( [&] ( motor::graphics::data_buffer::layout_element_cref_t le )
             {
-                if( le.type != motor::graphics::type::tfloat &&
+                if ( le.type != motor::graphics::type::tfloat &&
                     le.type_struct != motor::graphics::type_struct::vec4 ) valid = false ;
             } ) ;
 
-            if( !valid )
+            if ( !valid )
             {
-                motor::log::global_t::error("[d3d11] : data buffer must only consist of vec4f layout elements.") ;
+                motor::log::global_t::error( "[d3d11] : data buffer must only consist of vec4f layout elements." ) ;
                 return oid ;
             }
         }
 
-        this_t::array_data_ref_t data = arrays[ oid ] ;
-        data.name = obj.name() ;
-
-        ID3D11Device * dev = _ctx->dev() ;
-        
-        // = number of vertices * sizeof( vertex )
-        // if there are vertices already setup, take the numbers
-        size_t const byte_width = obj.data_buffer().get_sib() ;
-
-        if( data.buffer != nullptr ) 
+        //oid = this_t::determine_oid( oid, obj.name(), _arrays ) ;
+        //this_t::array_data_ref_t data = _arrays[ oid ] ;
+        oid = _arrays.access( oid, obj.name(), [&]( this_t::array_data_ref_t data )
         {
-            data.buffer->Release() ;
-            data.buffer = nullptr ;
-        }
+            data.name = obj.name() ;
 
-        // this release is important for releasing the
-        // buffer reference too.
-        if( data.view != nullptr ) 
-        {
-            data.view->Release() ;
-            data.view = nullptr ;
-        }
-        
-        // must be 16 in order to have access to all data.
-        // this is independent from the number of layout elements.
-        // latout elements may only have vec4f inserted!
-        size_t const elem_sib = 16 ; // sizeof( vec4f ) ;
+            ID3D11Device * dev = _ctx->dev() ;
 
-        // create the buffer
-        {
-            D3D11_BUFFER_DESC bd = { } ;
-            bd.Usage = D3D11_USAGE_DYNAMIC ;
-            // using max of 1 sib so empty vbs will create and will 
-            // be resized in the update function. Important for now
-            // is that the buffer will be NOT nullptr.
-            bd.ByteWidth = UINT( std::max( byte_width, elem_sib ) ) ;
-            bd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D10_BIND_SHADER_RESOURCE ;
-            bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
+            // = number of vertices * sizeof( vertex )
+            // if there are vertices already setup, take the numbers
+            size_t const byte_width = obj.data_buffer().get_sib() ;
 
-            HRESULT const hr = dev->CreateBuffer( &bd, nullptr, data.buffer ) ;
-            if( FAILED( hr ) )
+            if ( data.buffer != nullptr )
             {
-                motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_DATA_BUFFER" ) ) ;
+                data.buffer->Release() ;
+                data.buffer = nullptr ;
             }
-        }
-            
-        // create the resource view
-        {
-            D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = { } ;
-            res_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT ;
-            res_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER ;
 
-            res_desc.Buffer.FirstElement= 0 ;
-
-            // somehow, this can not be 0
-            // otherwise, hr will be in valid.
-            res_desc.Buffer.NumElements = std::max( UINT( byte_width ) / UINT(elem_sib), 1u ) ; 
-
-            auto const hr = dev->CreateShaderResourceView( data.buffer, &res_desc, data.view ) ;
-            if( FAILED( hr ) )
+            // this release is important for releasing the
+            // buffer reference too.
+            if ( data.view != nullptr )
             {
-                motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for buffer : [" + data.name + "]" ) ) ;
+                data.view->Release() ;
+                data.view = nullptr ;
             }
-        }
+
+            // must be 16 in order to have access to all data.
+            // this is independent from the number of layout elements.
+            // layout elements may only have vec4f inserted!
+            size_t const elem_sib = 16 ; // sizeof( vec4f ) ;
+
+            // create the buffer
+            {
+                D3D11_BUFFER_DESC bd = {} ;
+                bd.Usage = D3D11_USAGE_DYNAMIC ;
+                // using max of 1 sib so empty vbs will create and will 
+                // be resized in the update function. Important for now
+                // is that the buffer will be NOT nullptr.
+                bd.ByteWidth = UINT( std::max( byte_width, elem_sib ) ) ;
+                bd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D10_BIND_SHADER_RESOURCE ;
+                bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
+
+                HRESULT const hr = dev->CreateBuffer( &bd, nullptr, data.buffer ) ;
+                if ( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_DATA_BUFFER" ) ) ;
+                }
+            }
+
+            // create the resource view
+            {
+                D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {} ;
+                res_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT ;
+                res_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER ;
+
+                res_desc.Buffer.FirstElement = 0 ;
+
+                // somehow, this can not be 0
+                // otherwise, hr will be in valid.
+                res_desc.Buffer.NumElements = std::max( UINT( byte_width ) / UINT( elem_sib ), 1u ) ;
+
+                auto const hr = dev->CreateShaderResourceView( data.buffer, &res_desc, data.view ) ;
+                if ( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for buffer : [" + data.name + "]" ) ) ;
+                }
+            }
+        } ) ;
 
         return oid ;
     }
@@ -3875,7 +4234,7 @@ public: // functions
     //************************************************************************************************************
     void_t release_array_data( size_t const oid ) noexcept 
     {
-        auto & o = arrays[ oid ] ;
+        auto & o = _arrays[ oid ] ;
         o.invalidate() ;
     }
 
@@ -3884,7 +4243,7 @@ public: // functions
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update array object" ) ;
 
-        auto & data = arrays[ id ] ;
+        auto & data = _arrays[ id ] ;
         
         D3D11_BUFFER_DESC bd ;
         data.buffer->GetDesc( &bd ) ;
@@ -3969,7 +4328,7 @@ public: // functions
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update render object" ) ;
 
-        this_t::render_data_ref_t rnd = renders[ id ] ;
+        this_t::render_data_ref_t rnd = _renders[ id ] ;
 
         if( !rnd.valid ) return false ;
         
@@ -4091,7 +4450,7 @@ public: // functions
     {        
         MOTOR_PROBE( "Graphics", "[d3d11] : render" ) ;
 
-        this_t::render_data_ref_t rnd = renders[ id ] ;
+        this_t::render_data_ref_t rnd = _renders[ id ] ;
 
         if( rnd.shd_id == size_t( -1 ) )
         {
@@ -4133,7 +4492,7 @@ public: // functions
 
             for( auto& buf : rnd.var_sets_buffers_vs[ varset_id ].second )
             {
-                ctx->VSSetShaderResources( buf.slot, 1, arrays[ buf.id ].view ) ;
+                ctx->VSSetShaderResources( buf.slot, 1, _arrays[ buf.id ].view ) ;
             }
             
             for( auto& buf : rnd.var_sets_buffers_so_vs[ varset_id ].second )
@@ -4155,7 +4514,7 @@ public: // functions
 
             for( auto& buf : rnd.var_sets_buffers_gs[ varset_id ].second )
             {
-                ctx->GSSetShaderResources( buf.slot, 1, arrays[ buf.id ].view ) ;
+                ctx->GSSetShaderResources( buf.slot, 1, _arrays[ buf.id ].view ) ;
             }
             
             for( auto& buf : rnd.var_sets_buffers_so_gs[ varset_id ].second )
@@ -4190,7 +4549,7 @@ public: // functions
 
             for( auto& buf : rnd.var_sets_buffers_ps[ varset_id ].second )
             {
-                ctx->PSSetShaderResources( buf.slot, 1, arrays[ buf.id ].view ) ;
+                ctx->PSSetShaderResources( buf.slot, 1, _arrays[ buf.id ].view ) ;
             }
         }
 
@@ -4230,7 +4589,7 @@ public: // functions
             // this path uses the geometry but should render just the number of captured primitives using DrawAuto
             else 
             {
-                this_t::geo_data_ref_t geo = geo_datas[ rnd.geo_ids[geo_idx] ] ;
+                this_t::geo_data_ref_t geo = _geos[ rnd.geo_ids[geo_idx] ] ;
 
                 UINT const stride = geo.stride ;
                 UINT const offset = 0 ;
@@ -4251,7 +4610,7 @@ public: // functions
         // this path must be used with the queried number of prims written in so_stats
         else // feed from geometry path
         {
-            this_t::geo_data_ref_t geo = geo_datas[ rnd.geo_ids[geo_idx] ] ;
+            this_t::geo_data_ref_t geo = _geos[ rnd.geo_ids[geo_idx] ] ;
 
             if( _cur_streamout_active != size_t( -1 ) )
             {
@@ -4631,7 +4990,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
     }
 
     size_t const oid = obj->set_oid( this_t::get_bid(), 
-        _pimpl->construct_msl( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
+        _pimpl->construct_msl( *obj ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4688,8 +5047,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::shader_object
     }
         
     {
-        obj->set_oid( this_t::get_bid(),
-            _pimpl->construct_shader_config( obj->get_oid( this_t::get_bid() ), *obj ) ) ;
+        _pimpl->construct_shader_config( *obj ) ;
     }
 
     #if 0
@@ -5150,11 +5508,24 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
         return motor::graphics::result::failed ;
     }
 
+    #if 1
+
+    motor::graphics::result res = motor::graphics::result::failed ;
+
+    _pimpl->_msls.access( oid, obj->name(), [&]( pimpl::msl_data_ref_t msl )
+    {
+        motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
+        res = this_t::render( ro, detail ) ;
+    } ) ;
+    return res ;
+
+    #else
     auto & msl = _pimpl->_msls.items[oid] ;
     
     motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
 
     return this_t::render( ro, detail ) ;
+    #endif
 }
 
 //************************************************************************************************************
