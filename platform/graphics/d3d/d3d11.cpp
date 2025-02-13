@@ -146,8 +146,18 @@ struct d3d11_backend::pimpl
 
         assert( oid == size_t(-1) && "must be -1. if oid != -1 => object MUST be valid!" ) ;
 
+        // we have to search for the name first. This can happen
+        // if a shader/msl object is recompiled.
+        {
+            while ( ++oid < v.size() && v[ oid ].name != name ) ;
+            if ( oid < v.size() ) return oid ;
+        }
+
         // look for the next invalid item to be reused.
-        while ( ++oid < v.size() && v[ oid ].valid ) ;
+        {
+            oid = size_t( -1 ) ;
+            while ( ++oid < v.size() && v[ oid ].valid ) ;
+        }
 
         if ( oid >= v.size() )
         {
@@ -278,6 +288,25 @@ struct d3d11_backend::pimpl
             if( i == items.size() ) return false ;
 
             funk( i, items[ i ] ) ;
+
+            return true ;
+        }
+
+        bool_t find_ro( motor::string_in_t name, std::function< void_t ( size_t const, T & ) > funk ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+
+            size_t j = 0;
+            for(j; j<items.size(); ++j ) 
+            {
+                auto i = size_t( -1 ) ;
+                while ( ++i < items[j].ros.size() && items[ j ].ros[i].name() != name ) ;
+                if( i != items[j].ros.size() ) break ;
+            }
+            
+            if( j == items.size() ) return false ;
+
+            funk( j, items[ j ] ) ;
 
             return true ;
         }
@@ -1359,10 +1388,11 @@ public: // msl data
     using msl_datas_t = datas< msl_data > ;
     msl_datas_t _msls ;
 
-    static std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_name( motor::string_in_t name, msl_datas_t & msls ) noexcept
+    // find a msl object by a render object name
+    static std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_ro_name( motor::string_in_t name, msl_datas_t & msls ) noexcept
     {
         auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object_t() ) ;
-        auto const res = msls.find( name, [&]( size_t const id, pimpl::msl_data_ref_t d )
+        auto const res = msls.find_ro( name, [&]( size_t const id, pimpl::msl_data_ref_t d )
         {
             ret = std::make_pair( id, d.msl_obj ) ;
         } ) ;
@@ -2727,6 +2757,10 @@ public: // functions
         // it does not need to have a associated background object
         size_t oid = _msls.access( obj.get_oid( _bid ), obj.name(), []( this_t::msl_data_ref_t ){} ) ;
 
+        // if -1, it is propably a library shader or some tmp 
+        // msl object. So do not return any valid is below.
+        bool_t const is_valid_msl = oid != size_t(-1) ;
+        
         for( auto const & c : config_symbols )
         {
             auto const c_exp = c.expand() ;
@@ -2743,7 +2777,7 @@ public: // functions
             #if 1
             if ( oid == size_t( -1 ) )
             {
-                auto [i, o] = this_t::find_pair_by_name( c_exp, _msls ) ;
+                auto [i, o] = this_t::find_pair_by_ro_name( c_exp, _msls ) ;
                 oid = i ;
                 obj = o ;
 
@@ -2914,7 +2948,7 @@ public: // functions
                 msl.msl_obj = obj ;
             } ) ;
         }
-        return oid ;
+        return is_valid_msl ? oid : size_t(-1) ;
     }
 
     //************************************************************************************************************
