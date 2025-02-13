@@ -111,11 +111,10 @@ namespace motor
 
             void_t reader_increment( void_t ) noexcept
             {
-                // just increment reader semaphore
-                _reader.increment() ;
-
-                // ensure that no writer is in critical section
-                _writer.wait( 0, 0 ) ;
+                _writer.wait( 0, [&] ( void_t )
+                {
+                    _reader.increment() ;
+                } ) ;
             }
 
             void_t reader_decrement( void_t )
