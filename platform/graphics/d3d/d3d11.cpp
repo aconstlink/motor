@@ -232,13 +232,9 @@ struct d3d11_backend::pimpl
     {
         motor_this_typedefs( datas< T > ) ;
 
-
-    public:
-
-        mutable motor::concurrent::mrsw_t mtx ;
-
     private:
 
+        mutable motor::concurrent::mrsw_t mtx ;
         motor::vector< T > items ;
 
     public:
@@ -948,6 +944,9 @@ struct d3d11_backend::pimpl
         }
     };
     motor_typedef( image_data ) ;
+    //typedef motor::vector< this_t::image_data > image_datas_t ;
+    using image_datas_t = datas< image_data_t > ;
+    image_datas_t _images ;
 
     //*******************************************************************************************
     struct array_data
@@ -1407,64 +1406,6 @@ public: // msl data
     } ;
     motor_typedef( msl_data ) ;
 
-    //*******************************************************************************************
-    #if 0
-    struct msl_datas
-    {
-        motor_this_typedefs( msl_datas ) ;
-
-        mutable motor::concurrent::mrsw_t mtx ;
-        motor::vector< pimpl::msl_data > items ;
-
-        msl_datas( void_t ) noexcept{}
-        msl_datas( this_rref_t rhv ) noexcept : items( std::move( rhv.items ) ){}
-        this_ref_t operator = ( this_rref_t rhv ) noexcept
-        {
-            items = std::move( rhv.items ) ;
-            return *this ;
-        }
-
-        // lock: reader over items
-        // structured binding usage: 
-        // auto [ idx, msl_obj ] = d.find_by_name( "some_name" ) ;
-        std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_name( motor::string_in_t name ) const noexcept
-        {
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-
-            auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object() ) ;
-
-            for ( size_t i = 0; i < items.size(); ++i )
-            {
-                auto & d = items[ i ] ;
-
-                // search
-                {
-                    auto j = size_t( -1 ) ;
-                    while ( ++j < d.ros.size() &&
-                        std::strcmp( d.ros[ j ].name().c_str(), name.c_str() ) != 0 ) ;
-                    if ( j == d.ros.size() ) continue ;
-                }
-
-                ret = std::make_pair( i, d.msl_obj ) ;
-                break ;
-            }
-
-            return ret ;
-        }
-
-        size_t find_id_by_name( motor::string_in_t name ) const noexcept
-        {
-            if( name.empty() ) return size_t(-1) ;
-
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-
-            size_t i = size_t(-1) ;
-            while( ++i < items.size() && items[i].name != name ) ;
-
-            return i == items.size() ? size_t(-1) : i ;
-        }
-    };
-    #endif
     using msl_datas_t = datas< msl_data > ;
     msl_datas_t _msls ;
 
@@ -1524,9 +1465,6 @@ public: // other variables
     motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0 ;
     motor::platform::d3d11::rendering_context_mtr_t _ctx ;
 
-    typedef motor::vector< this_t::image_data > image_datas_t ;
-    image_datas_t images ;
-
     typedef motor::vector< this_t::state_data_t > states_t ;
     states_t state_sets ;
 
@@ -1542,7 +1480,7 @@ public: // compilation thread ;
 
     struct compilation_work_item
     {
-        motor::graphics::msl_object_ptr_t msl ;
+        motor::graphics::msl_object_mtr_safe_t msl ;
         motor::graphics::msl_object_t obj ;
     };
     motor_typedef( compilation_work_item ) ;
@@ -1621,6 +1559,8 @@ public: // compilation thread ;
                 // do work here
                 for ( auto & item : items )
                 {
+                    if( !ctsd->running ) break ;
+
                     auto obj = std::move( item.obj ) ;
 
                     motor::vector< motor::msl::symbol_t > config_symbols ;
@@ -1826,10 +1766,17 @@ public: // compilation thread ;
                     // needs to go back to the caller
                     if( is_valid_msl ) 
                     {
-                        //obj.set_oid( bid, oid ) ;
                         item.msl->set_oid( bid, oid ) ;
                     }
                 }
+
+                // must do the release afterwards in case
+                // thread was killed during work load.
+                for( auto & item : items )
+                {
+                    motor::release( motor::move( item.msl ) ) ;
+                }
+
                 items.clear() ;
             }
 
@@ -1895,7 +1842,7 @@ public: // functions
 
         motor_move_member_ptr( _ctx, rhv ) ;
         _geos = std::move( rhv._geos ) ;
-        images = std::move( rhv.images ) ;
+        _images = std::move( rhv._images ) ;
         _shaders = std::move( rhv._shaders ) ;
         _arrays = std::move( rhv._arrays ) ;
         _renders = std::move( rhv._renders ) ;
@@ -1915,55 +1862,18 @@ public: // functions
     {
         this_t::stop_compilation_thread() ;
 
-        #if 1
+        
         _geos.invalidate_and_clear() ;
-        #else
-        for( auto & g : _geos ) g.invalidate() ;
-        _geos.clear() ;
-        #endif
-
-        #if 1
         _shaders.invalidate_and_clear() ;
-        #else
-        for( auto & s : _shaders ) s.invalidate() ;
-        _shaders.clear() ;
-        #endif
-
-        #if 1
         _renders.invalidate_and_clear() ;
-        #else
-        for( auto & r : _renders ) r.invalidate() ;
-        _renders.clear() ;
-        #endif
-
-        for( auto & i : images ) i.invalidate() ;
-        images.clear() ;
-
-        #if 1
+        _images.invalidate_and_clear() ;
         _arrays.invalidate_and_clear() ;
-        #else
-        for( auto & a : _arrays ) a.invalidate() ;
-        _arrays.clear() ;
-        #endif
+        
         for( auto & f : framebuffers ) f.invalidate() ;
         framebuffers.clear() ;
 
-        #if 1
         _streamouts.invalidate_and_clear() ;
-        #else
-        for( auto & so : _streamouts ) so.invalidate() ;
-        _streamouts.clear() ;
-        #endif
-
-        #if 1
         _msls.invalidate_and_clear() ;
-        #else
-        for( auto & msl : _msls.items )
-        {
-            msl.msl_obj.~msl_object() ;
-        }
-        _msls.items.clear() ;
-        #endif
 
         state_sets.clear() ;
 
@@ -2281,13 +2191,13 @@ public: // functions
             {
                 if( fb.image_ids[ i ] != size_t( -1 ) )
                 {
-                    images[ fb.image_ids[ i ] ].view->Release() ;
-                    images[ fb.image_ids[ i ] ].texture->Release() ;
-                    images[ fb.image_ids[ i ] ].sampler->Release() ;
+                    _images[ fb.image_ids[ i ] ].view->Release() ;
+                    _images[ fb.image_ids[ i ] ].texture->Release() ;
+                    _images[ fb.image_ids[ i ] ].sampler->Release() ;
 
-                    images[ fb.image_ids[ i ] ].view = nullptr  ;
-                    images[ fb.image_ids[ i ] ].texture = nullptr ;
-                    images[ fb.image_ids[ i ] ].sampler = nullptr ;
+                    _images[ fb.image_ids[ i ] ].view = nullptr  ;
+                    _images[ fb.image_ids[ i ] ].texture = nullptr ;
+                    _images[ fb.image_ids[ i ] ].sampler = nullptr ;
                 }
             }
 
@@ -2384,22 +2294,35 @@ public: // functions
 
                 // store data
                 {
+                    #if 1
+                    motor::string_t const name = obj.name() + "." + motor::to_string( i ) ;
+                    _images.access( fb.image_ids[ i ], name, [&] ( this_t::image_data_ref_t img )
+                    {
+                        img.name = obj.name() + "." + motor::to_string( i ) ;
+                        img.sampler = smp.move_out() ;
+                        img.texture = tex.move_out() ;
+                        img.valid = true ;
+                        img.view = srv.move_out() ;
+                        img.requires_y_flip = 1.0f ;
+                        return true ;
+                    } ) ;
+                    #else
                     size_t const iid = fb.image_ids[ i ] == size_t( -1 ) ?
-                        determine_oid( obj.get_oid(_bid), obj.name() + "." + motor::to_string( i ), images ) : fb.image_ids[ i ] ;
+                        determine_oid( obj.get_oid(_bid), obj.name() + "." + motor::to_string( i ), _images ) : fb.image_ids[ i ] ;
 
                     // fill the image so shader variable
                     // lookup can find the render target
                     // for binding to a texture variable
                     {
                         fb.image_ids[ i ] = iid ;
-                        images[ iid ].name = obj.name() + "." + motor::to_string( i ) ;
-                        images[ iid ].sampler = smp.move_out() ;
-                        images[ iid ].texture = tex.move_out() ;
-                        images[ iid ].valid = true ;
-                        images[ iid ].view = srv.move_out() ;
-                        images[ iid ].requires_y_flip = 1.0f ;
+                        _images[ iid ].name = obj.name() + "." + motor::to_string( i ) ;
+                        _images[ iid ].sampler = smp.move_out() ;
+                        _images[ iid ].texture = tex.move_out() ;
+                        _images[ iid ].valid = true ;
+                        _images[ iid ].view = srv.move_out() ;
+                        _images[ iid ].requires_y_flip = 1.0f ;
                     }
-
+                    #endif
                     {
                         auto const dims = obj.get_dims() ;
                         fb.width = FLOAT( dims.x() ) ;
@@ -2408,8 +2331,6 @@ public: // functions
 
                     fb.num_color = nt ;
                     fb.rt_view[ i ] = view.move_out() ;
-
-                    
                 }
             }
         }
@@ -2425,13 +2346,13 @@ public: // functions
             // release images
             if( fb.image_ids[ fb.num_color ] != size_t( -1 ) )
             {
-                images[ fb.image_ids[ fb.num_color ] ].view->Release() ;
-                images[ fb.image_ids[ fb.num_color ] ].texture->Release() ;
-                images[ fb.image_ids[ fb.num_color ] ].sampler->Release() ;
+                _images[ fb.image_ids[ fb.num_color ] ].view->Release() ;
+                _images[ fb.image_ids[ fb.num_color ] ].texture->Release() ;
+                _images[ fb.image_ids[ fb.num_color ] ].sampler->Release() ;
 
-                images[ fb.image_ids[ fb.num_color ] ].view = nullptr  ;
-                images[ fb.image_ids[ fb.num_color ] ].texture = nullptr ;
-                images[ fb.image_ids[ fb.num_color ] ].sampler = nullptr ;
+                _images[ fb.image_ids[ fb.num_color ] ].view = nullptr  ;
+                _images[ fb.image_ids[ fb.num_color ] ].texture = nullptr ;
+                _images[ fb.image_ids[ fb.num_color ] ].sampler = nullptr ;
             }
             
             auto const dst = obj.get_depth_target();
@@ -2525,23 +2446,36 @@ public: // functions
 
                 // store data
                 {
+                    #if 1
+                    size_t const i = obj.get_num_color_targets() ;
+                    motor::string_t const name = obj.name() + ".depth" ;
+                    _images.access( fb.image_ids[ i ], name, [&] ( this_t::image_data_ref_t img )
+                    {
+                        img.sampler = smp.move_out() ;
+                        img.texture = tex.move_out() ;
+                        img.valid = true ;
+                        img.view = srv.move_out() ;
+                        img.requires_y_flip = 1.0f ;
+                        return true ;
+                    } ) ;
+                    #else
                     size_t const i = obj.get_num_color_targets() ;
                     size_t const iid = fb.image_ids[ i ] == size_t( -1 ) ?
-                        determine_oid( obj.get_oid(_bid), obj.name() + ".depth", images ) : fb.image_ids[ i ] ;
+                        determine_oid( obj.get_oid(_bid), obj.name() + ".depth", _images ) : fb.image_ids[ i ] ;
 
                     // fill the image so shader variable
                     // lookup can find the render target
                     // for binding to a texture variable
                     {
                         fb.image_ids[ i ] = iid ;
-                        images[ iid ].name = obj.name() + ".depth" ;
-                        images[ iid ].sampler = smp.move_out() ;
-                        images[ iid ].texture = tex.move_out() ;
-                        images[ iid ].valid = true ;
-                        images[ iid ].view = srv.move_out() ;
-                        images[ iid ].requires_y_flip = 1.0f ;
+                        _images[ iid ].name = obj.name() + ".depth" ;
+                        _images[ iid ].sampler = smp.move_out() ;
+                        _images[ iid ].texture = tex.move_out() ;
+                        _images[ iid ].valid = true ;
+                        _images[ iid ].view = srv.move_out() ;
+                        _images[ iid ].requires_y_flip = 1.0f ;
                     }
-
+                    #endif
                     {
                         auto const dims = obj.get_dims() ;
                         fb.width = FLOAT( dims.x() ) ;
@@ -2774,13 +2708,15 @@ public: // functions
     }
 
     //************************************************************************************************************
-    void_t construct_msl2( motor::graphics::msl_object_mtr_t obj_ )
+    void_t construct_msl( motor::graphics::msl_object_mtr_t obj_ )
     {
         motor::graphics::msl_object_t obj = *obj_ ;
 
-        _ctsd->add_item( pimpl::compilation_work_item{ obj_, std::move( obj ) } ) ;
+        obj_->set_oid( _bid, size_t(-2) ) ;
+        _ctsd->add_item( pimpl::compilation_work_item{ motor::share( obj_ ), std::move( obj ) } ) ;
     }
 
+    #if 0
     //************************************************************************************************************
     size_t construct_msl( motor::graphics::msl_object_ref_t obj_ )
     {
@@ -2984,7 +2920,7 @@ public: // functions
         }
         return is_valid_msl ? oid : size_t(-1) ;
     }
-
+    #endif
     //************************************************************************************************************
     size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj )
     {
@@ -3994,9 +3930,9 @@ public: // functions
                     motor::string_t const img_name = dv->get().name() ;
 
                     size_t i = 0 ;
-                    for ( ; i < images.size(); ++i ) if ( images[ i ].name == img_name ) break ;
+                    for ( ; i < _images.size(); ++i ) if ( _images[ i ].name == img_name ) break ;
 
-                    if ( i == images.size() ) continue ;
+                    if ( i == _images.size() ) continue ;
 
                     this_t::render_data_t::image_variable_t iv ;
                     iv.var_set_idx = vs_id ;
@@ -4009,7 +3945,7 @@ public: // functions
                     // set y flip for the current texture in the current variable set
                     {
                         auto * var = vs->data_variable< float_t >( "sys_flipv_" + t.name ) ;
-                        var->set( images[ i ].requires_y_flip ) ;
+                        var->set( _images[ i ].requires_y_flip ) ;
                     }
                 }
             } ) ;
@@ -4087,134 +4023,146 @@ public: // functions
     }
 
     //************************************************************************************************************
-    size_t construct_image_config( size_t oid, motor::graphics::image_object_ref_t obj )
+    bool_t construct_image_config( motor::graphics::image_object_ref_t obj )
     {
-        oid = this_t::determine_oid( oid, obj.name(), images ) ;
+        #if 0
+        oid = this_t::determine_oid( oid, obj.name(), _images ) ;
+        this_t::image_data_ref_t img = _images[ oid ] ;
+        #endif
 
-        this_t::image_data_ref_t img = images[ oid ] ;
-        img.name = obj.name() ;
-
-        if( img.texture != nullptr )
+        size_t oid = obj.get_oid( _bid ) ;
+        auto const res = _images.access( oid, obj.name(), [&]( this_t::image_data_ref_t img )
         {
-            img.texture->Release() ;
-            img.sampler->Release() ;
-            img.view->Release() ;
+            img.name = obj.name() ;
 
-            img.texture = nullptr ;
-            img.sampler = nullptr ;
-            img.view = nullptr ;
-        }
-
-        auto * dev = _ctx->dev() ;
-
-        // sampler
-        {
-            D3D11_SAMPLER_DESC sampDesc = { } ;
-            sampDesc.Filter = motor::platform::d3d11::convert( 
-                obj.get_filter( motor::graphics::texture_filter_mode::min_filter ),
-                obj.get_filter( motor::graphics::texture_filter_mode::mag_filter ) ) ;
-            
-            sampDesc.AddressU = motor::platform::d3d11::convert(
-                obj.get_wrap( motor::graphics::texture_wrap_mode::wrap_s ) ) ;
-
-            sampDesc.AddressV = motor::platform::d3d11::convert(
-                obj.get_wrap( motor::graphics::texture_wrap_mode::wrap_t ) ) ;
-
-            sampDesc.AddressW = motor::platform::d3d11::convert(
-                obj.get_wrap( motor::graphics::texture_wrap_mode::wrap_r ) ) ;
-
-            sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER ;
-            sampDesc.MinLOD = 0;
-            sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-            auto const hr = dev->CreateSamplerState( &sampDesc, img.sampler );
-            if( FAILED( hr ) )
+            if ( img.texture != nullptr )
             {
-                motor::log::global_t::error( d3d11_backend_log( "CreateSamplerState" ) ) ;
+                img.texture->Release() ;
+                img.sampler->Release() ;
+                img.view->Release() ;
+
+                img.texture = nullptr ;
+                img.sampler = nullptr ;
+                img.view = nullptr ;
             }
-        }
 
-        // texture
-        {
-            auto & iref = obj.image() ;
+            auto * dev = _ctx->dev() ;
 
-            size_t const width = iref.get_dims().x() ;
-            size_t const height = iref.get_dims().y() ;
-            size_t const depth = iref.get_dims().z() ;
-
-            D3D11_TEXTURE2D_DESC desc = { } ;
-            desc.Width = static_cast< UINT >( width ) ;
-            desc.Height = static_cast< UINT >( height ) ;
-            desc.ArraySize = static_cast< UINT >( depth ) ;
-            desc.MipLevels = static_cast< UINT >( 1 ) ;
-            desc.Format = motor::platform::d3d11::convert( iref.get_image_format(), iref.get_image_element_type() ) ;
-            desc.SampleDesc.Count = 1;
-            desc.SampleDesc.Quality = 0;
-            desc.Usage = D3D11_USAGE_DEFAULT ;
-            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE ;
-            desc.CPUAccessFlags = 0 ;
-            desc.MiscFlags = 0 ;
-
-            size_t const bpp = motor::graphics::size_of( iref.get_image_format() ) *
-                motor::graphics::size_of( iref.get_image_element_type() ) ;
-
-            //uint8_ptr_t mem = motor::memory::global_t::alloc_raw<uint8_t>( width * height * 4 ) ;
-            //for( size_t p = 0; p < width * height * 4; ++p ) mem[ p ] = uint8_t( 255 ) ;
-
-            // create the texture object
+            // sampler
             {
-                motor::memory::malloc_guard< D3D11_SUBRESOURCE_DATA > init_datas( depth ) ;
-                
-                for( size_t i=0; i<depth; ++i )
-                {
-                    init_datas[i].pSysMem = iref.get_image_ptr(i) ;
-                    init_datas[i].SysMemPitch = UINT( width * bpp ) ;
-                    init_datas[i].SysMemSlicePitch = UINT( width * height * bpp ) ;
-                }
+                D3D11_SAMPLER_DESC sampDesc = {} ;
+                sampDesc.Filter = motor::platform::d3d11::convert(
+                    obj.get_filter( motor::graphics::texture_filter_mode::min_filter ),
+                    obj.get_filter( motor::graphics::texture_filter_mode::mag_filter ) ) ;
 
-                auto const hr = dev->CreateTexture2D( &desc, init_datas.get(), img.texture ) ;
-                if( FAILED( hr ) )
+                sampDesc.AddressU = motor::platform::d3d11::convert(
+                    obj.get_wrap( motor::graphics::texture_wrap_mode::wrap_s ) ) ;
+
+                sampDesc.AddressV = motor::platform::d3d11::convert(
+                    obj.get_wrap( motor::graphics::texture_wrap_mode::wrap_t ) ) ;
+
+                sampDesc.AddressW = motor::platform::d3d11::convert(
+                    obj.get_wrap( motor::graphics::texture_wrap_mode::wrap_r ) ) ;
+
+                sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER ;
+                sampDesc.MinLOD = 0;
+                sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+                auto const hr = dev->CreateSamplerState( &sampDesc, img.sampler );
+                if ( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( d3d11_backend_log( "CreateTexture2D" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( "CreateSamplerState" ) ) ;
+                    return false ;
                 }
             }
 
-            // create the resource view for the texture in order to be
-            // shader variable bindable.
-            if( img.texture != nullptr )
+            // texture
             {
-                D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = { } ;
-                res_desc.Format = desc.Format ;
-                if( obj.get_type() == motor::graphics::texture_type::texture_2d )
+                auto & iref = obj.image() ;
+
+                size_t const width = iref.get_dims().x() ;
+                size_t const height = iref.get_dims().y() ;
+                size_t const depth = iref.get_dims().z() ;
+
+                D3D11_TEXTURE2D_DESC desc = {} ;
+                desc.Width = static_cast<UINT>( width ) ;
+                desc.Height = static_cast<UINT>( height ) ;
+                desc.ArraySize = static_cast<UINT>( depth ) ;
+                desc.MipLevels = static_cast<UINT>( 1 ) ;
+                desc.Format = motor::platform::d3d11::convert( iref.get_image_format(), iref.get_image_element_type() ) ;
+                desc.SampleDesc.Count = 1;
+                desc.SampleDesc.Quality = 0;
+                desc.Usage = D3D11_USAGE_DEFAULT ;
+                desc.BindFlags = D3D11_BIND_SHADER_RESOURCE ;
+                desc.CPUAccessFlags = 0 ;
+                desc.MiscFlags = 0 ;
+
+                size_t const bpp = motor::graphics::size_of( iref.get_image_format() ) *
+                    motor::graphics::size_of( iref.get_image_element_type() ) ;
+
+                //uint8_ptr_t mem = motor::memory::global_t::alloc_raw<uint8_t>( width * height * 4 ) ;
+                //for( size_t p = 0; p < width * height * 4; ++p ) mem[ p ] = uint8_t( 255 ) ;
+
+                // create the texture object
                 {
-                    res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D ;
-                    res_desc.Texture2D.MostDetailedMip = 0 ;
-                    res_desc.Texture2D.MipLevels = UINT(1) ;
-                }
-                else if( obj.get_type() == motor::graphics::texture_type::texture_2d_array )
-                {
-                    res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY ;
-                    res_desc.Texture2DArray.ArraySize = UINT( depth ) ;
-                    res_desc.Texture2DArray.MostDetailedMip = 0 ;
-                    res_desc.Texture2DArray.MipLevels = UINT(1) ;
-                    res_desc.Texture2DArray.FirstArraySlice = UINT(0) ;
+                    motor::memory::malloc_guard< D3D11_SUBRESOURCE_DATA > init_datas( depth ) ;
+
+                    for ( size_t i = 0; i < depth; ++i )
+                    {
+                        init_datas[ i ].pSysMem = iref.get_image_ptr( i ) ;
+                        init_datas[ i ].SysMemPitch = UINT( width * bpp ) ;
+                        init_datas[ i ].SysMemSlicePitch = UINT( width * height * bpp ) ;
+                    }
+
+                    auto const hr = dev->CreateTexture2D( &desc, init_datas.get(), img.texture ) ;
+                    if ( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "CreateTexture2D" ) ) ;
+                        return false ;
+                    }
                 }
 
-                auto const hr = dev->CreateShaderResourceView( img.texture, &res_desc, img.view ) ;
-                if( FAILED( hr ) )
+                // create the resource view for the texture in order to be
+                // shader variable bindable.
+                if ( img.texture != nullptr )
                 {
-                    motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for texture : [" + img.name + "]" ) ) ;
+                    D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {} ;
+                    res_desc.Format = desc.Format ;
+                    if ( obj.get_type() == motor::graphics::texture_type::texture_2d )
+                    {
+                        res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D ;
+                        res_desc.Texture2D.MostDetailedMip = 0 ;
+                        res_desc.Texture2D.MipLevels = UINT( 1 ) ;
+                    }
+                    else if ( obj.get_type() == motor::graphics::texture_type::texture_2d_array )
+                    {
+                        res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY ;
+                        res_desc.Texture2DArray.ArraySize = UINT( depth ) ;
+                        res_desc.Texture2DArray.MostDetailedMip = 0 ;
+                        res_desc.Texture2DArray.MipLevels = UINT( 1 ) ;
+                        res_desc.Texture2DArray.FirstArraySlice = UINT( 0 ) ;
+                    }
+
+                    auto const hr = dev->CreateShaderResourceView( img.texture, &res_desc, img.view ) ;
+                    if ( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for texture : [" + img.name + "]" ) ) ;
+                        return false ;
+                    }
                 }
             }
-        }
 
-        return oid ;
+            return true ;
+        } ) ;
+
+        if( res ) obj.set_oid( _bid, oid ) ;
+        return res ;
     }
 
     //************************************************************************************************************
     void_t release_image_data( size_t const oid ) noexcept 
     {
-        auto & o = images[ oid ] ;
+        auto & o = _images[ oid ] ;
         o.invalidate() ;
     }
 
@@ -4356,52 +4304,53 @@ public: // functions
     bool_t update( size_t const id, motor::graphics::image_object_ref_t obj, bool_t const is_config ) noexcept
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update image object" ) ;
-
-        auto & data = images[ id ] ;
+        
         auto & iref = obj.image() ;
 
-        // check if image has changed
+        return _images.access( id, [&]( this_t::image_data_ref_t data )
         {
-            D3D11_TEXTURE2D_DESC bd ;
-            data.texture->GetDesc( &bd ) ;
-
-            size_t const width = iref.get_dims().x() ;
-            size_t const height = iref.get_dims().y() ;
-            size_t const depth = iref.get_dims().z() ;
-
-            bool_t const b1 = bd.Width != width ;
-            bool_t const b2 = bd.Height != height ;
-            bool_t const b3 = bd.ArraySize != depth ;
-            bool_t const b4 = bd.Format != motor::platform::d3d11::convert( iref.get_image_format(), iref.get_image_element_type() ) ; 
-
-            if( motor::math::vec4b_t( b1, b2, b3, b4).any() )
+            // check if image has changed
             {
-                this->construct_image_config( id, obj ) ;
-                return true ;
+                D3D11_TEXTURE2D_DESC bd ;
+                data.texture->GetDesc( &bd ) ;
+
+                size_t const width = iref.get_dims().x() ;
+                size_t const height = iref.get_dims().y() ;
+                size_t const depth = iref.get_dims().z() ;
+
+                bool_t const b1 = bd.Width != width ;
+                bool_t const b2 = bd.Height != height ;
+                bool_t const b3 = bd.ArraySize != depth ;
+                bool_t const b4 = bd.Format != motor::platform::d3d11::convert( iref.get_image_format(), iref.get_image_element_type() ) ;
+
+                if ( motor::math::vec4b_t( b1, b2, b3, b4 ).any() )
+                {
+                    return this->construct_image_config( obj ) ;
+                }
             }
-        }
 
-        // copy data if only the content has changed.
-        {
-            size_t const width = iref.get_dims().x();
-            size_t const height = iref.get_dims().y();
-            size_t const depth = iref.get_dims().z();
+            // copy data if only the content has changed.
+            {
+                size_t const width = iref.get_dims().x();
+                size_t const height = iref.get_dims().y();
+                size_t const depth = iref.get_dims().z();
+                
+                D3D11_BOX region ;
+                region.left = 0u ;
+                region.right = (UINT) width ;
+                region.top = 0u ;
+                region.bottom = (UINT) height ;
+                region.front = 0u ;
+                region.back = (UINT) depth ;
 
-            D3D11_BOX region ;
-            region.left = 0u ;
-            region.right = (UINT) width ;
-            region.top = 0u ;
-            region.bottom = (UINT) height ;
-            region.front = 0u ;
-            region.back = (UINT) depth ;
+                UINT const row_pitch = (UINT) iref.row_sib() ;
+                UINT const depth_pitch = (UINT) iref.layer_sib() ;
 
-            UINT const row_pitch = ( UINT ) iref.row_sib() ;
-            UINT const depth_pitch = ( UINT ) iref.layer_sib() ;
+                _ctx->ctx()->UpdateSubresource( data.texture, 0, &region, iref.get_image_ptr(), row_pitch, depth_pitch ) ;
+            }
 
-            _ctx->ctx()->UpdateSubresource( data.texture, 0, &region, iref.get_image_ptr(), row_pitch, depth_pitch ) ;
-        }
-
-        return true ;
+            return true ;
+        } ) ;
     }
 
     //************************************************************************************************************
@@ -4504,11 +4453,11 @@ public: // functions
                         iv.value_hash = tx_var->get().hash() ;
 
                         size_t idx = size_t( -1 ) ;
-                        while ( ++idx < images.size() && images[ idx ].name != tx_var->get().name() ) ;
+                        while ( ++idx < _images.size() && _images[ idx ].name != tx_var->get().name() ) ;
 
                         // image not in images
                         // what to do then?
-                        if ( idx == images.size() ) continue ;
+                        if ( idx == _images.size() ) continue ;
 
                         iv.id = idx ;
                     }
@@ -4646,8 +4595,8 @@ public: // functions
                     if ( img.var_set_idx > varset_id ) break  ;
                     if ( img.var_set_idx < varset_id ) continue ;
 
-                    ctx->PSSetShaderResources( img.slot, 1, images[ img.id ].view ) ;
-                    ctx->PSSetSamplers( img.slot, 1, images[ img.id ].sampler ) ;
+                    ctx->PSSetShaderResources( img.slot, 1, _images[ img.id ].view ) ;
+                    ctx->PSSetSamplers( img.slot, 1, _images[ img.id ].sampler ) ;
                 }
 
                 for ( auto & buf : rnd.var_sets_buffers_ps[ varset_id ].second )
@@ -5112,8 +5061,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
 
     // experimental
     {
-        _pimpl->construct_msl2( obj ) ;
-        obj->set_oid( this_t::get_bid(), size_t(-2) ) ;
+        _pimpl->construct_msl( obj ) ;
     }
 
     #if 0
@@ -5200,22 +5148,10 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::image_object_
         return motor::graphics::result::invalid_argument ;
     }
     
-    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
-        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
 
-    #if 0
-    {
-        auto const res = _pimpl->update( oid, *config ) ;
-        if( !res )
-        {
-            return motor::graphics::result::failed ;
-        }
-    }
-    #else
-    (void) oid ;
-    #endif
 
-    return motor::graphics::result::ok ;
+    auto const res = _pimpl->construct_image_config( *obj ) ;
+    return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
 }
 
 //************************************************************************************************************
