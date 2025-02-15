@@ -30,11 +30,8 @@ namespace motor
 
                 HWND _hwnd = NULL ;
                 HGLRC _hrc = NULL ;
-
-                /// will only be used temporarily for making the
-                /// context active. Will be released on deactivation.
-                // @todo remove it from here?
-                HDC _hdc = NULL ;
+               
+                bool_t _active = false ;
 
                 motor::platform::gen4::gl4_backend_mtr_t _backend = nullptr ;
 

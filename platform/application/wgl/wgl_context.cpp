@@ -69,40 +69,33 @@ wgl_context::~wgl_context( void_t ) noexcept
 motor::platform::result wgl_context::activate( void_t ) noexcept
 {
     if( _hwnd == NULL ) return motor::platform::result::invalid_win32_handle ;
+    if( _active ) return motor::platform::result::ok ;
 
-    assert( _hdc == NULL ) ;
+    HDC hdc = GetDC( _hwnd ) ;
+    if( hdc == NULL ) return motor::platform::result::win32_hdc_failed ;
 
+    auto const res = wglMakeCurrent( hdc, _hrc ) ;
+    ReleaseDC( _hwnd, hdc ) ;
     
-    _hdc = GetDC( _hwnd ) ;
-
-    if( _hdc == NULL ) return motor::platform::result::invalid_win32_handle ;
-
-    if( motor::log::global::error( wglMakeCurrent( _hdc, _hrc ) == FALSE, 
-        wgl_context_log( "wglMakeCurrent" ) ) ) 
+    if( motor::log::global::error( res == FALSE, wgl_context_log( "wglMakeCurrent" ) ) ) 
     {
-        ReleaseDC( _hwnd, _hdc ) ;
         return motor::platform::result::failed_wgl ;
     }
-        
-        
+    
+    _active = true ;
     return motor::platform::result::ok ;
 }
 
 //***********************************************************************
 motor::platform::result wgl_context::deactivate( void_t ) noexcept
 {
-    if( _hdc == NULL ) return motor::platform::result::ok ;
+    if( !_active ) return motor::platform::result::context_not_active ;
 
     if( motor::log::global::error( wglMakeCurrent( 0,0 ) == FALSE, 
-        wgl_context_log( "wglMakeCurrent" ) ) ) 
+        wgl_context_log( "wglMakeCurrent(00)" ) ) ) 
         return motor::platform::result::failed_wgl ;
 
-    if( motor::log::global::error( ReleaseDC( _hwnd, _hdc ) == FALSE, 
-        wgl_context_log( "ReleaseDC" ) ) ) 
-        return motor::platform::result::failed_wgl ;
-    
-    _hdc = NULL ;
-
+    _active = false ;
     return motor::platform::result::ok ;
 }
 
@@ -125,10 +118,11 @@ motor::platform::result wgl_context::vsync( bool_t const on_off ) noexcept
 //***********************************************************************
 motor::platform::result wgl_context::swap( void_t ) noexcept
 {
-    if( _hdc == NULL ) 
-        return motor::platform::result::invalid_win32_handle ;
+    HDC hdc = GetDC( _hwnd ) ;
+    auto const res = SwapBuffers( hdc ) ;
+    ReleaseDC( _hwnd, hdc ) ;
 
-    if( motor::log::global::error( SwapBuffers( _hdc ) == FALSE, 
+    if( motor::log::global::error( res == FALSE, 
         "[wgl_context::swap] : SwapBuffers") ) 
         return motor::platform::result::failed_wgl ;
     
@@ -195,7 +189,8 @@ motor::platform::result wgl_context::get_wgl_extension( motor::vector< motor::st
     if( !motor::ogl::wgl::wglGetExtensionsString ) 
         return motor::platform::result::invalid_extension ;
 
-    char_cptr_t ch = motor::ogl::wgl::wglGetExtensionsString( _hdc ) ;
+    HDC hdc = GetDC( _hwnd ) ;
+    char_cptr_t ch = motor::ogl::wgl::wglGetExtensionsString( hdc ) ;
     motor::mstd::string_ops::split( motor::string_t(ch), ' ', ext_list ) ;
 
     return motor::platform::result::ok ;
