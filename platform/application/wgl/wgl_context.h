@@ -33,9 +33,16 @@ namespace motor
 
                 /// will only be used temporarily for making the
                 /// context active. Will be released on deactivation.
+                // @todo remove it from here?
                 HDC _hdc = NULL ;
 
                 motor::platform::gen4::gl4_backend_mtr_t _backend = nullptr ;
+
+                std::array< int, 20 > _attrib_list = {0} ;
+
+                // all shared contexts derived from this one.
+                // let this context destroy those.
+                motor::vector< HGLRC > _shared_contexts ;
 
             public:
 
@@ -47,11 +54,15 @@ namespace motor
 
                 /// allows to move-construct a context.
                 wgl_context( this_rref_t ) noexcept ;
-                ~wgl_context( void_t ) noexcept ;
+                virtual ~wgl_context( void_t ) noexcept ;
 
             private:
 
                 wgl_context( HWND hwnd, HGLRC ctx ) noexcept ;
+
+                // for shared context creation
+                wgl_context( HWND hwnd, HGLRC ctx,
+                    motor::platform::gen4::gl4_backend_mtr_safe_t ) noexcept ;
 
             public: // operator =
 
@@ -92,11 +103,18 @@ namespace motor
                 /// @precondition Context must be active. For debug purpose. Just clears the screen.
                 void_t clear_now( motor::math::vec4f_t const& vec ) noexcept ;
 
+                // creates a shared context from this one
+                this_t create_shared_context( void_t ) noexcept ;
+
             private:
 
                 motor::platform::result create_the_context( motor::application::gl_info_cref_t gli ) noexcept ;
 
             private: // rendering_context interface
+
+                virtual motor::platform::opengl::rendering_context_mtr_safe_t 
+                    create_shared( void_t ) noexcept override ;
+                
 
                 virtual bool_t is_ext_supported( motor::string_cref_t ext ) const noexcept 
                 {

@@ -7,6 +7,7 @@
 
 #include "log_level.h"
 
+#include <cstdarg>
 #include <mutex>
 
 namespace motor
@@ -75,6 +76,75 @@ namespace motor
             static bool_t error( bool_t const condition, char const * msg ) noexcept ;
             static void_t critical( char const * msg ) noexcept ;
             static bool_t critical( bool_t const condition, char const * msg ) noexcept ;
+
+        public:
+
+            template< size_t sib >
+            static void_t status( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::snprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::status( buffer ) ;
+            }
+
+            template< size_t sib >
+            static void_t warning( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::snprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::warning( buffer ) ;
+            }
+
+            template< size_t sib >
+            static void_t error( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::snprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::error( buffer ) ;
+            }
+
+            template< size_t sib >
+            static void_t critical( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::snprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::critical( buffer ) ;
+            }
+
+            template< size_t sib >
+            static void_t message( log_level const ll, char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::snprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::message( ll, buffer ) ;
+            }
+
+
 
         };
         motor_typedef( global ) ;

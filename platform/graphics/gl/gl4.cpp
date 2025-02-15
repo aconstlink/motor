@@ -481,15 +481,138 @@ struct gl4_backend::pimpl
     motor::graphics::render_state_sets_t render_states ;
 
     motor::platform::opengl::rendering_context_ptr_t _ctx ;
+    motor::platform::opengl::rendering_context_mtr_t _shd_ctx ;
 
     size_t _tf_active_id = size_t( -1 ) ;
 
     size_t _bid = size_t(-1) ;
 
+private: // support thread
+
+    struct compilation_work_item
+    {
+    };
+    motor_typedef( compilation_work_item ) ;
+
+    struct shared_data
+    {
+        bool_t running = false ;
+        bool_t has_work = false ;
+        this_ptr_t owner = nullptr ;
+        motor::platform::opengl::rendering_context_ptr_t ctx ;
+
+        std::mutex mtx ;
+        std::condition_variable cv ;
+
+        motor::vector< compilation_work_item > items ;
+
+        void_t add_item( compilation_work_item_rref_t item ) noexcept
+        {
+            std::unique_lock< std::mutex > lk( mtx ) ;
+
+            if ( items.size() == items.capacity() )
+                items.reserve( items.size() + 50 ) ;
+
+            items.emplace_back( std::move( item ) ) ;
+
+            has_work = true ;
+        }
+
+        void_t notify_thread( void_t ) noexcept
+        {
+            if ( has_work ) cv.notify_one() ;
+        }
+    };
+    motor_typedef( shared_data ) ;
+
+    shared_data_ptr_t _ctsd = nullptr ;
+    std::thread _support_thread ;
+
+    void_t start_support_thread( void_t ) noexcept 
+    {
+        assert( _ctsd == nullptr && "Just start/stop the thread." ) ;
+
+        if ( _ctsd == nullptr )
+        {
+            _ctsd = motor::memory::global::alloc<shared_data>( "compilation shared data" ) ;
+            _ctsd->running = true ;
+            _ctsd->owner = this ;
+            _ctsd->ctx = _shd_ctx ;
+        }
+
+        auto * ctsd = _ctsd ;
+
+        _support_thread = std::thread( [ctsd] ( void_t )
+        {
+            motor::log::global_t::status( "[gl4] : support thread started" ) ;
+
+            motor::msl::database_t mdb ;
+
+            motor::vector< this_t::compilation_work_item_t > items ;
+            items.reserve( 50 ) ;
+
+            // activate shared context
+            {
+                auto const res = ctsd->ctx->activate() ;
+                if( res != motor::platform::result::ok ) 
+                {
+                    motor::log::global::error( "[gl4] : unable to activate shared context" ) ;
+                }
+            }
+            while ( ctsd->running )
+            {
+                // just test the shared context
+                {
+                    glClearColor( 1.0f, 1.0f, 0.0f, 1.0f ) ;
+                    auto err = glGetError() ;
+                    assert( err == GL_NO_ERROR ) ;
+                    glClear( GL_COLOR_BUFFER_BIT ) ;
+                    err = glGetError() ;
+                    assert( err == GL_NO_ERROR ) ;
+                }
+
+                auto err = glGetError() ;
+                {
+                    std::unique_lock< std::mutex > lk( ctsd->mtx ) ;
+                    while ( !ctsd->has_work && ctsd->running ) ctsd->cv.wait( lk ) ;
+
+                    auto tmp = std::move( items ) ;
+                    items = std::move( ctsd->items ) ;
+                    ctsd->items = std::move( tmp ) ;
+
+                    ctsd->has_work = false ;
+                }
+            }
+            ctsd->ctx->deactivate() ;
+
+            motor::log::global_t::status( "[gl4] : support thread shut down" ) ;
+        } ) ;
+    }
+    void_t stop_support_thread( void_t ) noexcept 
+    {
+        if ( _ctsd == nullptr ) return ;
+
+        if ( _ctsd->running )
+        {
+            {
+                std::unique_lock<std::mutex> lk( _ctsd->mtx ) ;
+                _ctsd->running = false ;
+            }
+            _ctsd->cv.notify_one() ;
+            if ( _support_thread.joinable() )
+                _support_thread.join() ;
+        }
+
+        motor::memory::global::dealloc<shared_data>( motor::move( _ctsd ) ) ;
+    }
+
+public:
+
     //****************************************************************************************
     pimpl( size_t const bid, motor::platform::opengl::rendering_context_ptr_t ctx ) 
     {
         _ctx = ctx ;
+        _shd_ctx = _ctx->create_shared() ;
 
         {
             motor::graphics::state_object_t obj( "gl4_default_states" ) ;
@@ -511,11 +634,16 @@ struct gl4_backend::pimpl
             /*size_t const oid =*/ this_t::construct_state( size_t( -1 ), obj ) ;
         }
         _bid = bid ;
+
+        this_t::start_support_thread() ;
     }
 
     //****************************************************************************************
-    pimpl( this_rref_t rhv ) noexcept
+    pimpl( this_rref_t rhv ) noexcept :
+        _shd_ctx( motor::move( rhv._shd_ctx ) )
     {
+        rhv.stop_support_thread() ;
+
         _shaders = std::move( rhv._shaders ) ;
         _renders = std::move( rhv._renders ) ;
         _geometries = std::move( rhv._geometries ) ;
@@ -536,11 +664,16 @@ struct gl4_backend::pimpl
         _bid = rhv._bid ;
 
         _mdb = std::move( rhv._mdb ) ;
+
+        this_t::start_support_thread() ;
     }
 
     //****************************************************************************************
     ~pimpl( void_t ) noexcept
     {
+        this_t::stop_support_thread() ;
+        motor::release( motor::move( _shd_ctx ) ) ;
+
         for( size_t i = 0; i<_framebuffers.size(); ++i )
         {
             this_t::release_framebuffer( i ) ;
@@ -590,6 +723,7 @@ struct gl4_backend::pimpl
         _images.clear() ;
         _feedbacks.clear() ;
         _msls.clear() ;
+
     }
 
     // silent clear. No gl release will be done.
