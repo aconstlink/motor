@@ -86,7 +86,7 @@ namespace motor
 
                 va_list args;
                 va_start( args, fmt ) ;
-                std::snprintf( buffer, sib, fmt, args ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
                 va_end(args);
 
                 this_t::status( buffer ) ;
@@ -99,7 +99,7 @@ namespace motor
 
                 va_list args;
                 va_start( args, fmt ) ;
-                std::snprintf( buffer, sib, fmt, args ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
                 va_end(args);
 
                 this_t::warning( buffer ) ;
@@ -112,7 +112,7 @@ namespace motor
 
                 va_list args;
                 va_start( args, fmt ) ;
-                std::snprintf( buffer, sib, fmt, args ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
                 va_end(args);
 
                 this_t::error( buffer ) ;
@@ -125,7 +125,7 @@ namespace motor
 
                 va_list args;
                 va_start( args, fmt ) ;
-                std::snprintf( buffer, sib, fmt, args ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
                 va_end(args);
 
                 this_t::critical( buffer ) ;
@@ -138,7 +138,7 @@ namespace motor
 
                 va_list args;
                 va_start( args, fmt ) ;
-                std::snprintf( buffer, sib, fmt, args ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
                 va_end(args);
 
                 this_t::message( ll, buffer ) ;

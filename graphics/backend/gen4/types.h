@@ -24,7 +24,7 @@ namespace motor
                     "unknown", "gl4", "es3", "d3d11" } ;
             }
 
-            static motor::string_t to_string( motor::graphics::gen4::backend_type const bt ) noexcept
+            static char const * to_string( motor::graphics::gen4::backend_type const bt ) noexcept
             {
                 return detail::__backend_type_names[ size_t( bt ) ] ;
             }

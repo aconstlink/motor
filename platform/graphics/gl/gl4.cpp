@@ -26,7 +26,7 @@
 #include <motor/std/string_split.hpp>
 
 
-#define gl4_backend_log( text ) "[GL4] : " text
+#define gl4_log( text ) "[GL4] : " text
 
 using namespace motor::platform::gen4 ;
 using namespace motor::ogl ;
@@ -248,7 +248,7 @@ struct gl4_backend::pimpl
             bool_t do_uniform_funk( void_ptr_t mem_ )
             {
                 uniform_funk( loc, 1, mem_ ) ;
-                return !motor::ogl::error::check_and_log( gl4_backend_log( "glUniform" ) ) ;
+                return !motor::ogl::error::check_and_log( gl4_log( "glUniform" ) ) ;
             }
 
             void_t do_copy_funk( void_ptr_t mem_, motor::graphics::ivariable_ptr_t var )
@@ -570,8 +570,7 @@ private: // support thread
                     err = glGetError() ;
                     assert( err == GL_NO_ERROR ) ;
                 }
-
-                auto err = glGetError() ;
+                
                 {
                     std::unique_lock< std::mutex > lk( ctsd->mtx ) ;
                     while ( !ctsd->has_work && ctsd->running ) ctsd->cv.wait( lk ) ;
@@ -860,21 +859,21 @@ public:
                 if( new_states.depth_s.ss.do_activate )
                 {
                     glEnable( GL_DEPTH_TEST );
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glEnable" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glEnable" ) ) ;
 
                     glDepthMask( new_states.depth_s.ss.do_depth_write ? GL_TRUE : GL_FALSE ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDepthMask" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDepthMask" ) ) ;
 
                     glDepthFunc( GL_LESS ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDepthFunc" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDepthFunc" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_DEPTH_TEST ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDisable( GL_DEPTH_TEST )" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDisable( GL_DEPTH_TEST )" ) ) ;
 
                     glDepthMask( GL_FALSE ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDepthMask" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDepthMask" ) ) ;
                 }
             }
         }
@@ -886,18 +885,18 @@ public:
                 if( new_states.blend_s.ss.do_activate )
                 {
                     glEnable( GL_BLEND ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glEnable" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glEnable" ) ) ;
 
                     GLenum const glsrc = motor::platform::gl3::convert( new_states.blend_s.ss.src_blend_factor ) ;
                     GLenum const gldst = motor::platform::gl3::convert( new_states.blend_s.ss.dst_blend_factor  );
 
                     glBlendFunc( glsrc, gldst ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glBlendFunc" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glBlendFunc" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_BLEND ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDisable" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDisable" ) ) ;
                 }
             }
         }
@@ -909,21 +908,21 @@ public:
                 if( new_states.polygon_s.ss.do_activate )
                 {
                     glEnable( GL_CULL_FACE ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glEnable" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glEnable" ) ) ;
 
                     glCullFace( motor::platform::gl3::convert( new_states.polygon_s.ss.cm ) ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glCullFace" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glCullFace" ) ) ;
 
                     glFrontFace( motor::platform::gl3::convert(new_states.polygon_s.ss.ff ) ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glFrontFace" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glFrontFace" ) ) ;
 
                     glPolygonMode( GL_FRONT_AND_BACK, motor::platform::gl3::convert( new_states.polygon_s.ss.fm ) ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glPolygonMode" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glPolygonMode" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_CULL_FACE ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDisable" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDisable" ) ) ;
                 }
             }
         }
@@ -935,17 +934,17 @@ public:
                 if( new_states.scissor_s.ss.do_activate )
                 {
                     glEnable( GL_SCISSOR_TEST ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glEnable" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glEnable" ) ) ;
 
                     glScissor(
                         GLint( new_states.scissor_s.ss.rect.x() ), GLint( new_states.scissor_s.ss.rect.y() ),
                         GLsizei( new_states.scissor_s.ss.rect.z() ), GLsizei( new_states.scissor_s.ss.rect.w() ) ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glScissor" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glScissor" ) ) ;
                 }
                 else
                 {
                     glDisable( GL_SCISSOR_TEST ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDisable" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDisable" ) ) ;
                 }
             }
         }
@@ -958,7 +957,7 @@ public:
                 {
                     auto const& vp = new_states.view_s.ss.vp  ;
                     glViewport( GLint( vp.x() ), GLint( vp.y() ), GLsizei( vp.z() ), GLsizei( vp.w() ) ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glViewport" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glViewport" ) ) ;
                 }
             }
         }
@@ -973,13 +972,13 @@ public:
 
                 motor::math::vec4f_t const color = new_states.clear_s.ss.clear_color ;
                 glClearColor( color.x(), color.y(), color.z(), color.w() ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glClearColor" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glClearColor" ) ) ;
 
                 GLbitfield const color_bit = clear_color ? GL_COLOR_BUFFER_BIT : 0 ;
                 GLbitfield const depth_bit = clear_depth ? GL_DEPTH_BUFFER_BIT : 0 ;
 
                 glClear( color_bit | depth_bit ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glEnable" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glEnable" ) ) ;
             }
         }
     }
@@ -993,7 +992,7 @@ public:
         {
             if( _state_stack.size() == 1 )
             {
-                motor::log::global_t::error( gl4_backend_log( "no more render states to pop" ) ) ;
+                motor::log::global_t::error( gl4_log( "no more render states to pop" ) ) ;
                 return ;
             }
             auto const popped = _state_stack.pop() ;
@@ -1017,7 +1016,7 @@ public:
         if( fb.gl_id == GLuint( -1 ) )
         {
             glGenFramebuffers( 1, &fb.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glGenFramebuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
         }
 
         if( fb.gl_id == GLuint( -1 ) )return oid ;
@@ -1025,7 +1024,7 @@ public:
         // bind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glGenFramebuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
         }
 
         size_t const nt = obj.get_num_color_targets() ;
@@ -1045,13 +1044,13 @@ public:
             if( fb.colors[0] == GLuint( -1 ) )
             {
                 glGenTextures( GLsizei( 8 ), fb.colors ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glGenTextures" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
             }
 
             if( fb.depth == GLuint(-1) )
             {
                 glGenTextures( GLsizei( 1 ), &fb.depth ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glGenTextures" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
             }
         }
 
@@ -1062,7 +1061,7 @@ public:
                 GLuint const tid = fb.colors[i] ;
 
                 glBindTexture( GL_TEXTURE_2D, tid ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) )
+                if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
                     continue ;
 
                 GLenum const target = GL_TEXTURE_2D ;
@@ -1082,7 +1081,7 @@ public:
                 void_cptr_t data = nullptr ;
 
                 glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glTexImage2D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glTexImage2D" ) ) ;
             }
 
             // attach
@@ -1091,7 +1090,7 @@ public:
                 GLuint const tid = fb.colors[ i ] ;
                 GLenum const att = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i ) ;
                 glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glFramebufferTexture2D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glFramebufferTexture2D" ) ) ;
             }
         }
 
@@ -1102,7 +1101,7 @@ public:
                 GLuint const tid = fb.depth ;
 
                 glBindTexture( GL_TEXTURE_2D, tid ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) ;
 
                 GLenum const target = GL_TEXTURE_2D ;
                 GLint const level = 0 ;
@@ -1121,7 +1120,7 @@ public:
                 void_cptr_t data = nullptr ;
 
                 glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glTexImage2D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glTexImage2D" ) ) ;
             }
 
             // attach
@@ -1129,7 +1128,7 @@ public:
                 GLuint const tid = fb.depth ;
                 GLenum const att = motor::platform::gl3::to_gl_attachment(dst) ;
                 glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glFramebufferTexture2D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glFramebufferTexture2D" ) ) ;
             }
         }
 
@@ -1138,7 +1137,7 @@ public:
         // validate
         {
             status = glCheckFramebufferStatus( GL_FRAMEBUFFER ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glCheckFramebufferStatus" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glCheckFramebufferStatus" ) ) ;
 
             motor::log::global_t::warning( status != GL_FRAMEBUFFER_COMPLETE, 
                 "Incomplete framebuffer : [" + obj.name() + "]" ) ;
@@ -1147,7 +1146,7 @@ public:
         // unbind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, 0 ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glGenFramebuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
         }
 
         // remember data
@@ -1239,12 +1238,12 @@ public:
 
         {
             glDeleteFramebuffers( 1, &fbd.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteFramebuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteFramebuffers" ) ) ;
         }
 
         {
             glDeleteTextures( 8, fbd.colors ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteTextures" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
         }
 
         if( fbd.depth != GLuint(-1) )
@@ -1265,7 +1264,7 @@ public:
 
             {
                 glDeleteTextures( 1, &fbd.depth ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteTextures" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
             }
         }
 
@@ -1288,7 +1287,7 @@ public:
         // bind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glGenFramebuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
         }
 
         // setup color
@@ -1302,7 +1301,7 @@ public:
             }
 
             glDrawBuffers( GLsizei( num_color ), attachments ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glGenFramebuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
         }
 
         return true ;
@@ -1314,10 +1313,104 @@ public:
         // unbind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, 0 ) ;
-            if( !motor::ogl::error::check_and_log( gl4_backend_log( "glGenFramebuffers" ) ) ) return false ;
+            if( !motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ) return false ;
         }
 
         return true ;
+    }
+
+    //****************************************************************************************
+    bool_t construct_shader_data2( motor::graphics::shader_object_ref_t obj ) noexcept
+    {
+        motor::graphics::shader_set_t ss ;
+        {
+            auto const res = obj.shader_set( this_t::sapi, ss ) ;
+            if( !res )
+            {
+                motor::log::global::warning<2048>( gl4_log(
+                    "config [%s] has no shaders for %s" ), obj.name().c_str(), 
+                    motor::graphics::gen4::to_string( this_t::bt ) ) ;
+                
+                return false ;
+            }
+        }
+
+        struct shader_compilation
+        {
+            GLuint vs_id = GLuint(-1) ;
+            GLuint gs_id = GLuint(-1) ;
+            GLuint ps_id = GLuint(-1) ;
+        } ;
+
+        shader_compilation scomp ;
+
+        // pre-compile all the shaders
+        {
+            // Compile Vertex Shader
+            {
+                GLuint const id = glCreateShader( GL_VERTEX_SHADER ) ;
+                motor::ogl::error::check_and_log( 
+                    gl4_log( "Vertex Shader creation" ) ) ;
+
+                if( !this_t::compile_shader( id, ss.vertex_shader().code() ) )
+                {
+                    glDeleteShader( id ) ;
+                    motor::ogl::error::check_and_log( 
+                        gl4_log( "glDeleteShader : Vertex Shader" ) ) ;
+                    return false ;
+                }
+
+                scomp.vs_id = id ;
+            }
+
+            // Compile Geometry Shader
+            if( ss.has_geometry_shader() )
+            {
+                GLuint const id = glCreateShader( GL_GEOMETRY_SHADER ) ;
+                motor::ogl::error::check_and_log(
+                    gl4_log( "Geometry Shader creation" ) ) ;
+
+                if( !this_t::compile_shader( id, ss.geometry_shader().code() ) )
+                {
+                    glDeleteShader( scomp.vs_id ) ;
+                    motor::ogl::error::check_and_log( 
+                        gl4_log( "glDeleteShader Vertex Shader" ) ) ;
+                    glDeleteShader( id ) ;
+                    motor::ogl::error::check_and_log( 
+                        gl4_log( "glDeleteShader Geometry Shader" ) ) ;
+                    return false ;
+                }
+
+                scomp.gs_id = id ;
+            }
+            
+            // Compile Pixel Shader
+            if( ss.has_pixel_shader() )
+            {
+                GLuint const id = glCreateShader( GL_FRAGMENT_SHADER ) ;
+                motor::ogl::error::check_and_log(
+                    gl4_log( "Fragment Shader creation" ) ) ;
+
+                if( !this_t::compile_shader( id, ss.pixel_shader().code() ) )
+                {
+                    glDeleteShader( scomp.vs_id ) ;
+                    motor::ogl::error::check_and_log( 
+                        gl4_log( "glDeleteShader Vertex Shader" ) ) ;
+                    if( ss.has_geometry_shader() )
+                    {
+                        glDeleteShader( scomp.gs_id ) ;
+                        motor::ogl::error::check_and_log( 
+                            gl4_log( "glDeleteShader Geometry Shader" ) ) ;
+                    }
+                    glDeleteShader( id ) ;
+                    motor::ogl::error::check_and_log( 
+                        gl4_log( "glDeleteShader Pixel Shader" ) ) ;
+                    return false ;
+                }
+
+                scomp.ps_id = id ;
+            }
+        }
     }
 
     //****************************************************************************************
@@ -1334,7 +1427,7 @@ public:
             auto const res = obj.shader_set( this_t::sapi, ss ) ;
             if( !res )
             {
-                motor::log::global_t::warning( gl4_backend_log(
+                motor::log::global_t::warning( gl4_log(
                     "config [" + obj.name() + "] has no shaders for " + 
                     motor::graphics::gen4::to_string( this_t::bt ) ) ) ;
                 return oid ;
@@ -1356,13 +1449,13 @@ public:
             {
                 GLuint const id = glCreateShader( GL_VERTEX_SHADER ) ;
                 motor::ogl::error::check_and_log( 
-                    gl4_backend_log( "Vertex Shader creation" ) ) ;
+                    gl4_log( "Vertex Shader creation" ) ) ;
 
                 if( !this_t::compile_shader( id, ss.vertex_shader().code() ) )
                 {
                     glDeleteShader( id ) ;
                     motor::ogl::error::check_and_log( 
-                        gl4_backend_log( "glDeleteShader : Vertex Shader" ) ) ;
+                        gl4_log( "glDeleteShader : Vertex Shader" ) ) ;
                     return size_t(-1) ;
                 }
 
@@ -1374,16 +1467,16 @@ public:
             {
                 GLuint const id = glCreateShader( GL_GEOMETRY_SHADER ) ;
                 motor::ogl::error::check_and_log(
-                    gl4_backend_log( "Geometry Shader creation" ) ) ;
+                    gl4_log( "Geometry Shader creation" ) ) ;
 
                 if( !this_t::compile_shader( id, ss.geometry_shader().code() ) )
                 {
                     glDeleteShader( scomp.vs_id ) ;
                     motor::ogl::error::check_and_log( 
-                        gl4_backend_log( "glDeleteShader Vertex Shader" ) ) ;
+                        gl4_log( "glDeleteShader Vertex Shader" ) ) ;
                     glDeleteShader( id ) ;
                     motor::ogl::error::check_and_log( 
-                        gl4_backend_log( "glDeleteShader Geometry Shader" ) ) ;
+                        gl4_log( "glDeleteShader Geometry Shader" ) ) ;
                     return size_t(-1) ;
                 }
 
@@ -1395,22 +1488,22 @@ public:
             {
                 GLuint const id = glCreateShader( GL_FRAGMENT_SHADER ) ;
                 motor::ogl::error::check_and_log(
-                    gl4_backend_log( "Fragment Shader creation" ) ) ;
+                    gl4_log( "Fragment Shader creation" ) ) ;
 
                 if( !this_t::compile_shader( id, ss.pixel_shader().code() ) )
                 {
                     glDeleteShader( scomp.vs_id ) ;
                     motor::ogl::error::check_and_log( 
-                        gl4_backend_log( "glDeleteShader Vertex Shader" ) ) ;
+                        gl4_log( "glDeleteShader Vertex Shader" ) ) ;
                     if( ss.has_geometry_shader() )
                     {
                         glDeleteShader( scomp.gs_id ) ;
                         motor::ogl::error::check_and_log( 
-                            gl4_backend_log( "glDeleteShader Geometry Shader" ) ) ;
+                            gl4_log( "glDeleteShader Geometry Shader" ) ) ;
                     }
                     glDeleteShader( id ) ;
                     motor::ogl::error::check_and_log( 
-                        gl4_backend_log( "glDeleteShader Pixel Shader" ) ) ;
+                        gl4_log( "glDeleteShader Pixel Shader" ) ) ;
                     return size_t(-1) ;
                 }
 
@@ -1429,7 +1522,7 @@ public:
         {
             GLuint const id = glCreateProgram() ;
             motor::ogl::error::check_and_log(
-                gl4_backend_log( "Shader Program creation" ) ) ;
+                gl4_log( "Shader Program creation" ) ) ;
 
             sd.pg_id = id ;
         }
@@ -1446,7 +1539,7 @@ public:
             {
                 glDeleteShader( _shaders[oid].vs_id ) ;
                 motor::ogl::error::check_and_log( 
-                    gl4_backend_log( "glDeleteShader Vertex Shader" ) ) ;
+                    gl4_log( "glDeleteShader Vertex Shader" ) ) ;
             }
 
             sd.vs_id = scomp.vs_id ;
@@ -1454,7 +1547,7 @@ public:
             {
                 glAttachShader( pid, _shaders[oid].vs_id ) ;
                 motor::ogl::error::check_and_log(
-                    gl4_backend_log( "Attaching vertex shader" ) ) ;
+                    gl4_log( "Attaching vertex shader" ) ) ;
             }
         }
 
@@ -1466,7 +1559,7 @@ public:
             {
                 glDeleteShader( id ) ;
                 motor::ogl::error::check_and_log( 
-                    gl4_backend_log( "glDeleteShader Geometry Shader" ) ) ;
+                    gl4_log( "glDeleteShader Geometry Shader" ) ) ;
             }
 
             sd.gs_id = scomp.gs_id ;
@@ -1476,14 +1569,14 @@ public:
         {
             glAttachShader( pid, sd.gs_id ) ;
             motor::ogl::error::check_and_log(
-                gl4_backend_log( "Attaching geometry shader" ) ) ;
+                gl4_log( "Attaching geometry shader" ) ) ;
 
             // check max output vertices
             {
                 GLint max_out = 0 ;
                 glGetIntegerv( GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_out ) ;
                 motor::ogl::error::check_and_log(
-                    gl4_backend_log( "Geometry Shader Max Output Vertices" ) ) ;
+                    gl4_log( "Geometry Shader Max Output Vertices" ) ) ;
                 ( void_t ) max_out ;
             }
 
@@ -1516,7 +1609,7 @@ public:
             {
                 glDeleteShader( id ) ;
                 motor::ogl::error::check_and_log( 
-                    gl4_backend_log( "glDeleteShader Pixel Shader" ) ) ;
+                    gl4_log( "glDeleteShader Pixel Shader" ) ) ;
             }
 
             sd.ps_id = scomp.ps_id ;
@@ -1525,7 +1618,7 @@ public:
         if( ss.has_pixel_shader() )
         {
             glAttachShader( pid, scomp.ps_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "Attaching pixel shader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "Attaching pixel shader" ) ) ;
         }
 
         //
@@ -1567,7 +1660,7 @@ public:
             glTransformFeedbackVaryings( sd.pg_id, GLsizei( obj.shader_bindings().get_num_output_bindings() ), 
                                          sd.output_names, mode ) ;
 
-            motor::ogl::error::check_and_log( gl4_backend_log( "glTransformFeedbackVaryings" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glTransformFeedbackVaryings" ) ) ;
             motor::log::global_t::status( mode == GL_NONE, 
                             "Did you miss to set the streamout mode in the shader object?" ) ;
 
@@ -1636,35 +1729,35 @@ public:
         if( !silent )
         {
             glDetachShader( shd.pg_id, shd.vs_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDetachShader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDetachShader" ) ) ;
 
             glDeleteShader( shd.vs_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteShader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteShader" ) ) ;
         }
 
         if( shd.gs_id != GLuint(-1) && !silent )
         {
             glDetachShader( shd.pg_id, shd.gs_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDetachShader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDetachShader" ) ) ;
 
             glDeleteShader( shd.gs_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteShader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteShader" ) ) ;
         }
 
         if( shd.ps_id != GLuint(-1) && !silent )
         {
             glDetachShader( shd.pg_id, shd.ps_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDetachShader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDetachShader" ) ) ;
 
             glDeleteShader( shd.ps_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteShader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteShader" ) ) ;
         }
 
         // delete program
         if( !silent )
         {
             glDeleteProgram( shd.pg_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteProgram" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteProgram" ) ) ;
         }
 
         if( shd.output_names != nullptr )
@@ -1693,12 +1786,12 @@ public:
         GLuint shaders_[ 10 ] ;
 
         glGetAttachedShaders( program_id, 10, &count, shaders_ ) ;
-        motor::ogl::error::check_and_log( gl4_backend_log( "glGetAttachedShaders" ) ) ;
+        motor::ogl::error::check_and_log( gl4_log( "glGetAttachedShaders" ) ) ;
 
         for( GLsizei i = 0; i < count; ++i )
         {
             glDetachShader( program_id, shaders_[ i ] ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDetachShader" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDetachShader" ) ) ;
         }
     }
 
@@ -1723,11 +1816,11 @@ public:
         GLchar const* source_string = ( GLchar const* ) ( code.c_str() ) ;
 
         glShaderSource( id, 1, &source_string, 0 ) ;
-        if( motor::ogl::error::check_and_log( gl4_backend_log( "glShaderSource" ) ) )
+        if( motor::ogl::error::check_and_log( gl4_log( "glShaderSource" ) ) )
             return false ;
 
         glCompileShader( id ) ;
-        if( motor::ogl::error::check_and_log( gl4_backend_log( "glCompileShader" ) ) )
+        if( motor::ogl::error::check_and_log( gl4_log( "glCompileShader" ) ) )
             return false ;
 
         GLint ret ;
@@ -1739,14 +1832,14 @@ public:
         if( ret == GL_TRUE && length <= 1 ) return true ;
 
         if( motor::log::global::error( length == 0, 
-            gl4_backend_log( "shader compilation failed, but info log length is 0." ) ) )
+            gl4_log( "shader compilation failed, but info log length is 0." ) ) )
             return false ;
 
         // print first line for info
         // user can place the shader name or any info there.
         {
             size_t pos = code.find_first_of( '\n' ) ;
-            motor::log::global::error( gl4_backend_log( "First Line: " + code.substr( 0, pos ) ) ) ;
+            motor::log::global::error( gl4_log( "First Line: " + code.substr( 0, pos ) ) ) ;
         }
 
         // get the error message it is and print it
@@ -1777,7 +1870,7 @@ public:
     bool_t link( GLuint const program_id )
     {
         glLinkProgram( program_id ) ;
-        if( motor::ogl::error::check_and_log( gl4_backend_log( "glLinkProgram" ) ) )
+        if( motor::ogl::error::check_and_log( gl4_log( "glLinkProgram" ) ) )
             return false ;
 
         {
@@ -1790,13 +1883,13 @@ public:
             if( ret == GL_TRUE && length <= 1 ) 
                 return true ;
 
-            if( motor::log::global_t::error( length == 0, gl4_backend_log("unknown") ) )
+            if( motor::log::global_t::error( length == 0, gl4_log("unknown") ) )
                 return false ;
 
             motor::memory::malloc_guard<char> info_log( length ) ;
 
             glGetProgramInfoLog( program_id, length, 0, info_log ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log( "glGetProgramInfoLog" ) ) )
+            if( motor::ogl::error::check_and_log( gl4_log( "glGetProgramInfoLog" ) ) )
                 return false ;
 
             std::string info_log_string = std::string( ( const char* ) info_log ) ;
@@ -1823,14 +1916,14 @@ public:
         GLint name_length = 0 ;
 
         glGetProgramiv( program_id, GL_ACTIVE_ATTRIBUTES, &num_active_attributes ) ;
-        motor::ogl::error::check_and_log( gl4_backend_log( "glGetProgramiv(GL_ACTIVE_ATTRIBUTES)" ) ) ;
+        motor::ogl::error::check_and_log( gl4_log( "glGetProgramiv(GL_ACTIVE_ATTRIBUTES)" ) ) ;
 
         if( num_active_attributes == 0 ) return ;
 
         config.attributes.resize( num_active_attributes ) ;
 
         glGetProgramiv( program_id, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &name_length ) ;
-        motor::ogl::error::check_and_log( gl4_backend_log( 
+        motor::ogl::error::check_and_log( gl4_log( 
             "glGetProgramiv(GL_ACTIVE_ATTRIBUTE_MAX_LENGTH)" ) ) ;
 
         GLint size ;
@@ -1862,7 +1955,7 @@ public:
                 motor::graphics::vertex_attribute va = motor::graphics::vertex_attribute::undefined ;
                 auto const res = config.find_vertex_input_binding_by_name( vd.name, va ) ;
                 motor::log::global_t::error( !res, 
-                    gl4_backend_log("can not find vertex attribute - " + vd.name ) ) ;
+                    gl4_log("can not find vertex attribute - " + vd.name ) ) ;
                 vd.va = va ;
             }
             config.attributes[i] = vd ;
@@ -1886,7 +1979,7 @@ public:
         {
             glBindBuffer( GL_ARRAY_BUFFER, gconfig.vb_id ) ;
             if( motor::ogl::error::check_and_log( 
-                gl4_backend_log("glBindBuffer(GL_ARRAY_BUFFER)") ) ) 
+                gl4_log("glBindBuffer(GL_ARRAY_BUFFER)") ) ) 
                 return false ;
         }
 
@@ -1895,7 +1988,7 @@ public:
             GLint const id_ = gconfig.ib_elem_sib == 0 ? 0 : gconfig.ib_id ;
             glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, id_ ) ;
             if( motor::ogl::error::check_and_log( 
-                gl4_backend_log( "glBindBuffer(GL_ELEMENT_ARRAY_BUFFER)" ) ) )
+                gl4_log( "glBindBuffer(GL_ELEMENT_ARRAY_BUFFER)" ) ) )
                 return false ;
         }
 
@@ -1903,7 +1996,7 @@ public:
         for( size_t i = 0; i < sconfig.attributes.size(); ++i )
         {
             glDisableVertexAttribArray( sconfig.attributes[ i ].loc ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDisableVertexAttribArray" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDisableVertexAttribArray" ) ) ;
         }
 
         GLuint uiStride = gconfig.stride ;
@@ -1942,7 +2035,7 @@ public:
                 loc = ++max_loc ;
                 type = motor::platform::gl3::convert( e.type ) ;
 
-                motor::log::global_t::warning( gl4_backend_log( "Vertex attribute (" +
+                motor::log::global_t::warning( gl4_log( "Vertex attribute (" +
                     motor::graphics::to_string(e.va) + ") in shader (" + sconfig.name + ") not used."
                     "Will bind geometry (" +sconfig.name+ ") layout attribute to custom location (" 
                     + motor::to_string( uint_t(loc) ) + ").") ) ;
@@ -1955,7 +2048,7 @@ public:
 
             glEnableVertexAttribArray( loc ) ;
             motor::ogl::error::check_and_log(
-                gl4_backend_log( "glEnableVertexAttribArray" ) ) ;
+                gl4_log( "glEnableVertexAttribArray" ) ) ;
 
             glVertexAttribPointer(
                 loc,
@@ -1966,13 +2059,13 @@ public:
                 (const GLvoid*)(size_t)uiBegin 
                 ) ;
 
-            motor::ogl::error::check_and_log( gl4_backend_log( "glVertexAttribPointer" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glVertexAttribPointer" ) ) ;
         }
       
         {
             glBindVertexArray( 0 ) ;
             if( motor::ogl::error::check_and_log(
-                gl4_backend_log( "glBindVertexArray" ) ) )
+                gl4_log( "glBindVertexArray" ) ) )
                 return false ;
         }
         return true ;
@@ -2014,7 +2107,7 @@ public:
             if( motor::ogl::error::check_and_log( "[glGetUniformLocation]" ) ) continue ;
 
             if( motor::log::global_t::error( location_id == GLuint( -1 ), 
-                gl4_backend_log( "invalid uniform location id." ) ) ) continue ;
+                gl4_log( "invalid uniform location id." ) ) ) continue ;
 
             motor::string_t const variable_name = motor::string_t( char_cptr_t( buffer ) ) ;
 
@@ -2101,7 +2194,7 @@ public:
         {
             GLuint id = GLuint( -1 ) ;
             glGenTextures( 1, &id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glGenTextures" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
 
             _images[ i ].tex_id = id ;
         }
@@ -2138,7 +2231,7 @@ public:
         if( id.tex_id != GLuint( -1 ) )
         {
             glDeleteTextures( 1, &id.tex_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteTextures" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
 
             id.tex_id = GLuint( -1 ) ;
         }
@@ -2367,7 +2460,7 @@ public:
             for( auto & d : rd.geo_to_vaos ) 
             {
                 glDeleteVertexArrays( 1, &d.vao ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteVertexArrays" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDeleteVertexArrays" ) ) ;
             }
             rd.geo_to_vaos.clear() ;
         }
@@ -2411,7 +2504,7 @@ public:
             for( auto & d : rd.geo_to_vaos ) 
             {
                 glDeleteVertexArrays( 1, &d.vao ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteVertexArrays" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDeleteVertexArrays" ) ) ;
             }
         }
         rd.geo_to_vaos.clear() ;
@@ -2437,7 +2530,7 @@ public:
 
                 if( iter == _geometries.end() )
                 {
-                    motor::log::global_t::warning( gl4_backend_log(
+                    motor::log::global_t::warning( gl4_log(
                         "no geometry with name [" + rc.get_geometry() + "] for render_data [" + rc.name() + "]" ) ) ;
                     continue ;
                 }
@@ -2466,7 +2559,7 @@ public:
 
                 if( iter == _feedbacks.end() )
                 {
-                    motor::log::global_t::warning( gl4_backend_log(
+                    motor::log::global_t::warning( gl4_log(
                         "no streamout object with name [" + rc.get_streamout() + "] for render_data [" + rc.name() + "]" ) ) ;
                     return false ;
                 }
@@ -2484,7 +2577,7 @@ public:
             } ) ;
             if( iter == _shaders.end() )
             {
-                motor::log::global_t::warning( gl4_backend_log(
+                motor::log::global_t::warning( gl4_log(
                     "no shader with name [" + rc.get_shader() + "] for render_data [" + rc.name() + "]" ) ) ;
                 return false ;
             }
@@ -2510,7 +2603,7 @@ public:
             rc.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
             {
                 auto const res = this_t::connect( config, i, motor::memory::copy_ptr(vs) ) ;
-                motor::log::global_t::warning( !res, gl4_backend_log( "connect" ) ) ;
+                motor::log::global_t::warning( !res, gl4_log( "connect" ) ) ;
             } ) ;
 
             for( auto * ptr : vars ) motor::memory::release_ptr( ptr ) ;
@@ -2528,7 +2621,7 @@ public:
 
         {
             glBindVertexArray( vao ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindVertexArray" ) ) )
+            if( motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) )
                 return false ;
         }
 
@@ -2626,7 +2719,7 @@ public:
             GLuint id = GLuint( -1 ) ;
             glGenBuffers( 1, &id ) ;
             error = motor::ogl::error::check_and_log( 
-                gl4_backend_log( "Vertex Buffer creation" ) ) ;
+                gl4_log( "Vertex Buffer creation" ) ) ;
 
             config.vb_id = id ;
         }
@@ -2637,7 +2730,7 @@ public:
             GLuint id = GLuint( -1 ) ;
             glGenBuffers( 1, &id ) ;
             error = motor::ogl::error::check_and_log(
-                gl4_backend_log( "Index Buffer creation" ) ) ;
+                gl4_log( "Index Buffer creation" ) ) ;
 
             config.ib_id = id ;
         }
@@ -2658,7 +2751,7 @@ public:
             }) ;
         }
 
-        motor::log::global_t::error( error, gl4_backend_log("Error ocurred for ["+ name +"]") ) ;
+        motor::log::global_t::error( error, gl4_log("Error ocurred for ["+ name +"]") ) ;
 
         return oid ;
     }
@@ -2684,14 +2777,14 @@ public:
         if( geo.vb_id != GLuint( -1 ) )
         {
             glDeleteBuffers( 1, &geo.vb_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteBuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
             geo.vb_id = GLuint( -1 ) ;
         }
 
         if( geo.ib_id != GLuint( -1 ) )
         {
             glDeleteBuffers( 1, &geo.ib_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteBuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
             geo.ib_id = GLuint( -1 ) ;
         }
 
@@ -2724,7 +2817,7 @@ public:
         // bind vertex buffer
         {
             glBindBuffer( GL_ARRAY_BUFFER, config.vb_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log("glBindBuffer - vertex buffer") ) )
+            if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer - vertex buffer") ) )
                 return false ;
         }
 
@@ -2736,14 +2829,14 @@ public:
             {
                 glBufferData( GL_ARRAY_BUFFER, sib,
                     geo->vertex_buffer().data(), GL_STATIC_DRAW ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log( "glBufferData - vertex buffer" ) ) )
+                if( motor::ogl::error::check_and_log( gl4_log( "glBufferData - vertex buffer" ) ) )
                     return false ;
                 config.sib_vb = sib ;
             }
             else
             {
                 glBufferSubData( GL_ARRAY_BUFFER, 0, sib, geo->vertex_buffer().data() ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glBufferSubData - vertex buffer" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glBufferSubData - vertex buffer" ) ) ;
             }
         }
 
@@ -2755,7 +2848,7 @@ public:
             {
                 GLint const id_ = geo->index_buffer().get_num_elements() == 0 ? 0 : config.ib_id ;
                 glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, id_ ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindBuffer - index buffer" ) ) )
+                if( motor::ogl::error::check_and_log( gl4_log( "glBindBuffer - index buffer" ) ) )
                     return false ;
             }
 
@@ -2766,14 +2859,14 @@ public:
             {
                 glBufferData( GL_ELEMENT_ARRAY_BUFFER, sib,
                     geo->index_buffer().data(), GL_STATIC_DRAW ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log( "glBufferData - index buffer" ) ) )
+                if( motor::ogl::error::check_and_log( gl4_log( "glBufferData - index buffer" ) ) )
                     return false ;
                 config.sib_ib = sib ;
             }
             else
             {
                 glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, sib, geo->index_buffer().data() ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glBufferSubData - index buffer" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glBufferSubData - index buffer" ) ) ;
             }
         }
 
@@ -2797,7 +2890,7 @@ public:
                 if( iter != _renders[ rid ].geo_to_vaos.end() )
                 {
                     glDeleteVertexArrays( 1, &(iter->vao) ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteVertexArrays" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glDeleteVertexArrays" ) ) ;
 
                     _renders[ rid ].geo_to_vaos.erase( iter ) ;
                 }
@@ -2815,7 +2908,7 @@ public:
         this_t::image_data_ref_t config = _images[ id ] ;
 
         glBindTexture( config.type, config.tex_id ) ;
-        if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) )
+        if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
             return false ;
 
         size_t const sib = confin.image().sib() ;
@@ -2839,7 +2932,7 @@ public:
             else unpack = 1 ;
 
             glPixelStorei( GL_UNPACK_ALIGNMENT, unpack ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glPixelStorei" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glPixelStorei" ) ) ;
         }
 
         if( is_config || ( sib == 0 || config.sib < sib ) )
@@ -2851,13 +2944,13 @@ public:
             {
                 glTexImage2D( target, level, internal_format, width, height,
                     border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glTexImage2D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glTexImage2D" ) ) ;
             }
             else if( target == GL_TEXTURE_2D_ARRAY )
             {
                 glTexImage3D( target, level, internal_format, width, height, depth,
                     border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glTexImage3D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glTexImage3D" ) ) ;
             }
         }
         else
@@ -2870,13 +2963,13 @@ public:
             {
                 glTexSubImage2D( target, level, xoffset, yoffset, width, height,
                     format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glTexSubImage2D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glTexSubImage2D" ) ) ;
             }
             else if( target == GL_TEXTURE_2D_ARRAY )
             {
                 glTexSubImage3D( target, level, xoffset, yoffset, zoffset, width, height, depth,
                     format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glTexSubImage3D" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glTexSubImage3D" ) ) ;
             }
             
         }
@@ -2901,7 +2994,7 @@ public:
                 auto* var = vs->data_variable( uv.name, types.first, types.second ) ;
                 if( var == nullptr )
                 {
-                    motor::log::global_t::error( gl4_backend_log( "can not claim variable " + uv.name ) ) ;
+                    motor::log::global_t::error( gl4_log( "can not claim variable " + uv.name ) ) ;
                     continue ;
                 }
 
@@ -2919,7 +3012,7 @@ public:
 
                 if( var == nullptr )
                 {
-                    motor::log::global_t::error( gl4_backend_log( "can not claim variable " + uv.name ) ) ;
+                    motor::log::global_t::error( gl4_log( "can not claim variable " + uv.name ) ) ;
                     continue ;
                 }
 
@@ -2935,7 +3028,7 @@ public:
 
                     if( i >= _images.size() )
                     {
-                        motor::log::global_t::error( gl4_backend_log( "Could not find image [" +
+                        motor::log::global_t::error( gl4_log( "Could not find image [" +
                             tx_name.name() + "]" ) ) ;
                         continue ;
                     }
@@ -2996,7 +3089,7 @@ public:
                 {
                     if( !handle_feedback_link() )
                     {
-                        motor::log::global_t::error( gl4_backend_log( 
+                        motor::log::global_t::error( gl4_log( 
                           "Could not find array nor streamout object [" + tx_name + "]" ) ) ;
                         continue ;
                     }
@@ -3023,7 +3116,7 @@ public:
             GLuint id = GLuint( -1 ) ;
             glGenBuffers( 1, &id ) ;
             motor::ogl::error::check_and_log( 
-                gl4_backend_log( "[construct_array_data] : glGenBuffers" ) ) ;
+                gl4_log( "[construct_array_data] : glGenBuffers" ) ) ;
 
             data.buf_id = id ;
         }
@@ -3034,7 +3127,7 @@ public:
             GLuint id = GLuint( -1 ) ;
             glGenTextures( 1, &id ) ;
             motor::ogl::error::check_and_log( 
-                gl4_backend_log( "[construct_array_data] : glGenTextures" ) ) ;
+                gl4_log( "[construct_array_data] : glGenTextures" ) ) ;
 
             data.tex_id = id ;
         }
@@ -3050,14 +3143,14 @@ public:
         if( data.buf_id == GLuint(-1) )
         {
             glDeleteBuffers( 1, &data.buf_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteBuffers" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
             data.buf_id = GLuint( -1 ) ;
         }
 
         if( data.tex_id == GLuint(-1) )
         {
             glDeleteTextures( 1, &data.tex_id ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteTextures" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
             data.tex_id = GLuint( -1 ) ;
         }
 
@@ -3078,7 +3171,7 @@ public:
             // bind buffer
             {
                 glBindBuffer( GL_TEXTURE_BUFFER, data.buf_id ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log("glBindBuffer") ) )
+                if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
                     return false ;
             }
 
@@ -3088,20 +3181,20 @@ public:
             {
                 glBufferData( GL_TEXTURE_BUFFER, sib,
                         obj.data_buffer().data(), GL_DYNAMIC_DRAW ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log( "glBufferData" ) ) )
+                if( motor::ogl::error::check_and_log( gl4_log( "glBufferData" ) ) )
                     return false ;
                 data.sib = sib ;
             }
             else
             {
                 glBufferSubData( GL_TEXTURE_BUFFER, 0, sib, obj.data_buffer().data() ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glBufferSubData" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glBufferSubData" ) ) ;
             }
 
             // bind buffer
             {
                 glBindBuffer( GL_TEXTURE_BUFFER, 0 ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log("glBindBuffer") ) )
+                if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
                     return false ;
             }
         }
@@ -3110,13 +3203,13 @@ public:
         // glTexBuffer is required to be called after driver memory is aquired.
         {
             glBindTexture( GL_TEXTURE_BUFFER, data.tex_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) )
+            if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
                 return false ;
 
             auto const le = obj.data_buffer().get_layout_element(0) ;
             glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::gl3::convert_for_texture_buffer(
                 le.type, le.type_struct ), data.buf_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log( "glTexBuffer" ) ) )
+            if( motor::ogl::error::check_and_log( gl4_log( "glTexBuffer" ) ) )
                 return false ;
         }
 
@@ -3156,7 +3249,7 @@ public:
             // we just always gen max buffers tex ids
             {
                 glGenTextures( this_t::tf_data::buffer::max_buffers, buffer.tids ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glGenTextures" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
             }
 
             for( size_t i=req_buffers; i<this_t::tf_data::buffer::max_buffers; ++i )
@@ -3172,13 +3265,13 @@ public:
             if( buffer.qid == GLuint(-1) )
             {
                 glGenQueries( 1, &buffer.qid ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glGenQueries" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glGenQueries" ) ) ;
             }
 
             if( buffer.tfid == GLuint(-1) )
             {
                 glGenTransformFeedbacks( 1, &buffer.tfid ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glGenTransformFeedbacks" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glGenTransformFeedbacks" ) ) ;
             }
         }
 
@@ -3207,21 +3300,21 @@ public:
             if( buffer.qid != GLuint(-1) )
             {
                 glDeleteQueries( 1, &buffer.qid ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteBuffers" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
                 buffer.qid = GLuint( -1 ) ; 
             }
 
             if( buffer.tfid != GLuint(-1) )
             {
                 glDeleteTransformFeedbacks( 1, &buffer.tfid ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteTransformFeedbacks" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDeleteTransformFeedbacks" ) ) ;
                 buffer.tfid = GLuint( -1 ) ; 
             }
 
             // release textures
             {
                 glDeleteTextures( tf_data_t::buffer::max_buffers, buffer.tids ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDeleteTextures" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
             }
         }
 
@@ -3246,7 +3339,7 @@ public:
                 // bind buffer
                 {
                     glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, buffer.bids[i] ) ;
-                    if( motor::ogl::error::check_and_log( gl4_backend_log("glBindBuffer") ) )
+                    if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
                         continue ;
                 }
 
@@ -3255,7 +3348,7 @@ public:
                 if( is_config || sib > buffer.sibs[i] )
                 {
                     glBufferData( GL_TRANSFORM_FEEDBACK_BUFFER, sib, nullptr, GL_DYNAMIC_DRAW ) ;
-                    if( motor::ogl::error::check_and_log( gl4_backend_log( "glBufferData" ) ) )
+                    if( motor::ogl::error::check_and_log( gl4_log( "glBufferData" ) ) )
                         continue ;
 
                     buffer.sibs[i] = sib ;
@@ -3265,17 +3358,17 @@ public:
                 // glTexBuffer is required to be called after driver memory is aquired.
                 {
                     glBindTexture( GL_TEXTURE_BUFFER, buffer.tids[i] ) ;
-                    if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) )
+                    if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
                         continue ;
 
                     auto const le = obj.get_buffer( i ).get_layout_element_zero() ;
                     glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::gl3::convert_for_texture_buffer(
                         le.type, le.type_struct ), buffer.bids[i] ) ;
-                    if( motor::ogl::error::check_and_log( gl4_backend_log( "glTexBuffer" ) ) )
+                    if( motor::ogl::error::check_and_log( gl4_log( "glTexBuffer" ) ) )
                         continue ;
 
                     glBindTexture( GL_TEXTURE_BUFFER, 0 ) ;
-                    if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) )
+                    if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
                         continue ;
                 }
 
@@ -3286,7 +3379,7 @@ public:
         // unbind
         {
             glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, 0 ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log("glBindBuffer") ) )
+            if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
                 return false ;
         }
 
@@ -3296,7 +3389,7 @@ public:
 
             {
                 glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log("glBindTransformFeedback") ) )
+                if( motor::ogl::error::check_and_log( gl4_log("glBindTransformFeedback") ) )
                     return false ;
             }
 
@@ -3310,7 +3403,7 @@ public:
                     if( bid == GLuint(-1) ) break ;
 
                     glBindBufferRange( GL_TRANSFORM_FEEDBACK_BUFFER, GLuint(i), bid, 0, sib ) ;
-                    motor::ogl::error::check_and_log( gl4_backend_log( "glBindBufferRange" ) ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glBindBufferRange" ) ) ;
                 }
             }
         }
@@ -3357,13 +3450,13 @@ public:
             }
 
             glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glBindTransformFeedback" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glBindTransformFeedback" ) ) ;
         }
 
         // query written primitives
         {
             glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, buffer.qid ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glBeginQuery" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glBeginQuery" ) ) ;
         }
 
         // begin 
@@ -3371,7 +3464,7 @@ public:
             // lets just use the primitive type of the used geometry
             GLenum const mode = gdata.pt ;
             glBeginTransformFeedback( mode ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glBeginTransformFeedback" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glBeginTransformFeedback" ) ) ;
         }
     }
 
@@ -3382,13 +3475,13 @@ public:
 
         {
             glEndTransformFeedback() ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glEndTransformFeedback" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glEndTransformFeedback" ) ) ;
         }
 
         // query written primitives
         {
             glEndQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glEndQuery" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glEndQuery" ) ) ;
         }
         
         // swap the indices of the ping-pong buffers
@@ -3417,7 +3510,7 @@ public:
 
         {
             glUseProgram( sconfig.pg_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log( "glUseProgram" ) ) )
+            if( motor::ogl::error::check_and_log( gl4_log( "glUseProgram" ) ) )
             {
                 return false ;
             }
@@ -3569,7 +3662,7 @@ public:
                 {                    
                     {
                         glGenVertexArrays( 1, &vao_id ) ;
-                        if( motor::ogl::error::check_and_log( gl4_backend_log( "Vertex Array creation" ) ) )
+                        if( motor::ogl::error::check_and_log( gl4_log( "Vertex Array creation" ) ) )
                             return false ;
                     }
 
@@ -3582,7 +3675,7 @@ public:
 
             {
                 glBindVertexArray( vao_id ) ;
-                if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindVertexArray" ) ) )
+                if( motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) )
                     return false ;
             }
         }
@@ -3591,7 +3684,7 @@ public:
 
         {
             glUseProgram( sconfig.pg_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log( "glUseProgram" ) ) )
+            if( motor::ogl::error::check_and_log( gl4_log( "glUseProgram" ) ) )
             {
                 glBindVertexArray( 0 ) ;
                 return false ;
@@ -3627,20 +3720,20 @@ public:
                         if ( link.var_set_idx < varset_id ) continue ;
 
                         glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                        motor::ogl::error::check_and_log( gl4_backend_log( "glActiveTexture" ) ) ;
+                        motor::ogl::error::check_and_log( gl4_log( "glActiveTexture" ) ) ;
 
                         {
                             auto const& ic = _images[ link.img_id ] ;  
 
                             glBindTexture( ic.type, link.tex_id ) ;
-                            motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) ;
+                            motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) ;
 
                             glTexParameteri( ic.type, GL_TEXTURE_WRAP_S, ic.wrap_types[0] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_WRAP_T, ic.wrap_types[1] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_WRAP_R, ic.wrap_types[2] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_MIN_FILTER, ic.filter_types[0] ) ;
                             glTexParameteri( ic.type, GL_TEXTURE_MAG_FILTER, ic.filter_types[1] ) ;
-                            motor::ogl::error::check_and_log( gl4_backend_log( "glTexParameteri" ) ) ;
+                            motor::ogl::error::check_and_log( gl4_log( "glTexParameteri" ) ) ;
                         }
 
                         {
@@ -3663,9 +3756,9 @@ public:
                         if ( link.var_set_idx < varset_id ) continue ;
 
                         glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                        motor::ogl::error::check_and_log( gl4_backend_log( "glActiveTexture" ) ) ;
+                        motor::ogl::error::check_and_log( gl4_log( "glActiveTexture" ) ) ;
                         glBindTexture( GL_TEXTURE_BUFFER, link.tex_id ) ;
-                        motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) ;
+                        motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) ;
 
                         {
                             auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -3690,9 +3783,9 @@ public:
                         GLuint const tid = link.tex_id[tfd.read_index()] ;
 
                         glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                        motor::ogl::error::check_and_log( gl4_backend_log( "glActiveTexture" ) ) ;
+                        motor::ogl::error::check_and_log( gl4_log( "glActiveTexture" ) ) ;
                         glBindTexture( GL_TEXTURE_BUFFER, tid ) ;
-                        motor::ogl::error::check_and_log( gl4_backend_log( "glBindTexture" ) ) ;
+                        motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) ;
 
                         {
                             auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -3712,7 +3805,7 @@ public:
         if( sconfig.ps_id == GLuint(-1) )
         {
             glEnable( GL_RASTERIZER_DISCARD ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glEnable( GL_RASTERIZER_DISCARD ) " ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glEnable( GL_RASTERIZER_DISCARD ) " ) ) ;
         }
 
         {
@@ -3739,7 +3832,7 @@ public:
                 motor::ogl::error::check_and_log( gl4_backend_log( "glDrawArrays" ) ) ;
                 #else
                 glDrawTransformFeedback( pt, tfd.read_buffer().tfid ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDrawTransformFeedback" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDrawTransformFeedback" ) ) ;
                 #endif
 
             }
@@ -3755,7 +3848,7 @@ public:
 
                 glDrawElements( pt, ne, glt, offset ) ;
 
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDrawElements" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDrawElements" ) ) ;
             }
             else
             {
@@ -3763,7 +3856,7 @@ public:
                 GLsizei const ne = std::min( num_elements>=0?num_elements:max_elems, max_elems ) ;
 
                 glDrawArrays( pt, start_element, ne ) ;
-                motor::ogl::error::check_and_log( gl4_backend_log( "glDrawArrays" ) ) ;
+                motor::ogl::error::check_and_log( gl4_log( "glDrawArrays" ) ) ;
             }
         }
 
@@ -3775,12 +3868,12 @@ public:
         if( sconfig.ps_id == GLuint(-1) )
         {
             glDisable( GL_RASTERIZER_DISCARD ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glDisable( GL_RASTERIZER_DISCARD ) " ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glDisable( GL_RASTERIZER_DISCARD ) " ) ) ;
         }
 
         {
             glBindVertexArray( 0 ) ;
-            if( motor::ogl::error::check_and_log( gl4_backend_log( "glBindVertexArray" ) ) )
+            if( motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) )
                 return false ;
         }
 
@@ -3810,13 +3903,13 @@ public:
         {
             motor::math::vec4f_t const clear_color = _state_stack.top().clear_s.ss.clear_color ;
             glClearColor( clear_color.x(), clear_color.y(), clear_color.z(), clear_color.w() ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glClearColor" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glClearColor" ) ) ;
 
             GLbitfield const color = GL_COLOR_BUFFER_BIT ;
             GLbitfield const depth = GL_DEPTH_BUFFER_BIT ;
 
             glClear( color | depth ) ;
-            motor::ogl::error::check_and_log( gl4_backend_log( "glEnable" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glEnable" ) ) ;
         }
     }
 
@@ -3878,7 +3971,7 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
 {
     if( obj == nullptr )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -3939,7 +4032,7 @@ motor::graphics::result gl4_backend::configure( motor::graphics::framebuffer_obj
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -3956,7 +4049,7 @@ motor::graphics::result gl4_backend::configure( motor::graphics::state_object_mt
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4001,7 +4094,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::geometry_object_m
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4018,7 +4111,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::render_object_mtr
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4035,7 +4128,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::shader_object_mtr
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4052,7 +4145,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::image_object_mtr_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4069,7 +4162,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::framebuffer_objec
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4086,7 +4179,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::state_object_mtr_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4103,7 +4196,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::array_object_mtr_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4120,7 +4213,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::streamout_object_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_backend_log( "Object must be valid and requires a name" ) ) ;
+        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4160,12 +4253,12 @@ motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mt
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( gl4_backend_log( "invalid geometry configuration id" ) ) ;
+        motor::log::global_t::error( gl4_log( "invalid geometry configuration id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
     auto const res = _pimpl->update( oid, obj ) ;
-    motor::log::global_t::error( !res, gl4_backend_log( "update geometry" ) ) ;
+    motor::log::global_t::error( !res, gl4_log( "update geometry" ) ) ;
 
     return motor::graphics::result::ok ;
 }
@@ -4313,13 +4406,13 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
     if( oid == size_t(-1)  )
     {
-        motor::log::global_t::error( gl4_backend_log( "invalid id" ) ) ;
+        motor::log::global_t::error( gl4_log( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
     }
 
     if( !_pimpl->check_link_status( oid ) )
     {
-        motor::log::global_t::error( gl4_backend_log( "shader did not compile. Abort render." ) ) ;
+        motor::log::global_t::error( gl4_log( "shader did not compile. Abort render." ) ) ;
         return motor::graphics::result::failed ;
     }
 
@@ -4347,7 +4440,7 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( gl4_backend_log( "invalid id" ) ) ;
+        motor::log::global_t::error( gl4_log( "invalid id" ) ) ;
         return motor::graphics::result::failed ;
     }
 

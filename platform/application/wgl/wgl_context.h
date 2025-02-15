@@ -38,7 +38,6 @@ namespace motor
                 std::array< int, 20 > _attrib_list = {0} ;
 
                 // all shared contexts derived from this one.
-                // let this context destroy those.
                 motor::vector< HGLRC > _shared_contexts ;
 
             public:
