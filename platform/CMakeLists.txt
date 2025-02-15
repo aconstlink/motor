@@ -9,6 +9,8 @@ set( sources
 
     "cpu_id.h"
     "cpu_id.cpp"
+
+    "graphics/datas.hpp"
     )
 
 set( unwanted_compiler_options )
