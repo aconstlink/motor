@@ -1685,8 +1685,6 @@ public: // functions
 
         if( !obj.check_and_reset_changed( _bid ) ) return ;
 
-        
-        #if 1
         auto const res = _states.access( oid, [&]( this_t::state_data_ref_t sd )
         {
             obj.for_each( [&]( size_t const i, motor::graphics::render_state_sets_cref_t rs )
@@ -1696,13 +1694,6 @@ public: // functions
             } ) ;
             return true ;
         } ) ;
-        #else
-        obj.for_each( [&]( size_t const i, motor::graphics::render_state_sets_cref_t rs )
-        {
-            if( i >= _states[oid].states.size() ) return ;
-            _states[oid].states[i] = rs ;
-        } ) ;
-        #endif
     }
 
     //************************************************************************************************************
@@ -1735,18 +1726,13 @@ public: // functions
                 //   within the use/unuse functions by the user.
                 if( _cur_fb_active == size_t(-1) || popped ) 
                     vp.TopLeftY = vp_height - vp.Height - vp.TopLeftY ;
-                else 
-                #if 1
+                else
                 {
                     _framebuffers.access(_cur_fb_active, [&]( this_t::framebuffer_data_ref_t fbd )
                     {
                         vp.TopLeftY = fbd.height - vp.Height - vp.TopLeftY ;
                     } ) ;
                 }
-                #else
-                    vp.TopLeftY = _framebuffers[_cur_fb_active].height - vp.Height - vp.TopLeftY ;
-                #endif
-                
 
                 _ctx->ctx()->RSSetViewports( 1, &vp ) ;
             }
@@ -1772,7 +1758,6 @@ public: // functions
             }
             else 
             {
-                #if 1
                 _framebuffers.access( _cur_fb_active, [&]( this_t::framebuffer_data_ref_t fb )
                 {
                     bool_t const clear_color = incoming_states.rss.clear_s.ss.do_color_clear ;
@@ -1791,25 +1776,6 @@ public: // functions
                         _ctx->ctx()->ClearDepthStencilView( fb.ds_view, D3D11_CLEAR_DEPTH, 1.0f, 0 ) ;
                     }
                 } ) ;
-                #else
-                framebuffer_data_ref_t fb = framebuffer_data_ref_t( _framebuffers[ _cur_fb_active ] ) ;
-
-                bool_t const clear_color = incoming_states.rss.clear_s.ss.do_color_clear ;
-                bool_t const clear_depth = incoming_states.rss.clear_s.ss.do_depth_clear ;
-
-                if( clear_color )
-                {
-                    motor::math::vec4f_t const color = incoming_states.rss.clear_s.ss.clear_color ;
-                    FLOAT const dxcolor[ 4 ] = { color.x(), color.y(), color.z(), color.w() } ;
-                    for( size_t i=0; i<fb.num_color; ++i )
-                        _ctx->ctx()->ClearRenderTargetView( fb.rt_view[ i ], dxcolor ) ;
-                }
-
-                if( clear_depth && fb.ds_view != nullptr )
-                {
-                    _ctx->ctx()->ClearDepthStencilView( fb.ds_view, D3D11_CLEAR_DEPTH, 1.0f, 0 ) ;
-                }
-                #endif
             }
         }
 
@@ -1979,14 +1945,10 @@ public: // functions
         else
         {
             this_t::render_state_sets rss ;
-            #if 1
             _states.access( new_id.first, [&]( this_t::state_data_ref_t sd )
             {
                 rss.rss = _state_stack.top().rss + sd.states[ new_id.second ] ;
             } ) ;
-            #else
-            rss.rss = _state_stack.top().rss + _states[ new_id.first ].states[ new_id.second ] ;
-            #endif
             this->handle_render_state( rss, false ) ;
             _state_stack.push( rss ) ;
         }
@@ -2021,7 +1983,6 @@ public: // functions
                 {
                     if( fb.image_ids[ i ] != size_t( -1 ) )
                     {
-                        #if 1
                         _images.access( fb.image_ids[ i ], [&]( this_t::image_data_ref_t img )
                         {
                             //
@@ -2035,16 +1996,6 @@ public: // functions
                             img.texture = nullptr ;
                             img.sampler = nullptr ;
                         } ) ;
-                        #else
-
-                        _images[ fb.image_ids[ i ] ].view->Release() ;
-                        _images[ fb.image_ids[ i ] ].texture->Release() ;
-                        _images[ fb.image_ids[ i ] ].sampler->Release() ;
-
-                        _images[ fb.image_ids[ i ] ].view = nullptr  ;
-                        _images[ fb.image_ids[ i ] ].texture = nullptr ;
-                        _images[ fb.image_ids[ i ] ].sampler = nullptr ;
-                        #endif
                     }
                 }
 
@@ -2141,7 +2092,6 @@ public: // functions
 
                     // store data
                     {
-                        #if 1
                         motor::string_t const name = obj.name() + "." + motor::to_string( i ) ;
                         _images.access( fb.image_ids[ i ], name, [&] ( this_t::image_data_ref_t img )
                         {
@@ -2153,23 +2103,6 @@ public: // functions
                             img.requires_y_flip = 1.0f ;
                             return true ;
                         } ) ;
-                        #else
-                        size_t const iid = fb.image_ids[ i ] == size_t( -1 ) ?
-                            determine_oid( obj.get_oid(_bid), obj.name() + "." + motor::to_string( i ), _images ) : fb.image_ids[ i ] ;
-
-                        // fill the image so shader variable
-                        // lookup can find the render target
-                        // for binding to a texture variable
-                        {
-                            fb.image_ids[ i ] = iid ;
-                            _images[ iid ].name = obj.name() + "." + motor::to_string( i ) ;
-                            _images[ iid ].sampler = smp.move_out() ;
-                            _images[ iid ].texture = tex.move_out() ;
-                            _images[ iid ].valid = true ;
-                            _images[ iid ].view = srv.move_out() ;
-                            _images[ iid ].requires_y_flip = 1.0f ;
-                        }
-                        #endif
                         {
                             auto const dims = obj.get_dims() ;
                             fb.width = FLOAT( dims.x() ) ;
@@ -2193,7 +2126,6 @@ public: // functions
                 // release images
                 if( fb.image_ids[ fb.num_color ] != size_t( -1 ) )
                 {
-                    #if 1
                     _images.access( fb.image_ids[ fb.num_color ], [&]( this_t::image_data_ref_t img )
                     {
                         //
@@ -2207,15 +2139,6 @@ public: // functions
                         img.texture = nullptr ;
                         img.sampler = nullptr ;
                     } ) ;
-                    #else
-                    _images[ fb.image_ids[ fb.num_color ] ].view->Release() ;
-                    _images[ fb.image_ids[ fb.num_color ] ].texture->Release() ;
-                    _images[ fb.image_ids[ fb.num_color ] ].sampler->Release() ;
-
-                    _images[ fb.image_ids[ fb.num_color ] ].view = nullptr  ;
-                    _images[ fb.image_ids[ fb.num_color ] ].texture = nullptr ;
-                    _images[ fb.image_ids[ fb.num_color ] ].sampler = nullptr ;
-                    #endif
                 }
             
                 auto const dst = obj.get_depth_target();
@@ -2309,7 +2232,6 @@ public: // functions
 
                     // store data
                     {
-                        #if 1
                         size_t const i = obj.get_num_color_targets() ;
                         motor::string_t const name = obj.name() + ".depth" ;
                         _images.access( fb.image_ids[ i ], name, [&] ( this_t::image_data_ref_t img )
@@ -2321,24 +2243,6 @@ public: // functions
                             img.requires_y_flip = 1.0f ;
                             return true ;
                         } ) ;
-                        #else
-                        size_t const i = obj.get_num_color_targets() ;
-                        size_t const iid = fb.image_ids[ i ] == size_t( -1 ) ?
-                            determine_oid( obj.get_oid(_bid), obj.name() + ".depth", _images ) : fb.image_ids[ i ] ;
-
-                        // fill the image so shader variable
-                        // lookup can find the render target
-                        // for binding to a texture variable
-                        {
-                            fb.image_ids[ i ] = iid ;
-                            _images[ iid ].name = obj.name() + ".depth" ;
-                            _images[ iid ].sampler = smp.move_out() ;
-                            _images[ iid ].texture = tex.move_out() ;
-                            _images[ iid ].valid = true ;
-                            _images[ iid ].view = srv.move_out() ;
-                            _images[ iid ].requires_y_flip = 1.0f ;
-                        }
-                        #endif
                         {
                             auto const dims = obj.get_dims() ;
                             fb.width = FLOAT( dims.x() ) ;
@@ -2503,15 +2407,10 @@ public: // functions
     //************************************************************************************************************
     void_t release_streamout( size_t const oid ) noexcept
     {
-        #if 1
         _renders.for_each( [&]( this_t::render_data_ref_t rd )
         {
             rd.unlink_streamout( oid ) ;
         } ) ;
-        #else
-        for( size_t i=0; i<_renders.size(); ++i )
-            _renders[i].unlink_streamout( oid ) ;
-        #endif
 
         //auto & d = _streamouts[ oid ] ;
         _streamouts.access( oid,[&]( this_t::so_data_ref_t d )
@@ -2755,15 +2654,9 @@ public: // functions
             ro.link_shader( c_exp ) ;
 
             ro.add_variable_sets( obj.get_varibale_sets() ) ;
-
-            #if 1
+            
             this_t::construct_shader_config( so ) ;
             this_t::construct_render_config( ro ) ;
-
-            #else
-            so.set_oid( _bid, this_t::construct_shader_config( so.get_oid( _bid ), so ) ) ;
-            ro.set_oid( _bid, this_t::construct_render_config( ro ) ) ;
-            #endif
             
             //auto & msl = _msls.items[oid] ;
 
@@ -2946,22 +2839,11 @@ public: // functions
     //************************************************************************************************************
     void_t release_geometry( size_t const oid ) noexcept 
     {
-        #if 1  
         _renders.for_each( [&]( this_t::render_data_ref_t d )
         {
             d.unlink_geometry( oid ) ;
         } ) ;
-        #else
-        for( size_t i=0; i<_renders.size(); ++i )
-            _renders[i].unlink_geometry( oid ) ;
-        #endif
-
-        #if 1
         _geos.invalidate( oid ) ;
-        #else
-        auto & o = _geos[ oid ] ;
-        o.invalidate() ;
-        #endif
     }
 
     //************************************************************************************************************
@@ -3421,13 +3303,7 @@ public: // functions
     //************************************************************************************************************
     void_t release_render_data( size_t const oid ) noexcept 
     {
-        #if 1
         _renders.invalidate( oid ) ;
-        #else
-        auto & o = _renders[ oid ] ;
-        o.invalidate() ;
-        #endif
-
     }
 
     //************************************************************************************************************
@@ -3482,8 +3358,6 @@ public: // functions
         // find shader
         if ( rd.shd_id == size_t( -1 ) )
         {
-            #if 1
-
             auto const id_ = _shaders.find_by_name( rc.get_shader() ) ;
             if ( id_ == size_t( -1 ) )
             {
@@ -3492,21 +3366,6 @@ public: // functions
                 return false ;
             }
             rd.shd_id = id_ ;
-
-            #else
-            auto const iter = std::find_if( _shaders.begin(), _shaders.end(),
-                [&] ( this_t::shader_data_cref_t d )
-            {
-                return d.name == rc.get_shader() ;
-            } ) ;
-            if ( iter == _shaders.end() )
-            {
-                motor::log::global_t::warning( d3d11_backend_log(
-                    "no shader with name [" + rc.get_shader() + "] for render_config [" + rc.name() + "]" ) ) ;
-                return false ;
-            }
-            rd.shd_id = std::distance( _shaders.begin(), iter ) ;
-            #endif
         }
 
         // may happen if shaders did not compile properly the first time.
@@ -3577,11 +3436,7 @@ public: // functions
                 {
                     char_cptr_t name = motor::platform::d3d11::vertex_binding_to_semantic( b.va ) ;
                     UINT const semantic_index = motor::platform::d3d11::vertex_output_binding_to_semantic_index( b.va ) ;
-                    #if 1
                     DXGI_FORMAT const fmt = this_t::geo_data_t::get_format_from_element( b.va, elems ) ;
-                    #else
-                    DXGI_FORMAT const fmt = _geos[ rd.geo_ids[ 0 ] ].get_format_from_element( b.va ) ;
-                    #endif
                     UINT input_slot = 0 ;
                     UINT aligned_byte_offset = offset ;
                     D3D11_INPUT_CLASSIFICATION const iclass = D3D11_INPUT_PER_VERTEX_DATA ;
@@ -3589,12 +3444,8 @@ public: // functions
 
                     rd.layout[ i++ ] = { name, semantic_index, fmt, input_slot,
                         aligned_byte_offset, iclass, instance_data_step_rate } ;
-
-                    #if 1
+                    
                     offset += this_t::geo_data_t::get_sib( b.va, elems ) ;
-                    #else
-                    offset += _geos[ rd.geo_ids[ 0 ] ].get_sib( b.va ) ;
-                    #endif
                 }
 
                 UINT const num_elements = UINT( i ) ;
@@ -3851,14 +3702,8 @@ public: // functions
                         auto * dv = vs->texture_variable( t.name ) ;
                         motor::string_t const img_name = dv->get().name() ;
                         
-                        #if 1
                         size_t const i = _images.find_by_name( img_name ) ;
                         if( i == size_t(-1) ) continue ;
-                        #else
-                        size_t i = 0 ;
-                        for ( ; i < _images.size(); ++i ) if ( _images[ i ].name == img_name ) break ;
-                        if ( i == _images.size() ) continue ;
-                        #endif
 
                         this_t::render_data_t::image_variable_t iv ;
                         iv.var_set_idx = vs_id ;
@@ -4095,12 +3940,7 @@ public: // functions
     //************************************************************************************************************
     void_t release_image_data( size_t const oid ) noexcept 
     {
-        #if 1
         _images.invalidate( oid ) ;
-        #else
-        auto & o = _images[ oid ] ;
-        o.invalidate() ;
-        #endif
     }
 
     //************************************************************************************************************
@@ -4201,12 +4041,7 @@ public: // functions
     //************************************************************************************************************
     void_t release_array_data( size_t const oid ) noexcept 
     {
-        #if 1
         _arrays.invalidate( oid ) ;
-        #else
-        auto & o = _arrays[ oid ] ;
-        o.invalidate() ;
-        #endif
     }
 
     //************************************************************************************************************
@@ -4314,7 +4149,6 @@ public: // functions
             {
                 auto update_funk = [&] ( ID3D11DeviceContext * ctx_, size_t const vsid, this_t::render_data::cbuffers_t & cbuffers )
                 {
-                    #if 1
                     size_t idx = size_t( -1 ) ;
                     while ( ++idx < cbuffers.size()
                         && cbuffers[ idx ].var_set_idx < vsid ) ;
@@ -4333,40 +4167,6 @@ public: // functions
                         dv.do_copy_funk_from_origin( cb.mem ) ;
                     }
                     ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
-
-                    #else
-                    for ( auto & cb : cbuffers )
-                    {
-                        if ( cb.var_set_idx != vsid ) continue ;
-                        if ( cb.var_set_idx > vsid ) break ;
-
-                        auto * vs = rnd.var_sets[ vsid ] ;
-
-                        for ( auto iter = cb.data_variables.begin(); iter != cb.data_variables.end(); ++iter )
-                        {
-                            // if a variable was not there at construction time, 
-                            // try it once more. If still not found, remove the entry.
-                            while ( iter->ivar == nullptr )
-                            {
-                                auto & var = *iter ;
-                                auto * ptr = vs->data_variable( var.name, var.t, var.ts ) ;
-                                if ( ptr == nullptr )
-                                {
-                                    iter = cb.data_variables.erase( iter ) ;
-                                }
-                                if ( iter == cb.data_variables.end() ) break ;
-                            }
-                            if ( iter == cb.data_variables.end() ) break ;
-
-                            // the offset to write to is stored within 
-                            // the variable itself which is read out from 
-                            // the reflection framework
-                            iter->do_copy_funk_from_origin( cb.mem ) ;
-                        }
-
-                        ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
-                    }
-                    #endif
                 } ;
 
                 update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_vs ) ;
@@ -4395,17 +4195,8 @@ public: // functions
 
                         if ( tx_var->get().hash() == iv.value_hash ) continue ;
                         iv.value_hash = tx_var->get().hash() ;
-
-                        #if 1
+                        
                         size_t const idx = _images.find_by_name( tx_var->get().name() ) ;
-                        #else
-                        size_t idx = size_t( -1 ) ;
-                        while ( ++idx < _images.size() && _images[ idx ].name != tx_var->get().name() ) ;
-
-                        // image not in images
-                        // what to do then?
-                        if ( idx == _images.size() ) continue ;
-                        #endif
                         iv.id = idx ;
                     }
                 } ;
@@ -5150,12 +4941,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::framebuffer_o
         return motor::graphics::result::invalid_argument ;
     }
     
-    #if 1
     auto const res = _pimpl->construct_framebuffer( *obj ) ;
-    #else
-    obj->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
-        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
-    #endif
     
     return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
 }
@@ -5169,12 +4955,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::state_object_
         return motor::graphics::result::invalid_argument ;
     }
 
-    #if 1
     auto const res = _pimpl->construct_state( *obj ) ;
-    #else 
-    obj->set_oid( this_t::get_bid(), _pimpl->construct_state(
-        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
-    #endif
 
     return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
 }
