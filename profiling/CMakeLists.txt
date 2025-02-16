@@ -9,6 +9,7 @@ set( sources
     "manager.h"
     "manager.cpp"
     "probe_guard.hpp"
+    "scoped_timer.hpp"
     )
 
 motor_vs_src_dir( sources )
