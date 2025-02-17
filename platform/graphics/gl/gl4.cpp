@@ -1376,7 +1376,6 @@ public:
         // store images
         if( requires_store )
         {
-            #if 1
             for( size_t i = 0; i < nt; ++i )
             {
                 size_t new_iid = size_t(-1) ;
@@ -1396,34 +1395,11 @@ public:
                     return true ;
                 } ) ;
             }
-            #else
-            size_t const id = _images.size() ;
-            _images.resize( _images.size() + nt ) ;
-
-            for( size_t i = 0; i < nt; ++i )
-            {
-                size_t const idx = id + i ;
-                _images[ idx ].name = fb.name + "." + motor::to_string( i ) ;
-                _images[ idx ].tex_id = fb.colors[ i ] ;
-                _images[ idx ].type = GL_TEXTURE_2D ; 
-
-                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
-                {
-                    _images[ idx ].wrap_types[ j ] = GL_CLAMP_TO_BORDER ;
-                }
-
-                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
-                {
-                    _images[ idx ].filter_types[ j ] = GL_LINEAR ;
-                }
-            }
-            #endif
         }
 
         // store depth/stencil
         if( requires_store )
         {
-            #if 1
             size_t new_iid = size_t(-1) ;
             motor::string_t name = fb.name + ".depth" ;
             _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
@@ -1443,27 +1419,6 @@ public:
 
                 return true ;
             } ) ;
-            #else
-            size_t const id = _images.size() ;
-            _images.resize( _images.size() + 1 ) ;
-
-            {
-                size_t const idx = id + 0 ;
-                _images[ idx ].name = fb.name + ".depth" ;
-                _images[ idx ].tex_id = fb.depth ;
-                _images[ idx ].type = GL_TEXTURE_2D ; 
-
-                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
-                {
-                    _images[ idx ].wrap_types[ j ] = GL_REPEAT ;
-                }
-
-                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
-                {
-                    _images[ idx ].filter_types[ j ] = GL_NEAREST ;
-                }
-            }
-            #endif
         }
 
         return oid ;
@@ -1477,7 +1432,6 @@ public:
         if( !fbd.valid ) return false ;
 
         // find image ids in images and remove them
-        #if 1
         {
             _images.for_each( [&]( this_t::image_data_ref_t id )
             {
@@ -1493,25 +1447,6 @@ public:
                 }
             } ) ;
         }
-        #else
-        {
-            for( size_t i=0; i<8; ++i )
-            {
-                if( fbd.colors[i] == GLuint(-1) ) continue ;
-
-                for( auto & img : _images )
-                {
-                    if( img.tex_id == fbd.colors[i] )
-                    {                        
-                        img.tex_id = GLuint(-1) ;
-                        img.name = "released framebuffer color buffer" ;
-                        img.sib = 0 ;
-                        break ;
-                    }
-                }
-            }
-        }
-        #endif
 
         {
             glDeleteFramebuffers( 1, &fbd.gl_id ) ;
@@ -1527,7 +1462,6 @@ public:
         {
             // find image id in images and remove them
 
-            #if 1
             _images.for_each_with_break( [&]( this_t::image_data_ref_t id )
             {
                 if( id.tex_id != fbd.depth ) return true ;
@@ -1537,20 +1471,6 @@ public:
                 id.invalidate() ;
                 return false ;
             } ) ;
-            #else
-            {
-                for( auto & img : _images )
-                {
-                    if( img.tex_id == fbd.depth )
-                    {                        
-                        img.tex_id = GLuint(-1) ;
-                        img.name = "released framebuffer color buffer" ;
-                        img.sib = 0 ;
-                        break ;
-                    }
-                }
-            }
-            #endif
 
             {
                 glDeleteTextures( 1, &fbd.depth ) ;
@@ -2040,16 +1960,10 @@ public:
             gl4_log_error( "glAttachShader : pixel shader" ) ;
         }
 
-
-
         //
         // SECTION : Shader/Program setup
         //
 
-        //oid = determine_oid( obj.get_oid(_bid), obj.name(), _shaders ) ;
-        //auto & sd = _shaders[ oid ] ;
-        
-        
         size_t oid = obj.get_oid( _bid ) ;
         auto const shd_res = _shaders.access( oid, obj.name(), [&]( this_t::shader_data_ref_t sd )
         {
@@ -2060,7 +1974,6 @@ public:
                 sd.delete_all_variables() ;
             }
 
-            
             sd.pg_id = scomp.pg_id ;
             sd.vs_id = scomp.vs_id ;
             sd.gs_id = scomp.gs_id ;
@@ -2148,7 +2061,6 @@ public:
         // if the shader is redone, all render objects using
         // the shader need to be updated
         {
-            #if 1
             _renders.for_each( [&]( this_t::render_data_ref_t rd )
             {
                 if( rd.shd_id != oid ) return ;
@@ -2175,38 +2087,7 @@ public:
                 {
                     this_t::update_variables( rd, vs_id ) ;
                 }
-
             } ) ;
-            #else
-            for( size_t i=0; i<_renders.size(); ++i )
-            {
-                auto & rd = _renders[i] ;
-
-                if( rd.shd_id != oid ) continue ;
-                
-                rd.var_sets_data.clear() ;
-                rd.var_sets_texture.clear() ;
-                rd.var_sets_array.clear() ;
-                rd.var_sets_streamout.clear() ;
-
-                auto sets = std::move( rd.var_sets ) ;
-                for ( size_t s = 0; s < sets.size(); ++s )
-                {
-                    auto & vs = sets[ s ] ;
-                    this_t::connect( rd, s, vs ) ;
-                }
-
-                _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
-                {
-                    this_t::render_object_variable_memory( rd, sd ) ;
-                    for( size_t vs_id=0; vs_id<rd.var_sets.size(); ++vs_id )
-                    {
-                        this_t::update_variables( i, vs_id ) ;
-                    }
-                    return true ;
-                } ) ;
-            }
-            #endif
         }
 
         return true ;
@@ -2683,8 +2564,6 @@ public:
     //****************************************************************************************
     bool_t construct_image_config( motor::graphics::image_object_ref_t config ) noexcept
     {
-        #if 1
-
         size_t oid = config.get_oid( _bid ) ;
         auto const res = _images.access( oid, config.name(), [&]( this_t::image_data_ref_t img )
         {
@@ -2715,63 +2594,6 @@ public:
 
         if( res ) config.set_oid( _bid, oid ) ;
         return res ;
-
-        #else
-        // the name is unique
-        {
-            auto iter = std::find_if( _images.begin(), _images.end(),
-                [&] ( this_t::image_data_cref_t config )
-            {
-                return config.name == name ;
-            } ) ;
-
-            if( iter != _images.end() )
-                return iter - _images.begin() ;
-        }
-
-        size_t i = 0 ;
-        for( ; i < _images.size(); ++i )
-        {
-            if( _images[ i ].tex_id == GLuint( -1 ) )
-            {
-                break ;
-            }
-        }
-
-        if( i == _images.size() ) {
-            _images.resize( i + 1 ) ;
-        }
-
-        // sampler
-        if( _images[ i ].tex_id == GLuint( -1 ) )
-        {
-            GLuint id = GLuint( -1 ) ;
-            glGenTextures( 1, &id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
-
-            _images[ i ].tex_id = id ;
-        }
-
-        {
-            _images[ i ].name = name ;
-            _images[ i ].type = motor::platform::gl3::convert( config.get_type() ) ;
-        }
-
-        {
-            for( size_t j=0; j<(size_t)motor::graphics::texture_wrap_mode::size; ++j )
-            {
-                _images[ i ].wrap_types[ j ] = motor::platform::gl3::convert(
-                    config.get_wrap( ( motor::graphics::texture_wrap_mode )j ) );
-            }
-
-            for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
-            {
-                _images[ i ].filter_types[ j ] = motor::platform::gl3::convert(
-                    config.get_filter( ( motor::graphics::texture_filter_mode )j ) );
-            }
-        }
-        #endif
-        
     }
 
     //****************************************************************************************
@@ -2911,7 +2733,6 @@ public:
                 }
                 so.set_oid( _bid, sid ) ;
             }
-
         }
 
         return true ;
@@ -3050,14 +2871,11 @@ public:
             ro.link_shader( c.expand() ) ;
             ro.add_variable_sets( obj.get_varibale_sets() ) ;
 
-            #if 1
+            
             if( !this_t::construct_render_data( ro ) )
             {
                 // do something if gone wrong
             }
-            #else
-            ro.set_oid( _bid, this_t::construct_render_data( ro.get_oid( _bid ), ro ) ) ;
-            #endif
 
             auto & msl = _msls[oid] ;
 
@@ -3119,41 +2937,6 @@ public:
     //****************************************************************************************
     bool_t construct_render_data( motor::graphics::render_object_ref_t obj ) noexcept
     {
-        // this code is done in release_render_data
-        #if 0
-        auto const res = _renders.access( oid, obj.name(), 
-            [&]( size_t const new_oid, this_t::render_data_ref_t rd )
-        {
-            
-            for( auto id : rd.geo_ids ) 
-            {
-                _geometries.access( id, [&]( this_t::geo_data_ref_t d )
-                {
-                    d.remove_render_data_id( new_oid ) ;
-                } ) ;
-            }
-            rd.geo_ids.clear();
-
-            for( auto id : rd.tf_ids )
-            {
-                _feedbacks[id].remove_render_data_id( new_oid ) ;
-            }
-            rd.tf_ids.clear() ;
-
-            rd.shd_id = size_t( -1 ) ;
-
-            motor::memory::global_t::dealloc( rd.mem_block ) ;
-            rd.mem_block = nullptr ;
-
-            for( auto & d : rd.geo_to_vaos ) 
-            {
-                glDeleteVertexArrays( 1, &d.vao ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glDeleteVertexArrays" ) ) ;
-            }
-            rd.geo_to_vaos.clear() ;
-        } ) ;
-        #endif
-
         if( this_t::release_render_data( obj.get_oid(_bid) ) )
         {
             obj.set_oid( _bid, size_t(-1) ) ;
@@ -3217,12 +3000,6 @@ public:
 
             // handle stream out links
             {
-                #if 0
-                // remove this render data id from the old feedback
-                for( auto tfid : config.tf_ids ) _feedbacks[ tfid ].remove_render_data_id( new_id ) ;
-                config.tf_ids.clear() ;
-                #endif
-
                 config.tf_ids.reserve( rc.get_num_streamout() ) ;
 
                 // find stream out object
@@ -3255,13 +3032,6 @@ public:
                     return false ;
                 }
             }
-
-            #if 0
-            if( !_shaders[config.shd_id].is_linkage_ok )
-            {
-                int bp = 0 ;
-            }
-            #endif
 
             {
                 // remember that rd.var_sets hold the ref count reminder!
@@ -3720,7 +3490,6 @@ public:
                     {
                         auto const& tx_name = var->get() ;
 
-                        #if 1
                         this_t::render_data::uniform_texture_link link ;
                         link.var_set_idx = var_set_idx ;
                         link.uniform_id = id++ ;
@@ -3738,32 +3507,7 @@ public:
                             motor::log::global_t::error( "[gl4] : Could not find image [%s]", 
                                 tx_name.name().c_str() ) ;
                             continue ;
-
                         }
-                        #else
-                        size_t i = 0 ;
-                        for( auto& cfg : _images )
-                        {
-                            if( tx_name == cfg.name ) break ;
-                            ++i ;
-                        }
-
-                        if( i >= _images.size() )
-                        {
-                            motor::log::global_t::error( gl4_log( "Could not find image [" +
-                                tx_name.name() + "]" ) ) ;
-                            continue ;
-                        }
-                        
-                        this_t::render_data::uniform_texture_link link ;
-                        link.var_set_idx = var_set_idx ;
-                        link.uniform_id = id++ ;
-                        link.tex_id = _images[ i ].tex_id ;
-                        link.img_id = i ;
-                        link.img_hash = var->get().hash() ;
-                        link.var = var ;
-                        #endif
-
                         config.var_sets_texture.emplace_back( link ) ;
                     }
                 }
@@ -4395,8 +4139,6 @@ public:
     {
         MOTOR_PROBE( "Graphics", "[gl4] : render" ) ;
 
-        //this_t::render_data & config = _renders[ id ] ;
-
         _renders.access( id, [&]( this_t::render_data_ref_t config )
         {
             _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t sconfig )
@@ -4502,7 +4244,6 @@ public:
                                 glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                                 gl4_log_error( "glActiveTexture" ) ;
 
-                                #if 1
                                 _images.access( link.img_id, [&]( this_t::image_data_ref_t ic )
                                 {
                                     glBindTexture( ic.type, link.tex_id ) ;
@@ -4515,21 +4256,6 @@ public:
                                     glTexParameteri( ic.type, GL_TEXTURE_MAG_FILTER, ic.filter_types[1] ) ;
                                     gl4_log_error( "glTexParameteri" ) ;
                                 } ) ;
-                                #else
-                                {
-                                    auto const& ic = _images[ link.img_id ] ;  
-
-                                    glBindTexture( ic.type, link.tex_id ) ;
-                                    motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) ;
-
-                                    glTexParameteri( ic.type, GL_TEXTURE_WRAP_S, ic.wrap_types[0] ) ;
-                                    glTexParameteri( ic.type, GL_TEXTURE_WRAP_T, ic.wrap_types[1] ) ;
-                                    glTexParameteri( ic.type, GL_TEXTURE_WRAP_R, ic.wrap_types[2] ) ;
-                                    glTexParameteri( ic.type, GL_TEXTURE_MIN_FILTER, ic.filter_types[0] ) ;
-                                    glTexParameteri( ic.type, GL_TEXTURE_MAG_FILTER, ic.filter_types[1] ) ;
-                                    motor::ogl::error::check_and_log( gl4_log( "glTexParameteri" ) ) ;
-                                }
-                                #endif
 
                                 {
                                     auto & uv = sconfig.uniforms[ link.uniform_id ] ;
