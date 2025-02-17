@@ -51,7 +51,7 @@ wgl_context::~wgl_context( void_t ) noexcept
         // clear out all backend object silently
         // this may happen if the window is already closed but the 
         // backend is still going on.
-        if( _backend != nullptr ) _backend->clear_all_objects() ;
+        if( _backend != nullptr ) _backend->on_context_destruction() ;
     }
     
     _backend = motor::memory::release_ptr( _backend ) ;

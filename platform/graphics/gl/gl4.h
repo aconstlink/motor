@@ -76,7 +76,7 @@ namespace motor
                 // will be not gl error due to the missing gl context.
                 // this is required if the window is closed and the context can not be
                 // made current...
-                void_t clear_all_objects( void_t ) noexcept ;
+                void_t on_context_destruction( void_t ) noexcept ;
 
             private:
 

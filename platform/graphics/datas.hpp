@@ -56,8 +56,6 @@ namespace motor
             return false ;
         }
 
-        // access by id only
-        // if you have an id and you know the object exists, use this function
         bool_t access( size_t oid, std::function< void_t ( T & ) > funk ) noexcept
         {
             {
@@ -65,11 +63,25 @@ namespace motor
                 
                 if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
                     return false ;
-               
+
                 funk( items[ oid ] ) ;
             }
-
             return true ;
+        }
+
+        // access by id only
+        // if you have an id and you know the object exists, use this function
+        template< typename R >
+        std::pair< bool_t, R > access( size_t const oid, std::function< R ( T & ) > funk ) noexcept
+        {
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+                
+                if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
+                    return std::make_pair( false, R() ) ;
+               
+                return std::make_pair( true, funk( items[ oid ] ) ) ;
+            }
         }
         
     private:
@@ -80,36 +92,36 @@ namespace motor
         }
 
         static size_t determine_oid( size_t oid, motor::string_cref_t name, motor::vector< T > & v ) noexcept
-    {
-        if( this_t::check_oid( oid, v ) != size_t(-1) ) return oid ;
-        if( name.empty() ) return oid ;
-
-        assert( oid == size_t(-1) && "must be -1. if oid != -1 => object MUST be valid!" ) ;
-
-        // we have to search for the name first. This can happen
-        // if a shader/msl object is recompiled.
         {
-            while ( ++oid < v.size() && v[ oid ].name != name ) ;
-            if ( oid < v.size() ) return oid ;
+            if( this_t::check_oid( oid, v ) != size_t(-1) ) return oid ;
+            if( name.empty() ) return oid ;
+
+            assert( oid == size_t(-1) && "must be -1. if oid != -1 => object MUST be valid!" ) ;
+
+            // we have to search for the name first. This can happen
+            // if a shader/msl object is recompiled.
+            {
+                while ( ++oid < v.size() && v[ oid ].name != name ) ;
+                if ( oid < v.size() ) return oid ;
+            }
+
+            // look for the next invalid item to be reused.
+            {
+                oid = size_t( -1 ) ;
+                while ( ++oid < v.size() && v[ oid ].valid ) ;
+            }
+
+            if ( oid >= v.size() )
+            {
+                oid = v.size() ;
+                v.resize( oid + 10 ) ;
+            }
+
+            v[ oid ].valid = true ;
+            v[ oid ].name = name ;
+
+            return oid ;
         }
-
-        // look for the next invalid item to be reused.
-        {
-            oid = size_t( -1 ) ;
-            while ( ++oid < v.size() && v[ oid ].valid ) ;
-        }
-
-        if ( oid >= v.size() )
-        {
-            oid = v.size() ;
-            v.resize( oid + 10 ) ;
-        }
-
-        v[ oid ].valid = true ;
-        v[ oid ].name = name ;
-
-        return oid ;
-    }
 
     public:
 
@@ -206,6 +218,8 @@ namespace motor
             motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
             if( oid >= items.size() ) return false ;
             items[oid].invalidate() ;
+            items[oid].valid = false ;
+            items[oid].name.clear() ;
             return true ;
         }
     } ;

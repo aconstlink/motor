@@ -166,8 +166,38 @@ struct gl4_backend::pimpl
             for( auto& id : rd_ids ) if( id == size_t( -1 ) ) { id = rid ; return ; }
             rd_ids.push_back( rid ) ;
         }
+
+        void_t invalidate( void_t ) noexcept
+        {
+            name.clear() ;
+            valid = false ;
+        
+            elements.clear() ;
+            ib_elem_sib = 0 ;
+            stride = 0 ;
+
+            if( vb_id != GLuint( -1 ) )
+            {
+                glDeleteBuffers( 1, &vb_id ) ;
+                gl4_log_error( "glDeleteBuffers : vertex buffer" ) ;
+                vb_id = GLuint( -1 ) ;
+            }
+
+            if( ib_id != GLuint( -1 ) )
+            {
+                glDeleteBuffers( 1, &ib_id ) ;
+                gl4_log_error( "glDeleteBuffers : index buffer" ) ;
+                ib_id = GLuint( -1 ) ;
+            }
+
+            ib_elem_sib = 0 ;
+            rd_ids.clear() ;
+        }
     };
     motor_typedef( geo_data ) ;
+    //typedef motor::vector< this_t::geo_data > geo_datas_t ;
+    using geo_datas_t = motor::platform::datas< this_t::geo_data_t > ;
+    geo_datas_t _geometries ;
 
     //********************************************************************************
     struct shader_data
@@ -546,8 +576,7 @@ struct gl4_backend::pimpl
     typedef motor::vector< this_t::render_data > render_datas_t ;
     render_datas_t _renders ;
 
-    typedef motor::vector< this_t::geo_data > geo_datas_t ;
-    geo_datas_t _geometries ;
+    
 
     typedef motor::vector< this_t::image_data_t > image_datas_t ;
     image_datas_t _images ;
@@ -844,16 +873,6 @@ public:
             this_t::release_render_data( i, false ) ;
         }
 
-        for( size_t i = 0; i<_shaders.size(); ++i )
-        {
-            this_t::release_shader_data( i ) ;
-        }
-
-        for( size_t i = 0; i<_geometries.size(); ++i )
-        {
-            this_t::release_geometry( i ) ;
-        }
-
         for( size_t i = 0; i<_images.size(); ++i )
         {
             this_t::release_image_data( i ) ;
@@ -875,8 +894,9 @@ public:
         {
         }
 
-        _geometries.clear() ;
-        _shaders.invalidate_and_clear() ;
+        this_t::release_and_clear_all_geometry_data( false ) ; 
+        this_t::release_and_clear_all_shader_data( false ) ;
+
         _renders.clear() ;
         _framebuffers.clear() ;
         _arrays.clear() ;
@@ -887,20 +907,19 @@ public:
     }
 
     // silent clear. No gl release will be done.
-    void_t clear_all_objects( void_t ) noexcept
+    void_t on_context_destruction( void_t ) noexcept
     {
+        this_t::stop_support_thread() ;
+        motor::release( motor::move( _shd_ctx ) ) ;
+
         for( size_t i = 0; i<_renders.size(); ++i )
         {
             this_t::release_render_data( i, false ) ;
         }
+        
+        this_t::release_and_clear_all_shader_data( false ) ;
+        this_t::release_and_clear_all_geometry_data( false ) ;
 
-        for( size_t i = 0; i<_shaders.size(); ++i )
-        {
-            this_t::release_shader_data( i, true ) ;
-        }
-
-        _geometries.clear() ;
-        _shaders.invalidate_and_clear() ;
         _renders.clear() ;
         _framebuffers.clear() ;
         _arrays.clear() ;
@@ -2084,7 +2103,7 @@ public:
                 glTransformFeedbackVaryings( sd.pg_id, GLsizei( obj.shader_bindings().get_num_output_bindings() ), 
                                              sd.output_names, mode ) ;
 
-                motor::ogl::error::check_and_log( gl4_log( "glTransformFeedbackVaryings" ) ) ;
+                gl4_log_error( "glTransformFeedbackVaryings" ) ;
                 motor::log::global_t::status( mode == GL_NONE, 
                                 "Did you miss to set the streamout mode in the shader object?" ) ;
 
@@ -2143,8 +2162,8 @@ public:
                     {
                         this_t::update_variables( i, vs_id ) ;
                     }
+                    return true ;
                 } ) ;
-                
             }
         }
 
@@ -2152,10 +2171,52 @@ public:
     }
 
     //****************************************************************************************
+    // if with_gl, no gl calls will be made.
+    void_t release_and_clear_all_shader_data( bool_t const with_gl = false ) noexcept
+    {
+        // if with_gl, just reset all gl ids.
+        // => no gl calls will be made
+        if( !with_gl )
+        {
+            _shaders.for_each( [&] ( this_t::shader_data_ref_t shd )
+            {
+                shd.pg_id = GLuint(-1) ;
+                shd.vs_id = GLuint(-1) ;
+                shd.gs_id = GLuint(-1) ;
+                shd.ps_id = GLuint(-1) ;
+            } ) ;
+        }
+
+        _shaders.invalidate_and_clear() ;
+    }
+
+    //****************************************************************************************
+    void_t release_and_clear_all_geometry_data( bool_t const with_gl = false ) noexcept
+    {
+        // if with_gl, just reset all gl ids.
+        // => no gl calls will be made
+        if( !with_gl )
+        {
+            _geometries.for_each( [&] ( this_t::geo_data_ref_t gd )
+            {
+                gd.ib_id = GLuint(-1) ;
+                gd.vb_id = GLuint(-1) ;
+            } ) ;
+        }
+
+        for( auto & rd : _renders )
+        {
+            rd.geo_ids.clear() ;
+        }
+        
+        _geometries.invalidate_and_clear() ;
+    }
+
+    //****************************************************************************************
     bool_t release_shader_data( size_t const oid, bool_t const silent = false ) noexcept
     {
         #if 1
-        _shaders.invalidate_and_clear() ;
+        _shaders.invalidate( oid ) ;
         #else
         auto & shd = _shaders[ oid ] ;
 
@@ -2302,6 +2363,13 @@ public:
     bool_t check_link_status( size_t const rid ) noexcept
     {
         #if 1
+        auto & rd = _renders[ rid ] ;
+        auto const [a, b] = _shaders.access<bool_t>( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
+        {
+            return sd.is_linkage_ok ;
+        } ) ;
+        return a && b ;
+        #else
         bool_t res ;
         auto & rd = _renders[ rid ] ;
         _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
@@ -2309,9 +2377,6 @@ public:
             res = sd.is_linkage_ok ;
         } ) ;
         return res ;
-        #else
-        auto & rd = _renders[ rid ] ;
-        return _shaders[ rd.shd_id ].is_linkage_ok ;
         #endif
     }
 
@@ -2357,7 +2422,7 @@ public:
     }
 
     //****************************************************************************************
-    void_t post_link_attributes( this_t::shader_data & config )
+    void_t post_link_attributes( this_t::shader_data & config ) const noexcept
     {
         GLuint const program_id = config.pg_id ;
 
@@ -2521,7 +2586,7 @@ public:
     }
 
     //****************************************************************************************
-    void_t post_link_uniforms( this_t::shader_data & config )
+    void_t post_link_uniforms( this_t::shader_data & config ) const noexcept
     {
         GLuint const program_id = config.pg_id ;
 
@@ -2571,7 +2636,7 @@ public:
     }
 
     //****************************************************************************************
-    void_t post_link_uniform_blocks( this_t::shader_data & config )
+    void_t post_link_uniform_blocks( this_t::shader_data & config ) const noexcept
     {
         GLuint const program_id = config.pg_id ;
 
@@ -3039,7 +3104,17 @@ public:
         {
             rd.name = obj.name() ;
             
+            #if 1
+            for( auto id : rd.geo_ids ) 
+            {
+                _geometries.access( id, [&]( this_t::geo_data_ref_t d )
+                {
+                    d.remove_render_data_id( oid ) ;
+                } ) ;
+            }
+            #else
             for( auto id : rd.geo_ids ) _geometries[id].remove_render_data_id( oid ) ;
+            #endif
             rd.geo_ids.clear();
 
             for( auto id : rd.tf_ids )
@@ -3075,9 +3150,15 @@ public:
         auto & rd = _renders[ oid ] ;
 
         rd.valid = false ;
-        rd.name = "released" ;
+        rd.name.clear() ;
 
-        for( auto id : rd.geo_ids ) _geometries[ id ].remove_render_data_id( oid ) ;
+        for( auto id : rd.geo_ids )
+        {
+            _geometries.access( id, [&]( this_t::geo_data_ref_t d )
+            {
+                d.remove_render_data_id( oid ) ;
+            } ) ;
+        }
         rd.geo_ids.clear() ;
         
         rd.shd_id = GLuint( -1 ) ;
@@ -3118,6 +3199,17 @@ public:
             // find geometry
             for( size_t i=0; i<rc.get_num_geometry(); ++i )
             {
+                #if 1
+                auto const gid = _geometries.find_by_name( rc.get_geometry(i) ) ;
+                if( gid == size_t(-1) )
+                {
+                    motor::log::global_t::warning<1024>( "[gl4] : no geometry with name [%s] for render_data [%s]",
+                        rc.get_geometry().c_str(), rc.name().c_str() ) ;
+                    continue ;
+                }
+                config.geo_ids.emplace_back( gid ) ;
+                _geometries.access( gid, [&]( this_t::geo_data_ref_t d ){ d.add_render_data_id( id ) ; } ) ;
+                #else
                 auto const iter = std::find_if( _geometries.begin(), _geometries.end(),
                     [&] ( this_t::geo_data const& d )
                 {
@@ -3130,11 +3222,10 @@ public:
                         "no geometry with name [" + rc.get_geometry() + "] for render_data [" + rc.name() + "]" ) ) ;
                     continue ;
                 }
-
                 config.geo_ids.emplace_back( std::distance( _geometries.begin(), iter ) ) ;
-
                 // add this render data id to the new geometry
                 _geometries[ config.geo_ids.back() ].add_render_data_id( id ) ;
+                #endif
             }
         }
 
@@ -3228,23 +3319,24 @@ public:
 
     bool_t bind_attributes( GLuint const vao, size_t const sid, size_t const gid ) noexcept
     {
-        bool_t res = false ;
-        _shaders.access( sid, [&]( this_t::shader_data_ref_t sd )
+        auto const [a,b] = _shaders.access<bool_t>( sid, [&]( this_t::shader_data_ref_t sd )
         {
-            auto & gd = _geometries[ gid ] ;
-
+            glBindVertexArray( vao ) ;
+            if( gl4_log_error( "glBindVertexArray") )
             {
-                glBindVertexArray( vao ) ;
-                if( gl4_log_error( "glBindVertexArray") )
-                {
-                    res = false ;
-                    return ;
-                }
+                return false;
             }
 
-            res = this_t::bind_attributes( sd, gd ) ;
+            //auto & gd = _geometries[ gid ] ;
+            auto const [c,d] = _geometries.access<bool_t>( gid, [&]( this_t::geo_data_ref_t gd )
+            {
+                return this_t::bind_attributes( sd, gd ) ;
+            } ) ;
+            
+            return c && d ;
+            
         } ) ;
-        return res ;
+        return a && b ;
     }
 
     //****************************************************************************************
@@ -3325,65 +3417,80 @@ public:
     }
 
     //****************************************************************************************
-    size_t construct_geo( size_t oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
+    bool_t construct_geo( size_t & oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
-        oid = determine_oid( oid, name, _geometries ) ;
-
-        bool_t error = false ;
-        auto& config = _geometries[ oid ] ;
-
-        // vertex buffer
-        if( config.vb_id == GLuint(-1) )
+        motor::log::global_t::status( "[gl4] : construct geometry %s", name.c_str() ) ;
+        auto const res = _geometries.access( oid, name, [&]( this_t::geo_data_ref_t config )
         {
-            GLuint id = GLuint( -1 ) ;
-            glGenBuffers( 1, &id ) ;
-            error = motor::ogl::error::check_and_log( 
-                gl4_log( "Vertex Buffer creation" ) ) ;
-
-            config.vb_id = id ;
-        }
-
-        // index buffer
-        if( config.ib_id == GLuint(-1) )
-        {
-            GLuint id = GLuint( -1 ) ;
-            glGenBuffers( 1, &id ) ;
-            error = motor::ogl::error::check_and_log(
-                gl4_log( "Index Buffer creation" ) ) ;
-
-            config.ib_id = id ;
-        }
-
-        {
-            config.name = name ;
-            config.stride = GLuint( vb.get_layout_sib() ) ;
-
-            config.elements.clear() ;
-            vb.for_each_layout_element( 
-                [&]( motor::graphics::vertex_buffer_t::data_cref_t d )
+            // vertex buffer
+            if( config.vb_id == GLuint(-1) )
             {
-                this_t::geo_data::layout_element le ;
-                le.va = d.va ;
-                le.type = d.type ;
-                le.type_struct = d.type_struct ;
-                config.elements.push_back( le ) ;
-            }) ;
-        }
+                GLuint id = GLuint( -1 ) ;
+                glGenBuffers( 1, &id ) ;
+                if( gl4_log_error( "glGenBuffers : vertex buffer") )
+                    return false ;
 
-        motor::log::global_t::error( error, gl4_log("Error ocurred for ["+ name +"]") ) ;
+                config.vb_id = id ;
+            }
 
-        return oid ;
+            // index buffer
+            if( config.ib_id == GLuint(-1) )
+            {
+                GLuint id = GLuint( -1 ) ;
+                glGenBuffers( 1, &id ) ;
+                if( gl4_log_error( "glGenBuffers : index buffer") )
+                    return false ;
+
+                config.ib_id = id ;
+            }
+
+            {
+                config.stride = GLuint( vb.get_layout_sib() ) ;
+
+                config.elements.clear() ;
+                vb.for_each_layout_element( 
+                    [&]( motor::graphics::vertex_buffer_t::data_cref_t d )
+                {
+                    this_t::geo_data::layout_element le ;
+                    le.va = d.va ;
+                    le.type = d.type ;
+                    le.type_struct = d.type_struct ;
+                    config.elements.push_back( le ) ;
+                }) ;
+            }
+
+            return true ;
+        } ) ;
+
+        return res ;
     }
 
+    
     //****************************************************************************************
-    size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj ) noexcept
+    bool_t construct_geo( motor::graphics::geometry_object_ref_t obj ) noexcept
     {
-        return this_t::construct_geo( oid, obj.name(), obj.vertex_buffer() ) ;
+        size_t oid = obj.get_oid( _bid ) ;
+        auto const res = this_t::construct_geo( oid, obj.name(), obj.vertex_buffer() ) ;
+        if( res ) obj.set_oid( _bid, oid ) ;
+        return res ;
     }
 
     //****************************************************************************************
     bool_t release_geometry( size_t const oid ) noexcept
     {
+        #if 1
+        // #1 have to deal with external references first
+        _geometries.access( oid, [&]( this_t::geo_data_ref_t g )
+        {
+            for( auto const id : g.rd_ids )
+            {
+                if( id == size_t( -1 ) ) continue ;
+                _renders[id].remove_geometry_id( oid ) ;
+            }
+        } ) ;
+        // #2 now we can invalidate the data object itself
+        _geometries.invalidate( oid ) ;
+        #else
         auto & geo = _geometries[ oid ] ;
 
         geo.name = "released" ;
@@ -3416,107 +3523,109 @@ public:
             rd.remove_geometry_id( oid ) ;
         }
         geo.rd_ids.clear() ;
-
+        #endif
         return true ;
     }
 
     //****************************************************************************************
-    bool_t update( size_t const id, motor::graphics::geometry_object_mtr_t geo, bool_t const is_config = false )
+    bool_t update( motor::graphics::geometry_object_mtr_t geo, bool_t const is_config = false )
     {
-        auto& config = _geometries[ id ] ;
-
+        size_t const id = geo->get_oid( _bid ) ;
+        auto const [a,b] = _geometries.access<bool_t>( id, [&]( this_t::geo_data_ref_t config )
         {
-            config.num_elements_ib = geo->index_buffer().get_num_elements() ;
-            config.num_elements_vb = geo->vertex_buffer().get_num_elements() ;
-            config.ib_elem_sib = 0 ;
-            config.ib_type = GL_UNSIGNED_INT ;
-            config.pt = motor::platform::gl3::convert( geo->primitive_type() ) ;
-        }
-
-        // bind vertex buffer
-        {
-            glBindBuffer( GL_ARRAY_BUFFER, config.vb_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer - vertex buffer") ) )
-                return false ;
-        }
-
-        // allocate buffer memory
-        // what about mapped memory?
-        {
-            GLuint const sib = GLuint( geo->vertex_buffer().get_sib() ) ;
-            if( is_config || sib > config.sib_vb )
             {
-                glBufferData( GL_ARRAY_BUFFER, sib,
-                    geo->vertex_buffer().data(), GL_STATIC_DRAW ) ;
-                if( motor::ogl::error::check_and_log( gl4_log( "glBufferData - vertex buffer" ) ) )
-                    return false ;
-                config.sib_vb = sib ;
+                config.num_elements_ib = geo->index_buffer().get_num_elements() ;
+                config.num_elements_vb = geo->vertex_buffer().get_num_elements() ;
+                config.ib_elem_sib = 0 ;
+                config.ib_type = GL_UNSIGNED_INT ;
+                config.pt = motor::platform::gl3::convert( geo->primitive_type() ) ;
             }
-            else
-            {
-                glBufferSubData( GL_ARRAY_BUFFER, 0, sib, geo->vertex_buffer().data() ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glBufferSubData - vertex buffer" ) ) ;
-            }
-        }
 
-        // allocate buffer memory
-        // what about mapped memory?
-        if( geo->index_buffer().get_num_elements() > 0 )
-        {
-            // bind index buffer
+            // bind vertex buffer
             {
-                GLint const id_ = geo->index_buffer().get_num_elements() == 0 ? 0 : config.ib_id ;
-                glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, id_ ) ;
-                if( motor::ogl::error::check_and_log( gl4_log( "glBindBuffer - index buffer" ) ) )
+                glBindBuffer( GL_ARRAY_BUFFER, config.vb_id ) ;
+                if( gl4_log_error( "glBindBuffer : vertex buffer" ) )
                     return false ;
             }
 
-            config.ib_elem_sib = geo->index_buffer().get_element_sib() ;
-
-            GLuint const sib = GLuint( geo->index_buffer().get_sib() ) ;
-            if( is_config || sib > config.sib_ib )
+            // allocate buffer memory
+            // what about mapped memory?
             {
-                glBufferData( GL_ELEMENT_ARRAY_BUFFER, sib,
-                    geo->index_buffer().data(), GL_STATIC_DRAW ) ;
-                if( motor::ogl::error::check_and_log( gl4_log( "glBufferData - index buffer" ) ) )
-                    return false ;
-                config.sib_ib = sib ;
-            }
-            else
-            {
-                glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, sib, geo->index_buffer().data() ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glBufferSubData - index buffer" ) ) ;
-            }
-        }
-
-        if( is_config ) 
-        {
-            // force rebind of vertex attributes. Layout may have changed.
-            for( auto const & rid : config.rd_ids )
-            {
-                if( rid == size_t( -1 ) ) continue ;
-                if( _renders[ rid ].shd_id == size_t( -1 ) ) continue ;
-                
-                auto iter = std::find_if( _renders[ rid ].geo_to_vaos.begin(), _renders[ rid ].geo_to_vaos.end(), 
-                    [&]( this_t::render_data::geo_to_vao const & d )
-                    {
-                        return d.gid == id ;
-                    } ) ;
-
-                // this may happen if the geometry is configured a second time
-                // after the render object is configured but the render object
-                // is not rendered yet.
-                if( iter != _renders[ rid ].geo_to_vaos.end() )
+                GLuint const sib = GLuint( geo->vertex_buffer().get_sib() ) ;
+                if( is_config || sib > config.sib_vb )
                 {
-                    glDeleteVertexArrays( 1, &(iter->vao) ) ;
-                    motor::ogl::error::check_and_log( gl4_log( "glDeleteVertexArrays" ) ) ;
-
-                    _renders[ rid ].geo_to_vaos.erase( iter ) ;
+                    glBufferData( GL_ARRAY_BUFFER, sib,
+                        geo->vertex_buffer().data(), GL_STATIC_DRAW ) ;
+                    if( gl4_log_error( "glBufferData : vertex buffer" ) ) return false ;
+                    config.sib_vb = sib ;
+                }
+                else
+                {
+                    glBufferSubData( GL_ARRAY_BUFFER, 0, sib, geo->vertex_buffer().data() ) ;
+                    if( gl4_log_error( "glBufferSubData : vertex buffer" ) ) return false ;
                 }
             }
-        }
 
-        return true ;
+            // allocate buffer memory
+            // what about mapped memory?
+            if( geo->index_buffer().get_num_elements() > 0 )
+            {
+                // bind index buffer
+                {
+                    GLint const id_ = geo->index_buffer().get_num_elements() == 0 ? 0 : config.ib_id ;
+                    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, id_ ) ;
+                    if( gl4_log_error( "glBindBuffer : index buffer" ) )
+                        return false ;
+                }
+
+                config.ib_elem_sib = geo->index_buffer().get_element_sib() ;
+
+                GLuint const sib = GLuint( geo->index_buffer().get_sib() ) ;
+                if( is_config || sib > config.sib_ib )
+                {
+                    glBufferData( GL_ELEMENT_ARRAY_BUFFER, sib,
+                        geo->index_buffer().data(), GL_STATIC_DRAW ) ;
+                    if( gl4_log_error( "glBufferData : index buffer" ) )
+                        return false ;
+                    config.sib_ib = sib ;
+                }
+                else
+                {
+                    glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, 0, sib, geo->index_buffer().data() ) ;
+                    if( gl4_log_error( "glBufferSubData : index buffer" ) ) return false ;
+                }
+            }
+
+            if( is_config ) 
+            {
+                // force rebind of vertex attributes. Layout may have changed.
+                for( auto const & rid : config.rd_ids )
+                {
+                    if( rid == size_t( -1 ) ) continue ;
+                    if( _renders[ rid ].shd_id == size_t( -1 ) ) continue ;
+                
+                    auto iter = std::find_if( _renders[ rid ].geo_to_vaos.begin(), _renders[ rid ].geo_to_vaos.end(), 
+                        [&]( this_t::render_data::geo_to_vao const & d )
+                        {
+                            return d.gid == id ;
+                        } ) ;
+
+                    // this may happen if the geometry is configured a second time
+                    // after the render object is configured but the render object
+                    // is not rendered yet.
+                    if( iter != _renders[ rid ].geo_to_vaos.end() )
+                    {
+                        glDeleteVertexArrays( 1, &(iter->vao) ) ;
+                        motor::ogl::error::check_and_log( gl4_log( "glDeleteVertexArrays" ) ) ;
+
+                        _renders[ rid ].geo_to_vaos.erase( iter ) ;
+                    }
+                }
+            }
+            return true ;
+        } ) ;
+
+        return a && b ;
     }
 
     //****************************************************************************************
@@ -3860,12 +3969,25 @@ public:
                 motor::string_t const is = motor::to_string( i ) ;
                 motor::string_t const bs = motor::to_string( rw ) ;
 
-                size_t const gid = this_t::construct_geo( size_t(-1), 
+                size_t gid = size_t(-1) ;
+                auto const res = this_t::construct_geo( gid, 
                     obj.name() + ".feedback."+is+"."+bs, obj.get_buffer(i) ) ;
+                
+                if( !res ) 
+                {
+                    motor::log::global::warning( 
+                        "[gl4] : unable to create geometry for transform feedback [%s]",
+                        obj.name().c_str() ) ;
+                    continue ;
+                }
 
                 buffer.gids[i] = gid ;
-                buffer.bids[i] = _geometries[ gid ].vb_id ;
                 buffer.sibs[i] = 0 ; 
+
+                _geometries.access( gid, [&]( this_t::geo_data_ref_t d )
+                { 
+                    buffer.bids[i] =  d.vb_id ;
+                } ) ;
             }
 
             // we just always gen max buffers tex ids
@@ -4049,6 +4171,56 @@ public:
     }
 
     //****************************************************************************************
+    #if 1
+    void_t activate_transform_feedback( GLenum const gpt ) noexcept
+    {
+        if( _tf_active_id == size_t(-1) ) return ;
+
+        auto & data = _feedbacks[_tf_active_id] ;
+        
+        auto const wrt_idx = data.write_index() ;
+        auto & buffer = data._buffers[wrt_idx] ;
+
+        // EITHER just set prim type what was used for rendering.
+        // OR use for overwriting the primitive type on render
+        //data.pt = gdata.pt ;
+
+        // bind transform feedback object and update primitive type for 
+        // rendering the transform feedback data.
+        {
+            for( size_t i=0; i<tf_data::buffer::max_buffers; ++i )
+            {
+                if( buffer.bids[ i ] == GLuint(-1) ) break ;
+
+                #if 1
+                _geometries.access( buffer.gids[ i ], [&]( this_t::geo_data_ref_t d )
+                {
+                    d.pt = gpt ;
+                } ) ;
+                #else
+                _geometries[buffer.gids[ i ]].pt = gdata.pt ;
+                #endif
+            }
+
+            glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glBindTransformFeedback" ) ) ;
+        }
+
+        // query written primitives
+        {
+            glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, buffer.qid ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glBeginQuery" ) ) ;
+        }
+
+        // begin 
+        {
+            // lets just use the primitive type of the used geometry
+            GLenum const mode = gpt ;
+            glBeginTransformFeedback( mode ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glBeginTransformFeedback" ) ) ;
+        }
+    }
+    #else
     void_t activate_transform_feedback( this_t::geo_data & gdata ) noexcept
     {
         if( _tf_active_id == size_t(-1) ) return ;
@@ -4068,7 +4240,15 @@ public:
             for( size_t i=0; i<tf_data::buffer::max_buffers; ++i )
             {
                 if( buffer.bids[ i ] == GLuint(-1) ) break ;
+
+                #if 1
+                _geometries.access( buffer.gids[ i ], [&]( this_t::geo_data_ref_t d )
+                {
+                    d.pt = gdata.pt ;
+                } ) ;
+                #else
                 _geometries[buffer.gids[ i ]].pt = gdata.pt ;
+                #endif
             }
 
             glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
@@ -4089,6 +4269,7 @@ public:
             motor::ogl::error::check_and_log( gl4_log( "glBeginTransformFeedback" ) ) ;
         }
     }
+    #endif
 
     //****************************************************************************************
     void_t deactivate_transform_feedback( void_t ) noexcept
@@ -4273,8 +4454,7 @@ public:
                     return false ;
             }
 
-            this_t::geo_data & gconfig = _geometries[ gid ] ;
-
+            
             // find vao
             {
                 GLuint vao_id = GLuint(0) ;
@@ -4436,13 +4616,20 @@ public:
                 gl4_log_error( "glEnable : GL_RASTERIZER_DISCARD" ) ;
             }
 
+            //this_t::geo_data & gconfig = _geometries[ gid ] ;
+           
+            auto const [gres, g_pt] = _geometries.access<GLenum>( gid, [&]( this_t::geo_data_ref_t d )
             {
-                this_t::activate_transform_feedback( gconfig ) ;
+                return d.pt ;
+            } ) ;
+
+            {
+                this_t::activate_transform_feedback( g_pt ) ;
             }
 
             // render section
             {
-                GLenum const pt = gconfig.pt ;
+                GLenum const pt = g_pt ;
                 //GLuint const ib = gconfig.ib_id ;
                 //GLuint const vb = config.geo->vb_id ;
 
@@ -4460,31 +4647,36 @@ public:
                     motor::ogl::error::check_and_log( gl4_backend_log( "glDrawArrays" ) ) ;
                     #else
                     glDrawTransformFeedback( pt, tfd.read_buffer().tfid ) ;
-                    motor::ogl::error::check_and_log( gl4_log( "glDrawTransformFeedback" ) ) ;
+                    gl4_log_error( "glDrawTransformFeedback" ) ;
                     #endif
 
                 }
-                else if( gconfig.num_elements_ib > 0 )
+                else 
                 {
-                    GLsizei const max_elems = GLsizei( gconfig.num_elements_ib ) ;
-                    GLsizei const ne = std::min( num_elements>=0?num_elements:max_elems, max_elems ) ;
+                    _geometries.access( gid, [&]( this_t::geo_data_ref_t gconfig )
+                    {
+                        if( gconfig.num_elements_ib > 0 )
+                        {
+                            GLsizei const max_elems = GLsizei( gconfig.num_elements_ib ) ;
+                            GLsizei const ne = std::min( num_elements>=0?num_elements:max_elems, max_elems ) ;
 
-                    GLenum const glt = gconfig.ib_type ;
+                            GLenum const glt = gconfig.ib_type ;
 
-                    void_cptr_t offset = void_cptr_t( byte_cptr_t( nullptr ) + 
-                        start_element * GLsizei( gconfig.ib_elem_sib ) ) ;
+                            void_cptr_t offset = void_cptr_t( byte_cptr_t( nullptr ) + 
+                                start_element * GLsizei( gconfig.ib_elem_sib ) ) ;
 
-                    glDrawElements( pt, ne, glt, offset ) ;
+                            glDrawElements( pt, ne, glt, offset ) ;
+                            gl4_log_error( "glDrawElements" ) ;
+                        }
+                        else
+                        {
+                            GLsizei const max_elems = GLsizei( gconfig.num_elements_vb ) ;
+                            GLsizei const ne = std::min( num_elements>=0?num_elements:max_elems, max_elems ) ;
 
-                    motor::ogl::error::check_and_log( gl4_log( "glDrawElements" ) ) ;
-                }
-                else
-                {
-                    GLsizei const max_elems = GLsizei( gconfig.num_elements_vb ) ;
-                    GLsizei const ne = std::min( num_elements>=0?num_elements:max_elems, max_elems ) ;
-
-                    glDrawArrays( pt, start_element, ne ) ;
-                    motor::ogl::error::check_and_log( gl4_log( "glDrawArrays" ) ) ;
+                            glDrawArrays( pt, start_element, ne ) ;
+                            gl4_log_error( "glDrawArrays" ) ;
+                        }
+                    } ) ;
                 }
             }
 
@@ -4622,10 +4814,10 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
 //******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::geometry_object_mtr_t obj ) noexcept 
 {
-    size_t const oid = obj->set_oid( this_t::get_bid(),
-        _pimpl->construct_geo( obj->get_oid(this_t::get_bid() ), *obj ) ) ;
+    if( !_pimpl->construct_geo( *obj ) ) 
+        return motor::graphics::result::failed ;
 
-    if( !_pimpl->update( oid, obj, true ) )
+    if( !_pimpl->update( obj, true ) )
     {
         return motor::graphics::result::failed ;
     }
@@ -4900,7 +5092,7 @@ motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mt
         return motor::graphics::result::failed ;
     }
 
-    auto const res = _pimpl->update( oid, obj ) ;
+    auto const res = _pimpl->update( obj ) ;
     motor::log::global_t::error( !res, gl4_log( "update geometry" ) ) ;
 
     return motor::graphics::result::ok ;
@@ -5107,7 +5299,7 @@ void_t gl4_backend::render_end( void_t ) noexcept
 }
 
 //*************************************************************************************
-void_t gl4_backend::clear_all_objects( void_t ) noexcept 
+void_t gl4_backend::on_context_destruction( void_t ) noexcept 
 {
-    _pimpl->clear_all_objects() ;
+    _pimpl->on_context_destruction() ;
 }
