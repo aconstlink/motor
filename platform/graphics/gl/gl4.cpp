@@ -195,7 +195,6 @@ struct gl4_backend::pimpl
         }
     };
     motor_typedef( geo_data ) ;
-    //typedef motor::vector< this_t::geo_data > geo_datas_t ;
     using geo_datas_t = motor::platform::datas< this_t::geo_data_t > ;
     geo_datas_t _geometries ;
 
@@ -386,7 +385,6 @@ struct gl4_backend::pimpl
     } ;
     motor_typedef( shader_data ) ;
 
-    //typedef motor::vector< this_t::shader_data > shader_datas_t ;
     using shader_datas_t = motor::platform::datas< shader_data_t > ;
     shader_datas_t _shaders ;
 
@@ -538,14 +536,13 @@ struct gl4_backend::pimpl
         }
     };
     motor_typedef( render_data ) ;
-
-    //typedef motor::vector< this_t::render_data > render_datas_t ;
     using render_datas_t = motor::platform::datas< render_data > ;
     render_datas_t _renders ;
 
     //********************************************************************************
     struct image_data
     {
+        bool_t valid = false ;
         motor::string_t name ;
 
         GLenum type = GL_NONE ;
@@ -557,8 +554,27 @@ struct gl4_backend::pimpl
         GLenum filter_types[ 2 ] ;
 
         // sampler ids for gl>=3.3
+
+        void_t invalidate( void_t ) noexcept
+        {
+            valid = false ;
+            name.clear() ;
+            type = GL_NONE ;
+
+            if( tex_id != GLuint( -1 ) )
+            {
+                glDeleteTextures( 1, &tex_id ) ;
+                gl4_log_error( "glDeleteTextures" ) ;
+                tex_id = GLuint( -1 ) ;
+            }
+        
+            sib = 0 ;
+        }
     };
     motor_typedef( image_data ) ;
+    
+    using image_datas_t = motor::platform::datas< image_data_t > ;
+    image_datas_t _images ;
 
     //********************************************************************************
     struct array_data
@@ -615,8 +631,7 @@ struct gl4_backend::pimpl
 
     
 
-    typedef motor::vector< this_t::image_data_t > image_datas_t ;
-    image_datas_t _images ;
+    
 
     typedef motor::vector< this_t::framebuffer_data_t > framebuffer_datas_t ;
     framebuffer_datas_t _framebuffers ;
@@ -904,11 +919,6 @@ public:
         {
             this_t::release_framebuffer( i ) ;
         }
-        
-        for( size_t i = 0; i<_images.size(); ++i )
-        {
-            this_t::release_image_data( i ) ;
-        }
 
         for( size_t i = 0; i<_arrays.size(); ++i )
         {
@@ -929,13 +939,12 @@ public:
         this_t::release_and_clear_all_geometry_data( false ) ; 
         this_t::release_and_clear_all_shader_data( false ) ;
         this_t::release_and_clear_all_render_data( false ) ;
+        this_t::release_and_clear_all_image_data( false ) ;
         
         _framebuffers.clear() ;
         _arrays.clear() ;
-        _images.clear() ;
         _feedbacks.clear() ;
         _msls.clear() ;
-
     }
 
     // silent clear. No gl release will be done.
@@ -947,10 +956,10 @@ public:
         this_t::release_and_clear_all_shader_data( false ) ;
         this_t::release_and_clear_all_geometry_data( false ) ;
         this_t::release_and_clear_all_render_data( false ) ;
+        this_t::release_and_clear_all_image_data( false ) ;
 
         _framebuffers.clear() ;
         _arrays.clear() ;
-        _images.clear() ;
         _feedbacks.clear() ;
         _msls.clear() ;
     }
@@ -1367,6 +1376,27 @@ public:
         // store images
         if( requires_store )
         {
+            #if 1
+            for( size_t i = 0; i < nt; ++i )
+            {
+                size_t new_iid = size_t(-1) ;
+                motor::string_t name = fb.name + "." + motor::to_string( i ) ;
+                _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
+                {
+                    id.tex_id = fb.colors[ i ] ;
+                    id.type = GL_TEXTURE_2D ;
+                    for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
+                    {
+                        id.wrap_types[ j ] = GL_CLAMP_TO_BORDER ;
+                    }
+                    for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
+                    {
+                        id.filter_types[ j ] = GL_LINEAR ;
+                    }
+                    return true ;
+                } ) ;
+            }
+            #else
             size_t const id = _images.size() ;
             _images.resize( _images.size() + nt ) ;
 
@@ -1387,11 +1417,33 @@ public:
                     _images[ idx ].filter_types[ j ] = GL_LINEAR ;
                 }
             }
+            #endif
         }
 
         // store depth/stencil
         if( requires_store )
         {
+            #if 1
+            size_t new_iid = size_t(-1) ;
+            motor::string_t name = fb.name + ".depth" ;
+            _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
+            {
+                id.tex_id = fb.depth ;
+                id.type = GL_TEXTURE_2D ; 
+
+                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
+                {
+                    id.wrap_types[ j ] = GL_REPEAT ;
+                }
+
+                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
+                {
+                    id.filter_types[ j ] = GL_NEAREST ;
+                }
+
+                return true ;
+            } ) ;
+            #else
             size_t const id = _images.size() ;
             _images.resize( _images.size() + 1 ) ;
 
@@ -1411,6 +1463,7 @@ public:
                     _images[ idx ].filter_types[ j ] = GL_NEAREST ;
                 }
             }
+            #endif
         }
 
         return oid ;
@@ -1424,6 +1477,23 @@ public:
         if( !fbd.valid ) return false ;
 
         // find image ids in images and remove them
+        #if 1
+        {
+            _images.for_each( [&]( this_t::image_data_ref_t id )
+            {
+                for( size_t i=0; i<8; ++i )
+                {
+                    if( fbd.colors[i] == GLuint(-1) ) continue ;
+                    if( id.tex_id != fbd.colors[i] ) continue ;
+
+                    // remove id before invalidate
+                    id.tex_id = GLuint(-1) ;
+                    id.invalidate() ;
+                    break ;
+                }
+            } ) ;
+        }
+        #else
         {
             for( size_t i=0; i<8; ++i )
             {
@@ -1441,21 +1511,33 @@ public:
                 }
             }
         }
-        
+        #endif
 
         {
             glDeleteFramebuffers( 1, &fbd.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteFramebuffers" ) ) ;
+            gl4_log_error( "release_framebuffer : glDeleteFramebuffers" ) ;
         }
 
         {
             glDeleteTextures( 8, fbd.colors ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
+            gl4_log_error( "release_framebuffer : glDeleteTextures" ) ;
         }
 
         if( fbd.depth != GLuint(-1) )
         {
             // find image id in images and remove them
+
+            #if 1
+            _images.for_each_with_break( [&]( this_t::image_data_ref_t id )
+            {
+                if( id.tex_id != fbd.depth ) return true ;
+
+                // remove id before invalidate
+                id.tex_id = GLuint(-1) ;
+                id.invalidate() ;
+                return false ;
+            } ) ;
+            #else
             {
                 for( auto & img : _images )
                 {
@@ -1468,6 +1550,7 @@ public:
                     }
                 }
             }
+            #endif
 
             {
                 glDeleteTextures( 1, &fbd.depth ) ;
@@ -2131,6 +2214,21 @@ public:
 
     //****************************************************************************************
     // if with_gl, no gl calls will be made.
+    void_t release_and_clear_all_image_data( bool_t const with_gl = false ) noexcept
+    {
+        if( !with_gl )
+        {
+            _images.for_each( [&]( this_t::image_data_ref_t d )
+            {
+                d.tex_id = GLuint( -1 ) ;
+            } ) ;
+        }
+
+        _images.invalidate_and_clear() ;
+    }
+
+    //****************************************************************************************
+    // if with_gl, no gl calls will be made.
     void_t release_and_clear_all_render_data( bool_t const with_gl = false ) noexcept
     {
         if( !with_gl )
@@ -2583,9 +2681,42 @@ public:
     }
 
     //****************************************************************************************
-    size_t construct_image_config( size_t /*oid*/, motor::string_cref_t name, 
-        motor::graphics::image_object_ref_t config )
+    bool_t construct_image_config( motor::graphics::image_object_ref_t config ) noexcept
     {
+        #if 1
+
+        size_t oid = config.get_oid( _bid ) ;
+        auto const res = _images.access( oid, config.name(), [&]( this_t::image_data_ref_t img )
+        {
+            // sampler
+            if( img.tex_id == GLuint( -1 ) )
+            {
+                GLuint id = GLuint( -1 ) ;
+                glGenTextures( 1, &id ) ;
+                if( gl4_log_error( "glGenTextures" ) ) return false ;
+
+                img.tex_id = id ;
+            }
+
+            img.type = motor::platform::gl3::convert( config.get_type() ) ;
+            for( size_t j=0; j<(size_t)motor::graphics::texture_wrap_mode::size; ++j )
+            {
+                img.wrap_types[ j ] = motor::platform::gl3::convert(
+                    config.get_wrap( ( motor::graphics::texture_wrap_mode )j ) );
+            }
+
+            for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
+            {
+                img.filter_types[ j ] = motor::platform::gl3::convert(
+                    config.get_filter( ( motor::graphics::texture_filter_mode )j ) );
+            }
+            return true ;
+        } ) ;
+
+        if( res ) config.set_oid( _bid, oid ) ;
+        return res ;
+
+        #else
         // the name is unique
         {
             auto iter = std::find_if( _images.begin(), _images.end(),
@@ -2639,28 +2770,14 @@ public:
                     config.get_filter( ( motor::graphics::texture_filter_mode )j ) );
             }
         }
-        return i ;
+        #endif
+        
     }
 
     //****************************************************************************************
     bool_t release_image_data( size_t const oid ) noexcept
     {
-        auto & id = _images[ oid ] ;
-
-        id.name = "released image" ;
-        id.type = GL_NONE ;
-
-        if( id.tex_id != GLuint( -1 ) )
-        {
-            glDeleteTextures( 1, &id.tex_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
-
-            id.tex_id = GLuint( -1 ) ;
-        }
-        
-        id.sib = 0 ;
-
-        return true ;
+        return _images.invalidate( oid ) ;
     }
 
     //****************************************************************************************
@@ -3037,7 +3154,11 @@ public:
         } ) ;
         #endif
 
-        this_t::release_render_data( obj.get_oid(_bid) ) ;
+        if( this_t::release_render_data( obj.get_oid(_bid) ) )
+        {
+            obj.set_oid( _bid, size_t(-1) ) ;
+        }
+
         if( !this_t::construct_render_data_ext( obj ) )
         {
             motor::log::global_t::error("[gl4] : construct_render_data_ext") ;
@@ -3049,6 +3170,7 @@ public:
     //****************************************************************************************
     bool_t release_render_data( size_t const oid ) noexcept
     {
+        // #1 break connections BEFORE invalidating the item
         _renders.access( oid, [&]( this_t::render_data_ref_t rd )
         {
             for( auto id : rd.geo_ids )
@@ -3436,7 +3558,7 @@ public:
                         #if 1
                         size_t i = size_t(-1) ;
                         while( ++i < rd.geo_to_vaos.size() && rd.geo_to_vaos[i].gid != id ) ;
-                        if( id != rd.geo_to_vaos.size() )
+                        if( i != rd.geo_to_vaos.size() )
                         {
                             glDeleteVertexArrays( 1, &(rd.geo_to_vaos[i].vao) ) ;
                             gl4_log_error( "glDeleteVertexArrays" ) ;
@@ -3475,80 +3597,85 @@ public:
     //****************************************************************************************
     // @param is_config used to determine recreating the texture on the gpu side.
     //          This param should be true if an image is configured or re-configured.
-    bool_t update( size_t const id, motor::graphics::image_object_ref_t confin, bool_t const is_config = false )
+    bool_t update( motor::graphics::image_object_ref_t confin, bool_t const is_config = false )
     {
-        this_t::image_data_ref_t config = _images[ id ] ;
+        //this_t::image_data_ref_t config = _images[ id ] ;
+        size_t const id = confin.get_oid( _bid ) ;
 
-        glBindTexture( config.type, config.tex_id ) ;
-        if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
-            return false ;
-
-        size_t const sib = confin.image().sib() ;
-        GLenum const target = config.type ;
-        GLint const level = 0 ;
-        GLsizei const width = GLsizei( confin.image().get_dims().x() ) ;
-        GLsizei const height = GLsizei( confin.image().get_dims().y() ) ;
-        GLsizei const depth = GLsizei( confin.image().get_dims().z() ) ;
-        GLenum const format = motor::platform::gl3::convert_to_gl_pixel_format( confin.image().get_image_format() ) ;
-        GLenum const type = motor::platform::gl3::convert_to_gl_pixel_type( confin.image().get_image_element_type() ) ;
-        void_cptr_t data = confin.image().get_image_ptr() ;
-
-        // determine how to unpack the data
-        // ideally, should be divideable by 4
+        auto const [a,b] = _images.access<bool_t>( id, [&]( this_t::image_data_ref_t config )
         {
-            GLint unpack = 0 ;
+            glBindTexture( config.type, config.tex_id ) ;
+            if( gl4_log_error( "glBindTexture" ) ) return false ;
 
-            if( width % 4 == 0 ) unpack = 4 ;
-            else if( width % 3 == 0 ) unpack = 3 ;
-            else if( width % 3 == 0 ) unpack = 2 ;
-            else unpack = 1 ;
+            size_t const sib = confin.image().sib() ;
+            GLenum const target = config.type ;
+            GLint const level = 0 ;
+            GLsizei const width = GLsizei( confin.image().get_dims().x() ) ;
+            GLsizei const height = GLsizei( confin.image().get_dims().y() ) ;
+            GLsizei const depth = GLsizei( confin.image().get_dims().z() ) ;
+            GLenum const format = motor::platform::gl3::convert_to_gl_pixel_format( confin.image().get_image_format() ) ;
+            GLenum const type = motor::platform::gl3::convert_to_gl_pixel_type( confin.image().get_image_element_type() ) ;
+            void_cptr_t data = confin.image().get_image_ptr() ;
 
-            glPixelStorei( GL_UNPACK_ALIGNMENT, unpack ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glPixelStorei" ) ) ;
-        }
-
-        if( is_config || ( sib == 0 || config.sib < sib ) )
-        {
-            GLint const border = 0 ;
-            GLint const internal_format = motor::platform::gl3::convert_to_gl_format( confin.image().get_image_format(), confin.image().get_image_element_type() ) ;
-
-            if( target == GL_TEXTURE_2D )
+            // determine how to unpack the data
+            // ideally, should be divideable by 4
             {
-                glTexImage2D( target, level, internal_format, width, height,
-                    border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glTexImage2D" ) ) ;
-            }
-            else if( target == GL_TEXTURE_2D_ARRAY )
-            {
-                glTexImage3D( target, level, internal_format, width, height, depth,
-                    border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glTexImage3D" ) ) ;
-            }
-        }
-        else
-        {
-            GLint const xoffset = 0 ;
-            GLint const yoffset = 0 ;
-            GLint const zoffset = 0 ;
+                GLint unpack = 0 ;
 
-            if( target == GL_TEXTURE_2D )
-            {
-                glTexSubImage2D( target, level, xoffset, yoffset, width, height,
-                    format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glTexSubImage2D" ) ) ;
-            }
-            else if( target == GL_TEXTURE_2D_ARRAY )
-            {
-                glTexSubImage3D( target, level, xoffset, yoffset, zoffset, width, height, depth,
-                    format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glTexSubImage3D" ) ) ;
-            }
-            
-        }
+                if( width % 4 == 0 ) unpack = 4 ;
+                else if( width % 3 == 0 ) unpack = 3 ;
+                else if( width % 3 == 0 ) unpack = 2 ;
+                else unpack = 1 ;
 
-        config.sib = confin.image().sib() ;
+                glPixelStorei( GL_UNPACK_ALIGNMENT, unpack ) ;
+                gl4_log_error( "glPixelStorei" ) ;
+            }
 
-        return false ;
+            if( is_config || ( sib == 0 || config.sib < sib ) )
+            {
+                GLint const border = 0 ;
+                GLint const internal_format = motor::platform::gl3::convert_to_gl_format( 
+                    confin.image().get_image_format(), confin.image().get_image_element_type() ) ;
+
+                if( target == GL_TEXTURE_2D )
+                {
+                    glTexImage2D( target, level, internal_format, width, height,
+                        border, format, type, data ) ;
+                    gl4_log_error( "glTexImage2D" ) ;
+                }
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                {
+                    glTexImage3D( target, level, internal_format, width, height, depth,
+                        border, format, type, data ) ;
+                    gl4_log_error( "glTexImage3D" ) ;
+                }
+            }
+            else
+            {
+                GLint const xoffset = 0 ;
+                GLint const yoffset = 0 ;
+                GLint const zoffset = 0 ;
+
+                if( target == GL_TEXTURE_2D )
+                {
+                    glTexSubImage2D( target, level, xoffset, yoffset, width, height,
+                        format, type, data ) ;
+                    gl4_log_error( "glTexSubImage2D" ) ;
+                }
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                {
+                    glTexSubImage3D( target, level, xoffset, yoffset, zoffset, width, height, depth,
+                        format, type, data ) ;
+                    gl4_log_error( "glTexSubImage3D" ) ;
+                }
+            }
+
+            config.sib = confin.image().sib() ;
+            return true ;
+        } ) ;
+        
+
+        return a && b ;
     }
 
     //****************************************************************************************
@@ -3591,8 +3718,30 @@ public:
 
                     // looking for image
                     {
-                        size_t i = 0 ;
                         auto const& tx_name = var->get() ;
+
+                        #if 1
+                        this_t::render_data::uniform_texture_link link ;
+                        link.var_set_idx = var_set_idx ;
+                        link.uniform_id = id++ ;
+                        link.img_hash = var->get().hash() ;
+                        link.var = var ;
+
+                        auto const res = _images.access_by_name( tx_name.name(), [&]( size_t const img_id, this_t::image_data_ref_t d )
+                        {
+                            link.img_id = img_id ;
+                            link.tex_id = d.tex_id ;
+                        } ) ;
+
+                        if( !res ) 
+                        {
+                            motor::log::global_t::error( "[gl4] : Could not find image [%s]", 
+                                tx_name.name().c_str() ) ;
+                            continue ;
+
+                        }
+                        #else
+                        size_t i = 0 ;
                         for( auto& cfg : _images )
                         {
                             if( tx_name == cfg.name ) break ;
@@ -3605,7 +3754,7 @@ public:
                                 tx_name.name() + "]" ) ) ;
                             continue ;
                         }
-
+                        
                         this_t::render_data::uniform_texture_link link ;
                         link.var_set_idx = var_set_idx ;
                         link.uniform_id = id++ ;
@@ -3613,6 +3762,8 @@ public:
                         link.img_id = i ;
                         link.img_hash = var->get().hash() ;
                         link.var = var ;
+                        #endif
+
                         config.var_sets_texture.emplace_back( link ) ;
                     }
                 }
@@ -4151,6 +4302,28 @@ public:
                         // automatic image update
                         if( link.img_hash != link.var->get().hash() )
                         {
+                            #if 1
+                            size_t const i = _images.find_by_name( link.var->get().name() ) ;
+                            if( i == size_t(-1) )
+                            {
+                                motor::log::global::warning("[gl4] : image variable value not found : " 
+                                    "%s : Resetting to old name.", link.var->get().name().c_str() ) ;
+
+                                _images.access( link.img_id, [&]( this_t::image_data_ref_t id )
+                                {
+                                    link.var->set( id.name ) ;
+                                } ) ;
+                            }
+                            else
+                            {
+                                _images.access( i, [&]( this_t::image_data_ref_t id )
+                                {
+                                    link.img_hash = link.var->get().hash() ;
+                                    link.img_id = i ;
+                                    link.tex_id = id.tex_id ;
+                                } ) ;
+                            }
+                            #else
                             size_t i=size_t(-1) ;
                             while( ++i < _images.size() && 
                                 _images[i].name != link.var->get().name() ) ;
@@ -4168,6 +4341,7 @@ public:
 
                                 link.var->set( _images[link.img_id].name ) ;
                             }
+                            #endif
                         }
                         
                         uv.do_copy_funk( link.mem, &var ) ;
@@ -4326,8 +4500,22 @@ public:
                                 if ( link.var_set_idx < varset_id ) continue ;
 
                                 glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                                motor::ogl::error::check_and_log( gl4_log( "glActiveTexture" ) ) ;
+                                gl4_log_error( "glActiveTexture" ) ;
 
+                                #if 1
+                                _images.access( link.img_id, [&]( this_t::image_data_ref_t ic )
+                                {
+                                    glBindTexture( ic.type, link.tex_id ) ;
+                                    gl4_log_error( "glBindTexture" ) ;
+
+                                    glTexParameteri( ic.type, GL_TEXTURE_WRAP_S, ic.wrap_types[0] ) ;
+                                    glTexParameteri( ic.type, GL_TEXTURE_WRAP_T, ic.wrap_types[1] ) ;
+                                    glTexParameteri( ic.type, GL_TEXTURE_WRAP_R, ic.wrap_types[2] ) ;
+                                    glTexParameteri( ic.type, GL_TEXTURE_MIN_FILTER, ic.filter_types[0] ) ;
+                                    glTexParameteri( ic.type, GL_TEXTURE_MAG_FILTER, ic.filter_types[1] ) ;
+                                    gl4_log_error( "glTexParameteri" ) ;
+                                } ) ;
+                                #else
                                 {
                                     auto const& ic = _images[ link.img_id ] ;  
 
@@ -4341,6 +4529,7 @@ public:
                                     glTexParameteri( ic.type, GL_TEXTURE_MAG_FILTER, ic.filter_types[1] ) ;
                                     motor::ogl::error::check_and_log( gl4_log( "glTexParameteri" ) ) ;
                                 }
+                                #endif
 
                                 {
                                     auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -4656,10 +4845,18 @@ motor::graphics::result gl4_backend::configure( motor::graphics::shader_object_m
 //******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
+    auto const res = _pimpl->construct_image_config( *obj ) ;
+    if( !res )
+    {
+        return motor::graphics::result::failed ;
+    }
+
+    #if 0
     size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_image_config( 
         obj->get_oid( this_t::get_bid() ), obj->name(), *obj ) ) ;
-    
-    if( !_pimpl->update( oid, *obj, true ) )
+    #endif
+
+    if( !_pimpl->update( *obj, true ) )
     {
         return motor::graphics::result::failed ;
     }
@@ -4934,7 +5131,7 @@ motor::graphics::result gl4_backend::update( motor::graphics::image_object_mtr_t
 {
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
-    if( !_pimpl->update( oid, *obj, false ) )
+    if( !_pimpl->update( *obj, false ) )
     {
         return motor::graphics::result::failed ;
     }

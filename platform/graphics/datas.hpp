@@ -83,6 +83,23 @@ namespace motor
             return true ;
         }
 
+        bool_t access_by_name( motor::string_cref_t name, std::function< void_t ( size_t const id, T & ) > funk ) noexcept
+        {
+            bool_t res = false ;
+            this_t::for_each_with_break( [&]( size_t const id, T & d )
+            {
+                if( d.name == name ) 
+                {
+                    funk( id, d ) ;
+                    res = true ;
+                    return false ;
+                }
+                return true ;
+            } ) ;
+
+            return res ;
+        }
+
         // access by id only
         // if you have an id and you know the object exists, use this function
         template< typename R >
@@ -202,6 +219,26 @@ namespace motor
             motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
             for( size_t i=0; i<items.size(); ++i ) 
                 funk( i, items[i] ) ;
+        }
+
+        // if the user funk return false, the loop breaks, 
+        // otherwise if true, the loop continues
+        void_t for_each_with_break( std::function < bool_t ( T & ) > funk ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            for( auto & i : items ) 
+            {
+                if( !funk( i ) ) break ;
+            }
+        }
+
+        void_t for_each_with_break( std::function < bool_t ( size_t const id, T & ) > funk ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            for( size_t i=0; i<items.size(); ++i )
+            {
+                if( !funk( i, items[i] ) ) break ;
+            }
         }
 
     public: // unsave
