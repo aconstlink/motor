@@ -31,7 +31,8 @@ namespace motor
 
         // access if you are not sure if the object exists.
         // this function will also create that object
-        bool_t access( size_t & oid, motor::string_in_t name, std::function< bool_t ( T & ) > funk ) noexcept
+        bool_t access( size_t & oid, motor::string_in_t name, 
+            std::function< bool_t ( size_t const,  T & ) > funk ) noexcept
         {
             // #1 quick check if id is still valid
             {
@@ -50,14 +51,27 @@ namespace motor
             if( oid != size_t( -1 ) )
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-                return funk( items[ oid ] ) ;
+                return funk( oid, items[ oid ] ) ;
             }
 
             return false ;
         }
 
+        // access if you are not sure if the object exists.
+        // this function will also create that object
+        bool_t access( size_t & oid, motor::string_in_t name, 
+            std::function< bool_t ( T & ) > funk ) noexcept
+        {
+            return this_t::access( oid, name, [&]( size_t const, T & d )
+            {
+                return funk( d ) ;
+            } ) ;
+        }
+
         bool_t access( size_t oid, std::function< void_t ( T & ) > funk ) noexcept
         {
+            if( oid == size_t(-1) ) return false ;
+
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
                 
@@ -74,14 +88,14 @@ namespace motor
         template< typename R >
         std::pair< bool_t, R > access( size_t const oid, std::function< R ( T & ) > funk ) noexcept
         {
-            {
-                motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            if( oid == size_t(-1) ) return std::make_pair( false, R() ) ; 
+
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
                 
-                if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
-                    return std::make_pair( false, R() ) ;
+            if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
+                return std::make_pair( false, R() ) ;
                
-                return std::make_pair( true, funk( items[ oid ] ) ) ;
-            }
+            return std::make_pair( true, funk( items[ oid ] ) ) ;
         }
         
     private:
@@ -181,6 +195,13 @@ namespace motor
         {
             motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
             for( auto & i : items ) funk( i ) ;
+        }
+
+        void_t for_each( std::function < void_t ( size_t const, T & ) > funk ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            for( size_t i=0; i<items.size(); ++i ) 
+                funk( i, items[i] ) ;
         }
 
     public: // unsave
