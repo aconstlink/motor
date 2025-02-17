@@ -71,14 +71,7 @@ namespace motor
 
             return true ;
         }
-
-        bool_t invalidate( size_t const oid ) noexcept
-        {
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-            if( oid >= items.size() ) return false ;
-            items[oid].invalidate() ;
-            return true ;
-        }
+        
     private:
 
         static size_t check_oid( size_t const oid, motor::vector< T > & v ) noexcept
@@ -200,10 +193,20 @@ namespace motor
 
     public:
 
+        // invalidate everything and clear
         void invalidate_and_clear( void_t ) noexcept
         {
             for( auto & i : items ) i.invalidate() ;
             items.clear() ;
+        }
+
+        // invalidate a particular item
+        bool_t invalidate( size_t const oid ) noexcept
+        {
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            if( oid >= items.size() ) return false ;
+            items[oid].invalidate() ;
+            return true ;
         }
     } ;
     }

@@ -12,6 +12,7 @@ namespace motor
     {
         struct error
         {
+            // returns true on error!
             static bool_t check_and_log( char const * msg ) noexcept
             {
                 GLenum __so__err = glGetError() ;
