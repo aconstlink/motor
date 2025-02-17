@@ -1965,105 +1965,6 @@ public:
                 ( void_t ) max_out ;
             }
 
-            #if 0
-            // program
-            if( sd.pg_id == GLuint( -1 ) )
-            {
-                GLuint const id = glCreateProgram() ;
-                gl4_log_error( "glCreateProgram" ) ;
-                sd.pg_id = id ;
-            }
-            
-
-            // vertex shader
-            {
-                if( sd.vs_id != GLuint(-1) )
-                {
-                    glDeleteShader( sd.vs_id ) ;
-                    motor::ogl::error::check_and_log( 
-                        gl4_log( "glDeleteShader Vertex Shader" ) ) ;
-                }
-
-                sd.vs_id = scomp.vs_id ;
-
-                {
-                    glAttachShader( pid, sd.vs_id ) ;
-                    motor::ogl::error::check_and_log(
-                        gl4_log( "Attaching vertex shader" ) ) ;
-                }
-            }
-            
-            // geometry shader
-            {
-                GLuint const id = sd.gs_id ;
-
-                if( id != GLuint(-1) )
-                {
-                    glDeleteShader( id ) ;
-                    motor::ogl::error::check_and_log( 
-                        gl4_log( "glDeleteShader Geometry Shader" ) ) ;
-                }
-
-                sd.gs_id = scomp.gs_id ;
-            }
-
-            if( ss.has_geometry_shader() )
-            {
-                glAttachShader( pid, sd.gs_id ) ;
-                motor::ogl::error::check_and_log(
-                    gl4_log( "Attaching geometry shader" ) ) ;
-
-                // check max output vertices
-                {
-                    GLint max_out = 0 ;
-                    glGetIntegerv( GL_MAX_GEOMETRY_OUTPUT_VERTICES, &max_out ) ;
-                    motor::ogl::error::check_and_log(
-                        gl4_log( "Geometry Shader Max Output Vertices" ) ) ;
-                    ( void_t ) max_out ;
-                }
-
-                // @todo geometry shader program parameters
-                {
-                    /*
-                    glProgramParameteri( pid, GL_GEOMETRY_INPUT_TYPE, 
-                        ( GLint ) so_gl::convert( shd_ptr->get_input_type() ) ) ;
-                    error = motor::ogl::error::check_and_log(
-                        gl4_backend_log( "Geometry Shader Input Type" ) ) ;
-
-                    glProgramParameteri( pid, GL_GEOMETRY_OUTPUT_TYPE, 
-                        ( GLint ) so_gl::convert( shd_ptr->get_output_type() ) ) ;
-                    error = motor::ogl::error::check_and_log(
-                        gl4_backend_log( "Geometry Shader Output Type" ) ) ;
-
-                    glProgramParameteri( pid, GL_GEOMETRY_VERTICES_OUT, 
-                        ( GLint ) shd_ptr->get_num_output_vertices() ) ;
-                    error = motor::ogl::error::check_and_log(
-                        gl4_backend_log( "Geometry Shader Vertices Out" ) ) ;
-                        */
-                }
-            }
-            
-            // pixel shader
-            {
-                GLuint const id = sd.ps_id ;
-
-                if( id != GLuint(-1) )
-                {
-                    glDeleteShader( id ) ;
-                    motor::ogl::error::check_and_log( 
-                        gl4_log( "glDeleteShader Pixel Shader" ) ) ;
-                }
-
-                sd.ps_id = scomp.ps_id ;
-            }
-
-            if( ss.has_pixel_shader() )
-            {
-                glAttachShader( pid, scomp.ps_id ) ;
-                motor::ogl::error::check_and_log( gl4_log( "Attaching pixel shader" ) ) ;
-            }
-            #endif
-
             //
             // SECTION : Further construction
             //
@@ -2213,69 +2114,9 @@ public:
     }
 
     //****************************************************************************************
-    bool_t release_shader_data( size_t const oid, bool_t const silent = false ) noexcept
+    bool_t release_shader_data( size_t const oid ) noexcept
     {
-        #if 1
-        _shaders.invalidate( oid ) ;
-        #else
-        auto & shd = _shaders[ oid ] ;
-
-        if( !shd.valid ) return true ;
-
-        // delete shaders
-        if( !silent )
-        {
-            glDetachShader( shd.pg_id, shd.vs_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDetachShader" ) ) ;
-
-            glDeleteShader( shd.vs_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteShader" ) ) ;
-        }
-
-        if( shd.gs_id != GLuint(-1) && !silent )
-        {
-            glDetachShader( shd.pg_id, shd.gs_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDetachShader" ) ) ;
-
-            glDeleteShader( shd.gs_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteShader" ) ) ;
-        }
-
-        if( shd.ps_id != GLuint(-1) && !silent )
-        {
-            glDetachShader( shd.pg_id, shd.ps_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDetachShader" ) ) ;
-
-            glDeleteShader( shd.ps_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteShader" ) ) ;
-        }
-
-        // delete program
-        if( !silent )
-        {
-            glDeleteProgram( shd.pg_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteProgram" ) ) ;
-        }
-
-        if( shd.output_names != nullptr )
-        {
-            motor::memory::global_t::dealloc_raw( shd.output_names ) ;
-        }
-
-        shd.valid = false ;
-        shd.pg_id = GLuint( -1 ) ;
-        shd.gs_id = GLuint( -1 ) ;
-        shd.vs_id = GLuint( -1 ) ;
-        shd.ps_id = GLuint( -1 ) ;
-        shd.name = "released shader" ;
-        
-        shd.is_linkage_ok = false ;
-        shd.uniforms.clear() ;
-        shd.attributes.clear() ;
-
-        #endif
-
-        return true ;
+        return _shaders.invalidate( oid ) ;
     }
 
     //****************************************************************************************
@@ -2362,22 +2203,12 @@ public:
     //****************************************************************************************
     bool_t check_link_status( size_t const rid ) noexcept
     {
-        #if 1
         auto & rd = _renders[ rid ] ;
         auto const [a, b] = _shaders.access<bool_t>( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
         {
             return sd.is_linkage_ok ;
         } ) ;
         return a && b ;
-        #else
-        bool_t res ;
-        auto & rd = _renders[ rid ] ;
-        _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
-        {
-            res = sd.is_linkage_ok ;
-        } ) ;
-        return res ;
-        #endif
     }
 
     //****************************************************************************************
@@ -3004,23 +2835,13 @@ public:
                 motor::graphics::msl_bridge::create_by_api_type( motor::graphics::shader_api_type::glsl_4_0, code, so ) ;
             }
 
-            #if 1
             {
                 if( !this_t::construct_shader_data( so ) )
                 {
                     return oid ;
                 }
             }
-            #else
-            {
-                size_t const sid = this_t::construct_shader_data( so.get_oid( _bid ), so ) ;
-                if( sid == size_t(-1) )
-                {
-                    return oid ;
-                }
-                so.set_oid( _bid, sid ) ;
-            }
-            #endif
+
             {
                 if( obj.get_streamout().size() != 0 && obj.get_geometry().size() != 0)
                 {
@@ -3104,7 +2925,6 @@ public:
         {
             rd.name = obj.name() ;
             
-            #if 1
             for( auto id : rd.geo_ids ) 
             {
                 _geometries.access( id, [&]( this_t::geo_data_ref_t d )
@@ -3112,9 +2932,6 @@ public:
                     d.remove_render_data_id( oid ) ;
                 } ) ;
             }
-            #else
-            for( auto id : rd.geo_ids ) _geometries[id].remove_render_data_id( oid ) ;
-            #endif
             rd.geo_ids.clear();
 
             for( auto id : rd.tf_ids )
@@ -3199,7 +3016,6 @@ public:
             // find geometry
             for( size_t i=0; i<rc.get_num_geometry(); ++i )
             {
-                #if 1
                 auto const gid = _geometries.find_by_name( rc.get_geometry(i) ) ;
                 if( gid == size_t(-1) )
                 {
@@ -3209,23 +3025,6 @@ public:
                 }
                 config.geo_ids.emplace_back( gid ) ;
                 _geometries.access( gid, [&]( this_t::geo_data_ref_t d ){ d.add_render_data_id( id ) ; } ) ;
-                #else
-                auto const iter = std::find_if( _geometries.begin(), _geometries.end(),
-                    [&] ( this_t::geo_data const& d )
-                {
-                    return d.name == rc.get_geometry(i) ;
-                } ) ;
-
-                if( iter == _geometries.end() )
-                {
-                    motor::log::global_t::warning( gl4_log(
-                        "no geometry with name [" + rc.get_geometry() + "] for render_data [" + rc.name() + "]" ) ) ;
-                    continue ;
-                }
-                config.geo_ids.emplace_back( std::distance( _geometries.begin(), iter ) ) ;
-                // add this render data id to the new geometry
-                _geometries[ config.geo_ids.back() ].add_render_data_id( id ) ;
-                #endif
             }
         }
 
@@ -3257,7 +3056,6 @@ public:
 
         // find shader
         {
-            #if 1
             config.shd_id = _shaders.find_by_name( rc.get_shader() ) ;
             if( config.shd_id == size_t(-1) )
             {
@@ -3265,21 +3063,6 @@ public:
                     rc.get_shader().c_str(), rc.name().c_str() ) ;
                 return false ;
             }
-            #else
-            auto const iter = std::find_if( _shaders.begin(), _shaders.end(),
-                [&] ( this_t::shader_data const& d )
-            {
-                return d.name == rc.get_shader() ;
-            } ) ;
-            if( iter == _shaders.end() )
-            {
-                motor::log::global_t::warning( gl4_log(
-                    "no shader with name [" + rc.get_shader() + "] for render_data [" + rc.name() + "]" ) ) ;
-                return false ;
-            }
-
-            config.shd_id = std::distance( _shaders.begin(), iter ) ;
-            #endif
         }
 
         #if 0
@@ -3478,7 +3261,6 @@ public:
     //****************************************************************************************
     bool_t release_geometry( size_t const oid ) noexcept
     {
-        #if 1
         // #1 have to deal with external references first
         _geometries.access( oid, [&]( this_t::geo_data_ref_t g )
         {
@@ -3489,42 +3271,7 @@ public:
             }
         } ) ;
         // #2 now we can invalidate the data object itself
-        _geometries.invalidate( oid ) ;
-        #else
-        auto & geo = _geometries[ oid ] ;
-
-        geo.name = "released" ;
-        geo.valid = false ;
-        
-        geo.elements.clear() ;
-        geo.ib_elem_sib = 0 ;
-        geo.stride = 0 ;
-
-        if( geo.vb_id != GLuint( -1 ) )
-        {
-            glDeleteBuffers( 1, &geo.vb_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
-            geo.vb_id = GLuint( -1 ) ;
-        }
-
-        if( geo.ib_id != GLuint( -1 ) )
-        {
-            glDeleteBuffers( 1, &geo.ib_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
-            geo.ib_id = GLuint( -1 ) ;
-        }
-
-        geo.ib_elem_sib = 0 ;
-
-        for( auto const & rd_id : geo.rd_ids )
-        {
-            if( rd_id == size_t( -1 ) ) continue ;
-            auto & rd = _renders[ rd_id ] ;
-            rd.remove_geometry_id( oid ) ;
-        }
-        geo.rd_ids.clear() ;
-        #endif
-        return true ;
+        return _geometries.invalidate( oid ) ;
     }
 
     //****************************************************************************************
@@ -4171,7 +3918,6 @@ public:
     }
 
     //****************************************************************************************
-    #if 1
     void_t activate_transform_feedback( GLenum const gpt ) noexcept
     {
         if( _tf_active_id == size_t(-1) ) return ;
@@ -4220,56 +3966,6 @@ public:
             motor::ogl::error::check_and_log( gl4_log( "glBeginTransformFeedback" ) ) ;
         }
     }
-    #else
-    void_t activate_transform_feedback( this_t::geo_data & gdata ) noexcept
-    {
-        if( _tf_active_id == size_t(-1) ) return ;
-
-        auto & data = _feedbacks[_tf_active_id] ;
-        
-        auto const wrt_idx = data.write_index() ;
-        auto & buffer = data._buffers[wrt_idx] ;
-
-        // EITHER just set prim type what was used for rendering.
-        // OR use for overwriting the primitive type on render
-        //data.pt = gdata.pt ;
-
-        // bind transform feedback object and update primitive type for 
-        // rendering the transform feedback data.
-        {
-            for( size_t i=0; i<tf_data::buffer::max_buffers; ++i )
-            {
-                if( buffer.bids[ i ] == GLuint(-1) ) break ;
-
-                #if 1
-                _geometries.access( buffer.gids[ i ], [&]( this_t::geo_data_ref_t d )
-                {
-                    d.pt = gdata.pt ;
-                } ) ;
-                #else
-                _geometries[buffer.gids[ i ]].pt = gdata.pt ;
-                #endif
-            }
-
-            glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glBindTransformFeedback" ) ) ;
-        }
-
-        // query written primitives
-        {
-            glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, buffer.qid ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glBeginQuery" ) ) ;
-        }
-
-        // begin 
-        {
-            // lets just use the primitive type of the used geometry
-            GLenum const mode = gdata.pt ;
-            glBeginTransformFeedback( mode ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glBeginTransformFeedback" ) ) ;
-        }
-    }
-    #endif
 
     //****************************************************************************************
     void_t deactivate_transform_feedback( void_t ) noexcept
