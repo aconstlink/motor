@@ -106,6 +106,24 @@ namespace motor
             }
 
             template< size_t sib >
+            static bool_t warning_if( bool_t const b, char const * fmt, ... ) noexcept
+            {
+                if( b )
+                {
+                    char buffer[sib] ;
+
+                    va_list args;
+                    va_start( args, fmt ) ;
+                    std::vsnprintf( buffer, sib, fmt, args ) ;
+                    va_end(args);
+
+                    this_t::warning( buffer ) ;
+                }
+
+                return b ;
+            }
+
+            template< size_t sib >
             static void_t error( char const * fmt, ... ) noexcept
             {
                 char buffer[sib] ;

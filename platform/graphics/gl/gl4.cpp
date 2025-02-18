@@ -30,6 +30,8 @@
 
 #define gl4_log( text ) "[GL4] : " text
 #define gl4_log_error( text ) motor::ogl::error::check_and_log( "[GL4] : " text )
+#define gl4_log_error2( text, name ) motor::ogl::error::check_and_log( "[GL4] : " text,  name )
+#define gl4_log_error3( text, obj ) motor::ogl::error::check_and_log<decltype(obj)>( "[GL4] : " text,  obj )
 
 using namespace motor::platform::gen4 ;
 using namespace motor::ogl ;
@@ -606,8 +608,47 @@ struct gl4_backend::pimpl
         GLuint depth = GLuint( -1 ) ;
 
         motor::math::vec2ui_t dims ;
+
+        // reset all gl ids. This is useful
+        // if the context is already gone.
+        void_t reset_gl_ids( void_t )
+        {
+            gl_id = GLuint(-1) ;
+            std::memset( colors, GLuint(-1), sizeof(GLuint)*sizeof(8) ) ;
+            depth = GLuint(-1) ;
+        }
+
+        void_t invalidate( void_t ) noexcept
+        {
+            if( gl_id != GLuint( -1 ) )
+            {
+                glDeleteFramebuffers( 1, &gl_id ) ;
+                gl4_log_error( "glDeleteFramebuffers" ) ;
+
+                {
+                    glDeleteTextures( 8, colors ) ;
+                    gl4_log_error( "glDeleteTextures : colors" ) ;
+                }
+            }
+
+            if( depth != GLuint(-1) )
+            {
+                glDeleteTextures( 1, &depth ) ;
+                gl4_log_error( "glDeleteTextures : depth" ) ;
+            }
+            
+            gl_id = GLuint( -1 ) ;
+            depth = GLuint( -1 ) ;
+            for( size_t i=0; i<8; ++i ) colors[i] = GLuint( -1 ) ;
+
+            dims = motor::math::vec2ui_t() ;
+        }
     };
     motor_typedef( framebuffer_data ) ;
+
+    //typedef motor::vector< this_t::framebuffer_data_t > framebuffer_datas_t ;
+    using framebuffer_datas_t = motor::platform::datas< framebuffer_data_t > ;
+    framebuffer_datas_t _framebuffers ;
 
     //********************************************************************************
     struct msl_data
@@ -633,8 +674,7 @@ struct gl4_backend::pimpl
 
     
 
-    typedef motor::vector< this_t::framebuffer_data_t > framebuffer_datas_t ;
-    framebuffer_datas_t _framebuffers ;
+    
 
     typedef motor::vector< this_t::state_data_t > state_datas_t ;
     state_datas_t _states ;
@@ -940,14 +980,15 @@ public:
         this_t::release_and_clear_all_shader_data( false ) ;
         this_t::release_and_clear_all_render_data( false ) ;
         this_t::release_and_clear_all_image_data( false ) ;
+        this_t::release_and_clear_all_framebuffer_data( false ) ;
         
-        _framebuffers.clear() ;
         _arrays.clear() ;
         _feedbacks.clear() ;
         _msls.clear() ;
     }
 
     // silent clear. No gl release will be done.
+    // the context probably is already gone.
     void_t on_context_destruction( void_t ) noexcept
     {
         this_t::stop_support_thread() ;
@@ -957,8 +998,8 @@ public:
         this_t::release_and_clear_all_geometry_data( false ) ;
         this_t::release_and_clear_all_render_data( false ) ;
         this_t::release_and_clear_all_image_data( false ) ;
-
-        _framebuffers.clear() ;
+        this_t::release_and_clear_all_framebuffer_data( false ) ;
+        
         _arrays.clear() ;
         _feedbacks.clear() ;
         _msls.clear() ;
@@ -1223,12 +1264,217 @@ public:
     }
 
     //****************************************************************************************
-    size_t construct_framebuffer( size_t oid, motor::graphics::framebuffer_object_ref_t obj ) noexcept
+    size_t construct_framebuffer( motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
+        #if 1
+
+        size_t oid = obj.get_oid( _bid ) ;
+        auto const res = _framebuffers.access( oid, obj.name(), [&]( this_t::framebuffer_data_ref_t fb )
+        {
+            if( fb.gl_id == GLuint( -1 ) )
+            {
+                glGenFramebuffers( 1, &fb.gl_id ) ;
+                if( gl4_log_error3( "glGenFramebuffers", obj ) )
+                    return false ;
+            }
+
+            // bind
+            {
+                glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
+                if( gl4_log_error3( "glBindFramebuffer", obj ) ) 
+                    return false ;
+            }
+
+            size_t const nt = obj.get_num_color_targets() ;
+            auto const ctt = obj.get_color_target() ;
+            auto const dst = obj.get_depth_target();
+            motor::math::vec2ui_t dims = obj.get_dims() ;
+        
+            // fix dims
+            {
+                dims.x( dims.x() + dims.x() % 2 ) ;
+                dims.y( dims.y() + dims.y() % 2 ) ;
+            }
+
+            bool_t const requires_store = fb.colors[0] == GLuint( -1 ) ;
+
+            {
+                if( fb.colors[0] == GLuint( -1 ) )
+                {
+                    glGenTextures( GLsizei( 8 ), fb.colors ) ;
+                    if( gl4_log_error3( "glGenTextures : color buffers", obj ) ) 
+                        return false ;
+                }
+
+                if( fb.depth == GLuint(-1) )
+                {
+                    glGenTextures( GLsizei( 1 ), &fb.depth ) ;
+                    if( gl4_log_error3( "glGenTextures : depth buffer", obj ) ) 
+                        return false ;
+                }
+            }
+
+            // construct color textures
+            {
+                for( size_t i=0; i<nt; ++i )
+                {
+                    GLuint const tid = fb.colors[i] ;
+
+                    glBindTexture( GL_TEXTURE_2D, tid ) ;
+                    if( gl4_log_error3( "glBindTexture : color buffer", obj ) ) 
+                        continue ;
+
+                    GLenum const target = GL_TEXTURE_2D ;
+                    GLint const level = 0 ;
+                    GLsizei const width = dims.x() ;
+                    GLsizei const height = dims.y() ;
+                    GLenum const format = GL_RGBA ;
+                    GLenum const type = motor::platform::gl3::to_pixel_type( ctt ) ;
+                    GLint const border = 0 ;
+                    GLint const internal_format = motor::platform::gl3::to_gl_format( ctt ) ;
+
+                    // maybe required for memory allocation
+                    // at the moment, render targets do not have system memory.
+                    #if 0
+                    size_t const sib = motor::platform::gl3::calc_sib( dims.x(), dims.y(), ctt ) ;
+                    #endif
+                    void_cptr_t data = nullptr ;
+
+                    glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
+                    gl4_log_error3( "glTexImage2D : color buffer", obj ) ;
+                }
+
+                // attach
+                for( size_t i = 0; i < nt; ++i )
+                {
+                    GLuint const tid = fb.colors[ i ] ;
+                    GLenum const att = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i ) ;
+                    glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
+                    gl4_log_error3( "glFramebufferTexture2D : color buffer", obj ) ;
+                }
+            }
+
+            // depth/stencil
+            if( dst != motor::graphics::depth_stencil_target_type::unknown )
+            {
+                {
+                    GLuint const tid = fb.depth ;
+
+                    glBindTexture( GL_TEXTURE_2D, tid ) ;
+                    if( !gl4_log_error3( "glBindTexture : depth buffer", obj ) )
+                    {
+                        GLenum const target = GL_TEXTURE_2D ;
+                        GLint const level = 0 ;
+                        GLsizei const width = dims.x() ;
+                        GLsizei const height = dims.y() ;
+                        GLenum const format = motor::platform::gl3::to_gl_format( dst ) ;
+                        GLenum const type = motor::platform::gl3::to_gl_type( dst ) ;
+                        GLint const border = 0 ;
+                        GLint const internal_format = motor::platform::gl3::to_gl_format( dst ) ;
+
+                        // maybe required for memory allocation
+                        // at the moment, render targets do not have system memory.
+                        #if 0
+                        size_t const sib = motor::platform::gl3::calc_sib( dims.x(), dims.y(), ctt ) ;
+                        #endif
+                        void_cptr_t data = nullptr ;
+
+                        glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
+                        gl4_log_error3( "glTexImage2D : depth buffer", obj ) ;
+                    }
+                }
+
+                // attach
+                {
+                    GLuint const tid = fb.depth ;
+                    GLenum const att = motor::platform::gl3::to_gl_attachment(dst) ;
+                    glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
+                    gl4_log_error3( "glFramebufferTexture2D : depth buffer", obj ) ;
+                }
+            }
+
+            GLenum status = 0 ;
+            // validate
+            {
+                status = glCheckFramebufferStatus( GL_FRAMEBUFFER ) ;
+                gl4_log_error3( "glCheckFramebufferStatus", obj ) ;
+                
+                if( motor::log::global_t::warning_if<2048>( status != GL_FRAMEBUFFER_COMPLETE, 
+                    "Incomplete framebuffer : [%s]", obj.name().c_str() ) ) return false ;
+            }
+
+            // unbind
+            {
+                glBindFramebuffer( GL_FRAMEBUFFER, 0 ) ;
+                gl4_log_error3( "glBindFramebuffer", obj ) ;
+            }
+
+            // remember data
+            if( status == GL_FRAMEBUFFER_COMPLETE )
+            {
+                // color type maybe?
+                fb.nt = nt ;
+                fb.dims = dims ;
+            }
+
+            // store images
+            if( requires_store )
+            {
+                for( size_t i = 0; i < nt; ++i )
+                {
+                    size_t new_iid = size_t(-1) ;
+                    motor::string_t name = fb.name + "." + motor::to_string( i ) ;
+                    _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
+                    {
+                        id.tex_id = fb.colors[ i ] ;
+                        id.type = GL_TEXTURE_2D ;
+                        for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
+                        {
+                            id.wrap_types[ j ] = GL_CLAMP_TO_BORDER ;
+                        }
+                        for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
+                        {
+                            id.filter_types[ j ] = GL_LINEAR ;
+                        }
+                        return true ;
+                    } ) ;
+                }
+            }
+
+            // store depth/stencil
+            if( requires_store )
+            {
+                size_t new_iid = size_t(-1) ;
+                motor::string_t name = fb.name + ".depth" ;
+                _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
+                {
+                    id.tex_id = fb.depth ;
+                    id.type = GL_TEXTURE_2D ; 
+
+                    for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
+                    {
+                        id.wrap_types[ j ] = GL_REPEAT ;
+                    }
+
+                    for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
+                    {
+                        id.filter_types[ j ] = GL_NEAREST ;
+                    }
+
+                    return true ;
+                } ) ;
+            }
+
+            return true ;
+        } ) ;
+
+        if( res ) obj.set_oid( _bid, oid ) ;
+
+        return res ;
+        #else
+
         oid = determine_oid( obj.get_oid(_bid), obj.name(), _framebuffers ) ;
-
         framebuffer_data_ref_t fb = _framebuffers[ oid ] ;
-
         if( fb.gl_id == GLuint( -1 ) )
         {
             glGenFramebuffers( 1, &fb.gl_id ) ;
@@ -1347,6 +1593,7 @@ public:
                 motor::ogl::error::check_and_log( gl4_log( "glFramebufferTexture2D" ) ) ;
             }
         }
+        
 
 
         GLenum status = 0 ;
@@ -1420,13 +1667,45 @@ public:
                 return true ;
             } ) ;
         }
-
+        #endif
         return oid ;
     }
 
     //****************************************************************************************
     bool_t release_framebuffer( size_t const oid ) noexcept
     {
+        #if 1
+        // #1 clear the images buffers, i.e remove references
+        _framebuffers.access( oid, [&]( this_t::framebuffer_data_ref_t fbd )
+        {
+            _images.for_each( [&]( this_t::image_data_ref_t id )
+            {
+                // try all colors
+                for( size_t i=0; i<8; ++i )
+                {
+                    if( fbd.colors[i] == GLuint(-1) ) continue ;
+                    if( id.tex_id != fbd.colors[i] ) continue ;
+
+                    // remove id before invalidate
+                    id.tex_id = GLuint(-1) ;
+                    return ;
+                }
+
+                if( fbd.depth != GLuint(-1) )
+                {
+                    if( id.tex_id == fbd.depth ) 
+                    {
+                        // remove id before invalidate
+                        id.tex_id = GLuint(-1) ;
+                    }
+                }
+            } ) ;
+        } ) ;
+
+        // #2 now we can invalidate
+        _framebuffers.invalidate( oid ) ;
+
+        #else
         auto & fbd = _framebuffers[ oid ] ;
 
         if( !fbd.valid ) return false ;
@@ -1485,36 +1764,44 @@ public:
         for( size_t i=0; i<8; ++i ) fbd.colors[i] = GLuint( -1 ) ;
 
         fbd.dims = motor::math::vec2ui_t() ;
-
+        #endif
         return true ;
     }
 
     //****************************************************************************************
     bool_t activate_framebuffer( size_t const oid ) noexcept
     {
-        framebuffer_data_ref_t fb = _framebuffers[ oid ] ;
-
-        // bind
+        auto const [a,b] = _framebuffers.access<bool_t>( oid, [&]( this_t::framebuffer_data_ref_t fb )
         {
-            glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
-        }
-
-        // setup color
-        {
-            GLenum attachments[ 15 ] ;
-            size_t const num_color = fb.nt ;
-            
-            for( size_t i = 0; i < num_color; ++i )
+            // bind
             {
-                attachments[ i ] = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i ) ;
+                glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
+                if( gl4_log_error( "glBindFramebuffer" ) )
+                {
+                    return false ;
+                }
             }
 
-            glDrawBuffers( GLsizei( num_color ), attachments ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
-        }
+            // setup color
+            {
+                GLenum attachments[ 15 ] ;
+                size_t const num_color = fb.nt ;
+            
+                for( size_t i = 0; i < num_color; ++i )
+                {
+                    attachments[ i ] = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i ) ;
+                }
 
-        return true ;
+                glDrawBuffers( GLsizei( num_color ), attachments ) ;
+                if( gl4_log_error( "glDrawBuffers" ) )
+                {
+                    return false ;
+                }
+            }
+            return true ;
+        } ) ;
+
+        return a && b ;
     }
 
     //****************************************************************************************
@@ -1523,7 +1810,7 @@ public:
         // unbind
         {
             glBindFramebuffer( GL_FRAMEBUFFER, 0 ) ;
-            if( !motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ) return false ;
+            if( gl4_log_error( "glGenFramebuffers" ) ) return false ;
         }
 
         return true ;
@@ -2091,6 +2378,21 @@ public:
         }
 
         return true ;
+    }
+
+    //****************************************************************************************
+    // if with_gl, no gl calls will be made.
+    void_t release_and_clear_all_framebuffer_data( bool_t const with_gl = false ) noexcept
+    {
+        if( !with_gl )
+        {
+            _framebuffers.for_each( [&]( this_t::framebuffer_data_ref_t d )
+            {
+                d.reset_gl_ids() ;
+            } ) ;
+        }
+
+        _framebuffers.invalidate_and_clear() ;
     }
 
     //****************************************************************************************
@@ -4595,16 +4897,13 @@ motor::graphics::result gl4_backend::configure( motor::graphics::framebuffer_obj
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( gl4_log( "Object must be valid and requires a name" ) ) ;
+        gl4_log_error( "[configure] : Object must be valid and requires a name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
+    
+    auto const res = _pimpl->construct_framebuffer( *obj ) ;
 
-    {
-        obj->set_oid( this_t::get_bid(), _pimpl->construct_framebuffer(
-            obj->get_oid( this_t::get_bid() ), *obj ) ) ;
-    }
-
-    return motor::graphics::result::ok ;
+    return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
 }
 
 //******************************************************************************************************
