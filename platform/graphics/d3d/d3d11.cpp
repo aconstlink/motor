@@ -40,6 +40,8 @@
 #endif
 
 #define d3d11_backend_log( text ) "[D3D11] : " text
+#define d3d11_log_errorv( text, ... ) motor::log::global_t::error<2048>( "[d3d11] : " text, __VA_ARGS__ ) ;
+
 
 using namespace motor::platform ;
 using namespace motor::platform::gen4 ;
@@ -1176,11 +1178,46 @@ public: // msl data
     using msl_datas_t = datas< msl_data > ;
     msl_datas_t _msls ;
 
+    // find render object by name
+    static bool_t find_ro( msl_datas_t & items, motor::string_in_t name, 
+        std::function< void_t ( size_t const, this_t::msl_data_ref_t ) > funk ) noexcept
+    {
+        #if 1
+        auto const res = items.for_each_with_break( 
+            [&]( size_t const j, this_t::msl_data_ref_t d )
+        {
+            auto i = size_t( -1 ) ;
+            while ( ++i < d.ros.size() && d.ros[i].name() != name ) ;
+            if( i == d.ros.size() ) return true ;
+
+            funk( j, d ) ;
+            return false ;
+        } ) ;
+        return res ;
+        #else
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+
+        size_t j = 0;
+        for(j; j<items.size(); ++j ) 
+        {
+            auto i = size_t( -1 ) ;
+            while ( ++i < items[j].ros.size() && items[ j ].ros[i].name() != name ) ;
+            if( i != items[j].ros.size() ) break ;
+        }
+            
+        if( j == items.size() ) return false ;
+
+        funk( j, items[ j ] ) ;
+       
+        return true ;
+         #endif
+    }
+
     // find a msl object by a render object name
     static std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_ro_name( motor::string_in_t name, msl_datas_t & msls ) noexcept
     {
         auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object_t() ) ;
-        auto const res = msls.find_ro( name, [&]( size_t const id, pimpl::msl_data_ref_t d )
+        auto const res = this_t::find_ro( msls, name, [&]( size_t const id, pimpl::msl_data_ref_t d )
         {
             ret = std::make_pair( id, d.msl_obj ) ;
         } ) ;
@@ -4824,7 +4861,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
 {
     if( obj == nullptr )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "msl object is nullptr" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4853,7 +4890,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::geometry_obje
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "geometry object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4878,7 +4915,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::render_object
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "render object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4894,7 +4931,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::shader_object
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "shader object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
         
@@ -4921,7 +4958,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::image_object_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "msl object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4936,7 +4973,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::framebuffer_o
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "framebuffer object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4950,7 +4987,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::state_object_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "state object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -4964,7 +5001,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::array_object_
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "array object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -4984,7 +5021,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::streamout_obj
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "streamout object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -5011,7 +5048,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::geometry_object
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "geometry object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -5026,7 +5063,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::render_object_m
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "render object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
     
@@ -5041,7 +5078,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::shader_object_m
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "shader object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -5056,7 +5093,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::image_object_mt
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "image object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -5071,7 +5108,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::framebuffer_obj
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "framebuffer object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -5086,7 +5123,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::state_object_mt
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "state object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -5101,7 +5138,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::array_object_mt
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "array object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 
@@ -5116,7 +5153,7 @@ motor::graphics::result d3d11_backend::release( motor::graphics::streamout_objec
 {
     if( obj == nullptr || obj->name().empty() )
     {
-        motor::log::global_t::error( d3d11_backend_log( "Object must be valid and requires a name" ) ) ;
+        d3d11_log_errorv( "streamout object is nullptr or has no name" ) ;
         return motor::graphics::result::invalid_argument ;
     }
 

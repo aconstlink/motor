@@ -177,26 +177,6 @@ namespace motor
             return true ;
         }
 
-        // find render object by name
-        bool_t find_ro( motor::string_in_t name, std::function< void_t ( size_t const, T & ) > funk ) noexcept
-        {
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-
-            size_t j = 0;
-            for(j; j<items.size(); ++j ) 
-            {
-                auto i = size_t( -1 ) ;
-                while ( ++i < items[j].ros.size() && items[ j ].ros[i].name() != name ) ;
-                if( i != items[j].ros.size() ) break ;
-            }
-            
-            if( j == items.size() ) return false ;
-
-            funk( j, items[ j ] ) ;
-
-            return true ;
-        }
-
         size_t find_by_name( motor::string_in_t name ) const noexcept
         {
             if( name.empty() ) return size_t(-1) ;
@@ -223,22 +203,25 @@ namespace motor
 
         // if the user funk return false, the loop breaks, 
         // otherwise if true, the loop continues
-        void_t for_each_with_break( std::function < bool_t ( T & ) > funk ) noexcept
+        // this function return true if the loop broke
+        bool_t for_each_with_break( std::function < bool_t ( T & ) > funk ) noexcept
         {
             motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
             for( auto & i : items ) 
             {
-                if( !funk( i ) ) break ;
+                if( !funk( i ) ) return true ;
             }
+            return false ;
         }
 
-        void_t for_each_with_break( std::function < bool_t ( size_t const id, T & ) > funk ) noexcept
+        bool_t for_each_with_break( std::function < bool_t ( size_t const id, T & ) > funk ) noexcept
         {
             motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
             for( size_t i=0; i<items.size(); ++i )
             {
-                if( !funk( i, items[i] ) ) break ;
+                if( !funk( i, items[i] ) ) return true ;
             }
+            return false ;
         }
 
     public: // unsave
