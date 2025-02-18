@@ -137,6 +137,24 @@ namespace motor
             }
 
             template< size_t sib >
+            static bool_t error_if( bool_t const b, char const * fmt, ... ) noexcept
+            {
+                if( b )
+                {
+                    char buffer[sib] ;
+
+                    va_list args;
+                    va_start( args, fmt ) ;
+                    std::vsnprintf( buffer, sib, fmt, args ) ;
+                    va_end(args);
+
+                    this_t::error( buffer ) ;
+                }
+
+                return b ;
+            }
+
+            template< size_t sib >
             static void_t critical( char const * fmt, ... ) noexcept
             {
                 char buffer[sib] ;
@@ -168,3 +186,10 @@ namespace motor
         motor_typedef( global ) ;
     }
 }
+
+#define motor_status( t ) motor::log::global::status( t ) ;
+#define motor_status2( n, t, ... ) motor::log::global::status<n>( t, __VA_ARGS__)
+#define motor_warning( t ) motor::log::global::warning( t ) ;
+#define motor_warning2( n, t, ... ) motor::log::global::warning<n>( t, __VA_ARGS__)
+#define motor_error( t ) motor::log::global::error( t ) ;
+#define motor_error2( n, t, ... ) motor::log::global::error<n>( t, __VA_ARGS__)

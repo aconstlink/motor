@@ -3215,7 +3215,7 @@ public: // functions
             } ) ;
         }
 
-        motor::log::global_t::status( "[D3D11] : Compilation Successful : [" + shd.name + "]" ) ;
+        motor_status2( 1024, "[D3D11] : Compilation Successful : [%s]", shd.name.c_str() ) ;
 
         shd.compiled = true ;
 
@@ -3223,9 +3223,8 @@ public: // functions
             size_t const milli = std::chrono::duration_cast<std::chrono::milliseconds>
                 ( std::chrono::high_resolution_clock::now() - tp_begin ).count() ;
 
-            char buffer[ 4096 ] ;
-            std::snprintf( buffer, 4096, "[d3d11] : shader compilation %zu ms [%s]", milli, shd.name.c_str() ) ;
-            motor::log::global_t::status( buffer ) ;
+            motor_status2( 2048, "[d3d11] : shader compilation %zu ms [%s]", 
+                milli, shd.name.c_str() ) ;
         }
 
         return true ;

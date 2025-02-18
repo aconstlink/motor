@@ -42,9 +42,9 @@ struct gl4_backend::pimpl
 
     //********************************************************************************
     // transform feedback buffers
-    struct tf_data
+    struct feedback_data
     {
-        motor_this_typedefs( tf_data ) ;
+        motor_this_typedefs( feedback_data ) ;
 
         bool_t valid = false ;
         motor::string_t name ;
@@ -115,8 +115,41 @@ struct gl4_backend::pimpl
         buffer const & read_buffer( void_t ) const noexcept { return _buffers[ this_t::read_index() ] ; }
         buffer & write_buffer( void_t ) noexcept { return _buffers[ this_t::write_index() ] ; }
         buffer const & write_buffer( void_t ) const noexcept { return _buffers[ this_t::write_index() ] ; }
+
+        void_t invalidate( void_t ) noexcept
+        {
+            for( size_t rw=0; rw<2; ++rw )
+            {
+                auto & buffer = _buffers[rw] ;
+
+                if( buffer.qid != GLuint(-1) )
+                {
+                    glDeleteQueries( 1, &buffer.qid ) ;
+                    gl4_log_error2( "glDeleteQueries", name.c_str() ) ;
+                    buffer.qid = GLuint( -1 ) ; 
+                }
+
+                if( buffer.tfid != GLuint(-1) )
+                {
+                    glDeleteTransformFeedbacks( 1, &buffer.tfid ) ;
+                    gl4_log_error2( "glDeleteTransformFeedbacks", name.c_str() ) ;
+                    buffer.tfid = GLuint( -1 ) ; 
+                }
+
+                // release textures
+                if( buffer.tids[0] != GLuint(-1) )
+                {
+                    glDeleteTextures( feedback_data::buffer::max_buffers, buffer.tids ) ;
+                    gl4_log_error2( "glDeleteTextures", name.c_str() ) ;
+                }
+            }
+        }
     };
-    motor_typedef( tf_data ) ;
+    motor_typedef( feedback_data ) ;
+
+    //typedef motor::vector< this_t::tf_data_t > tf_datas_t ;
+    using feedbacks_t = motor::platform::datas< this_t::feedback_data_t > ;
+    feedbacks_t _feedbacks ;
 
     //********************************************************************************
     struct geo_data
@@ -588,8 +621,33 @@ struct gl4_backend::pimpl
         GLuint buf_id = GLuint( -1 ) ;
 
         GLuint sib = 0 ;
+
+        void_t invalidate( void_t ) noexcept
+        {
+            if( buf_id != GLuint(-1) )
+            {
+                glDeleteBuffers( 1, &buf_id ) ;
+                gl4_log_error2( "glDeleteBuffers", name ) ;
+                buf_id = GLuint( -1 ) ;
+            }
+
+            if( tex_id != GLuint(-1) )
+            {
+                glDeleteTextures( 1, &tex_id ) ;
+                gl4_log_error2( "glDeleteTextures", name ) ;
+                tex_id = GLuint( -1 ) ;
+            }
+
+            valid = false ;
+            name.clear() ;
+            sib = 0 ;
+        }
     } ;
     motor_typedef( array_data ) ;
+
+    //typedef motor::vector< this_t::array_data_t > array_datas_t ;
+    using arrays_t = motor::platform::datas< array_data_t > ;
+    arrays_t _arrays ;
 
     //********************************************************************************
     struct framebuffer_data
@@ -666,29 +724,19 @@ struct gl4_backend::pimpl
     };
     motor_typedef( msl_data ) ;
 
-    
-
-    
-
-    
-
-    
-
-    
+    typedef motor::vector< this_t::msl_data_t > msl_datas_t ;
+    msl_datas_t _msls ;
+    motor::msl::database_t _mdb ;
 
     typedef motor::vector< this_t::state_data_t > state_datas_t ;
     state_datas_t _states ;
     motor::stack< motor::graphics::render_state_sets_t, 10 > _state_stack ;
 
-    typedef motor::vector< this_t::array_data_t > array_datas_t ;
-    array_datas_t _arrays ;
+    
 
-    typedef motor::vector< this_t::tf_data_t > tf_datas_t ;
-    tf_datas_t _feedbacks ;
+    
 
-    typedef motor::vector< this_t::msl_data_t > msl_datas_t ;
-    msl_datas_t _msls ;
-    motor::msl::database_t _mdb ;
+    
 
     GLsizei vp_width = 0 ;
     GLsizei vp_height = 0 ;
@@ -747,6 +795,7 @@ private: // support thread
     };
     motor_typedef( work_item ) ;
 
+    // for the support thread
     struct shared_data
     {
         bool_t running = false ;
@@ -854,19 +903,14 @@ private: // support thread
                         case work_item::work_type::release: break ;
                         default: break ;
                         }
-                    }
-                        
-
-                        break ;
+                    } break ;
                     default: break ;
                     }
-
-                    
                 }
             }
             ctsd->ctx->deactivate() ;
 
-            motor::log::global_t::status( "[gl4] : support thread shut down" ) ;
+            motor_status( "[gl4] : support thread shut down" ) ;
         } ) ;
     }
     void_t stop_support_thread( void_t ) noexcept 
@@ -954,36 +998,16 @@ public:
     {
         this_t::stop_support_thread() ;
         motor::release( motor::move( _shd_ctx ) ) ;
-
-        for( size_t i = 0; i<_framebuffers.size(); ++i )
-        {
-            this_t::release_framebuffer( i ) ;
-        }
-
-        for( size_t i = 0; i<_arrays.size(); ++i )
-        {
-            this_t::release_array_data( i ) ;
-        }
-
-        for( size_t i = 0; i<_feedbacks.size(); ++i )
-        {
-            this_t::release_tf_data( i ) ;
-        }
-
-        // the particular objects will be released.
-        // the msl object does not hold any gl object.
-        for( auto & msl : _msls ) 
-        {
-        }
         
         this_t::release_and_clear_all_geometry_data( false ) ; 
         this_t::release_and_clear_all_shader_data( false ) ;
         this_t::release_and_clear_all_render_data( false ) ;
         this_t::release_and_clear_all_image_data( false ) ;
         this_t::release_and_clear_all_framebuffer_data( false ) ;
-        
-        _arrays.clear() ;
-        _feedbacks.clear() ;
+        this_t::release_and_clear_all_array_data( false ) ;
+        this_t::release_and_clear_all_feedback_data( false ) ;
+
+
         _msls.clear() ;
     }
 
@@ -999,9 +1023,9 @@ public:
         this_t::release_and_clear_all_render_data( false ) ;
         this_t::release_and_clear_all_image_data( false ) ;
         this_t::release_and_clear_all_framebuffer_data( false ) ;
+        this_t::release_and_clear_all_array_data( false ) ;
+        this_t::release_and_clear_all_feedback_data( false ) ;
         
-        _arrays.clear() ;
-        _feedbacks.clear() ;
         _msls.clear() ;
     }
 
@@ -1054,20 +1078,6 @@ public:
         v[ oid ].name = name ;
 
         return oid ;
-    }
-
-    //****************************************************************************************
-    template< typename T >
-    static size_t find_index_by_resource_name( motor::string_in_t name, 
-                   motor::vector< T > const & resources ) noexcept
-    {
-        size_t i = 0 ; 
-        for( auto const & r : resources ) 
-        {
-            if( r.name == name ) return i ;
-            ++i ;
-        }
-        return size_t( -1 ) ;
     }
 
     //****************************************************************************************
@@ -1249,7 +1259,7 @@ public:
         {
             if( _state_stack.size() == 1 )
             {
-                motor::log::global_t::error( gl4_log( "no more render states to pop" ) ) ;
+                motor_error( "no more render states to pop" ) ;
                 return ;
             }
             auto const popped = _state_stack.pop() ;
@@ -1266,8 +1276,6 @@ public:
     //****************************************************************************************
     size_t construct_framebuffer( motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
-        #if 1
-
         size_t oid = obj.get_oid( _bid ) ;
         auto const res = _framebuffers.access( oid, obj.name(), [&]( this_t::framebuffer_data_ref_t fb )
         {
@@ -1471,210 +1479,11 @@ public:
         if( res ) obj.set_oid( _bid, oid ) ;
 
         return res ;
-        #else
-
-        oid = determine_oid( obj.get_oid(_bid), obj.name(), _framebuffers ) ;
-        framebuffer_data_ref_t fb = _framebuffers[ oid ] ;
-        if( fb.gl_id == GLuint( -1 ) )
-        {
-            glGenFramebuffers( 1, &fb.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
-        }
-
-        if( fb.gl_id == GLuint( -1 ) )return oid ;
-        
-        // bind
-        {
-            glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
-        }
-
-        size_t const nt = obj.get_num_color_targets() ;
-        auto const ctt = obj.get_color_target() ;
-        auto const dst = obj.get_depth_target();
-        motor::math::vec2ui_t dims = obj.get_dims() ;
-        
-        // fix dims
-        {
-            dims.x( dims.x() + dims.x() % 2 ) ;
-            dims.y( dims.y() + dims.y() % 2 ) ;
-        }
-
-        bool_t const requires_store = fb.colors[0] == GLuint( -1 ) ;
-
-        {
-            if( fb.colors[0] == GLuint( -1 ) )
-            {
-                glGenTextures( GLsizei( 8 ), fb.colors ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
-            }
-
-            if( fb.depth == GLuint(-1) )
-            {
-                glGenTextures( GLsizei( 1 ), &fb.depth ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
-            }
-        }
-
-        // construct color textures
-        {
-            for( size_t i=0; i<nt; ++i )
-            {
-                GLuint const tid = fb.colors[i] ;
-
-                glBindTexture( GL_TEXTURE_2D, tid ) ;
-                if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
-                    continue ;
-
-                GLenum const target = GL_TEXTURE_2D ;
-                GLint const level = 0 ;
-                GLsizei const width = dims.x() ;
-                GLsizei const height = dims.y() ;
-                GLenum const format = GL_RGBA ;
-                GLenum const type = motor::platform::gl3::to_pixel_type( ctt ) ;
-                GLint const border = 0 ;
-                GLint const internal_format = motor::platform::gl3::to_gl_format( ctt ) ;
-
-                // maybe required for memory allocation
-                // at the moment, render targets do not have system memory.
-                #if 0
-                size_t const sib = motor::platform::gl3::calc_sib( dims.x(), dims.y(), ctt ) ;
-                #endif
-                void_cptr_t data = nullptr ;
-
-                glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glTexImage2D" ) ) ;
-            }
-
-            // attach
-            for( size_t i = 0; i < nt; ++i )
-            {
-                GLuint const tid = fb.colors[ i ] ;
-                GLenum const att = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i ) ;
-                glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glFramebufferTexture2D" ) ) ;
-            }
-        }
-
-        // depth/stencil
-        if( dst != motor::graphics::depth_stencil_target_type::unknown )
-        {
-            {
-                GLuint const tid = fb.depth ;
-
-                glBindTexture( GL_TEXTURE_2D, tid ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) ;
-
-                GLenum const target = GL_TEXTURE_2D ;
-                GLint const level = 0 ;
-                GLsizei const width = dims.x() ;
-                GLsizei const height = dims.y() ;
-                GLenum const format = motor::platform::gl3::to_gl_format( dst ) ;
-                GLenum const type = motor::platform::gl3::to_gl_type( dst ) ;
-                GLint const border = 0 ;
-                GLint const internal_format = motor::platform::gl3::to_gl_format( dst ) ;
-
-                // maybe required for memory allocation
-                // at the moment, render targets do not have system memory.
-                #if 0
-                size_t const sib = motor::platform::gl3::calc_sib( dims.x(), dims.y(), ctt ) ;
-                #endif
-                void_cptr_t data = nullptr ;
-
-                glTexImage2D( target, level, internal_format, width, height, border, format, type, data ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glTexImage2D" ) ) ;
-            }
-
-            // attach
-            {
-                GLuint const tid = fb.depth ;
-                GLenum const att = motor::platform::gl3::to_gl_attachment(dst) ;
-                glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glFramebufferTexture2D" ) ) ;
-            }
-        }
-        
-
-
-        GLenum status = 0 ;
-        // validate
-        {
-            status = glCheckFramebufferStatus( GL_FRAMEBUFFER ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glCheckFramebufferStatus" ) ) ;
-
-            motor::log::global_t::warning( status != GL_FRAMEBUFFER_COMPLETE, 
-                "Incomplete framebuffer : [" + obj.name() + "]" ) ;
-        }
-
-        // unbind
-        {
-            glBindFramebuffer( GL_FRAMEBUFFER, 0 ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glGenFramebuffers" ) ) ;
-        }
-
-        // remember data
-        if( status == GL_FRAMEBUFFER_COMPLETE )
-        {
-            // color type maybe?
-            fb.nt = nt ;
-            fb.dims = dims ;
-        }
-
-        // store images
-        if( requires_store )
-        {
-            for( size_t i = 0; i < nt; ++i )
-            {
-                size_t new_iid = size_t(-1) ;
-                motor::string_t name = fb.name + "." + motor::to_string( i ) ;
-                _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
-                {
-                    id.tex_id = fb.colors[ i ] ;
-                    id.type = GL_TEXTURE_2D ;
-                    for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
-                    {
-                        id.wrap_types[ j ] = GL_CLAMP_TO_BORDER ;
-                    }
-                    for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
-                    {
-                        id.filter_types[ j ] = GL_LINEAR ;
-                    }
-                    return true ;
-                } ) ;
-            }
-        }
-
-        // store depth/stencil
-        if( requires_store )
-        {
-            size_t new_iid = size_t(-1) ;
-            motor::string_t name = fb.name + ".depth" ;
-            _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
-            {
-                id.tex_id = fb.depth ;
-                id.type = GL_TEXTURE_2D ; 
-
-                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_wrap_mode::size; ++j )
-                {
-                    id.wrap_types[ j ] = GL_REPEAT ;
-                }
-
-                for( size_t j = 0; j < ( size_t ) motor::graphics::texture_filter_mode::size; ++j )
-                {
-                    id.filter_types[ j ] = GL_NEAREST ;
-                }
-
-                return true ;
-            } ) ;
-        }
-        #endif
-        return oid ;
     }
 
     //****************************************************************************************
     bool_t release_framebuffer( size_t const oid ) noexcept
     {
-        #if 1
         // #1 clear the images buffers, i.e remove references
         _framebuffers.access( oid, [&]( this_t::framebuffer_data_ref_t fbd )
         {
@@ -1703,69 +1512,7 @@ public:
         } ) ;
 
         // #2 now we can invalidate
-        _framebuffers.invalidate( oid ) ;
-
-        #else
-        auto & fbd = _framebuffers[ oid ] ;
-
-        if( !fbd.valid ) return false ;
-
-        // find image ids in images and remove them
-        {
-            _images.for_each( [&]( this_t::image_data_ref_t id )
-            {
-                for( size_t i=0; i<8; ++i )
-                {
-                    if( fbd.colors[i] == GLuint(-1) ) continue ;
-                    if( id.tex_id != fbd.colors[i] ) continue ;
-
-                    // remove id before invalidate
-                    id.tex_id = GLuint(-1) ;
-                    id.invalidate() ;
-                    break ;
-                }
-            } ) ;
-        }
-
-        {
-            glDeleteFramebuffers( 1, &fbd.gl_id ) ;
-            gl4_log_error( "release_framebuffer : glDeleteFramebuffers" ) ;
-        }
-
-        {
-            glDeleteTextures( 8, fbd.colors ) ;
-            gl4_log_error( "release_framebuffer : glDeleteTextures" ) ;
-        }
-
-        if( fbd.depth != GLuint(-1) )
-        {
-            // find image id in images and remove them
-
-            _images.for_each_with_break( [&]( this_t::image_data_ref_t id )
-            {
-                if( id.tex_id != fbd.depth ) return true ;
-
-                // remove id before invalidate
-                id.tex_id = GLuint(-1) ;
-                id.invalidate() ;
-                return false ;
-            } ) ;
-
-            {
-                glDeleteTextures( 1, &fbd.depth ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
-            }
-        }
-
-        fbd.name = "" ;
-        fbd.valid = false ;
-        fbd.gl_id = GLuint( -1 ) ;
-        fbd.depth = GLuint( -1 ) ;
-        for( size_t i=0; i<8; ++i ) fbd.colors[i] = GLuint( -1 ) ;
-
-        fbd.dims = motor::math::vec2ui_t() ;
-        #endif
-        return true ;
+        return _framebuffers.invalidate( oid ) ;
     }
 
     //****************************************************************************************
@@ -1844,7 +1591,7 @@ public:
 
         // pre-compile all the shaders
         {
-            motor::log::global::status( "[gl4] : start shader compilation %s", obj.name().c_str() ) ;
+            motor_status2( 1024, "[gl4] : start shader compilation %s", obj.name().c_str() ) ;
             motor::profiling::scoped_timer time_this( "[gl4 ] : compilation took " ) ;
 
             // Compile Vertex Shader
@@ -2153,7 +1900,7 @@ public:
 
         // pre-compile all the shaders
         {
-            motor::log::global::status( "[gl4] : start shader compilation %s", obj.name().c_str() ) ;
+            motor_status2( 1024, "[gl4] : start shader compilation %s", obj.name().c_str() ) ;
             motor::profiling::scoped_timer time_this( "[gl4 ] : compilation took " ) ;
 
             // Compile Vertex Shader
@@ -2331,7 +2078,7 @@ public:
                     return false ;
                 }
                 sd.is_linkage_ok = true ;
-                motor::log::global_t::status( "[GL4] : Compilation Successful : [%s]", sd.name.c_str() ) ;
+                motor_status2( 1024, "[GL4] : Compilation Successful : [%s]", sd.name.c_str() ) ;
             }
 
             {
@@ -2378,6 +2125,45 @@ public:
         }
 
         return true ;
+    }
+
+    //****************************************************************************************
+    // if with_gl, no gl calls will be made.
+    void_t release_and_clear_all_feedback_data( bool_t const with_gl = false ) noexcept
+    {
+        if( !with_gl )
+        {
+            _feedbacks.for_each( [&]( this_t::feedback_data_ref_t d )
+            {
+                for( size_t rw=0; rw<2; ++rw )
+                {
+                    auto & buffer = d._buffers[rw] ;
+                    buffer.qid = GLuint(-1) ;
+                    buffer.tfid =  GLuint(-1) ;
+                    buffer.tids[0] = GLuint(-1) ;
+                }
+            } ) ;
+        }
+
+        _feedbacks.invalidate_and_clear() ;
+    }
+
+    //****************************************************************************************
+    // if with_gl, no gl calls will be made.
+    void_t release_and_clear_all_array_data( bool_t const with_gl = false ) noexcept
+    {
+        // #1 first, reset the gl ids
+        if( !with_gl )
+        {
+            _arrays.for_each( [&]( this_t::array_data_ref_t d )
+            {
+                d.buf_id = GLuint(-1) ;
+                d.tex_id = GLuint(-1) ;
+            } ) ;
+        }
+
+        // #2 now, the data can be invalidated
+        _arrays.invalidate_and_clear() ;
     }
 
     //****************************************************************************************
@@ -3268,7 +3054,10 @@ public:
 
             for( auto const id : rd.tf_ids )
             {
-                _feedbacks[id].remove_render_data_id( oid ) ;
+                _feedbacks.access( id, [&]( this_t::feedback_data_ref_t d )
+                {
+                    d.remove_render_data_id( oid ) ;
+                } ) ;
             }
         } ) ;
 
@@ -3307,8 +3096,20 @@ public:
                 // find stream out object
                 for( size_t i=0; i<rc.get_num_streamout(); ++i )
                 {
+                    #if 1
+
+                    size_t const idx = _feedbacks.find_by_name( rc.get_streamout(i) ) ;
+                    if( idx == size_t(-1) )
+                    {
+                        motor::log::global_t::warning<2048>( "[gl4] : no streamout object with name [%s] for render_data [%s]",
+                            rc.get_streamout(i).c_str(), rc.name().c_str() ) ;
+                        return false ;
+                    }
+                    config.tf_ids.emplace_back( idx ) ;
+
+                    #else
                     auto const iter = std::find_if( _feedbacks.begin(), _feedbacks.end(),
-                        [&] ( this_t::tf_data const& d )
+                        [&] ( this_t::feedback_data const& d )
                     {
                         return d.name == rc.get_streamout(i) ;
                     } ) ;
@@ -3321,6 +3122,7 @@ public:
                     }
 
                     config.tf_ids.emplace_back( std::distance( _feedbacks.begin(), iter ) ) ;
+                    #endif
                 }
             }
 
@@ -3468,7 +3270,7 @@ public:
     //****************************************************************************************
     bool_t construct_geo( size_t & oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
-        motor::log::global_t::status( "[gl4] : construct geometry %s", name.c_str() ) ;
+        motor_status2( 1024, "[gl4] : construct geometry %s", name.c_str() ) ;
         auto const res = _geometries.access( oid, name, [&]( this_t::geo_data_ref_t config )
         {
             // vertex buffer
@@ -3806,7 +3608,7 @@ public:
 
                         if( !res ) 
                         {
-                            motor::log::global_t::error( "[gl4] : Could not find image [%s]", 
+                            motor::log::global_t::error<1024>( "[gl4] : Could not find image [%s]", 
                                 tx_name.name().c_str() ) ;
                             continue ;
                         }
@@ -3827,14 +3629,18 @@ public:
                     // looking for data buffer
                     auto handle_buffer_link = [&]( void_t )
                     {
-                        size_t const i = this_t::find_index_by_resource_name( tx_name, _arrays ) ;
-                        if( i >= _arrays.size() ) return false ;
-
                         this_t::render_data::uniform_array_data_link link ;
+                        
+                        auto const res = _arrays.access_by_name( tx_name, [&]( size_t const id_, this_t::array_data_ref_t d )
+                        {
+                            link.buf_id = id_ ;
+                            link.tex_id = d.tex_id ;
+                        } ) ;
+                        if( !res ) return false ;
+
                         link.var_set_idx = var_set_idx ;
                         link.uniform_id = id++ ;
-                        link.tex_id = _arrays[ i ].tex_id ;
-                        link.buf_id = i ;
+
                         config.var_sets_array.emplace_back( link ) ;
                         return true ;
                     } ;
@@ -3842,15 +3648,18 @@ public:
                     // looking for streamout/transform feedback
                     auto handle_feedback_link = [&]( void_t )
                     {
-                        size_t const i = this_t::find_index_by_resource_name( tx_name, _feedbacks ) ;
-                        if( i >= _feedbacks.size() ) return false ;
-
                         this_t::render_data::uniform_streamout_link link ;
+                        
+                        auto const res = _feedbacks.access_by_name( tx_name, [&]( size_t const id_, this_t::feedback_data_ref_t d )
+                        {
+                            link.tex_id[0] = d._buffers[0].tids[0] ;
+                            link.tex_id[1] = d._buffers[1].tids[0] ;
+                            link.so_id = id_ ;
+                        } ) ;
+                        if( !res ) return false ; 
+
                         link.var_set_idx = var_set_idx ;
                         link.uniform_id = id++ ;
-                        link.tex_id[0] = _feedbacks[ i ]._buffers[0].tids[0] ;
-                        link.tex_id[1] = _feedbacks[ i ]._buffers[1].tids[0] ;
-                        link.so_id = i ;
                         config.var_sets_streamout.emplace_back( link ) ;
                         return true ;
                     } ;
@@ -3859,8 +3668,9 @@ public:
                     {
                         if( !handle_feedback_link() )
                         {
-                            motor::log::global_t::error( gl4_log( 
-                              "Could not find array nor streamout object [" + tx_name + "]" ) ) ;
+                            motor::log::global_t::error<2048>(  
+                              "[gl4] : Could not find array nor streamout object [%s]", 
+                                tx_name.c_str() ) ;
                             continue ;
                         }
                     }
@@ -3876,324 +3686,271 @@ public:
     }
 
     //****************************************************************************************
-    size_t construct_array_data( size_t oid, motor::graphics::array_object_ref_t obj ) noexcept
+    bool_t construct_array_data( motor::graphics::array_object_ref_t obj ) noexcept
     {
-        oid = determine_oid( oid, obj.name(), _arrays ) ;
-
-        auto & data = _arrays[ oid ] ;
-
-        // buffer
-        if( data.buf_id == GLuint(-1) )
+        size_t oid = obj.get_oid( _bid ) ;
+        auto const res = _arrays.access( oid, obj.name(), [&]( this_t::array_data_ref_t data )
         {
-            GLuint id = GLuint( -1 ) ;
-            glGenBuffers( 1, &id ) ;
-            motor::ogl::error::check_and_log( 
-                gl4_log( "[construct_array_data] : glGenBuffers" ) ) ;
+            // buffer
+            if( data.buf_id == GLuint(-1) )
+            {
+                GLuint id = GLuint( -1 ) ;
+                glGenBuffers( 1, &id ) ;
+                gl4_log_error3( "glGenBuffers", obj ) ;
+                data.buf_id = id ;
+            }
 
-            data.buf_id = id ;
-        }
+            // texture
+            if( data.tex_id == GLuint(-1) )
+            {
+                GLuint id = GLuint( -1 ) ;
+                glGenTextures( 1, &id ) ;
+                gl4_log_error3( "glGenTextures", obj ) ;
 
-        // texture
-        if( data.tex_id == GLuint(-1) )
-        {
-            GLuint id = GLuint( -1 ) ;
-            glGenTextures( 1, &id ) ;
-            motor::ogl::error::check_and_log( 
-                gl4_log( "[construct_array_data] : glGenTextures" ) ) ;
-
-            data.tex_id = id ;
-        }
-
-        return oid ;
+                data.tex_id = id ;
+            }
+            return true ;
+        } ) ;
+        if( res ) obj.set_oid( _bid, oid ) ;
+        return res ;
     }
 
     //****************************************************************************************
     bool_t release_array_data( size_t const oid ) noexcept
     {
-        auto & data = _arrays[ oid ] ;
-
-        if( data.buf_id == GLuint(-1) )
-        {
-            glDeleteBuffers( 1, &data.buf_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
-            data.buf_id = GLuint( -1 ) ;
-        }
-
-        if( data.tex_id == GLuint(-1) )
-        {
-            glDeleteTextures( 1, &data.tex_id ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
-            data.tex_id = GLuint( -1 ) ;
-        }
-
-        data.valid = false ;
-        data.name = "released" ;
-        data.sib = 0 ;
-
-        return true ;
+        return _arrays.invalidate( oid ) ;
     }
 
     //****************************************************************************************
-    bool_t update( size_t oid, motor::graphics::array_object_ref_t obj, bool_t const is_config = false ) 
+    bool_t update( motor::graphics::array_object_ref_t obj, bool_t const is_config = false ) 
     {
-        auto & data = _arrays[ oid ] ;
-
-        // do buffer
+        auto const [a,b] = _arrays.access<bool_t>( obj.get_oid( _bid ), [&]( this_t::array_data_ref_t data )
         {
-            // bind buffer
+            // do buffer
             {
+                // bind buffer
                 glBindBuffer( GL_TEXTURE_BUFFER, data.buf_id ) ;
-                if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
+                if( gl4_log_error3( "glBindBuffer", obj ) ) 
                     return false ;
-            }
 
-            // transfer data
-            GLuint const sib = GLuint( obj.data_buffer().get_sib() ) ;
-            if( is_config || sib > data.sib )
-            {
-                glBufferData( GL_TEXTURE_BUFFER, sib,
-                        obj.data_buffer().data(), GL_DYNAMIC_DRAW ) ;
-                if( motor::ogl::error::check_and_log( gl4_log( "glBufferData" ) ) )
-                    return false ;
-                data.sib = sib ;
-            }
-            else
-            {
-                glBufferSubData( GL_TEXTURE_BUFFER, 0, sib, obj.data_buffer().data() ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glBufferSubData" ) ) ;
-            }
-
-            // bind buffer
-            {
-                glBindBuffer( GL_TEXTURE_BUFFER, 0 ) ;
-                if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
-                    return false ;
-            }
-        }
-
-        // do texture
-        // glTexBuffer is required to be called after driver memory is aquired.
-        {
-            glBindTexture( GL_TEXTURE_BUFFER, data.tex_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
-                return false ;
-
-            auto const le = obj.data_buffer().get_layout_element(0) ;
-            glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::gl3::convert_for_texture_buffer(
-                le.type, le.type_struct ), data.buf_id ) ;
-            if( motor::ogl::error::check_and_log( gl4_log( "glTexBuffer" ) ) )
-                return false ;
-        }
-
-        return true ;
-    }
-
-    //****************************************************************************************
-    size_t construct_feedback( size_t oid, motor::graphics::streamout_object_ref_t obj ) noexcept
-    {
-        oid = determine_oid( oid, obj.name(), _feedbacks ) ;
-
-        //bool_t error = false ;
-        auto & data = _feedbacks[ oid ] ;
-
-        size_t const req_buffers = std::min( obj.num_buffers(), this_t::tf_data::buffer::max_buffers ) ;
-
-        // rw : read/write - ping pong buffers
-        for( size_t rw=0; rw<2; ++rw )
-        {
-            auto & buffer = data._buffers[rw] ;
-
-            for( size_t i=0; i<req_buffers; ++i )
-            {
-                if( buffer.bids[i] != GLuint(-1) ) continue ;
-                
-                motor::string_t const is = motor::to_string( i ) ;
-                motor::string_t const bs = motor::to_string( rw ) ;
-
-                size_t gid = size_t(-1) ;
-                auto const res = this_t::construct_geo( gid, 
-                    obj.name() + ".feedback."+is+"."+bs, obj.get_buffer(i) ) ;
-                
-                if( !res ) 
+                // transfer data
+                GLuint const sib = GLuint( obj.data_buffer().get_sib() ) ;
+                if( is_config || sib > data.sib )
                 {
-                    motor::log::global::warning( 
-                        "[gl4] : unable to create geometry for transform feedback [%s]",
-                        obj.name().c_str() ) ;
-                    continue ;
+                    glBufferData( GL_TEXTURE_BUFFER, sib,
+                            obj.data_buffer().data(), GL_DYNAMIC_DRAW ) ;
+
+                    if( gl4_log_error3( "glBufferData", obj ) ) 
+                        return false ;
+
+                    data.sib = sib ;
+                }
+                else
+                {
+                    glBufferSubData( GL_TEXTURE_BUFFER, 0, sib, obj.data_buffer().data() ) ;
+                    if( gl4_log_error3( "glBufferSubData", obj ) ) 
+                        return false ;
                 }
 
-                buffer.gids[i] = gid ;
-                buffer.sibs[i] = 0 ; 
-
-                _geometries.access( gid, [&]( this_t::geo_data_ref_t d )
-                { 
-                    buffer.bids[i] =  d.vb_id ;
-                } ) ;
+                // bind buffer
+                {
+                    glBindBuffer( GL_TEXTURE_BUFFER, 0 ) ;
+                    if( gl4_log_error3( "glBindBuffer", obj ) ) 
+                        return false ;
+                }
             }
 
-            // we just always gen max buffers tex ids
+            // do texture
+            // glTexBuffer is required to be called after driver memory is aquired.
             {
-                glGenTextures( this_t::tf_data::buffer::max_buffers, buffer.tids ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glGenTextures" ) ) ;
-            }
+                glBindTexture( GL_TEXTURE_BUFFER, data.tex_id ) ;
+                if( gl4_log_error3( "glBindTexture", obj ) ) return false ;
 
-            for( size_t i=req_buffers; i<this_t::tf_data::buffer::max_buffers; ++i )
+                auto const le = obj.data_buffer().get_layout_element(0) ;
+                glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::gl3::convert_for_texture_buffer(
+                    le.type, le.type_struct ), data.buf_id ) ;
+                if( gl4_log_error3( "glTexBuffer", obj ) ) return false ;
+            }
+            return true ;
+        } ) ;
+        return a && b ;
+    }
+
+    //****************************************************************************************
+    bool_t construct_feedback( motor::graphics::streamout_object_ref_t obj ) noexcept
+    {
+        size_t oid = obj.get_oid( _bid ) ;
+        auto const res = _feedbacks.access( oid, obj.name(), [&]( this_t::feedback_data_ref_t data )
+        {
+            size_t const req_buffers = std::min( obj.num_buffers(), this_t::feedback_data::buffer::max_buffers ) ;
+
+            // rw : read/write - ping pong buffers
+            for( size_t rw=0; rw<2; ++rw )
             {
-                if( buffer.gids[i] == size_t(-1) ) break ;
+                auto & buffer = data._buffers[rw] ;
 
-                this_t::release_geometry( buffer.gids[i] ) ;
+                for( size_t i=0; i<req_buffers; ++i )
+                {
+                    if( buffer.bids[i] != GLuint(-1) ) continue ;
+                
+                    motor::string_t const is = motor::to_string( i ) ;
+                    motor::string_t const bs = motor::to_string( rw ) ;
 
-                buffer.bids[i] = GLuint( -1 ) ;
-                buffer.gids[i] = size_t( -1 ) ;
+                    size_t gid = size_t(-1) ;
+                    auto const res = this_t::construct_geo( gid, 
+                        obj.name() + ".feedback."+is+"."+bs, obj.get_buffer(i) ) ;
+                
+                    if( !res ) 
+                    {
+                        motor_warning2( 2048, "[gl4] : unable to create geometry for transform feedback [%s]", 
+                            obj.name().c_str() ) ;
+                        continue ;
+                    }
+
+                    buffer.gids[i] = gid ;
+                    buffer.sibs[i] = 0 ; 
+
+                    _geometries.access( gid, [&]( this_t::geo_data_ref_t d )
+                    { 
+                        buffer.bids[i] =  d.vb_id ;
+                    } ) ;
+                }
+
+                // we just always gen max buffers tex ids
+                {
+                    glGenTextures( this_t::feedback_data::buffer::max_buffers, buffer.tids ) ;
+                    if( gl4_log_error3( "glGenTextures", obj ) ) return false ;
+                }
+
+                for( size_t i=req_buffers; i<this_t::feedback_data::buffer::max_buffers; ++i )
+                {
+                    if( buffer.gids[i] == size_t(-1) ) break ;
+
+                    this_t::release_geometry( buffer.gids[i] ) ;
+
+                    buffer.bids[i] = GLuint( -1 ) ;
+                    buffer.gids[i] = size_t( -1 ) ;
+                }
+
+                if( buffer.qid == GLuint(-1) )
+                {
+                    glGenQueries( 1, &buffer.qid ) ;
+                    if( gl4_log_error3( "glGenQueries", obj ) ) return false ;
+                }
+
+                if( buffer.tfid == GLuint(-1) )
+                {
+                    glGenTransformFeedbacks( 1, &buffer.tfid ) ;
+                    if( gl4_log_error3( "glGenTransformFeedbacks", obj ) ) return false ;
+                }
             }
-
-            if( buffer.qid == GLuint(-1) )
-            {
-                glGenQueries( 1, &buffer.qid ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glGenQueries" ) ) ;
-            }
-
-            if( buffer.tfid == GLuint(-1) )
-            {
-                glGenTransformFeedbacks( 1, &buffer.tfid ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glGenTransformFeedbacks" ) ) ;
-            }
-        }
-
-        return oid ;
+            return true ;
+        } ) ;
+        if( res ) obj.set_oid( _bid, oid ) ;
+        return res ;
     }
 
     //****************************************************************************************
     bool_t release_tf_data( size_t const oid ) noexcept
     {
-        auto & d = _feedbacks[ oid ] ;
-
-        for( size_t rw=0; rw<2; ++rw )
+        _feedbacks.access( oid, [&]( this_t::feedback_data_ref_t d )
         {
-            auto & buffer = d._buffers[rw] ;
-
-            for( GLuint i=0; i<tf_data_t::buffer::max_buffers; ++i )
+            for( size_t rw=0; rw<2; ++rw )
             {
-                if( buffer.gids[i] == size_t( -1 ) ) break ;
+                auto & buffer = d._buffers[rw] ;
 
-                this_t::release_geometry( buffer.gids[i] ) ;
+                for( GLuint i=0; i<feedback_data_t::buffer::max_buffers; ++i )
+                {
+                    if( buffer.gids[i] == size_t( -1 ) ) break ;
+
+                    this_t::release_geometry( buffer.gids[i] ) ;
             
-                buffer.bids[i] = GLuint( -1 ) ; 
-                buffer.sibs[i] = 0 ;
+                    buffer.bids[i] = GLuint( -1 ) ; 
+                    buffer.sibs[i] = 0 ;
+                }
             }
-
-            if( buffer.qid != GLuint(-1) )
-            {
-                glDeleteQueries( 1, &buffer.qid ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glDeleteBuffers" ) ) ;
-                buffer.qid = GLuint( -1 ) ; 
-            }
-
-            if( buffer.tfid != GLuint(-1) )
-            {
-                glDeleteTransformFeedbacks( 1, &buffer.tfid ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glDeleteTransformFeedbacks" ) ) ;
-                buffer.tfid = GLuint( -1 ) ; 
-            }
-
-            // release textures
-            {
-                glDeleteTextures( tf_data_t::buffer::max_buffers, buffer.tids ) ;
-                motor::ogl::error::check_and_log( gl4_log( "glDeleteTextures" ) ) ;
-            }
-        }
-
-        d.valid = false ;
-        d.name = "__released__" ;
-
-        return true ;
+        } ) ;
+        return _feedbacks.invalidate( oid ) ;
     }
 
     //****************************************************************************************
-    bool_t update( size_t oid, motor::graphics::streamout_object_ref_t obj, bool_t const is_config = false ) 
+    bool_t update( motor::graphics::streamout_object_ref_t obj, bool_t const is_config = false ) 
     {
-        auto & data = _feedbacks[ oid ] ;
-
-        for( size_t rw=0; rw<2; ++rw )
+        auto const [a,b] = _feedbacks.access<bool_t>( obj.get_oid( _bid ), [&]( this_t::feedback_data_ref_t data )
         {
-            auto & buffer = data._buffers[rw] ;
-
-            size_t i=0; 
-            while( buffer.bids[i] != GLuint(-1) )
+            for( size_t rw=0; rw<2; ++rw )
             {
-                // bind buffer
-                {
-                    glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, buffer.bids[i] ) ;
-                    if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
-                        continue ;
-                }
+                auto & buffer = data._buffers[rw] ;
 
-                // allocate data
-                GLuint const sib = GLuint( obj.get_buffer( i ).get_layout_sib() * obj.size() ) ;
-                if( is_config || sib > buffer.sibs[i] )
+                size_t i=0; 
+                while( buffer.bids[i] != GLuint(-1) )
                 {
-                    glBufferData( GL_TRANSFORM_FEEDBACK_BUFFER, sib, nullptr, GL_DYNAMIC_DRAW ) ;
-                    if( motor::ogl::error::check_and_log( gl4_log( "glBufferData" ) ) )
-                        continue ;
+                    // bind buffer
+                    {
+                        glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, buffer.bids[i] ) ;
+                        if( gl4_log_error3( "glBindBuffer", obj ) ) continue ;
+                    }
 
-                    buffer.sibs[i] = sib ;
-                }
+                    // allocate data
+                    GLuint const sib = GLuint( obj.get_buffer( i ).get_layout_sib() * obj.size() ) ;
+                    if( is_config || sib > buffer.sibs[i] )
+                    {
+                        glBufferData( GL_TRANSFORM_FEEDBACK_BUFFER, sib, nullptr, GL_DYNAMIC_DRAW ) ;
+                        if( gl4_log_error3( "glBufferData", obj ) ) continue ;
+                        buffer.sibs[i] = sib ;
+                    }
                
-                // do texture
-                // glTexBuffer is required to be called after driver memory is aquired.
-                {
-                    glBindTexture( GL_TEXTURE_BUFFER, buffer.tids[i] ) ;
-                    if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
-                        continue ;
+                    // do texture
+                    // glTexBuffer is required to be called after driver memory is aquired.
+                    {
+                        glBindTexture( GL_TEXTURE_BUFFER, buffer.tids[i] ) ;
+                        if( gl4_log_error3( "glBindTexture", obj ) ) continue ;
 
-                    auto const le = obj.get_buffer( i ).get_layout_element_zero() ;
-                    glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::gl3::convert_for_texture_buffer(
-                        le.type, le.type_struct ), buffer.bids[i] ) ;
-                    if( motor::ogl::error::check_and_log( gl4_log( "glTexBuffer" ) ) )
-                        continue ;
+                        auto const le = obj.get_buffer( i ).get_layout_element_zero() ;
+                        glTexBuffer( GL_TEXTURE_BUFFER, motor::platform::gl3::convert_for_texture_buffer(
+                            le.type, le.type_struct ), buffer.bids[i] ) ;
+                        if( gl4_log_error3( "glTexBuffer", obj ) ) continue ;
 
-                    glBindTexture( GL_TEXTURE_BUFFER, 0 ) ;
-                    if( motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) )
-                        continue ;
-                }
+                        glBindTexture( GL_TEXTURE_BUFFER, 0 ) ;
+                        if( gl4_log_error3( "glBindTexture", obj ) ) continue ;
+                    }
 
-                ++i ;
-            }
-        }
-
-        // unbind
-        {
-            glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, 0 ) ;
-            if( motor::ogl::error::check_and_log( gl4_log("glBindBuffer") ) )
-                return false ;
-        }
-
-        for( size_t rw=0; rw<2; ++rw )
-        {
-            auto & buffer = data._buffers[rw] ;
-
-            {
-                glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
-                if( motor::ogl::error::check_and_log( gl4_log("glBindTransformFeedback") ) )
-                    return false ;
-            }
-
-            // bind buffers
-            {
-                for( size_t i=0; i<tf_data::buffer::max_buffers; ++i )
-                {
-                    auto const bid = buffer.bids[ i ] ;
-                    auto const sib = buffer.sibs[ i ] ;
-
-                    if( bid == GLuint(-1) ) break ;
-
-                    glBindBufferRange( GL_TRANSFORM_FEEDBACK_BUFFER, GLuint(i), bid, 0, sib ) ;
-                    motor::ogl::error::check_and_log( gl4_log( "glBindBufferRange" ) ) ;
+                    ++i ;
                 }
             }
-        }
 
-        return false ;
+            // unbind
+            {
+                glBindBuffer( GL_TRANSFORM_FEEDBACK_BUFFER, 0 ) ;
+                if( gl4_log_error3( "glBindBuffer", obj ) ) return false ;
+            }
+
+            for( size_t rw=0; rw<2; ++rw )
+            {
+                auto & buffer = data._buffers[rw] ;
+
+                {
+                    glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
+                    if( gl4_log_error3( "glBindTransformFeedback", obj ) ) return false ;
+                }
+
+                // bind buffers
+                {
+                    for( size_t i=0; i<feedback_data::buffer::max_buffers; ++i )
+                    {
+                        auto const bid = buffer.bids[ i ] ;
+                        auto const sib = buffer.sibs[ i ] ;
+
+                        if( bid == GLuint(-1) ) break ;
+
+                        glBindBufferRange( GL_TRANSFORM_FEEDBACK_BUFFER, GLuint(i), bid, 0, sib ) ;
+                        if( gl4_log_error3( "glBindTransformFeedback", obj ) ) return false ;
+                    }
+                }
+            }
+            return true ;
+        } ) ;
+        return a && b ;
     }
 
     //****************************************************************************************
@@ -4216,49 +3973,50 @@ public:
     {
         if( _tf_active_id == size_t(-1) ) return ;
 
-        auto & data = _feedbacks[_tf_active_id] ;
-        
-        auto const wrt_idx = data.write_index() ;
-        auto & buffer = data._buffers[wrt_idx] ;
-
-        // EITHER just set prim type what was used for rendering.
-        // OR use for overwriting the primitive type on render
-        //data.pt = gdata.pt ;
-
-        // bind transform feedback object and update primitive type for 
-        // rendering the transform feedback data.
+        auto const res = _feedbacks.access( _tf_active_id, [&]( this_t::feedback_data_ref_t data )
         {
-            for( size_t i=0; i<tf_data::buffer::max_buffers; ++i )
-            {
-                if( buffer.bids[ i ] == GLuint(-1) ) break ;
+            auto const wrt_idx = data.write_index() ;
+            auto & buffer = data._buffers[wrt_idx] ;
 
-                #if 1
-                _geometries.access( buffer.gids[ i ], [&]( this_t::geo_data_ref_t d )
+            // EITHER just set prim type what was used for rendering.
+            // OR use for overwriting the primitive type on render
+            //data.pt = gdata.pt ;
+
+            // bind transform feedback object and update primitive type for 
+            // rendering the transform feedback data.
+            {
+                for( size_t i=0; i<feedback_data::buffer::max_buffers; ++i )
                 {
-                    d.pt = gpt ;
-                } ) ;
-                #else
-                _geometries[buffer.gids[ i ]].pt = gdata.pt ;
-                #endif
+                    if( buffer.bids[ i ] == GLuint(-1) ) break ;
+
+                    #if 1
+                    _geometries.access( buffer.gids[ i ], [&]( this_t::geo_data_ref_t d )
+                    {
+                        d.pt = gpt ;
+                    } ) ;
+                    #else
+                    _geometries[buffer.gids[ i ]].pt = gdata.pt ;
+                    #endif
+                }
+
+                glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
+                gl4_log_error( "glBindTransformFeedback" ) ;
             }
 
-            glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glBindTransformFeedback" ) ) ;
-        }
+            // query written primitives
+            {
+                glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, buffer.qid ) ;
+                gl4_log_error( "glBeginQuery" ) ;
+            }
 
-        // query written primitives
-        {
-            glBeginQuery( GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, buffer.qid ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glBeginQuery" ) ) ;
-        }
-
-        // begin 
-        {
-            // lets just use the primitive type of the used geometry
-            GLenum const mode = gpt ;
-            glBeginTransformFeedback( mode ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glBeginTransformFeedback" ) ) ;
-        }
+            // begin 
+            {
+                // lets just use the primitive type of the used geometry
+                GLenum const mode = gpt ;
+                glBeginTransformFeedback( mode ) ;
+                gl4_log_error( "glBeginTransformFeedback" ) ;
+            }
+        } ) ;
     }
 
     //****************************************************************************************
@@ -4279,7 +4037,10 @@ public:
         
         // swap the indices of the ping-pong buffers
         {
-            _feedbacks[ _tf_active_id ].swap_index() ;
+            _feedbacks.access( _tf_active_id, [&]( this_t::feedback_data_ref_t d )
+            {
+                d.swap_index() ;
+            } ) ;
         }
 
         // I believe this is for testing purposes.
@@ -4453,9 +4214,17 @@ public:
                 {
                     tfid = config.tf_ids[0] ;
                     if( feed_from_tf )
+                    {
+                        #if 1
+                        _feedbacks.access( tfid, [&]( this_t::feedback_data_ref_t d )
+                        {
+                            gid = d.read_buffer().gids[0] ;
+                        } ) ;
+                        #else
                         gid = _feedbacks[tfid].read_buffer().gids[0] ;
-                    else
-                        gid = config.geo_ids[ geo_idx ] ;
+                        #endif
+                    }
+                    else gid = config.geo_ids[ geo_idx ] ;
                 }
                 // #2 : check geometry 
                 else if( config.geo_ids.size() > geo_idx )
@@ -4602,22 +4371,36 @@ public:
                                 if ( link.var_set_idx > varset_id ) break ;
                                 if ( link.var_set_idx < varset_id ) continue ;
 
-                                auto const & tfd = _feedbacks[ link.so_id ] ;
-                                GLuint const tid = link.tex_id[tfd.read_index()] ;
+                                //auto const & tfd = _feedbacks[ link.so_id ] ;
+                                auto const [a, b] = _feedbacks.access<bool_t>( link.so_id, [&]( this_t::feedback_data_ref_t tfd )
+                                {
+                                    GLuint const tid = link.tex_id[tfd.read_index()] ;
 
-                                glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                                motor::ogl::error::check_and_log( gl4_log( "glActiveTexture" ) ) ;
-                                glBindTexture( GL_TEXTURE_BUFFER, tid ) ;
-                                motor::ogl::error::check_and_log( gl4_log( "glBindTexture" ) ) ;
+                                    glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
+                                    if( gl4_log_error2( "glActiveTexture", tfd.name.c_str() ) ) return false ;
+                                    glBindTexture( GL_TEXTURE_BUFFER, tid ) ;
+                                    if( gl4_log_error2( "glBindTexture", tfd.name.c_str() ) ) return false ;
 
+                                    return true ;
+                                } ) ;
+
+                                if( !(a&&b )) return false ;
                                 {
                                     auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                                    #if 1
+                                    if( motor::log::global_t::error_if<2048>( !uv.do_uniform_funk( link.mem ),
+                                        "[gl4] : uniform %s failed.", uv.name.c_str() ) )
+                                    {
+                                        return false ;
+                                    }
+                                    #else
                                     if( !uv.do_uniform_funk( link.mem ) )
                                     {
                                         motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ;
+                                        return false ;
                                     }
+                                    #endif
                                 }
-
                                 ++tex_unit ;
                             }
                         }
@@ -4650,6 +4433,23 @@ public:
 
                     if( tfid != size_t( -1 ) )
                     {
+                        #if 1
+                        _feedbacks.access( tfid, [&]( this_t::feedback_data_ref_t tfd )
+                        {
+                            #if 0 // this is gl 3.x
+                            GLuint num_prims = 0 ;
+                            {
+                                glGetQueryObjectuiv( tfd.read_buffer().qid, GL_QUERY_RESULT, &num_prims ) ;
+                                motor::ogl::error::check_and_log( gl4_backend_log( "glGetQueryObjectuiv" ) ) ;
+                            }
+                            glDrawArrays( pt, start_element, num_prims * motor::platform::gl3::primitive_type_to_num_vertices( pt ) ) ;
+                            motor::ogl::error::check_and_log( gl4_backend_log( "glDrawArrays" ) ) ;
+                            #else
+                            glDrawTransformFeedback( pt, tfd.read_buffer().tfid ) ;
+                            gl4_log_error( "glDrawTransformFeedback" ) ;
+                            #endif
+                        } ) ;
+                        #else
                         auto & tfd = _feedbacks[ tfid ] ;
 
                         #if 0 // this is gl 3.x
@@ -4664,7 +4464,7 @@ public:
                         glDrawTransformFeedback( pt, tfd.read_buffer().tfid ) ;
                         gl4_log_error( "glDrawTransformFeedback" ) ;
                         #endif
-
+                        #endif
                     }
                     else 
                     {
@@ -4926,10 +4726,10 @@ motor::graphics::result gl4_backend::configure( motor::graphics::state_object_mt
 //******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
-    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_array_data( 
-        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
+    auto const res = _pimpl->construct_array_data( *obj ) ;
+    if( !res ) return motor::graphics::result::failed ;
 
-    if( !_pimpl->update( oid, *obj, true ) ) return motor::graphics::result::failed ;
+    if( !_pimpl->update( *obj, true ) ) return motor::graphics::result::failed ;
 
     return motor::graphics::result::ok ;
 }
@@ -4937,10 +4737,10 @@ motor::graphics::result gl4_backend::configure( motor::graphics::array_object_mt
 //******************************************************************************************************
 motor::graphics::result gl4_backend::configure( motor::graphics::streamout_object_mtr_t obj ) noexcept 
 {
-    size_t const oid = obj->set_oid( this_t::get_bid(), _pimpl->construct_feedback( 
-        obj->get_oid( this_t::get_bid() ), *obj ) ) ;
-    
-    if( !_pimpl->update( oid, *obj, true ) ) return motor::graphics::result::failed ;
+    auto const res = _pimpl->construct_feedback( *obj ) ;
+    if( !res ) return motor::graphics::result::failed ;
+
+    if( !_pimpl->update( *obj, true ) ) return motor::graphics::result::failed ;
 
     return motor::graphics::result::ok ;
 }
@@ -5131,7 +4931,7 @@ motor::graphics::result gl4_backend::update( motor::graphics::streamout_object_m
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     {
-        auto const res = _pimpl->update( oid, *obj, false ) ;
+        auto const res = _pimpl->update( *obj, false ) ;
         if( !res ) return motor::graphics::result::failed ;
     }
 
@@ -5144,7 +4944,7 @@ motor::graphics::result gl4_backend::update( motor::graphics::array_object_mtr_t
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     {
-        auto const res = _pimpl->update( oid, *obj, false ) ;
+        auto const res = _pimpl->update( *obj, false ) ;
         if( !res ) return motor::graphics::result::failed ;
     }
 
