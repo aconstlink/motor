@@ -4873,7 +4873,6 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
         return motor::graphics::result::in_transit ; 
     }
 
-    // experimental
     {
         _pimpl->construct_msl( obj ) ;
     }
@@ -4882,7 +4881,7 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
     size_t const oid = obj->set_oid( this_t::get_bid(), 
         _pimpl->construct_msl( *obj ) ) ;
     #endif
-    return motor::graphics::result::ok ;
+    return motor::graphics::result::in_transit ;
 }
 
 //************************************************************************************************************
