@@ -34,7 +34,7 @@ namespace motor
             object( void_t ) noexcept{}
             object( this_cref_t rhv ) noexcept : _ids( rhv._ids ) {}
             object( this_rref_t rhv ) noexcept : _ids( std::move( rhv._ids ) ){}
-            ~object( void_t ) noexcept {}
+            virtual ~object( void_t ) noexcept {}
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {

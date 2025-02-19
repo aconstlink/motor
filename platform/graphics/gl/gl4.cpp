@@ -924,11 +924,11 @@ private: // support thread
                     {
                     case work_item::obj_type::msl: 
                     {
+                        auto * msl = static_cast<motor::graphics::msl_object_ptr_t>(item.ptr) ;
                         switch( item.wt )
                         {
                         case work_item::work_type::configure: 
-                            ctsd->owner->construct_msl_data_st( 
-                                static_cast<motor::graphics::msl_object_ptr_t>(item.ptr) ) ;
+                            ctsd->owner->construct_msl_data_st( msl ) ;
                             break ;
                         case work_item::work_type::release: break ;
                         default: break ;
@@ -937,6 +937,14 @@ private: // support thread
                     default: break ;
                     }
                 }
+
+                for( auto & item : items )
+                {
+                    auto obj_ptr = static_cast<motor::graphics::object*>
+                        ( item.ptr ) ;
+                    motor::release( motor::move( obj_ptr ) ) ;
+                }
+                items.clear() ;
             }
             ctsd->ctx->deactivate() ;
 
@@ -2590,7 +2598,7 @@ public:
                     }
                 }
 
-                msl.msl_obj = obj ;
+                msl.msl_obj = std::move( obj ) ;
 
                 return true ;
             } ) ;
