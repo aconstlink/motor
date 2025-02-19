@@ -1284,14 +1284,46 @@ public: // other variables
 
 public: // compilation thread ;
 
-    struct compilation_work_item
+    struct work_item
     {
-        motor::graphics::msl_object_mtr_safe_t msl ;
-        motor::graphics::msl_object_t obj ;
-    };
-    motor_typedef( compilation_work_item ) ;
+        enum class work_type
+        {
+            configure,
+            release
+        };
 
-    struct compilation_shared_data
+        enum class obj_type
+        {
+            unknown,
+            msl
+        };
+
+        work_type wt ;
+        obj_type ot ;
+        void_ptr_t ptr ;
+
+        template< typename T >
+        static obj_type deduce_type( T * ptr ) noexcept
+        {
+            return obj_type::unknown ;
+        }
+
+        template<>
+        static obj_type deduce_type<motor::graphics::msl_object>( motor::graphics::msl_object * ptr ) noexcept
+        {
+            return obj_type::msl ;
+        }
+
+        template< typename T >
+        static work_item make_item( work_type const t, motor::core::mtr_safe<T> obj ) noexcept
+        {
+            return work_item{ t, work_item::deduce_type( obj.mtr() ), 
+                static_cast<void_ptr_t>( obj.mtr() ) } ;
+        }
+    };
+    motor_typedef( work_item ) ;
+
+    struct shared_data
     {
         bool_t running = false ;
         bool_t has_work = false ;
@@ -1300,9 +1332,9 @@ public: // compilation thread ;
         std::mutex mtx ;
         std::condition_variable cv ;
 
-        motor::vector< compilation_work_item > items ;
+        motor::vector< work_item > items ;
 
-        void_t add_item( compilation_work_item_rref_t item ) noexcept
+        void_t add_item( work_item_rref_t item ) noexcept
         {
             std::unique_lock< std::mutex > lk( mtx ) ;
 
@@ -1319,18 +1351,19 @@ public: // compilation thread ;
             if ( has_work ) cv.notify_one() ;
         }
     };
-    motor_typedef( compilation_shared_data ) ;
+    motor_typedef( shared_data ) ;
 
-    compilation_shared_data_ptr_t _ctsd = nullptr ;
+    shared_data_ptr_t _ctsd = nullptr ;
     std::thread _compilation_thread ;
 
-    void_t start_compilation_thread( void_t ) noexcept
+    void_t start_support_thread( void_t ) noexcept
     {
         assert( _ctsd == nullptr && "Just start/stop the thread." ) ;
 
         if ( _ctsd == nullptr )
         {
-            _ctsd = motor::memory::global::alloc<compilation_shared_data>( "compilation shared data" ) ;
+            _ctsd = motor::memory::global::alloc<shared_data>
+                ( "support shared data" ) ;
             _ctsd->running = true ;
             _ctsd->owner = this ;
         }
@@ -1339,11 +1372,11 @@ public: // compilation thread ;
 
         _compilation_thread = std::thread( [ctsd] ( void_t )
         {
-            motor::log::global_t::status( "[d3d11] : compilation thread started" ) ;
+            motor::log::global_t::status( "[d3d11] : support thread started" ) ;
 
             motor::msl::database_t mdb ;
 
-            motor::vector< this_t::compilation_work_item_t > items ;
+            motor::vector< this_t::work_item_t > items ;
             items.reserve( 50 ) ;
 
             while ( ctsd->running )
@@ -1359,6 +1392,38 @@ public: // compilation thread ;
                     ctsd->has_work = false ;
                 }
 
+                #if 1
+                for( auto & item : items )
+                {
+                    switch( item.ot )
+                    {
+                    case work_item::obj_type::msl: 
+                    {
+                        auto * msl = static_cast<motor::graphics::msl_object_ptr_t>(item.ptr) ;
+                        switch( item.wt )
+                        {
+                        case work_item::work_type::configure: 
+                            ctsd->owner->construct_msl_data_st( msl ) ;
+                            break ;
+                        case work_item::work_type::release: break ;
+                        default: break ;
+                        }
+                    } break ;
+                    default: break ;
+                    }
+
+                    if( !ctsd->running ) break ;
+                }
+
+                for( auto & item : items )
+                {
+                    auto obj_ptr = static_cast<motor::graphics::object*>
+                        ( item.ptr ) ;
+                    motor::release( motor::move( obj_ptr ) ) ;
+                }
+                items.clear() ;
+
+                #else
                 size_t const bid = ctsd->owner->_bid ;
                 auto & msls = ctsd->owner->_msls ;
                 auto & shaders = ctsd->owner->_shaders ;
@@ -1584,6 +1649,7 @@ public: // compilation thread ;
                 }
 
                 items.clear() ;
+                #endif
             }
 
             motor::log::global_t::status( "[d3d11] : compilation thread shut down" ) ;
@@ -1605,7 +1671,7 @@ public: // compilation thread ;
                 _compilation_thread.join() ;
         }
 
-        motor::memory::global::dealloc<compilation_shared_data>( motor::move( _ctsd ) ) ;
+        motor::memory::global::dealloc<shared_data>( motor::move( _ctsd ) ) ;
     }
 
 public: // functions
@@ -1637,7 +1703,7 @@ public: // functions
             assert( res ) ;
         }
 
-        this_t::start_compilation_thread() ;
+        this_t::start_support_thread() ;
     }
 
     //************************************************************************************************************
@@ -1661,7 +1727,7 @@ public: // functions
 
         _bid = rhv._bid ;
 
-        this_t::start_compilation_thread() ;
+        this_t::start_support_thread() ;
     }
     
     //************************************************************************************************************
@@ -2536,48 +2602,48 @@ public: // functions
         _cur_streamout_active = size_t( -1 ) ;
     }
 
-    //************************************************************************************************************
-    void_t construct_msl( motor::graphics::msl_object_mtr_t obj_ )
+    //****************************************************************************************
+    void_t send_configure_to_st( motor::graphics::msl_object_mtr_t obj ) noexcept
     {
-        motor::graphics::msl_object_t obj = *obj_ ;
-
-        obj_->set_oid( _bid, size_t(-2) ) ;
-        _ctsd->add_item( pimpl::compilation_work_item{ motor::share( obj_ ), std::move( obj ) } ) ;
+        obj->set_oid( _bid, size_t(-2) ) ;
+        _ctsd->add_item( this_t::work_item::make_item( 
+            this_t::work_item::work_type::configure, motor::share( obj ) ) ) ;
     }
 
-    #if 0
-    //************************************************************************************************************
-    size_t construct_msl( motor::graphics::msl_object_ref_t obj_ )
+    //****************************************************************************************
+    // call from support thread
+    bool_t construct_msl_data_st( motor::graphics::msl_object_ptr_t obj_in ) noexcept
     {
-        // @todo list
-        // [r] get msl shader from object
-        // [r] insert in database
-        // [r] resolve dependencies
-        // [ ] update dependencies
-
-        motor::graphics::msl_object_t obj = obj_ ;
+        auto obj = *obj_in ;
 
         motor::vector< motor::msl::symbol_t > config_symbols ;
 
-        obj.for_each_msl( motor::graphics::msl_api_type::msl_4_0, [&]( motor::string_in_t code )
+        obj.for_each_msl( motor::graphics::msl_api_type::msl_4_0,
+            [&] ( motor::string_in_t code )
         {
-            motor::msl::post_parse::document_t doc = 
+            motor::msl::post_parse::document_t doc =
                 motor::msl::parser_t( "d3d11" ).process( code ) ;
 
             _mdb.insert( std::move( doc ), config_symbols ) ;
-        } ) ; 
+        } ) ;
 
-     
+        // cases:
+        // obj.oid == -1 && obj.name.empty() : library/config shader
+        // obj.oid == -1 && !obj.name.empty() : initial configuration
+
+        // obj.oid != -1 && obj.name.empty() : invalid
+        // obj.oid != -1 && !obj.name.empty() : was already configured
+
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
         size_t oid = obj.get_oid( _bid ) ;
-        _msls.access( oid, obj.name(), []( this_t::msl_data_ref_t ){ return true ;} ) ;
+        _msls.access( oid, obj.name(), [] ( this_t::msl_data_ref_t ) { return true ; } ) ;
 
         // if -1, it is probably a library shader or some tmp 
         // msl object. So do not return any valid is below.
-        bool_t const is_valid_msl = oid != size_t(-1) ;
-        
-        for( auto const & c : config_symbols )
+        bool_t const is_valid_msl = oid != size_t( -1 ) ;
+
+        for ( auto const & c : config_symbols )
         {
             auto const c_exp = c.expand() ;
 
@@ -2589,7 +2655,6 @@ public: // functions
 
             // 1. find the msl object associated to c
             // 2. use the found oid for further processing
-
             if ( oid == size_t( -1 ) )
             {
                 auto [i, o] = this_t::find_pair_by_ro_name( c_exp, _msls ) ;
@@ -2597,65 +2662,66 @@ public: // functions
                 obj = o ;
             }
 
+                        
             // msl database contains render configuration 
             // which has not been configured by the user...
-            if( oid == size_t(-1) ) 
+            if ( oid == size_t( -1 ) )
             {
-                motor::log::global_t::warning( "[d3d11::construct_msl_data] : render configuration not found : " + c_exp ) ;
+                motor_warning2( 1024,
+                    "[d3d11::construct_msl_data] : "
+                    "render configuration not found : %s", c_exp.c_str() ) ;
                 continue ;
             }
 
             motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &_mdb, c ) ;
-            if( res.missing.size() != 0 )
+            if ( res.missing.size() != 0 )
             {
-                motor::log::global_t::warning( "We have missing symbols for " + c_exp + " :" ) ;
-                for( auto const& s : res.missing )
+                motor::log::global_t::warning( "[d3d11] : We have missing symbols for " + c_exp + " :" ) ;
+                for ( auto const & s : res.missing )
                 {
                     motor::log::global_t::status( s.expand() ) ;
                 }
                 continue ;
             }
-
+                        
             // inject default variable values into the 
             // variable sets
+            for ( auto & shd_ : res.config.shaders )
             {
-                for ( auto & shd_ : res.config.shaders )
+                for ( auto & var_ : shd_.variables )
                 {
-                    for ( auto & var_ : shd_.variables )
+                    if ( var_.def_val == size_t( -1 ) ) continue ;
+
+                    auto * df = res.config.def_values[ var_.def_val ] ;
+                    if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
                     {
-                        if ( var_.def_val == size_t( -1 ) ) continue ;
-
-                        auto * df = res.config.def_values[ var_.def_val ] ;
-                        if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
+                        using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        for ( auto & vs : obj.borrow_varibale_sets() )
                         {
-                            using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
-                            ptr_t gdv = static_cast<ptr_t>( df ) ;
-                            for ( auto & vs : obj.borrow_varibale_sets() )
-                            {
-                                // for @overwrite specifier
-                                //if( vs->has_data_variable( var_.name ) ) continue ;
-                                vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
-                            }
+                            // for @overwrite specifier
+                            //if( vs->has_data_variable( var_.name ) ) continue ;
+                            vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
                         }
-                        else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
+                    }
+                    else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::texture_dv_ptr_t ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        for ( auto & vs : obj.borrow_varibale_sets() )
                         {
-                            using ptr_t = motor::msl::texture_dv_ptr_t ;
-                            ptr_t gdv = static_cast<ptr_t>( df ) ;
-                            for ( auto & vs : obj.borrow_varibale_sets() )
-                            {
-                                // for @overwrite specifier
-                                // if variable is already in the variable set, do not overwrite it
-                                //if( vs->has_texture_variable( var_.name ) ) continue ;
+                            // for @overwrite specifier
+                            // if variable is already in the variable set, do not overwrite it
+                            //if( vs->has_texture_variable( var_.name ) ) continue ;
 
-                                // have the type here
-                                // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
-                                vs->texture_variable( var_.name )->set( gdv->get().name ) ;
-                            }
+                            // have the type here
+                            // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
+                            vs->texture_variable( var_.name )->set( gdv->get().name ) ;
                         }
                     }
                 }
             }
-
+                        
             motor::graphics::render_object_t ro( c_exp ) ;
             motor::graphics::shader_object_t so( c_exp ) ;
 
@@ -2665,39 +2731,48 @@ public: // functions
 
                 motor::msl::generator_t gen( std::move( res ) ) ;
                 auto const code = gen.generate<motor::msl::hlsl::hlsl5_generator_t>() ;
-                motor::graphics::msl_bridge::create_by_api_type( motor::graphics::shader_api_type::hlsl_5_0, code, so ) ;
+                motor::graphics::msl_bridge::create_by_api_type( 
+                    motor::graphics::shader_api_type::hlsl_5_0, code, so ) ;
 
                 {
                     size_t const milli = std::chrono::duration_cast<std::chrono::milliseconds>
                         ( std::chrono::high_resolution_clock::now() - tp_begin ).count() ;
 
-                    char buffer[2048] ;
+                    char buffer[ 2048 ] ;
                     std::snprintf( buffer, 2048, "[d3d11] : generating hlsl shader took %zu ms", milli ) ;
                     motor::log::global_t::status( buffer ) ;
                 }
             }
 
             {
-                if( obj.get_streamout().size() != 0 && obj.get_geometry().size() != 0)
+                if ( obj.get_streamout().size() != 0 && obj.get_geometry().size() != 0 )
                 {
-                    ro.link_geometry( obj.get_geometry()[0], obj.get_streamout()[0] ) ; 
+                    ro.link_geometry( obj.get_geometry()[ 0 ], obj.get_streamout()[ 0 ] ) ;
                 }
                 else
                 {
                     ro.link_geometry( obj.get_geometry() ) ;
                 }
+
+                ro.link_shader( c_exp ) ;
+                ro.add_variable_sets( obj.get_varibale_sets() ) ;
             }
-            
-            ro.link_shader( c_exp ) ;
 
-            ro.add_variable_sets( obj.get_varibale_sets() ) ;
-            
-            this_t::construct_shader_config( so ) ;
-            this_t::construct_render_config( ro ) ;
-            
-            //auto & msl = _msls.items[oid] ;
+                        
+            {
+                //so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
+                if ( !this_t::construct_shader_config( so ) )
+                {
+                    // construction/compilation failed
+                    // @todo return here.
+                    continue ;
+                }
+                if( !this_t::construct_render_config( ro ) )
+                {
+                }
+            }
 
-            auto const access_res = _msls.access( oid, obj.name(), [&]( this_t::msl_data_ref_t msl )
+            auto const access_res = _msls.access( oid, obj.name(), [&] ( this_t::msl_data_ref_t msl )
             {
                 // render object
                 {
@@ -2712,7 +2787,7 @@ public: // functions
                 // shader object
                 {
                     // reflect compilation result to the user
-                    _shaders.access( so.get_oid( _bid ), [&]( this_t::shader_data_ref_t shd )
+                    _shaders.access( so.get_oid( _bid ),[&]( pimpl::shader_data_ref_t shd )
                     {
                         obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
                         {
@@ -2722,8 +2797,6 @@ public: // functions
 
                             lst->set( s, so.shader_bindings() ) ;
                         } ) ;
-
-                        return true ;
                     } ) ;
 
                     {
@@ -2736,23 +2809,25 @@ public: // functions
                     }
                 }
 
-                msl.msl_obj = obj ;
+                msl.msl_obj = std::move( obj )  ;
 
                 return true ;
             } ) ;
         }
-        return is_valid_msl ? oid : size_t(-1) ;
+                    
+        // true: was msl object. so the id
+        // needs to go back to the caller
+        if( is_valid_msl ) 
+        {
+            obj_in->set_oid( _bid, oid ) ;
+        }
+
+        return is_valid_msl ;
     }
-    #endif
+
     //************************************************************************************************************
     size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj )
     {
-        #if 0
-        oid = this_t::determine_oid( oid, obj.name(), _geos ) ;
-
-        auto & config = _geos[ oid ] ;
-        #endif
-
         auto const res = _geos.access( oid, obj.name(), [&]( this_t::geo_data_ref_t config )
         {
             config.valid = true ;
@@ -4872,15 +4947,8 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::msl_object_mt
     {
         return motor::graphics::result::in_transit ; 
     }
-
-    {
-        _pimpl->construct_msl( obj ) ;
-    }
-
-    #if 0
-    size_t const oid = obj->set_oid( this_t::get_bid(), 
-        _pimpl->construct_msl( *obj ) ) ;
-    #endif
+    
+    _pimpl->send_configure_to_st( obj ) ;
     return motor::graphics::result::in_transit ;
 }
 
