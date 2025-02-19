@@ -2,6 +2,8 @@
 
 #include <motor/std/string>
 
+// some colors
+
 namespace motor
 {
     namespace log
@@ -13,7 +15,8 @@ namespace motor
             warning,
             error,
             critical,
-            timing
+            timing,
+            num_levels
         };
 
         namespace motor_internal
