@@ -156,12 +156,6 @@ namespace motor
 
     public:
 
-        size_t validate( size_t const oid ) noexcept
-        {
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-            return pimpl::check_oid( oid, items ) ;
-        }
-
         // find by name
         bool_t find( motor::string_in_t name, std::function< void_t ( size_t const, T & ) > funk ) noexcept
         {
