@@ -36,6 +36,52 @@
 using namespace motor::platform::gen4 ;
 using namespace motor::ogl ;
 
+namespace local_gl4
+{
+    template< typename T >
+    struct work_item_deduction ;
+
+    struct work_item
+    {
+        enum class work_type
+        {
+            configure,
+            release
+        };
+
+        enum class obj_type
+        {
+            unknown,
+            msl
+        };
+
+        work_type wt ;
+        obj_type ot ;
+        void_ptr_t ptr ;
+
+        template< typename T >
+        static work_item make_item( work_type const t, motor::core::mtr_safe<T> obj ) noexcept
+        {
+            return work_item{ t, work_item_deduction<T>::deduce( obj.mtr() ), 
+                static_cast<void_ptr_t>( obj.mtr() ) } ;
+        }
+    };
+    motor_typedef( work_item ) ;
+
+    template< typename T >
+    struct work_item_deduction
+    {
+        static work_item::obj_type deduce( T * ptr ) noexcept ;
+    };
+
+    template<>
+    struct work_item_deduction< motor::graphics::msl_object >
+    {
+        static work_item::obj_type deduce( motor::graphics::msl_object * ptr ) noexcept 
+        { return work_item::obj_type::msl ; }
+    };
+}
+
 struct gl4_backend::pimpl
 {
     motor_this_typedefs( pimpl ) ;
@@ -785,49 +831,7 @@ struct gl4_backend::pimpl
     size_t _bid = size_t(-1) ;
 
 private: // support thread
-
-    template< typename T >
-    struct work_item_deduction ;
-
-    struct work_item
-    {
-        enum class work_type
-        {
-            configure,
-            release
-        };
-
-        enum class obj_type
-        {
-            unknown,
-            msl
-        };
-
-        work_type wt ;
-        obj_type ot ;
-        void_ptr_t ptr ;
-
-        template< typename T >
-        static work_item make_item( work_type const t, motor::core::mtr_safe<T> obj ) noexcept
-        {
-            return work_item{ t, work_item_deduction<T>::deduce( obj.mtr() ), 
-                static_cast<void_ptr_t>( obj.mtr() ) } ;
-        }
-    };
-    motor_typedef( work_item ) ;
-
-    template< typename T >
-    struct work_item_deduction
-    {
-        static work_item::obj_type deduce( T * ptr ) noexcept ;
-    };
-
-    template<>
-    struct work_item_deduction< motor::graphics::msl_object >
-    {
-        static work_item::obj_type deduce( motor::graphics::msl_object * ptr ) noexcept 
-        { return work_item::obj_type::msl ; }
-    };
+    
 
     // for the support thread
     struct shared_data
@@ -840,9 +844,9 @@ private: // support thread
         std::mutex mtx ;
         std::condition_variable cv ;
 
-        motor::vector< work_item > items ;
+        motor::vector< local_gl4::work_item > items ;
 
-        void_t add_item( work_item_rref_t item ) noexcept
+        void_t add_item( local_gl4::work_item_rref_t item ) noexcept
         {
             std::unique_lock< std::mutex > lk( mtx ) ;
 
@@ -883,7 +887,7 @@ private: // support thread
         {
             motor::log::global_t::status( "[gl4] : support thread started" ) ;
 
-            motor::vector< this_t::work_item_t > items ;
+            motor::vector< local_gl4::work_item_t > items ;
             items.reserve( 50 ) ;
 
             // activate shared context
@@ -925,15 +929,15 @@ private: // support thread
                 {
                     switch( item.ot )
                     {
-                    case work_item::obj_type::msl: 
+                    case local_gl4::work_item::obj_type::msl: 
                     {
                         auto * msl = static_cast<motor::graphics::msl_object_ptr_t>(item.ptr) ;
                         switch( item.wt )
                         {
-                        case work_item::work_type::configure: 
+                        case local_gl4::work_item::work_type::configure: 
                             ctsd->owner->construct_msl_data_st( msl ) ;
                             break ;
-                        case work_item::work_type::release: break ;
+                        case local_gl4::work_item::work_type::release: break ;
                         default: break ;
                         }
                     } break ;
@@ -2399,8 +2403,8 @@ public:
     void_t send_configure_to_st( motor::graphics::msl_object_mtr_t obj ) noexcept
     {
         obj->set_oid( _bid, size_t(-2) ) ;
-        _ctsd->add_item( this_t::work_item::make_item( 
-            this_t::work_item::work_type::configure, motor::share( obj ) ) ) ;
+        _ctsd->add_item( local_gl4::work_item::make_item( 
+            local_gl4::work_item::work_type::configure, motor::share( obj ) ) ) ;
     }
 
     //****************************************************************************************
@@ -4428,8 +4432,6 @@ motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mt
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::streamout_object_mtr_t obj ) noexcept
 {
-    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
-
     {
         auto const res = _pimpl->update( *obj, false ) ;
         if( !res ) return motor::graphics::result::failed ;
@@ -4441,8 +4443,6 @@ motor::graphics::result gl4_backend::update( motor::graphics::streamout_object_m
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::array_object_mtr_t obj ) noexcept 
 {
-    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
-
     {
         auto const res = _pimpl->update( *obj, false ) ;
         if( !res ) return motor::graphics::result::failed ;
@@ -4454,8 +4454,6 @@ motor::graphics::result gl4_backend::update( motor::graphics::array_object_mtr_t
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::image_object_mtr_t obj ) noexcept 
 {
-    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
-
     if( !_pimpl->update( *obj, false ) )
     {
         return motor::graphics::result::failed ;
