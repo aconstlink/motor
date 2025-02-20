@@ -786,6 +786,9 @@ struct gl4_backend::pimpl
 
 private: // support thread
 
+    template< typename T >
+    struct work_item_deduction ;
+
     struct work_item
     {
         enum class work_type
@@ -805,25 +808,26 @@ private: // support thread
         void_ptr_t ptr ;
 
         template< typename T >
-        static obj_type deduce_type( T * ptr ) noexcept
-        {
-            return obj_type::unknown ;
-        }
-
-        template<>
-        static obj_type deduce_type<motor::graphics::msl_object>( motor::graphics::msl_object * ptr ) noexcept
-        {
-            return obj_type::msl ;
-        }
-
-        template< typename T >
         static work_item make_item( work_type const t, motor::core::mtr_safe<T> obj ) noexcept
         {
-            return work_item{ t, work_item::deduce_type( obj.mtr() ), 
+            return work_item{ t, work_item_deduction<T>::deduce( obj.mtr() ), 
                 static_cast<void_ptr_t>( obj.mtr() ) } ;
         }
     };
     motor_typedef( work_item ) ;
+
+    template< typename T >
+    struct work_item_deduction
+    {
+        static work_item::obj_type deduce( T * ptr ) noexcept ;
+    };
+
+    template<>
+    struct work_item_deduction< motor::graphics::msl_object >
+    {
+        static work_item::obj_type deduce( motor::graphics::msl_object * ptr ) noexcept 
+        { return work_item::obj_type::msl ; }
+    };
 
     // for the support thread
     struct shared_data
