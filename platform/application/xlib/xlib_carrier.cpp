@@ -375,7 +375,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         ctx.deactivate() ;
 
                         this_t::glx_pimpl * pimpl = motor::memory::global_t::alloc(
-                            this_t::glx_pimpl( { std::move(ctx) } ), "[win32_carrier] : glx context") ;
+                            this_t::glx_pimpl( { std::move(ctx) } ), "[xlib_carrier] : glx context") ;
 
                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
                                 "[xlib_carrier] : gen4 frontend") ;
