@@ -563,7 +563,10 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                     _rs->access_render_state( rs_id,
                         [&] ( motor::graphics::render_state_sets_ref_t sets )
                     {
-                        sets.scissor_s.ss.rect = motor::math::vec4ui_t( ( uint_t ) clip_rect.x, ( uint_t ) ( fb_height - clip_rect.w ), ( uint_t ) ( clip_rect.z - clip_rect.x ), ( uint_t ) ( clip_rect.w - clip_rect.y ) ) ;
+                        sets.scissor_s.ss.rect = motor::math::vec4ui_t( 
+                            ( uint_t ) clip_rect.x, ( uint_t ) ( fb_height - clip_rect.w ), 
+                            ( uint_t ) ( clip_rect.z - clip_rect.x ), ( uint_t ) ( clip_rect.w - clip_rect.y ) ) ;
+                        return false ;
                     } ) ;
                 }
 

@@ -17,23 +17,16 @@ namespace motor
         public:
 
             location( void_t ) noexcept
-            {
-            }
+            {}
 
-            location( motor::string_cref_t loc ) noexcept
-            {
-                _loc = loc ;
-            }
+            location( motor::string_cref_t loc ) noexcept : _loc( loc )
+            {}
 
-            location( this_cref_t rhv ) noexcept
-            {
-                _loc = rhv._loc ;
-            }
+            location( this_cref_t rhv ) noexcept : _loc( rhv._loc )
+            {}
 
-            location( this_rref_t rhv ) noexcept
-            {
-                _loc = std::move( rhv._loc ) ;
-            }
+            location( this_rref_t rhv ) noexcept : _loc( std::move( rhv._loc ) )
+            {}
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {
@@ -78,6 +71,11 @@ namespace motor
                 pout += "." + _loc.substr( last, _loc.size() - 1 ) ;
 
                 return std::move( pout ) ;
+            }
+
+            motor::io::path_t parent_path( void_t ) const noexcept
+            {
+                return this_t::as_path().parent_path() ;
             }
 
             motor::string_cref_t as_string( void_t ) const noexcept

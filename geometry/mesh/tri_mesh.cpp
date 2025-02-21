@@ -21,7 +21,7 @@ struct per_vertex_index_vector
     /// the referenced index ids.
     /// multiple tris could reference this vertex vector.
     /// we need to remember the position in the index array
-    motor::vector<uint_t> ref_iids ;
+    motor::geometry::uints_t ref_iids ;
 
     uint_t new_vertex_id = uint_t(-1) ;
 
@@ -145,6 +145,29 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
         // if not - add the whole index vector to the index vector array of the position vertex.
         {
             auto & cur_index_vectors = per_position_references[pos_id] ;
+            
+
+            #if 1
+            {
+                size_t i = 0 ;
+
+                for ( i; i < cur_index_vectors.size(); ++i )
+                {
+                    auto & item = cur_index_vectors[ i ] ;
+                    if ( item == iv )
+                    {
+                        item.ref_iids.push_back( iid ) ;
+                        break ;
+                    }
+                }
+
+                if ( i == cur_index_vectors.size() )
+                {
+                    iv.ref_iids.push_back( iid, 1000 ) ;
+                    cur_index_vectors.push_back( iv ) ;
+                }
+            }
+            #else
             auto found = std::find_if( cur_index_vectors.begin(), cur_index_vectors.end(),
                 [&]( per_vertex_index_vector const & item )
             {
@@ -161,6 +184,7 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
                 iv.ref_iids.push_back( iid ) ;
                 cur_index_vectors.push_back( iv ) ;
             }
+            #endif
         }        
     }
 
@@ -193,11 +217,11 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
     // PASS #3 : Do the expansion directly into the flat mesh
     //
     {
-        motor::vector< float_t > new_positions( num_new_vertices * 3 ) ;
-        motor::vector< float_t > new_normals( num_new_normals * 3 ) ;
-        motor::vector< float_t > new_uvs0( num_new_tex0 * 2 ) ;
-        motor::vector< float_t > new_uvs1( num_new_tex1 * 2 ) ;
-        motor::vector< float_t > new_uvs2( num_new_tex2 * 2 ) ;
+        motor::geometry::floats_t new_positions( num_new_vertices * 3 ) ;
+        motor::geometry::floats_t new_normals( num_new_normals * 3 ) ;
+        motor::geometry::floats_t new_uvs0( num_new_tex0 * 2 ) ;
+        motor::geometry::floats_t new_uvs1( num_new_tex1 * 2 ) ;
+        motor::geometry::floats_t new_uvs2( num_new_tex2 * 2 ) ;
 
         mesh_out.position_format = motor::geometry::vector_component_format::xyz ;
         mesh_out.normal_format = motor::geometry::vector_component_format::xyz ;
@@ -210,8 +234,10 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
         for( auto & index_vectors : per_position_references )
         {
             // create a new vertex per index vector
-            for( auto & index_vector : index_vectors )
+            for( size_t ivi = 0; ivi< index_vectors.size(); ++ivi )
             {
+                auto & index_vector = index_vectors[ivi] ;
+
                 // position
                 {
                     new_positions[vertex_id*3+0] = positions[index_vector.pos_id*3+0] ;
@@ -277,10 +303,13 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
 
         for(auto & index_vectors : per_position_references)
         {
-            for(auto & index_vector : index_vectors)
+            for(size_t ivi = 0; ivi< index_vectors.size(); ++ivi )
             {
-                for( uint_t iid : index_vector.ref_iids )
+                auto const & index_vector = index_vectors[ivi] ;
+
+                for( size_t i=0; i<index_vector.ref_iids.size(); ++i )
                 {
+                    uint_t const iid = index_vector.ref_iids[i] ;
                     new_indices[iid] = index_vector.new_vertex_id ;
                 }
             }

@@ -42,7 +42,7 @@ flat_tri_mesh::~flat_tri_mesh( void_t )
 }
 
 //*******************************************************************
-flat_tri_mesh::this_ref_t flat_tri_mesh::operator = ( this_rref_t rhv ) 
+flat_tri_mesh::this_ref_t flat_tri_mesh::operator = ( this_cref_t rhv ) 
 {
     indices = rhv.indices ;
 
@@ -58,7 +58,7 @@ flat_tri_mesh::this_ref_t flat_tri_mesh::operator = ( this_rref_t rhv )
 }
 
 //*******************************************************************
-flat_tri_mesh::this_ref_t flat_tri_mesh::operator = ( this_cref_t rhv ) 
+flat_tri_mesh::this_ref_t flat_tri_mesh::operator = ( this_rref_t rhv ) 
 {
     indices = std::move( rhv.indices ) ;
 
@@ -132,8 +132,7 @@ size_t flat_tri_mesh::get_num_positions( void_t ) const
 size_t flat_tri_mesh::get_num_normals( void_t ) const
 {
     size_t const num_components = motor::geometry::vector_component_format_to_number( normal_format ) ;
-    if( num_components == 0 )
-        return 0 ;
+    if( num_components == 0 ) return 0 ;
 
     return normals.size() / num_components ;
 }
@@ -142,8 +141,9 @@ size_t flat_tri_mesh::get_num_normals( void_t ) const
 size_t flat_tri_mesh::get_num_texcoords( size_t const l ) const
 {
     size_t const num_components = motor::geometry::texcoords_component_format_to_number( texcoord_format) ;
-    if( num_components == 0 )
-        return 0 ;
+    
+    if( num_components == 0 ) return 0 ;
+    if( l >= texcoords.size() ) return 0 ;
 
     return texcoords[l].size() / num_components ;
 }

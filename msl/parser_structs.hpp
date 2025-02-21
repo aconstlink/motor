@@ -5,9 +5,13 @@
 #include "typedefs.h"
 #include "symbol.hpp"
 #include "enums.hpp"
+#include "default_variable.hpp" 
 
 #include <motor/std/vector>
 #include <motor/std/string>
+
+#include <cstdlib>
+#include <cstring>
 
 namespace motor
 {
@@ -16,6 +20,8 @@ namespace motor
         //*******************************************************************************************
         namespace parse
         {
+            using variable_default_values_t = motor::vector< std::pair< motor::string_t, motor::string_t > > ;
+
             struct config
             {
                 struct render_states
@@ -45,6 +51,7 @@ namespace motor
                     motor::string_t name ;
                     motor::string_t binding ;
                     motor::string_t line ;
+                    variable_default_values_t default_value ;
                 };
 
                 struct shader
@@ -107,6 +114,7 @@ namespace motor
                         motor::msl::flow_qualifier fq ;
                         motor::msl::primitive_decl_type pdt ;
                         size_t max_vertices ; // output
+
                     };
                     motor_typedef( primitive_decl ) ;
                     motor::vector< primitive_decl > primitive_decls ;
@@ -118,6 +126,7 @@ namespace motor
                         motor::string_t name ;
                         motor::msl::binding binding ;
                         motor::string_t line ;
+                        size_t def_val ;
                     };
                     motor_typedef( variable ) ;
                     motor::vector< variable > variables ;
@@ -136,9 +145,60 @@ namespace motor
                     shader_type type ;
                 };
                 motor_typedef( shader ) ;
+
                 motor::vector< shader > shaders ;
+                motor::vector< motor::msl::idefault_value_mtr_t > def_values ;
 
                 motor::string_t name ;
+
+                config( void_t ) noexcept{}
+                
+                config( config const & rhv ) noexcept : shaders( rhv.shaders ),
+                    name( rhv.name )
+                {
+                    for ( auto * ptr : def_values ) motor::release( motor::move( ptr ) )  ;
+                    
+                    def_values.resize( rhv.def_values.size() ) ;
+
+                    size_t i = size_t( -1 ) ;
+                    for ( auto * ptr : rhv.def_values ) def_values[ ++i ] = motor::share( ptr )  ;
+                }
+
+                config( config && rhv ) noexcept : shaders( std::move( rhv.shaders ) ),
+                    name( std::move( rhv.name ) )
+                {
+                    for( auto * ptr : def_values ) motor::release( motor::move( ptr ) )  ;
+                    def_values = std::move( rhv.def_values ) ;
+                }
+
+                config & operator = ( config const & rhv ) noexcept
+                {
+                    shaders = rhv.shaders ;
+                    name = rhv.name ;
+
+                    for ( auto * ptr : def_values ) motor::release( motor::move( ptr ) )  ;
+
+                    def_values.resize( rhv.def_values.size() ) ;
+                    
+                    size_t i=size_t(-1) ;  
+                    for ( auto * ptr : rhv.def_values ) def_values[++i] = motor::share( ptr )  ;
+                    
+
+                    return *this ;
+                }
+                config & operator = ( config && rhv ) noexcept
+                {
+                    shaders = std::move( rhv.shaders ) ;
+                    name = std::move( rhv.name ) ;
+
+                    for ( auto * ptr : def_values ) motor::release( motor::move( ptr ) )  ;
+                    def_values = std::move( rhv.def_values ) ;
+                    return *this ;
+                }
+                ~config( void_t ) noexcept
+                {
+                    for( auto * ptr : def_values ) motor::release( motor::move( ptr ) )  ;
+                }
             };
             motor_typedef( config ) ;
             motor_typedefs( motor::vector< config >, configs ) ;
@@ -234,6 +294,101 @@ namespace motor
                 }
             };
             motor_typedef( document ) ;
+        }
+
+        static motor::msl::idefault_value_mtr_t create_default_value( motor::msl::type const t,
+            motor::msl::parse::variable_default_values_t const & values ) noexcept
+        {
+            char buffer[4][2048] ;
+
+            if( values.size() == 0 ) return nullptr ;
+
+            motor::msl::idefault_value_mtr_t ret = nullptr ;
+
+            if ( t == motor::msl::type::as_float() && values.size() >= 1 )
+            {
+                std::memcpy( buffer[0], values[0].second.c_str(), values[0].second.size() );
+                ret = motor::shared( motor::msl::generic_default_value< float_t >( float_t( std::atof( buffer[0] ) ) ) ) ;
+            }
+            else if ( t == motor::msl::type::as_int() && values.size() >= 1 )
+            {
+                std::memcpy( buffer[0], values[0].second.c_str(), values[0].second.size() );
+                ret = motor::shared( motor::msl::generic_default_value< int_t >( std::atoi( buffer[0] ) ) ) ;
+            }
+            else if ( t == motor::msl::type::as_uint() && values.size() >= 1 )
+            {
+                std::memcpy( buffer[0], values[0].second.c_str(), values[0].second.size() );
+                ret = motor::shared( motor::msl::generic_default_value< uint_t >( std::atol( buffer[0] ) ) ) ;
+            }
+
+            else if ( t == motor::msl::type::as_vec2( motor::msl::type_base::tfloat ) && values.size() >= 2 )
+            {
+                std::memcpy( buffer[0], values[0].second.c_str(), values[0].second.size() );
+                std::memcpy( buffer[1], values[1].second.c_str(), values[1].second.size() );
+
+                ret = motor::shared( motor::msl::generic_default_value< motor::math::vec2f_t >(
+                    motor::math::vec2f_t(
+                        float_t( std::atof( buffer[0] ) ),
+                        float_t( std::atof( buffer[1] ) ) ) ) ) ;
+            }
+            else if ( t == motor::msl::type::as_vec3( motor::msl::type_base::tfloat ) )
+            {
+                std::memcpy( buffer[ 0 ], values[ 0 ].second.c_str(), values[ 0 ].second.size() );
+                std::memcpy( buffer[ 1 ], values[ 1 ].second.c_str(), values[ 1 ].second.size() );
+                std::memcpy( buffer[ 2 ], values[ 2 ].second.c_str(), values[ 2 ].second.size() );
+
+                ret = motor::shared( motor::msl::generic_default_value< motor::math::vec3f_t >(
+                    motor::math::vec3f_t(
+                        float_t( std::atof( buffer[0] ) ),
+                        float_t( std::atof( buffer[1] ) ),
+                        float_t( std::atof( buffer[2] ) ) ) ) ) ;
+            }
+            else if ( t == motor::msl::type::as_vec4( motor::msl::type_base::tfloat ) )
+            {
+                std::memcpy( buffer[ 0 ], values[ 0 ].second.c_str(), values[ 0 ].second.size() );
+                std::memcpy( buffer[ 1 ], values[ 1 ].second.c_str(), values[ 1 ].second.size() );
+                std::memcpy( buffer[ 2 ], values[ 2 ].second.c_str(), values[ 2 ].second.size() );
+                std::memcpy( buffer[ 3 ], values[ 3 ].second.c_str(), values[ 3 ].second.size() );
+
+                ret = motor::shared( motor::msl::generic_default_value< motor::math::vec4f_t >(
+                    motor::math::vec4f_t(
+                        float_t( std::atof( buffer[0] ) ),
+                        float_t( std::atof( buffer[1] ) ),
+                        float_t( std::atof( buffer[2] ) ),
+                        float_t( std::atof( buffer[3] ) ) ) ) ) ;
+            }
+
+            else if ( t == motor::msl::type::as_vec2( motor::msl::type_base::tint ) )
+            {
+            }
+            else if ( t == motor::msl::type::as_vec3( motor::msl::type_base::tint ) )
+            {
+            }
+            else if ( t == motor::msl::type::as_vec4( motor::msl::type_base::tint ) )
+            {
+            }
+
+            else if ( t == motor::msl::type::as_vec2( motor::msl::type_base::tuint ) )
+            {
+            }
+            else if ( t == motor::msl::type::as_vec3( motor::msl::type_base::tuint ) )
+            {
+            }
+            else if ( t == motor::msl::type::as_vec4( motor::msl::type_base::tuint ) )
+            {
+            }
+            else if ( t == motor::msl::type::as_tex1d()  )
+            {
+                ret = motor::shared( motor::msl::texture_dv_t( motor::msl::texture_tag_dv 
+                    { motor::msl::texture_tag_dv::type::tex1d, values[ 0 ].second } ) ) ;
+            }
+            else if( t == motor::msl::type::as_tex2d() )
+            {
+                ret = motor::shared( motor::msl::texture_dv_t( motor::msl::texture_tag_dv 
+                    { motor::msl::texture_tag_dv::type::tex2d, values[0].second }) ) ;
+            }
+
+            return ret ;
         }
     }
 }

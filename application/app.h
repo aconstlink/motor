@@ -190,6 +190,10 @@ namespace motor
             {
                 motor::graphics::gen4::frontend_ptr_t fe ;
                 motor::tool::imgui_ptr_t imgui ;
+
+                float_t sec_dt ;
+                size_t micro_dt ;
+                size_t milli_dt ;
             };
             motor_typedef( tool_data ) ;
 
@@ -298,7 +302,7 @@ namespace motor
             bool_t before_render( std::chrono::microseconds const & ) noexcept ;
             bool_t after_render( size_t const iter ) noexcept ;
             bool_t before_audio( std::chrono::microseconds const & ) noexcept ;
-            void_t after_audio( size_t const iter ) noexcept ;
+            void_t after_audio( bool_t const ) noexcept ;
             bool_t before_tool( std::chrono::microseconds const & ) noexcept ;
             bool_t after_tool( size_t const iter ) noexcept ;
             bool_t before_device( std::chrono::microseconds const & ) noexcept ;

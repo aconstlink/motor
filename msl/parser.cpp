@@ -28,11 +28,14 @@ motor::msl::post_parse::document_t parser::process( motor::string_rref_t file ) 
     {
         return std::move( doc ) ;
     }
-
-    file = this_t::insert_spaces( std::move( file ) ) ;
+    
     auto statements = this_t::replace_open_close( this_t::scan( std::move( file ) ) ) ;
-
+    
+    // @note repackage need to be here due to correctly repackage make_array  
     statements = this_t::repackage( std::move( statements ) ) ;
+    // @note insert_whitespaces need to be here because it need to exclude default values.
+    // which need the statements to be repackaged.
+    statements = this_t::insert_whitesapces( std::move( statements ) ) ;
     statements = this_t::replace_numbers( std::move( statements ) ) ;
     statements = this_t::replace_operators( std::move( statements ) ) ;
     statements = this_t::replace_buildins( std::move( statements ) ) ;
@@ -163,9 +166,74 @@ motor::msl::parse::configs_t parser::filter_config_statements( this_t::statement
                         v.type = token[ base + 0 ] ;
                         v.name = token[ base + 1 ] ;
 
-                        if( ( token.size() >= 4 + base ) && token[ base + 2 ] == ":" )
+                        // looking for a binding
                         {
-                            v.binding = token[ base + 3 ] ;
+                            for ( size_t i = 0; i < token.size(); ++i )
+                            {
+                                if ( token[ i ] == ":" && token.size() > ( i + 1 ) )
+                                {
+                                    v.binding = token[ i + 1 ] ;
+                                    break ;
+                                }
+                            }
+                        }
+
+                        // looking for a default value
+                        {
+                            size_t f = 0 ;
+                            size_t l = 0 ;
+
+                            for ( size_t i = 0; i < token.size(); ++i )
+                            {
+                                if ( token[ i ] == "(" && f == 0 )
+                                {
+                                    f = i+1 ;
+                                }
+                                else if ( token[ i ] == ")" )
+                                {
+                                    l = i ;
+                                }
+                            }
+
+                            for( size_t p=f; p<l; ++p )
+                            {
+                                if( token[p] == "__float__" )
+                                {
+                                    motor::string_t const type = "float_t" ;
+                                    motor::string_t const value = token[p+2] + "." + token[p+4] ;
+                                    v.default_value.emplace_back( std::make_pair( type, value ) ) ;
+                                    p += 4 ;
+                                }
+                                else if ( token[ p ] == "__int__" )
+                                {
+                                    motor::string_t const type = "int_t" ;
+                                    motor::string_t const value = token[p+2] ;
+                                    v.default_value.emplace_back( std::make_pair( type, value ) ) ;
+                                    p += 2 ;
+                                }
+                                else if ( token[ p ] == "__uint__" )
+                                {
+                                    motor::string_t const type = "uint_t" ;
+                                    motor::string_t const value = token[p+2] ;
+                                    v.default_value.emplace_back( std::make_pair( type, value ) ) ;
+                                    p += 2 ;
+                                }
+                                else
+                                {
+                                    std::string_view const the_line( *iter ) ;
+                                    
+                                    size_t beg = the_line.find_first_of( "\"" ) ;
+                                    size_t const end = the_line.find_last_of( "\"" ) ;
+
+                                    if ( beg != std::string::npos && end != std::string::npos )
+                                    {
+                                        beg += 1 ;
+                                        motor::string_t const type = "string_t" ;
+                                        motor::string_t const def = motor::string_t( the_line.substr( beg, end - beg ) ) ;
+                                        v.default_value.emplace_back( std::make_pair( type, def ) ) ;
+                                    }
+                                }
+                            }
                         }
 
                         s.variables.emplace_back( std::move( v ) ) ;
@@ -299,6 +367,17 @@ motor::msl::post_parse::configs_t parser::analyse_configs( motor::msl::parse::co
                 v.line = var.line ;
                 v.name = var.name ;
                 v.type = motor::msl::to_type( var.type ) ;
+                v.def_val = size_t( -1 ) ;
+
+                {
+                    auto * ptr = motor::msl::create_default_value( v.type, var.default_value ) ;
+                    if( ptr != nullptr )
+                    {
+                        v.def_val = c.def_values.size() ;
+                        c.def_values.emplace_back( ptr ) ;
+                    }
+                }
+
                 if( v.fq == motor::msl::flow_qualifier::inout )
                 {
                     {
@@ -410,6 +489,22 @@ motor::msl::parse::libraries_t parser::filter_library_statements( this_t::statem
     }
 
     return std::move( libs ) ;
+}
+
+parser::statements_t parser::insert_whitesapces( statements_rref_t ss ) const 
+{
+    for ( auto & s : ss )
+    {
+        if( s.find("config ") != std::string::npos ) continue ;
+
+        bool_t const is_decl = 
+            s.find("tex1d_t ") != std::string::npos ||
+            s.find("tex2d_t ") != std::string::npos ||
+            s.find("tex3d_t ") != std::string::npos ;
+
+        s = this_t::insert_spaces( std::move( s ), !is_decl ) ;
+    }
+    return std::move( ss ) ;
 }
 
 parser::statements_t parser::replace_numbers( statements_rref_t ss ) const
@@ -636,6 +731,9 @@ parser::statements_t parser::replace_operators( statements_rref_t ss ) const
 
         for( auto & line : ss )
         {
+            if( line.find("config ") != std::string::npos ) continue ;
+            if( line.find("tex2d_t ") != std::string::npos ) continue ;
+
             for( auto const & r : repls )
             {
                 do_replacement( line, r, is_stop ) ;
@@ -646,9 +744,10 @@ parser::statements_t parser::replace_operators( statements_rref_t ss ) const
     return std::move( ss ) ;
 }
 
-
+//*******************************************************************************
 parser::statements_t parser::replace_buildins( statements_rref_t ss ) const 
 {
+    // buildinss
     for( size_t i=0; i<size_t(buildin_type::num_build_ins); ++i )
     {
         auto const bi = motor::msl::get_build_in( buildin_type(i) ) ;
@@ -859,31 +958,33 @@ parser::statements_t parser::repackage( statements_rref_t ss ) const noexcept
         }
     }
 
-    // 2. repackage array construction
+    // 2. array construction
+    // make_array need to be repackaged in its own way. So it
+    // need to stay here for now.
     {
-        for( auto iter = ss.begin(); iter != ss.end(); ++iter )
+        for ( auto iter = ss.begin(); iter != ss.end(); ++iter )
         {
             // at the moment, only = {...} arrays are supported.
             // arrays like {...}[num] is not supported
-            if( (*iter).back() != '=' || *(iter+1) != "{" ) continue ;            
-            
+            if ( ( *iter ).back() != '=' || *( iter + 1 ) != "{" ) continue ;
+
             {
-                auto const tokens = this_t::tokenize( (*iter).substr( 0, iter->size() - 2 ) ) ;
-                *iter = ":make_array: ( " ;
-                *iter += tokens[0] + " , " ;
-                *iter += tokens[1] + " , " ;
+                auto const tokens = this_t::tokenize( ( *iter ).substr( 0, iter->size() - 2 ) ) ;
+                *iter = "__make_array__ ( " ;
+                *iter += tokens[ 0 ] + " , " ;
+                *iter += tokens[ 1 ] + " , " ;
             }
-            
+
             auto iter0 = ss.erase( iter + 1 ) ; // first argument
             auto iter1 = iter ; // running iter
-            while( *(++iter1) != "}" )
+            while ( *( ++iter1 ) != "}" )
             {
-                if( (*iter1).size() >= 2 )
+                if ( ( *iter1 ).size() >= 2 )
                 {
-                    size_t count = 0 ; 
-                    count += (*iter1)[0] == ',' ? 1 : 0 ;
-                    count += (*iter1)[1] == ' ' ? 1 : 0 ;
-                    if( count != 0 ) *iter1 = (*iter1).substr( count, (*iter1).size() - count ) ;
+                    size_t count = 0 ;
+                    count += ( *iter1 )[ 0 ] == ',' ? 1 : 0 ;
+                    count += ( *iter1 )[ 1 ] == ' ' ? 1 : 0 ;
+                    if ( count != 0 ) *iter1 = ( *iter1 ).substr( count, ( *iter1 ).size() - count ) ;
                 }
             }
 
@@ -891,7 +992,7 @@ parser::statements_t parser::repackage( statements_rref_t ss ) const noexcept
             {
                 size_t const num_args = iter1 - iter0 ;
                 *iter += motor::to_string( num_args ) + " , " ;
-                for( auto i = iter0; i<iter1; ++i )
+                for ( auto i = iter0; i < iter1; ++i )
                 {
                     *iter += *i + " , " ;
                 }
@@ -908,18 +1009,20 @@ parser::statements_t parser::repackage( statements_rref_t ss ) const noexcept
     {
         for( auto iter = ss.begin(); iter != ss.end(); ++iter )
         {
-            if( *iter == ";" )
+            if( (*iter == ";") )
             {
                 iter = --ss.erase( iter ) ;
                 *iter += " ;" ;
 
-                while( *( iter - 1 ) != "{" &&
+                if( (*iter)[0] == '}' ) continue ;
+
+                while( iter != ss.begin() && *( iter - 1 ) != "{" &&
                     *( iter - 1 ) != "}" &&
                     ( iter - 1 )->find( ';' ) == std::string::npos &&
                     ( iter - 1 )->find( "open " ) == std::string::npos )
                 {
                     *( iter - 1 ) += " " + *iter ;
-                    iter = ss.erase( iter ) ;
+                    iter = --ss.erase( iter ) ;
                 }
             }
         }
@@ -1066,46 +1169,94 @@ parser::statements_t parser::scan( motor::string_rref_t file ) const noexcept
 
 // ensures that certain characters have spaces in front or behind.
 // this makes later code analysis much easier and just less character checking.
-motor::string_t parser::insert_spaces( motor::string_rref_t s ) const noexcept
+motor::string_t parser::insert_spaces( motor::string_rref_t s, bool_t const test_operators ) const noexcept
 {
-    for( auto iter = s.begin(); iter != s.end(); ++iter )
+    if( s.size() <= 2 ) return s ;
+
+    // test operators
+    if( test_operators )
     {
-        if( *iter == '+' || *iter == '-' || *iter == '*' || *iter == '/' || 
-            *iter == '<' || *iter == '>' || *iter == '/' || *iter == '!' || 
-            *iter == '=' || *iter == '\'' )
+        char_t const operators[] =
         {
-            auto iter_next = iter + 1 ;
-            auto iter_last = iter - 1 ;
+            '+', '-', '*', '\'', '/', '<', '>', '/', '!', '='
+        } ;
 
-            if( iter_next == iter_last ) continue ;
+        size_t const num_ops = sizeof( operators ) ;
 
-            // do not insert spaces inbetween operator combos
-            // like +=, -=, <=...
-            if( *iter_next == '=' ) 
-            { 
-                iter = ++s.insert( iter, ' ' ) ;
-                iter = s.insert( iter + 2, ' ' ) ; 
-                continue ; 
+        auto test_insert = [&]( string_in_t aline, size_t const ic, size_t const io )
+        {
+            char_t const cur = aline[ic] ;
+            if( cur == ' ' ) return false ;
+
+            for ( size_t o = 0; o < num_ops; ++o )
+            {
+                if( cur != operators[o] ) continue ;
+
+                char_t const other = aline[ io ] ;
+                for ( size_t o2 = 0; o2 < num_ops; ++o2 )
+                {
+                    if( other == operators[o2] ) return false ;
+                }
+                return true ;
+            }
+            return false ;
+        } ;
+        
+        // @note here we test previous and next first so
+        // we can start at 1 and end at -1
+        for ( size_t i = 1; i < s.size()-1; ++i )
+        {
+            if( s[i] == ' ' ) continue ;
+
+            // before
+            if( test_insert( s, i-1, i ) )
+            {
+                s = s.insert( i, 1, ' ' ) ; ++i ;
             }
 
-            // in front
-            if( *iter != *iter_last ) iter = ++s.insert( iter, ' ' ) ;
-
-            iter_next = iter + 1 ;
-
             // behind
-            if( *iter != *iter_next ) iter = s.insert( ++iter, ' ' ) ;
-        }
-
-        if( *iter == '(' || *iter == ')' || *iter == ';'  || *iter == ','
-            || *iter == ':' || *iter == '[' || *iter == ']' )
-        {
-            // in front
-            iter = ++s.insert( iter, ' ' ) ;
-            // behind
-            iter = s.insert( ++iter, ' ' ) ;
+            if ( test_insert( s, i+1, i ) )
+            {
+                s = s.insert( i+1, 1, ' ' ) ; ++i ;
+            }
         }
     }
+
+    // test other characters which need whitespaces
+    {
+        char const specials[] =
+        {
+            ',', ':', '[', ']', '(', ')', ';'
+        } ;
+
+        size_t const num_spec = sizeof( specials ) ;
+
+        for( size_t i=0; i<s.size()-1; ++i )
+        {
+            char_t const cur = s[i + 0]  ;
+            char_t const nxt = s[i + 1]  ;
+
+            if( cur == ' ' ) continue ;
+
+            for( size_t o=0; o<num_spec;++o )
+            {
+                // behind
+                if( cur == specials[o] && nxt != ' ' )
+                {
+                    s = s.insert( ++i, 1, ' ' ) ; 
+                    break ;
+                }
+
+                // before
+                if( nxt != specials[o] ) continue ;
+                
+                s = s.insert( ++i, 1, ' ' ) ;
+
+                break ;
+            }
+        }
+    }
+
     return std::move( s )  ;
 }
 
@@ -1113,12 +1264,13 @@ motor::string_t parser::clear_line( motor::string_rref_t s ) const noexcept
 {
     if( s.empty() ) return std::move( s ) ;
 
-    // clear all line breaks
+    // clear all escapes
     {
         for( size_t i = 0; i < s.size(); ++i )
         {
             if( s[ i ] == '\r' ) s[ i ] = ' ' ;
             if( s[ i ] == '\n' ) s[ i ] = ' ' ;
+            if( s[ i ] == '\t' ) s[ i ] = ' ' ;
         }
     }
                 

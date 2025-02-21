@@ -15,7 +15,7 @@ namespace motor{ namespace profiling {
 
     private:
 
-        static motor::profiling::manager_t _mgr ;
+        inline static motor::profiling::manager_t _mgr ;
 
     public:
 
@@ -32,13 +32,7 @@ namespace motor{ namespace profiling {
         {
             return _mgr ;
         }
-
-        static void_t push( motor::string_cref_t name ) noexcept ;
-        static void_t pop( void_t ) noexcept ;
-
-        #else
-        static inline void_t push( motor::string_cref_t ) noexcept {}
-        static inline void_t pop( void_t ) noexcept {}
+        
         #endif
 
         static void_t deinit( void_t ) noexcept ;

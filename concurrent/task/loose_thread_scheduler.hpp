@@ -164,11 +164,17 @@ namespace motor
                 }
             }
 
+        private:
+
+            tasks_t _tmp_tasks ;
+
+        public:
+
             // can be called anytime tasks need to be send away
             // for execution.
             void_t update( void_t ) noexcept
             {
-                tasks_t tasks ;
+                tasks_t & tasks = _tmp_tasks ;
                 {
                     motor::concurrent::lock_t lk( _mtx ) ;
                     tasks = std::move( _tasks ) ;

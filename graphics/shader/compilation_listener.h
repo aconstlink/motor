@@ -12,26 +12,38 @@ namespace motor
     {
         class compilation_listener
         {
+            motor_this_typedefs( compilation_listener ) ;
+
+        public:
+
+            enum class state
+            {
+                initial,
+                in_process,
+                failed,
+                successful
+            };
+
         private:
 
             mutable motor::concurrent::mrsw_t _mtx ;
 
             size_t _has_changed = 0 ;
 
-            bool_t _successful = false ;
+            state _state ;
 
 
             motor::graphics::shader_bindings_t _bindings ;
 
         public:
 
-            void_t set( bool_t const compilation_sucessful, motor::graphics::shader_bindings_cref_t bindings ) noexcept
+            void_t set( this_t::state const s, motor::graphics::shader_bindings_cref_t bindings ) noexcept
             {
                 motor::concurrent::mrsw_t::writer_lock_t lk( _mtx ) ;
                 ++_has_changed ;
-                _successful = compilation_sucessful ;
+                _state = s ;
 
-                if( compilation_sucessful ) 
+                if( s == this_t::state::successful ) 
                 {
                     _bindings = bindings ;
                 }
@@ -47,15 +59,16 @@ namespace motor
             bool_t is_compilation_successful( void_t ) const noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _mtx ) ;
-                return _successful ;
+                return _state == this_t::state::successful ;
             }
 
             // reset and return if compilation was successful
             bool_t get_if_successful( motor::graphics::shader_bindings_out_t sb ) noexcept
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( _mtx ) ;
-                if ( _successful ) sb = _bindings ;
-                return _successful ;
+                bool_t const ret = _state == this_t::state::successful ;
+                if ( ret ) sb = _bindings ;
+                return ret ;
             }
 
             // reset and return if compilation was successful
@@ -63,8 +76,8 @@ namespace motor
             {
                 motor::concurrent::mrsw_t::writer_lock_t lk( _mtx ) ;
                 _has_changed = 0 ;
-                auto const succ = _successful ;
-                _successful = false ;
+                auto const succ = _state == this_t::state::successful ;
+                _state = this_t::state::initial ;
                 if( succ ) sb = std::move( _bindings ) ;
                 return succ ;
             }

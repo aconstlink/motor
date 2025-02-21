@@ -27,6 +27,11 @@ jobs:
         os: [windows-latest]
         build_type: [Debug, Release]
         c_compiler: [cl] #, gcc, clang, cl]
+        lib_type: 
+            - type: shared
+              flag: ON
+            - type: static
+              flag: OFF
         include:
           - os: windows-latest
             c_compiler: cl
@@ -59,6 +64,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DMOTOR_LIBRARY_BUILD_SHARED=${{ matrix.lib_type.flag }}
         -S ${{ github.workspace }}
 
     - name: Build

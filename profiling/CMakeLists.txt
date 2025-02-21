@@ -1,4 +1,5 @@
 
+
 set( sources
     "api.h"
     "typedefs.h"
@@ -7,8 +8,8 @@ set( sources
     "global.cpp"
     "manager.h"
     "manager.cpp"
-    "push_guard.hpp"
     "probe_guard.hpp"
+    "scoped_timer.hpp"
     )
 
 motor_vs_src_dir( sources )

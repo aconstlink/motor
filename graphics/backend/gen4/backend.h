@@ -78,6 +78,7 @@ namespace motor
                 virtual motor::graphics::result configure( motor::graphics::array_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result configure( motor::graphics::streamout_object_mtr_t ) noexcept = 0 ;
 
+                virtual motor::graphics::result release( motor::graphics::msl_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result release( motor::graphics::geometry_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result release( motor::graphics::render_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result release( motor::graphics::shader_object_mtr_t ) noexcept = 0 ;

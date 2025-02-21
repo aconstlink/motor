@@ -32,11 +32,11 @@ store_logger::~store_logger( void_t ) noexcept
 {}
 
 //********************************************************************
-motor::log::result store_logger::log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept
+motor::log::result store_logger::log( motor::log::log_level const ll, char const * msg ) noexcept 
 {
     this_t::store_data_t sd ;
     sd.ll = ll ;
-    sd.msg = msg ;
+    sd.msg = motor::string_t( msg ) ;
 
     std::lock_guard< std::mutex > lk( _mtx ) ;
 
@@ -51,6 +51,12 @@ motor::log::result store_logger::log( motor::log::log_level const ll, motor::str
     _stores.emplace_back( sd ) ;
 
     return motor::log::result::ok ;
+}
+
+//********************************************************************
+motor::log::result store_logger::log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept
+{
+    return this_t::log( ll, msg.c_str() ) ;
 }
 
 //********************************************************************

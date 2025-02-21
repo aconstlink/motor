@@ -20,39 +20,31 @@ namespace motor
 
         public:
 
-            array_object( void_t ) {}
+            array_object( void_t ) noexcept {}
 
-            array_object( motor::string_cref_t name ) : _name(name)
+            array_object( motor::string_cref_t name ) noexcept : _name(name)
             {}
 
-            array_object( motor::string_cref_t name, motor::graphics::data_buffer_cref_t db )
-            {
-                _name = name ;
-                _db = db ;
-            }
-
-            array_object( motor::string_cref_t name, motor::graphics::data_buffer_rref_t db )
-            {
-                _name = name ;
-                _db = std::move( db ) ;
-            }
-
-            array_object( this_cref_t rhv ) : object( rhv ) 
-            {
-                _db = rhv._db ;
-                _name = rhv._name ;
-            }
-
-            array_object( this_rref_t rhv ) : object( std::move( rhv ) )
-            {
-                _db = std::move( rhv._db ) ;
-                _name = std::move( rhv._name ) ;
-            }
-
-            ~array_object( void_t ) 
+            array_object( motor::string_cref_t name, motor::graphics::data_buffer_cref_t db ) noexcept :
+                _name( name ), _db( db )
             {}
 
-            this_ref_t operator = ( this_cref_t rhv )
+            array_object( motor::string_cref_t name, motor::graphics::data_buffer_rref_t db ) noexcept :
+                _name( name ), _db( std::move( db ) )
+            {}
+
+            array_object( this_cref_t rhv ) noexcept : object( rhv ),
+                _name( rhv._name ), _db( rhv._db )
+            {}
+
+            array_object( this_rref_t rhv ) noexcept : object( std::move( rhv ) ),
+                _name( std::move( rhv._name ) ), _db( std::move(rhv._db ) )
+            {}
+
+            ~array_object( void_t ) noexcept
+            {}
+
+            this_ref_t operator = ( this_cref_t rhv ) noexcept
             {
                 object::operator=( rhv ) ;
 
@@ -62,7 +54,7 @@ namespace motor
                 return *this ;
             }
 
-            this_ref_t operator = ( this_rref_t rhv )
+            this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
                 object::operator=( std::move( rhv ) ) ;
 

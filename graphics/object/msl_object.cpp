@@ -253,7 +253,13 @@ motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_variba
 }
 
 //****************************************************************************
-motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > msl_object::borrow_varibale_sets( void_t ) const noexcept
+motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > & msl_object::borrow_varibale_sets( void_t ) noexcept
+{
+    return _vars ;
+}
+
+//****************************************************************************
+motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const & msl_object::borrow_varibale_sets( void_t ) const noexcept 
 {
     return _vars ;
 }

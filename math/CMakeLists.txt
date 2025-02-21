@@ -10,6 +10,7 @@ set( non_arch_sources
     animation/evaluation_result.h
     animation/keyframe.hpp
     animation/keyframe_sequence.hpp
+    animation/time_remap_funk.h
 
     spline/linear_bezier_spline.hpp
     spline/quadratic_bezier_spline.hpp
@@ -67,7 +68,7 @@ set( non_arch_sources
     utility/index_1d_to_2d.hpp
     utility/index_2d_to_1d.hpp
     utility/index_3d_to_1d.hpp
-
+    utility/time.hpp
     
     utility/3d/ortho_basis.hpp
     utility/3d/transformation.hpp

@@ -49,9 +49,7 @@ void_t line_render_3d::init( motor::string_cref_t name ) noexcept
         {
             motor::graphics::render_state_sets_t rss ;
 
-            rss.depth_s.do_change = true ;
-            rss.depth_s.ss.do_activate = true ;
-            rss.depth_s.ss.do_depth_write = true ;
+            rss.depth_s.do_change = false ;
 
             rss.polygon_s.do_change = true ;
             rss.polygon_s.ss.do_activate = false ;
@@ -287,6 +285,44 @@ void_t line_render_3d::draw( motor::math::vec3f_cref_t p0, motor::math::vec3f_cr
             _lines.reserve( _lines.size() + 100 ) ;
         
         _lines.emplace_back( std::move( ln ) ) ;
+    }
+}
+
+//**********************************************************
+void_t line_render_3d::draw_lines( size_t const num_lines, draw_lines_funk_t funk ) noexcept 
+{
+    size_t cur_pos = 0 ;
+
+    // remember how many lines are drawn
+    {
+        motor::concurrent::lock_guard_t lk( _lines_mtx ) ;
+        _num_lines += num_lines ;
+    }
+
+    motor::concurrent::lock_guard_t lk( _lines_mtx ) ;
+
+    // resize lines array
+    {
+        size_t const cur_size = _lines.size() ;
+        _lines.resize( cur_size + num_lines ) ;
+
+        cur_pos = cur_size ;
+    }
+
+    // call user funk for lines
+    {
+        motor::concurrent::parallel_for<size_t>( motor::concurrent::range_1d<size_t>( num_lines ),
+            [&] ( motor::concurrent::range_1d<size_t> const & r )
+        {
+            for ( size_t i = r.begin(); i < r.end(); ++i )
+            {
+                size_t const idx = cur_pos + i ;
+                auto const l = funk( i ) ;
+                _lines[idx].pa[0] = l.points[0] ;
+                _lines[idx].pa[1] = l.points[1] ;
+                _lines[idx].color = l.color ;
+            }
+        } ) ;
     }
 }
 

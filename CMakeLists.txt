@@ -2,7 +2,7 @@ cmake_minimum_required( VERSION 3.20 )
 
 set( MOTOR_MAJOR_VERSION 0 )
 set( MOTOR_MINOR_VERSION 0 )
-set( MOTOR_PATCH_VERSION 0 )
+set( MOTOR_PATCH_VERSION 2 )
 set( MOTOR_VERSION ${MOTOR_MAJOR_VERSION}.${MOTOR_MINOR_VERSION}.${MOTOR_PATCH_VERSION} )
 
 project( motor LANGUAGES C CXX VERSION ${MOTOR_VERSION})
@@ -151,8 +151,7 @@ list( APPEND subdirs
     "social"
     "scene"
     "wire"
-    #"physics"
-    #"profile"
+    "physics"
     #${subdirs_header_only}
     )
 

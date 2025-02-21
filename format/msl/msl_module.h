@@ -25,13 +25,15 @@ namespace motor
             virtual ~msl_module( void_t ) noexcept {}
 
             virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t ) noexcept ;
+                motor::io::database_mtr_t, motor::format::module_registry_mtr_safe_t ) noexcept ;
 
             virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t, motor::property::property_sheet_mtr_safe_t ) noexcept ;
+                motor::io::database_mtr_t, motor::property::property_sheet_mtr_safe_t, 
+                motor::format::module_registry_mtr_safe_t ) noexcept ;
 
             virtual motor::format::future_item_t export_to( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t, motor::format::item_mtr_safe_t ) noexcept ;
+                motor::io::database_mtr_t, motor::format::item_mtr_safe_t, 
+                motor::format::module_registry_mtr_safe_t ) noexcept ;
 
         };
         motor_typedef( msl_module ) ;

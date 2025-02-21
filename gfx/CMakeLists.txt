@@ -28,6 +28,9 @@ set( sources
 
     "util/quad.h"
     "util/quad.cpp"
+
+    "postprocess/downsample.h"
+    "postprocess/downsample.cpp"
     )
 
 motor_vs_src_dir( sources )

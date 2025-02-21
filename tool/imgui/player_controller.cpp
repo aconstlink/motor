@@ -6,7 +6,7 @@
 using namespace motor::tool ;
 
 //****************************************************************
-player_controller::player_state player_controller::do_tool( motor::string_cref_t label_ ) noexcept 
+player_controller::player_state player_controller::do_tool( motor::string_cref_t label_, bool_t const play_toggle ) noexcept 
 {
     auto circle_button = [&]( motor::string_cref_t l, ImVec2 const & pos, float_t const r ) -> bool_t
     {
@@ -165,11 +165,30 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
     player_controller::player_state ret = player_controller::player_state::no_change ;
     float_t const r = ImGui::GetTextLineHeight() * 1.0f ;
 
+    bool_t click_play_pause = false ;
+    bool_t click_stop = false ;
+
+    if( play_toggle )
+    {
+       auto const s = this_t::get_state() ;
+       switch( s )
+       {
+       case this_t::player_state::play:
+           click_play_pause = true ;
+           break ;
+
+        case this_t::player_state::pause:
+        case this_t::player_state::stop:
+            click_play_pause = true ;
+           break ;
+       }
+    }
+
     // prev button
     {
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
         if( circle_button( "prev##" + label_, pos, r ) )
-        {            
+        { 
         }
         draw_prev( pos, r ) ;
     }
@@ -179,7 +198,8 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
     if( !_internal_play )
     {
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        if( circle_button( "play##" + label_, pos, r ) )
+        bool_t const pressed = circle_button( "play##" + label_, pos, r ) ; 
+        if( pressed || click_play_pause )
         {
             _play = true ;
             _pause = false ;
@@ -191,7 +211,8 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
     else
     {
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        if( circle_button( "pause##" + label_, pos, r ) )
+        auto const pressed = circle_button( "pause##" + label_, pos, r ) ;
+        if( pressed || click_play_pause )
         {
             _pause = true ;
             _play = false ;
@@ -218,7 +239,7 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
     // stop button
     {
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        if( circle_button( "stop##" + label_, pos, r ) )
+        if( circle_button( "stop##" + label_, pos, r ) || click_stop )
         {
             _play = false ;
             _pause = false ;

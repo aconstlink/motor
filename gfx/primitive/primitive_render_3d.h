@@ -38,6 +38,8 @@ namespace motor
             void_t draw_line( motor::math::vec3f_cref_t p0, motor::math::vec3f_cref_t p1, 
                 motor::math::vec4f_cref_t color ) noexcept ;
 
+            void_t draw_lines( size_t const num_lines, motor::gfx::line_render_3d_t::draw_lines_funk_t f ) noexcept ;
+
             void_t draw_tri( motor::math::vec3f_cref_t p0, motor::math::vec3f_cref_t p1, 
                 motor::math::vec3f_cref_t p2, motor::math::vec4f_cref_t color ) noexcept ;
 

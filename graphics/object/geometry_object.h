@@ -5,6 +5,8 @@
 
 #include "../buffer/vertex_buffer.hpp"
 #include "../buffer/index_buffer.hpp"
+
+#include <motor/geometry/mesh/polygon_mesh.h>
 #include <motor/std/vector>
 
 namespace motor
@@ -136,6 +138,11 @@ namespace motor
             {
                 return _name ;
             }
+
+        public:
+
+            static this_t create( motor::string_in_t name, motor::geometry::polygon_mesh_in_t mesh ) noexcept ;
+
         };
         motor_typedef( geometry_object ) ;
     }

@@ -166,6 +166,15 @@ namespace motor
                 _count += inc ;
             }
 
+            // wait until semaphore becomes value
+            // then call funk
+            void_t wait( size_t const value, std::function< void_t ( void_t ) > funk ) noexcept
+            {
+                motor::concurrent::lock_t lk( _mtx ) ;
+                while ( _count != value ) _cv.wait( lk ) ;
+                funk() ;
+            }
+
             size_t value( void_t ) const 
             {
                 return _count ;

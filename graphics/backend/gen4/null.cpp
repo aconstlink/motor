@@ -64,6 +64,11 @@ motor::graphics::result null_backend::configure( motor::graphics::streamout_obje
     return motor::graphics::result::ok ;
 }
 
+motor::graphics::result null_backend::release( motor::graphics::msl_object_mtr_t ) noexcept 
+{
+    return motor::graphics::result::ok ;
+}
+
 motor::graphics::result null_backend::release( motor::graphics::geometry_object_mtr_t ) noexcept 
 {
     return motor::graphics::result::ok ;

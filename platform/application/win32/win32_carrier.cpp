@@ -21,7 +21,8 @@
 
 #include <windows.h>
 //#include <windowsx.h>
-#include <strsafe.h>
+
+#include <cstdio>
 
 using namespace motor::platform ;
 using namespace motor::platform::win32 ;
@@ -167,10 +168,19 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     {
                         // set frame time
                         {
+                            char tmp_text[2048] ;
+                            
                             size_t const milli = d.micro_rnd/1000 ;
                             size_t const fps = size_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
+
+                            sprintf_s( tmp_text, "%s [ %zd ms; %zd fps ]", wd.window_text.c_str(), milli, fps  ) ;
+
+                            #if 1
+                            SetWindowText( wd.hwnd, tmp_text ) ;
+                            #else
                             SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
                                 motor::to_string(fps) + " fps]").c_str() ) ;
+                            #endif
                         }
 
                         // set vsync
@@ -273,40 +283,20 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         // needs to go to sleep for a while.
                         else if( ++d.frame_miss > 5 )
                         {
-                            std::this_thread::sleep_for( std::chrono::microseconds(50) ) ;
-                            d.frame_miss = 0 ;
+                            std::this_thread::sleep_for( std::chrono::microseconds(10) ) ;
                         }
-
                     }
 
                     this_t::find_window_info( d.hwnd, [&]( this_t::win32_window_data_ref_t wd )
                     {
                         // set frame time
                         {
-                            size_t const milli = d.micro_rnd/1000 ;
-                            size_t const fps = d.micro_rnd == 0 ? 0 : size_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
+                            uint_t const milli = uint_t( d.micro_rnd/1000 );
+                            uint_t const fps = d.micro_rnd == 0 ? 0 : uint_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
 
                             char buffer[100] ;
-                            buffer[0] = '\0' ;
-                            StringCchCatA( buffer, 100, wd.window_text.c_str() ) ;
-                            StringCchCatA( buffer, 100, "[ " ) ;
-                            // add milli
-                            {
-                                char nbuf[50] ;
-                                _ltoa_s( (long)milli, nbuf, 50, 10 ) ;
-                                StringCchCatA( buffer, 100, nbuf ) ;
-                            }
-                            StringCchCatA( buffer, 100, " ms; " ) ;
-                            // add fps
-                            {
-                                char nbuf[50] ;
-                                _ltoa_s( (long)fps, nbuf, 50, 10 ) ;
-                                StringCchCatA( buffer, 100, nbuf ) ;
-                            }
-                            StringCchCatA( buffer, 100, " fps ]\0" ) ;
-                            //SetWindowText( wd.hwnd, ( wd.window_text + " [" + motor::to_string(milli) + " ms; " + 
-                              //  motor::to_string(fps) + " fps]").c_str() ) ;
 
+                            std::snprintf( buffer, 100, "%s [%3d ms; %3d fps ; %3d miss]", wd.window_text.c_str(), milli, fps, d.frame_miss ) ;
                             SetWindowText( wd.hwnd, buffer ) ;
                         }
 
@@ -1046,6 +1036,12 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
     {
         d.sv.vsync_msg_changed = true ;
         d.sv.vsync_msg = states.vsync_msg ;
+    }
+
+    if ( states.close_changed )
+    {
+        CloseWindow( d.hwnd ) ;
+        DestroyWindow( d.hwnd ) ;
     }
 }
 

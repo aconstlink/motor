@@ -3,7 +3,7 @@
 
 #include "carrier.h"
 
-#include <motor/profiling/global.h>
+#include <motor/profiling/probe_guard.hpp>
 #include <motor/tool/imgui/custom_widgets.h>
 
 using namespace motor::application ;
@@ -194,11 +194,25 @@ bool_t app::carrier_init( motor::application::carrier_ptr_t carrier ) noexcept
 //**************************************************************************************************************
 bool_t app::carrier_update( void_t ) noexcept
 {
+    MOTOR_PROBE( "system", "carrier_update" ) ;
+
     std::chrono::microseconds dt_micro ;
     float_t dt_sec = 0.0f ;
 
+    // compute dt micro seconds. Here it also yield if the micro seconds == 0
+    // this can happen in small projects, so we have to wait until micro != 0
+    // I think this is not that much of a problem, because in more complex
+    // applications, that will be != 0 anyways
     {
         dt_micro = std::chrono::duration_cast<std::chrono::microseconds>( this_t::platform_clock_t::now() - _tp_platform ) ;
+
+        while( dt_micro == std::chrono::microseconds(0) )
+        {
+            // best way I figured to slow down the thread.
+            std::this_thread::yield() ;
+            dt_micro = std::chrono::duration_cast<std::chrono::microseconds>( this_t::platform_clock_t::now() - _tp_platform ) ;
+        }
+
         dt_sec = float_t( double_t( dt_micro.count() ) / 1000000.0 ) ;
         _tp_platform = this_t::platform_clock_t::now() ;
     }
@@ -314,7 +328,7 @@ bool_t app::carrier_update( void_t ) noexcept
             this->on_audio( fptr, this_t::audio_data { _first_audio, sec_dt, micro_dt, milli_dt } ) ;
         } )  ;
 
-        this_t::after_audio(0) ;
+        this_t::after_audio( exec ) ;
     }
 
     if ( this_t::before_profile( dt_micro ) )
@@ -332,15 +346,16 @@ bool_t app::carrier_update( void_t ) noexcept
     // only the shared user/engine data has been send upstream
     if( this_t::before_render(dt_micro) )
     {
+        this_t::graphics_data_t dat_graphic ;
+
         // do single on_graphics for updating 
         // user graphics system data.
         {
-            this_t::graphics_data_t dat ;
-            dat.micro_dt = _render_residual.count() ;
-            dat.sec_dt = float_t( double_t(_render_residual.count()) / 1000000.0 ) ;
-            dat.milli_dt = dat.micro_dt / 1000 ;
+            dat_graphic.micro_dt = _render_residual.count() ;
+            dat_graphic.sec_dt = float_t( double_t(_render_residual.count()) / 1000000.0 ) ;
+            dat_graphic.milli_dt = dat_graphic.micro_dt / 1000 ;
 
-            this->on_graphics( dat ) ;
+            this->on_graphics( dat_graphic ) ;
         }
 
         // render all the present windows
@@ -366,7 +381,13 @@ bool_t app::carrier_update( void_t ) noexcept
                         {
                             d.imgui->execute( [&] ( void_t )
                             {
-                                this_t::tool_data_t td { fe, d.imgui } ;
+                                this_t::tool_data_t td 
+                                { 
+                                    fe, d.imgui,
+                                    dat_graphic.sec_dt,
+                                    dat_graphic.micro_dt,
+                                    dat_graphic.milli_dt
+                                } ;
                                 if( this->on_tool( d.wid, td ) )
                                 {
                                     this_t::display_engine_stats() ;
@@ -403,6 +424,7 @@ bool_t app::carrier_update( void_t ) noexcept
         }
     }
 
+    if( _closed )
     {
         for ( auto iter = _creation_queue.begin(); iter != _creation_queue.end(); )
         {
@@ -640,8 +662,9 @@ bool_t app::before_audio( std::chrono::microseconds const & dt ) noexcept
 }
 
 //************************************************************************
-void_t app::after_audio( size_t const ) noexcept
+void_t app::after_audio( bool_t const exec ) noexcept
 {
+    if( !exec ) return ;
     _physics_residual = std::chrono::microseconds( 0 ) ;
     _first_audio = false ;
 }

@@ -74,10 +74,16 @@ namespace motor
                 this_t::insert( { n, loc } ) ;
             }
 
+        private:
+
+            motor::vector< this_t::data_t > _tmp_data ;
+
+        public:
+
             typedef std::function< void_t ( motor::io::location_cref_t, this_t::notify const ) > foreach_funk_t ;
             void_t for_each_and_swap( foreach_funk_t funk ) noexcept 
             {
-                motor::vector< this_t::data_t > tmp ;
+                motor::vector< this_t::data_t > & tmp = _tmp_data ;
                 {
                     motor::concurrent::lock_guard_t lk( _mtx ) ;
                     tmp = std::move( _changed ) ;

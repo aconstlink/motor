@@ -16,6 +16,7 @@ set( sources
     "function_signature_analyser.hpp"
     "nodes.h"
     "nodes.cpp"
+    "default_variable.hpp"
 
     "generators/generator.h"
     "generators/generator.cpp"
@@ -26,6 +27,9 @@ set( sources
     "generators/glsl4_generator.cpp"
     "generators/hlsl5_generator.h"
     "generators/hlsl5_generator.cpp"
+
+    "shader/forward_rendering_shader.h"
+    "shader/forward_rendering_shader.cpp"
 
     "parser_structs.hpp"
     )

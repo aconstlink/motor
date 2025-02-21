@@ -796,7 +796,7 @@ struct motor::platform::oal_backend::pimpl
             {
                 size_t const i = std::distance( buffers.begin(), iter ) ;
                 if( motor::log::global_t::error( i != oid && oid != size_t( -1 ),
-                    motor_log_fn( "name and id do not match" ) ) )
+                    "[Oal]: name and id do not match"  ) )
                 {
                     return oid ;
                 }

@@ -104,12 +104,12 @@ namespace motor
                 }
             }
 
-            typedef std::function< void_t ( motor::graphics::render_state_sets_ref_t ) > access_render_state_funk_t ;
+            typedef std::function< bool_t ( motor::graphics::render_state_sets_ref_t ) > access_render_state_funk_t ;
 
             this_ref_t access_render_state( size_t const i, access_render_state_funk_t funk )
             {
                 if( i >= _states.size() ) return *this ;
-                funk( _states[ i ] ) ;
+                if( funk( _states[ i ] ) ) this_t::set_changed() ;
                 return *this ;
             }
 

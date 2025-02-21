@@ -37,6 +37,7 @@ set( sources
 
     "object/render_object.h"
     "object/geometry_object.h"
+    "object/geometry_object.cpp"
     "object/image_object.h"
     "object/msl_object.h"
     "object/msl_object.cpp"
@@ -63,6 +64,7 @@ add_library( ${cur_lib_name} ${MOTOR_LIBRARY_BUILD_TYPE} ${sources} )
 add_library( ${cur_alias_name} ALIAS ${cur_lib_name} ) 
 
 target_link_libraries( ${cur_lib_name} 
+  PUBLIC motor::geometry
   PUBLIC motor::memory
   PUBLIC motor::log
   PUBLIC motor::std

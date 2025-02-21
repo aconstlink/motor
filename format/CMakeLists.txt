@@ -12,7 +12,9 @@ set( sources
 
     "imodule.h"
     
+    "obj/obj_module_structs.h"
     "obj/obj_module.cpp"
+    "obj/obj_module_mtl.cpp"
     "obj/obj_module.h"
 
     "stb/stb_module.cpp"
@@ -42,6 +44,7 @@ target_link_libraries( ${cur_lib_name}
   PRIVATE stb
   PRIVATE rapidxml
   PRIVATE nlohmann_json
+  PUBLIC motor::geometry
   PUBLIC motor::font
   PUBLIC motor::msl
   PUBLIC motor::audio

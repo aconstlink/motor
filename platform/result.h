@@ -11,6 +11,8 @@ namespace motor
             ok,
             failed,
             invalid_argument,
+
+            context_not_active,
             terminate,
             no_app,
             failed_wgl,
@@ -19,6 +21,8 @@ namespace motor
             failed_gfx_context_creation,
             invalid_extension,
             invalid_win32_handle,
+            win32_hdc_failed,
+
             invalid_xlib_handle,
             no_tool,
             num_results

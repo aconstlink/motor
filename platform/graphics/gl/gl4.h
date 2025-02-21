@@ -43,6 +43,7 @@ namespace motor
                 virtual motor::graphics::result configure( motor::graphics::array_object_mtr_t ) noexcept override ;
                 virtual motor::graphics::result configure( motor::graphics::streamout_object_mtr_t ) noexcept ;
 
+                virtual motor::graphics::result release( motor::graphics::msl_object_mtr_t ) noexcept ;
                 virtual motor::graphics::result release( motor::graphics::geometry_object_mtr_t ) noexcept ;
                 virtual motor::graphics::result release( motor::graphics::render_object_mtr_t ) noexcept ;
                 virtual motor::graphics::result release( motor::graphics::shader_object_mtr_t ) noexcept ;
@@ -75,7 +76,7 @@ namespace motor
                 // will be not gl error due to the missing gl context.
                 // this is required if the window is closed and the context can not be
                 // made current...
-                void_t clear_all_objects( void_t ) noexcept ;
+                void_t on_context_destruction( void_t ) noexcept ;
 
             private:
 

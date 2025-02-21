@@ -22,8 +22,11 @@ namespace motor
 
                 while( ts[ridx].size() != 0 ) 
                 {
-                    for ( auto * t : ts[ ridx ] )
+                    for( size_t i=0; i<ts[ ridx ].size(); ++i )
+                    //for ( auto * t : ts[ ridx ] )
                     {
+                        auto * t = ts[ridx][i] ;
+
                         motor::concurrent::task_t::cleaner_accessor::move_out_all( t, ts[ widx ] ) ;
 
                         t->disconnect() ;

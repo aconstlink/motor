@@ -143,25 +143,31 @@ namespace motor
             {
             }
 
-            cubic_hermit_spline( this_rref_t rhv ) noexcept
-            {
-                (*this) = std::move(rhv) ;
-            }
+            cubic_hermit_spline( this_rref_t rhv ) noexcept :
+                _cps( std::move( rhv._cps ) ), 
+                _lts( std::move( rhv._lts ) ),
+                _rts( std::move( rhv._rts ) )
+            {}
 
-            cubic_hermit_spline( this_cref_t rhv ) noexcept
-            {
-                (*this) = rhv ;
-            }
+            cubic_hermit_spline( this_cref_t rhv ) noexcept :
+                _cps( rhv._cps ),
+                _lts( rhv._lts ),
+                _rts( rhv._rts )
+            {}
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
                 _cps = std::move( rhv._cps ) ;
+                _lts = std::move( rhv._lts ) ;
+                _rts = std::move( rhv._rts ) ;
                 return ( *this ) ;
             }
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {
                 _cps = rhv._cps ;
+                _lts = rhv._lts ;
+                _rts = rhv._rts ;
                 return ( *this ) ;
             }
 

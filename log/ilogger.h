@@ -15,6 +15,7 @@ namespace motor
         public:
             virtual ~ilogger( void_t ) {}
             virtual motor::log::result log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept = 0 ;
+            virtual motor::log::result log( motor::log::log_level const ll, char const * msg ) noexcept = 0 ;
         };
     }
 }

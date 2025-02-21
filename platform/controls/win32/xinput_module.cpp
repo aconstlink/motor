@@ -452,7 +452,7 @@ void_t xinput_module::update( void_t ) noexcept
         XINPUT_STATE state ;
         DWORD const res = XInputGetState( item.xinput_ptr->get_id(), &state ) ;
         if( motor::log::global_t::warning( res != ERROR_SUCCESS,
-            motor_log_fn("XInputGetState") ) ) continue ;
+            "[xinput_module] : XInputGetState" ) ) continue ;
 
         motor::controls::types::xbox_controller_t ctrl( dev ) ;
 

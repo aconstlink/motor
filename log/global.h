@@ -7,6 +7,7 @@
 
 #include "log_level.h"
 
+#include <cstdarg>
 #include <mutex>
 
 namespace motor
@@ -61,7 +62,134 @@ namespace motor
             static void_t critical( motor::string_cref_t msg ) noexcept ;
             static bool_t critical( bool_t const condition, motor::string_cref_t msg ) noexcept ;
 
+        public:
+
+            static void_t message( log_level const level, char const * msg ) noexcept ;
+            static bool_t message( bool_t const condition, log_level const level, char const * msg ) noexcept ;
+            static void_t status( char const * msg ) noexcept ;
+            static bool_t status( bool_t const condition, char const * msg ) noexcept ;
+            static void_t warning( char const * msg ) noexcept ;
+            static bool_t warning( bool_t const condition, char const * msg ) noexcept ;
+            static void_t error( char const * msg ) noexcept ;
+            static void_t error_and_exit( char const * msg ) noexcept ;
+            static void_t error_and_exit( bool_t const condition, char const * msg ) noexcept ;
+            static bool_t error( bool_t const condition, char const * msg ) noexcept ;
+            static void_t critical( char const * msg ) noexcept ;
+            static bool_t critical( bool_t const condition, char const * msg ) noexcept ;
+
+        public:
+
+            template< size_t sib >
+            static void_t status( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::status( buffer ) ;
+            }
+
+            template< size_t sib >
+            static void_t warning( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::warning( buffer ) ;
+            }
+
+            template< size_t sib >
+            static bool_t warning_if( bool_t const b, char const * fmt, ... ) noexcept
+            {
+                if( b )
+                {
+                    char buffer[sib] ;
+
+                    va_list args;
+                    va_start( args, fmt ) ;
+                    std::vsnprintf( buffer, sib, fmt, args ) ;
+                    va_end(args);
+
+                    this_t::warning( buffer ) ;
+                }
+
+                return b ;
+            }
+
+            template< size_t sib >
+            static void_t error( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::error( buffer ) ;
+            }
+
+            template< size_t sib >
+            static bool_t error_if( bool_t const b, char const * fmt, ... ) noexcept
+            {
+                if( b )
+                {
+                    char buffer[sib] ;
+
+                    va_list args;
+                    va_start( args, fmt ) ;
+                    std::vsnprintf( buffer, sib, fmt, args ) ;
+                    va_end(args);
+
+                    this_t::error( buffer ) ;
+                }
+
+                return b ;
+            }
+
+            template< size_t sib >
+            static void_t critical( char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::critical( buffer ) ;
+            }
+
+            template< size_t sib >
+            static void_t message( log_level const ll, char const * fmt, ... ) noexcept
+            {
+                char buffer[sib] ;
+
+                va_list args;
+                va_start( args, fmt ) ;
+                std::vsnprintf( buffer, sib, fmt, args ) ;
+                va_end(args);
+
+                this_t::message( ll, buffer ) ;
+            }
+
+
+
         };
         motor_typedef( global ) ;
     }
 }
+
+#define motor_status( t ) motor::log::global::status( t ) ;
+#define motor_status2( n, t, ... ) motor::log::global::status<n>( t, __VA_ARGS__)
+#define motor_warning( t ) motor::log::global::warning( t ) ;
+#define motor_warning2( n, t, ... ) motor::log::global::warning<n>( t, __VA_ARGS__)
+#define motor_error( t ) motor::log::global::error( t ) ;
+#define motor_error2( n, t, ... ) motor::log::global::error<n>( t, __VA_ARGS__)

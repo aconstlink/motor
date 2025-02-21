@@ -1871,80 +1871,84 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
         {
             // all ins
             {
-                // no intput interface block in the vertex shader
-                if( sht_cur != motor::msl::shader_type::vertex_shader )
-                {
-                    text << "in " << this_t::determine_input_interface_block_name( sht_cur, sht_before ) << std::endl ;
-                    text << "{" << std::endl ;
-                }
+                motor::string_t local_text ;
 
-                for( auto & v : shd_.variables )
+                for ( auto & v : shd_.variables )
                 {
-                    if( v.fq != motor::msl::flow_qualifier::in ) continue ;
+                    if ( v.fq != motor::msl::flow_qualifier::in ) continue ;
 
                     // omit system variables
                     //if( v.binding == motor::msl::binding::position && v.fq == motor::msl::flow_qualifier::out ) continue ;
-                    if( v.binding == motor::msl::binding::vertex_id ) continue ;
-                    if( v.binding == motor::msl::binding::instance_id ) continue ;
-                    if( v.binding == motor::msl::binding::primitive_id ) continue ;
+                    if ( v.binding == motor::msl::binding::vertex_id ) continue ;
+                    if ( v.binding == motor::msl::binding::instance_id ) continue ;
+                    if ( v.binding == motor::msl::binding::primitive_id ) continue ;
 
                     // don not generate input position except if coming into the vertex shader
-                    if( sht_cur != motor::msl::shader_type::vertex_shader && 
-                        v.binding == motor::msl::binding::position  ) continue ;
+                    if ( sht_cur != motor::msl::shader_type::vertex_shader &&
+                        v.binding == motor::msl::binding::position ) continue ;
 
                     motor::string_t name = v.name ;
                     motor::string_t const type_ = this_file::map_variable_type_to_string( type, v.type ) ;
 
                     {
                         size_t const idx = motor::msl::find_by( var_mappings, v.name, v.binding, v.fq, shd_.type ) ;
-                        if( idx < var_mappings.size() )
+                        if ( idx < var_mappings.size() )
                         {
                             name = var_mappings[ idx ].new_name ;
                         }
                     }
 
                     // no intput interface block in the vertex shader
-                    if( sht_cur == motor::msl::shader_type::vertex_shader ) text << "in" ;
+                    if ( sht_cur == motor::msl::shader_type::vertex_shader ) local_text += "in" ;
 
-                    text << " " << type_ << " " << name << " ; " << std::endl ;
+                    local_text += " " + type_ + " " + name + " ; \n" ;
                 }
 
-                // no intput interface block in the vertex shader
-                if( sht_cur != motor::msl::shader_type::vertex_shader )
+                // interface block can not be empty
+                if( !local_text.empty() )
                 {
-                    text << "} stage_in" << (sht_cur == motor::msl::shader_type::geometry_shader ? "[] " : " ") << ";" << std::endl << std::endl ;
+                    // no intput interface block in the vertex shader
+                    if ( sht_cur != motor::msl::shader_type::vertex_shader )
+                    {
+                        text << "in " << this_t::determine_input_interface_block_name( sht_cur, sht_before ) << std::endl ;
+                        text << "{" << std::endl ;
+                    }
+
+                    text << local_text ;
+
+                    // no intput interface block in the vertex shader
+                    if ( sht_cur != motor::msl::shader_type::vertex_shader )
+                    {
+                        text << "} stage_in" << ( sht_cur == motor::msl::shader_type::geometry_shader ? "[] " : " " ) << ";" << std::endl << std::endl ;
+                    }
+                    else text << std::endl ;
                 }
                 else text << std::endl ;
             }
 
             // all outs
             {
-                // no output interface block in the fragment shader
-                if( sht_cur != motor::msl::shader_type::pixel_shader )
-                {
-                    text << "out " << this_t::determine_output_interface_block_name( sht_cur, sht_after ) << std::endl ;
-                    text << "{" << std::endl ;
-                }
+                motor::string_t local_text ;
 
-                for( auto & v : shd_.variables )
+                for ( auto & v : shd_.variables )
                 {
-                    if( v.fq != motor::msl::flow_qualifier::out ) continue ;
+                    if ( v.fq != motor::msl::flow_qualifier::out ) continue ;
 
                     // omit system variables
                     //if( v.binding == motor::msl::binding::position && v.fq == motor::msl::flow_qualifier::out ) continue ;
-                    if( v.binding == motor::msl::binding::vertex_id ) continue ;
-                    if( v.binding == motor::msl::binding::instance_id ) continue ;
-                    if( v.binding == motor::msl::binding::primitive_id ) continue ;
+                    if ( v.binding == motor::msl::binding::vertex_id ) continue ;
+                    if ( v.binding == motor::msl::binding::instance_id ) continue ;
+                    if ( v.binding == motor::msl::binding::primitive_id ) continue ;
 
                     // do not place that position variable in the interface block.
-                    if( !using_transform_feedback && v.binding == motor::msl::binding::position ) continue ;
+                    if ( !using_transform_feedback && v.binding == motor::msl::binding::position ) continue ;
 
                     motor::string_t name = v.name ;
                     motor::string_t const type_ = this_file::map_variable_type_to_string( type, v.type ) ;
 
                     {
                         size_t const idx = motor::msl::find_by( var_mappings, v.name, v.binding, v.fq, shd_.type ) ;
-                        if( idx < var_mappings.size() )
+                        if ( idx < var_mappings.size() )
                         {
                             name = var_mappings[ idx ].new_name ;
                         }
@@ -1952,18 +1956,34 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
 
                     motor::string_t layloc ;
 
-                    if( shd_.type == motor::msl::shader_type::pixel_shader && num_color > 1 )
+                    if ( shd_.type == motor::msl::shader_type::pixel_shader && num_color > 1 )
                     {
                         layloc = "layout( location = " + motor::to_string( layloc_id++ ) + " ) " ;
                     }
 
-                    text << layloc << "out " << type_ << " " << name << " ; " << std::endl ;
+                    local_text += layloc + "out " + type_ + " " + name + " ; \n";
                 }
 
-                // no output interface block in the fragment shader
-                if( sht_cur != motor::msl::shader_type::pixel_shader )
+                // interface block can not be empty
+                if( !local_text.empty() )
                 {
-                    text << "} stage_out ;" << std::endl << std::endl ;
+                    // no output interface block in the fragment shader
+                    if ( sht_cur != motor::msl::shader_type::pixel_shader )
+                    {
+                        text << "out " << this_t::determine_output_interface_block_name( sht_cur, sht_after ) << std::endl ;
+                        text << "{" << std::endl ;
+                    }
+
+                    {
+                        text << local_text ;
+                    }
+
+                    // no output interface block in the fragment shader
+                    if ( sht_cur != motor::msl::shader_type::pixel_shader )
+                    {
+                        text << "} stage_out ;" << std::endl << std::endl ;
+                    }
+                    else text << std::endl ;
                 }
                 else text << std::endl ;
             }

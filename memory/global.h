@@ -20,8 +20,8 @@ namespace motor
 
         private: // singleton
 
-            static std::mutex _mtx ;
-            static manager_t _manager ;
+            inline static std::mutex _mtx ;
+            inline static manager_t _manager ;
 
         public:
 
@@ -198,13 +198,13 @@ namespace motor
             }
 
             template< typename T >
-            static T* alloc_raw( size_t const n )
+            static T* alloc_raw( size_t const n ) noexcept
             {
                 return reinterpret_cast< T* >( this_t::alloc( sizeof( T ) * n ) ) ;
             }
 
             template< typename T >
-            static T* alloc_raw( size_t const n, char_cptr_t purpose )
+            static T* alloc_raw( size_t const n, char_cptr_t purpose ) noexcept
             {
                 return reinterpret_cast< T* >( this_t::alloc( sizeof( T ) * n, purpose ) ) ;
             }
@@ -219,7 +219,7 @@ namespace motor
             }
 
             template< typename T >
-            static T* dealloc_raw( T* ptr )
+            static T* dealloc_raw( T* ptr ) noexcept
             {
                 this_t::dealloc( reinterpret_cast< void_ptr_t >( ptr ) ) ;
                 return nullptr ;

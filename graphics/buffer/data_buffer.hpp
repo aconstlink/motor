@@ -38,14 +38,17 @@ namespace motor
             {
             }
 
-            data_buffer( this_cref_t rhv ) noexcept
+            data_buffer( this_cref_t rhv ) noexcept : _layout( rhv._layout )
             {
-                *this = rhv ;
+                this_t::resize( rhv._num_elems ) ;
+                std::memcpy( _data, rhv._data, rhv.get_sib() ) ;
             }
 
-            data_buffer( this_rref_t rhv ) noexcept 
+            data_buffer( this_rref_t rhv ) noexcept :
+                _layout( std::move( rhv._layout ) ), _num_elems( rhv._num_elems ),
+                _data( rhv._data )
             {
-                *this = std::move( rhv ) ;
+                rhv._data = nullptr ;
             }
 
             ~data_buffer( void_t ) noexcept
@@ -65,7 +68,9 @@ namespace motor
             {
                 _layout = std::move( rhv._layout ) ;
                 _num_elems = rhv._num_elems ;
-                motor_move_member_ptr( _data, rhv ) ;
+                motor::memory::global_t::dealloc( _data ) ;
+                _data = rhv._data ;
+                rhv._data = nullptr ;
                 return *this ;
             }
 
@@ -78,7 +83,7 @@ namespace motor
                 // check realloc when getting smaller
                 // do not realloc if larger than thes
                 {
-                    auto const c = double_t(ne) / double_t(_num_elems) ;
+                    auto const c = double_t(ne) / double_t( std::max( _num_elems, size_t(1) ) ) ;
                     if( c < 1.0f && c > thres ) return *this ;
                 }
 

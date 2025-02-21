@@ -1,6 +1,8 @@
 
 #include "manager.h"
 
+#include "../arena.hpp"
+
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
@@ -10,21 +12,71 @@
 
 using namespace motor::memory ;
 
+namespace this_file
+{
+    struct sib_16
+    {
+        char _dummy[16] ;
+    };
+
+    struct sib_32
+    {
+        char _dummy[ 32 ] ;
+    };
+}
+
+struct motor::memory::manager::pimpl
+{
+    using area_16_t = motor::memory::arena< this_file::sib_16, motor::memory::detail::arena_allocator > ;
+    area_16_t a16 = area_16_t( 1000 ) ;
+
+    using area_32_t = motor::memory::arena< this_file::sib_32, motor::memory::detail::arena_allocator > ;
+    area_32_t a32 = area_32_t( 1000 ) ;
+
+    pimpl( void_t ) noexcept{}
+    ~pimpl( void_t ) noexcept 
+    {
+        pimpl::deinit() ;
+    }
+
+    void_t init( void_t ) noexcept
+    {
+    }
+
+    void_t deinit( void_t ) noexcept
+    {
+        a16.~arena() ;
+        a32.~arena() ;
+    }
+};
+
 //*************************************************************************************
 manager::manager( void_t ) noexcept 
 {
     #if MOTOR_MEMORY_OBSERVER
     _observer = new ( malloc( sizeof( motor::memory::observer_t ) ) ) motor::memory::observer_t ;
     #endif
+
+    _pimpl = new ( malloc( sizeof( this_t::pimpl ) ) ) this_t::pimpl ;
+    _pimpl->init() ;
 }
 
 //*************************************************************************************
-manager::manager( this_rref_t rhv ) noexcept 
+manager::manager( this_rref_t rhv ) noexcept : _allocated_sib( rhv._allocated_sib ),
+    _ptr_to_info( std::move( rhv._ptr_to_info ))
 {
-    _allocated_sib = rhv._allocated_sib ;
     rhv._allocated_sib = 0 ;
-    _ptr_to_info = std::move( rhv._ptr_to_info ) ;
+
+    // @note potential leak. Old observer will be lost.
+    // depends of where the observer is coming from.
     _observer = motor::move( rhv._observer ) ;
+
+    if( _pimpl != nullptr ) 
+    {
+        _pimpl->deinit() ;
+        delete( _pimpl ) ;
+    }
+    _pimpl = motor::move( rhv._pimpl ) ;
 }
 
 //*************************************************************************************
@@ -33,6 +85,9 @@ manager::~manager( void_t ) noexcept
 #if MOTOR_MEMORY_OBSERVER
     free( _observer ) ;
 #endif
+
+    if( _pimpl != nullptr ) 
+        delete( _pimpl ) ;
 }
 
 //*************************************************************************************
@@ -42,6 +97,9 @@ manager::this_ref_t manager::operator = ( this_rref_t rhv ) noexcept
     rhv._allocated_sib = 0 ;
     _ptr_to_info = std::move( rhv._ptr_to_info ) ;
     _observer = motor::move( rhv._observer ) ;
+
+    if( _pimpl != nullptr ) delete( _pimpl ) ;
+    _pimpl = motor::move( rhv._pimpl ) ;
 
     return *this ;
 }
@@ -79,12 +137,31 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
     return ptr ;
 }
 
+#define USE_SIB_OPTIMIZATION 0
+
 //*************************************************************************************
 void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept 
 {
     if( sib == 0 ) return nullptr ;
 
-    void_ptr_t ptr = malloc( sib ) ;
+    void_ptr_t ptr = nullptr ;
+    
+    #if USE_SIB_OPTIMIZATION
+    if( sib <= 16 )
+    {
+        ptr = reinterpret_cast<void_ptr_t>( _pimpl->a16.alloc() ) ;
+    }    
+    else if( sib <= 32 ) 
+    {
+        ptr = reinterpret_cast<void_ptr_t>( _pimpl->a32.alloc() ) ;
+    }
+    else
+    #endif
+    {
+        ptr = malloc( sib ) ;
+    }
+        
+
     {
         lock_t lk( _mtx ) ;
         _ptr_to_info[ptr] = memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ;
@@ -118,10 +195,8 @@ void_ptr_t manager::alloc( size_t const sib ) noexcept
 void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk ) noexcept 
 {
     if( ptr == nullptr ) return nullptr ;
-
-    #if MOTOR_MEMORY_OBSERVER
-    size_t obs_sib = 0 ;
-    #endif 
+    
+    size_t sib = 0 ;
 
     {
         lock_t lk(_mtx) ;
@@ -139,20 +214,28 @@ void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk
 
             return ptr ;
         }
-        
-        #if MOTOR_MEMORY_OBSERVER
-        obs_sib = iter->second.sib ;
-        #endif
+
+        sib = iter->second.sib ;
 
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }
 
     rel_funk() ;
-    free( ptr ) ;
+
+    #if USE_SIB_OPTIMIZATION
+    if( sib <= 16 )
+        _pimpl->a16.dealloc( reinterpret_cast<this_file::sib_16*>(ptr) ) ;
+    else if( sib <= 32 )
+        _pimpl->a32.dealloc( reinterpret_cast<this_file::sib_32*>(ptr) ) ;
+    else 
+    #endif
+    {
+        free( ptr ) ;
+    }
 
     #if MOTOR_MEMORY_OBSERVER
-    _observer->on_dealloc( obs_sib ) ;
+    _observer->on_dealloc( sib ) ;
     #endif
 
     return nullptr ;
@@ -163,9 +246,7 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
 {
     if( ptr == nullptr ) return ;
 
-    #if MOTOR_MEMORY_OBSERVER
-    size_t obs_sib = 0 ;
-    #endif 
+    size_t sib = 0 ;
 
     {
         lock_t lk(_mtx) ;
@@ -174,17 +255,23 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
         assert( iter != _ptr_to_info.end() && "[manager::dealloc] : ptr is not found in manager." ) ;
         assert( iter->second.rc == size_t(-1) && "[manager::release] : managed pointer must be released" ) ;
 
-        #if MOTOR_MEMORY_OBSERVER
-        obs_sib = iter->second.sib ;
-        #endif 
+        sib = iter->second.sib ;
 
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }
-    free( ptr ) ;
+
+    #if USE_SIB_OPTIMIZATION
+    if ( sib <= 16 )
+        _pimpl->a16.dealloc( reinterpret_cast<this_file::sib_16 *>( ptr ) ) ;
+    else if ( sib <= 32 )
+        _pimpl->a32.dealloc( reinterpret_cast<this_file::sib_32 *>( ptr ) ) ;
+    else
+    #endif
+    {free( ptr ) ;}
 
     #if MOTOR_MEMORY_OBSERVER
-    _observer->on_dealloc( obs_sib ) ;
+    _observer->on_dealloc( sib ) ;
     #endif
 }
 

@@ -7,6 +7,8 @@
 #include <motor/std/string_split.hpp>
 #include <motor/log/global.h>
 
+#define wgl_context_log( text ) "[WGL Context] : " text
+
 using namespace motor::platform ;
 using namespace motor::platform::wgl ;
 
@@ -25,13 +27,20 @@ wgl_context::wgl_context( HWND hwnd ) noexcept
 wgl_context::wgl_context( HWND hwnd, HGLRC ctx ) noexcept
 {
     _hwnd = hwnd ;
-    _hrc = ctx ;    
+    _hrc = ctx ;
 }
 
 //***********************************************************************
-wgl_context::wgl_context( this_rref_t rhv ) noexcept
+wgl_context::wgl_context( HWND hwnd, HGLRC ctx, motor::platform::gen4::gl4_backend_mtr_safe_t be ) noexcept :
+    _hwnd( hwnd ), _hrc( ctx ), _backend( motor::move( be) )
 {
-    *this = std::move( rhv ) ;
+}
+
+//***********************************************************************
+wgl_context::wgl_context( this_rref_t rhv ) noexcept :
+    _hwnd( motor::move( rhv._hwnd) ), _hrc( motor::move( rhv._hrc) ), _backend( motor::move( rhv._backend) ),
+    _attrib_list( std::move( rhv._attrib_list ) ), _shared_contexts( std::move( rhv._shared_contexts ) )
+{
 }
 
 //***********************************************************************
@@ -42,7 +51,7 @@ wgl_context::~wgl_context( void_t ) noexcept
         // clear out all backend object silently
         // this may happen if the window is already closed but the 
         // backend is still going on.
-        if( _backend != nullptr ) _backend->clear_all_objects() ;
+        if( _backend != nullptr ) _backend->on_context_destruction() ;
     }
     
     _backend = motor::memory::release_ptr( _backend ) ;
@@ -57,53 +66,36 @@ wgl_context::~wgl_context( void_t ) noexcept
 }
 
 //***********************************************************************
-wgl_context::this_ref_t wgl_context::operator = ( this_rref_t rhv ) noexcept
-{
-    _hwnd = rhv._hwnd ;
-    rhv._hwnd = NULL ;
-    _hdc = rhv._hdc ;
-    rhv._hdc = NULL ;
-    _hrc = rhv._hrc ;
-    rhv._hrc = NULL ;
-
-    _backend = motor::move( rhv._backend ) ;
-
-    return *this ;
-}
-
-//***********************************************************************
 motor::platform::result wgl_context::activate( void_t ) noexcept
 {
     if( _hwnd == NULL ) return motor::platform::result::invalid_win32_handle ;
+    if( _active ) return motor::platform::result::ok ;
 
-    assert( _hdc == NULL ) ;
+    HDC hdc = GetDC( _hwnd ) ;
+    if( hdc == NULL ) return motor::platform::result::win32_hdc_failed ;
 
-    _hdc = GetDC( _hwnd ) ;
-
-    if( _hdc == NULL ) return motor::platform::result::invalid_win32_handle ;
-
-    if( motor::log::global::error( wglMakeCurrent( _hdc, _hrc ) == FALSE, 
-        motor_log_fn( "wglMakeCurrent" ) ) ) 
+    auto const res = wglMakeCurrent( hdc, _hrc ) ;
+    ReleaseDC( _hwnd, hdc ) ;
+    
+    if( motor::log::global::error( res == FALSE, wgl_context_log( "wglMakeCurrent" ) ) ) 
+    {
         return motor::platform::result::failed_wgl ;
-        
+    }
+    
+    _active = true ;
     return motor::platform::result::ok ;
 }
 
 //***********************************************************************
 motor::platform::result wgl_context::deactivate( void_t ) noexcept
 {
-    if( _hdc == NULL ) return motor::platform::result::ok ;
+    if( !_active ) return motor::platform::result::context_not_active ;
 
     if( motor::log::global::error( wglMakeCurrent( 0,0 ) == FALSE, 
-        motor_log_fn( "wglMakeCurrent" ) ) ) 
+        wgl_context_log( "wglMakeCurrent(00)" ) ) ) 
         return motor::platform::result::failed_wgl ;
 
-    if( motor::log::global::error( ReleaseDC( _hwnd, _hdc ) == FALSE, 
-        motor_log_fn( "ReleaseDC" ) ) ) 
-        return motor::platform::result::failed_wgl ;
-    
-    _hdc = NULL ;
-
+    _active = false ;
     return motor::platform::result::ok ;
 }
 
@@ -126,10 +118,11 @@ motor::platform::result wgl_context::vsync( bool_t const on_off ) noexcept
 //***********************************************************************
 motor::platform::result wgl_context::swap( void_t ) noexcept
 {
-    if( _hdc == NULL ) 
-        return motor::platform::result::invalid_win32_handle ;
+    HDC hdc = GetDC( _hwnd ) ;
+    auto const res = SwapBuffers( hdc ) ;
+    ReleaseDC( _hwnd, hdc ) ;
 
-    if( motor::log::global::error( SwapBuffers( _hdc ) == FALSE, 
+    if( motor::log::global::error( res == FALSE, 
         "[wgl_context::swap] : SwapBuffers") ) 
         return motor::platform::result::failed_wgl ;
     
@@ -196,7 +189,8 @@ motor::platform::result wgl_context::get_wgl_extension( motor::vector< motor::st
     if( !motor::ogl::wgl::wglGetExtensionsString ) 
         return motor::platform::result::invalid_extension ;
 
-    char_cptr_t ch = motor::ogl::wgl::wglGetExtensionsString( _hdc ) ;
+    HDC hdc = GetDC( _hwnd ) ;
+    char_cptr_t ch = motor::ogl::wgl::wglGetExtensionsString( hdc ) ;
     motor::mstd::string_ops::split( motor::string_t(ch), ' ', ext_list ) ;
 
     return motor::platform::result::ok ;
@@ -303,11 +297,11 @@ motor::platform::result wgl_context::create_the_context( motor::application::gl_
     HGLRC new_context ;
     if( motor::ogl::wgl::is_supported("WGL_ARB_create_context") )
     {
-        const int attribList[] =
+        _attrib_list = 
         {
             WGL_CONTEXT_MAJOR_VERSION_ARB, gli.version.major,
             WGL_CONTEXT_MINOR_VERSION_ARB, gli.version.minor,
-#if defined( NATUS_DEBUG )
+#if defined( MOTOR_DEBUG )
             context_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB | WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 #else
             WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
@@ -318,7 +312,7 @@ motor::platform::result wgl_context::create_the_context( motor::application::gl_
 
         // We create the new OpenGL 3.x+ context.
         //new_context = wglCreateContextAttribsARB(hdc, NULL, attribList) ;
-        new_context = motor::ogl::wgl::wglCreateContextAttribs(hdc, NULL, attribList) ;
+        new_context = motor::ogl::wgl::wglCreateContextAttribs( hdc, NULL, _attrib_list.data() ) ;
         if( new_context != NULL )
         {
             wglMakeCurrent( 0, 0 ) ;
@@ -337,7 +331,7 @@ motor::platform::result wgl_context::create_the_context( motor::application::gl_
         motor::application::gl_version version ;
         if( !success( this_t::get_gl_version( version ) ) )
         {
-            motor::log::global_t::error( motor_log_fn( "" ) ) ;
+            motor::log::global_t::error( wgl_context_log( "" ) ) ;
             wglMakeCurrent( 0, 0 ) ;
             return result::failed_gfx_context_creation ;
         }
@@ -360,8 +354,46 @@ motor::platform::result wgl_context::create_the_context( motor::application::gl_
         size_t const milli = size_t( std::chrono::duration_cast<std::chrono::milliseconds>(
             local_clock_t::now() - t1).count()) ;
 
-        motor::log::global::status( motor_log_fn( "created [" + std::to_string(milli) +" ms]" ) ) ;
+        //motor::log::global::status<2048>( "[wgl_context] : created [%zu ms]", milli ) ;
     }
 
     return motor::platform::result::ok ;
+}
+
+//***********************************************************************
+motor::platform::opengl::rendering_context_mtr_safe_t 
+                    wgl_context::create_shared( void_t ) noexcept 
+{
+    if( _attrib_list[0] == 0 ) 
+    {
+        motor::log::global::error( "[wgl_context] : can not create shared context from shared context." ) ;
+
+        return motor::platform::opengl::rendering_context_mtr_safe_t() ;
+    }
+
+    typedef std::chrono::high_resolution_clock local_clock_t ;
+    auto t1 = local_clock_t::now() ;
+
+    HDC hdc = GetDC( _hwnd ) ;
+    HGLRC shared_ctx = motor::ogl::wgl::wglCreateContextAttribs( hdc, _hrc, _attrib_list.data() ) ;
+    ReleaseDC( _hwnd, hdc ) ;
+
+    if( shared_ctx == NULL )
+    {
+        motor::log::global::error( "[wgl_context] : unable to create shared context" ) ;
+        return motor::platform::opengl::rendering_context_mtr_safe_t() ;
+    }
+
+    _shared_contexts.emplace_back( shared_ctx ) ;
+
+    // timing end
+    {
+        size_t const milli = size_t( std::chrono::duration_cast<std::chrono::milliseconds>(
+            local_clock_t::now() - t1).count()) ;
+
+        motor::log::global::status<2048>( "[wgl_context] : shared created  [%zu ms]", milli ) ;
+    }
+
+    return motor::shared( std::move( this_t( _hwnd, shared_ctx, motor::share( _backend ) ) ), 
+        "[wgl_context] : created_shared" ) ;
 }

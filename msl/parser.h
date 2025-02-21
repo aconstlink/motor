@@ -43,6 +43,7 @@ namespace motor
 
             motor::msl::parse::libraries_t filter_library_statements( this_t::statements_rref_t ss ) const noexcept ;
 
+            statements_t insert_whitesapces( statements_rref_t ss ) const ;
             statements_t replace_numbers( statements_rref_t ss ) const ;
 
             statements_t replace_operators( statements_rref_t ss ) const ;
@@ -72,7 +73,7 @@ namespace motor
 
             // ensures that certain characters have spaces in front or behind.
             // this makes later code analysis much easier and just less character checking.
-            motor::string_t insert_spaces( motor::string_rref_t s ) const noexcept ;
+            motor::string_t insert_spaces( motor::string_rref_t s, bool_t const test_operators = true ) const noexcept ;
 
             motor::string_t clear_line( motor::string_rref_t s ) const noexcept ;
 

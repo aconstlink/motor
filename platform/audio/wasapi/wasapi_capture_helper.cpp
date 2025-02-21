@@ -266,7 +266,7 @@ void_t wasapi_capture_helper::start( void_t ) noexcept
     auto const res = pAudioClient->Start() ;
     if( res != S_OK )
     {
-        motor::log::global::error( motor_log_fn("AudioClient Start" ) ) ;
+        motor::log::global::error( "[capture helper] : AudioClient Start" ) ;
     }
 }
 
@@ -277,7 +277,7 @@ void_t wasapi_capture_helper::stop( void_t ) noexcept
     auto const res = pAudioClient->Stop() ;
     if( res != S_OK )
     {
-        motor::log::global::error( motor_log_fn("AudioClient Stop" ) ) ;
+        motor::log::global::error( "[capture helper] : AudioClient Stop" ) ;
     }
 }
 
@@ -291,7 +291,7 @@ bool_t wasapi_capture_helper::capture( motor::vector< float_t > & samples ) noex
         auto const res = pCaptureClient->GetNextPacketSize( &packetLength ) ;
         if( res != S_OK )
         {
-            motor::log::global::error( motor_log_fn( "GetNextPacketSize" ) ) ;
+            motor::log::global::error( "[capture helper] : GetNextPacketSize" ) ;
             return false;
         }
         if( packetLength == 0 ) return false ;
@@ -312,8 +312,8 @@ bool_t wasapi_capture_helper::capture( motor::vector< float_t > & samples ) noex
 
             if( res != S_OK )
             {
-                motor::log::global::error( motor_log_fn( 
-                    "unable to get audio buffer. Will cancel thread." ) ) ;
+                motor::log::global::error(  
+                    "[capture helper] : unable to get audio buffer. Will cancel thread."  ) ;
                 break ;
             }
         }
@@ -325,7 +325,7 @@ bool_t wasapi_capture_helper::capture( motor::vector< float_t > & samples ) noex
             auto const res = pCaptureClient->ReleaseBuffer( num_frames_available ) ;
             if( res != S_OK )
             {
-                motor::log::global::error( motor_log_fn( "ReleaseBuffer" ) ) ;
+                motor::log::global::error( ( "ReleaseBuffer" ) ) ;
                 break ;
             }
         }
@@ -335,7 +335,7 @@ bool_t wasapi_capture_helper::capture( motor::vector< float_t > & samples ) noex
             auto const res = pCaptureClient->GetNextPacketSize( &packetLength ) ;
             if( res != S_OK )
             {
-                motor::log::global::error( motor_log_fn( "GetNextPacketSize" ) ) ;
+                motor::log::global::error( ( "GetNextPacketSize" ) ) ;
                 break ;
             }
         }

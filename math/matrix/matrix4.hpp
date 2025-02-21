@@ -519,6 +519,12 @@ namespace motor
                 return r ;
             }
 
+            // create a scaling matrix
+            static this_t make_scaling( this_t::vec3_cref_t factors ) noexcept
+            {
+                return this_t().set_main_diagonal( this_t::vec4_t( factors, 1.0f ) ) ;
+            }
+
         private:
 
             /// the matrix elements.

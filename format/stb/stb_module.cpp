@@ -1,6 +1,7 @@
 
 #include "stb_module.h"
 
+#include "../module_registry.hpp"
 #include "../future_items.hpp"
 
 #include <motor/font/structs.h>
@@ -23,26 +24,29 @@ using namespace motor::format ;
 // ***
 void_t stb_module_register::register_module( motor::format::module_registry_mtr_t reg ) 
 {
-    reg->register_import_factory( { "png", "jpg" }, motor::shared( stb_image_factory_t(), "stb_image_factory" ) ) ;
+    reg->register_import_factory( { "png", "jpg", "tga", "JPG" }, motor::shared( stb_image_factory_t(), "stb_image_factory" ) ) ;
     reg->register_export_factory( { "png" }, motor::shared( stb_image_factory_t(), "stb_image_factory" ) ) ;
 
-    reg->register_import_factory( { "ogg" }, motor::shared( stb_audio_factory_t(), "stb_image_factory" ) ) ;
-    reg->register_import_factory( { "ttf" }, motor::shared( stb_font_factory_t(), "stb_image_factory" ) ) ;
+    reg->register_import_factory( { "ogg" }, motor::shared( stb_audio_factory_t(), "stb_audio_factory" ) ) ;
+    reg->register_import_factory( { "ttf" }, motor::shared( stb_font_factory_t(), "stb_font_factory" ) ) ;
 }
 
 // ***
-motor::format::future_item_t stb_image_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db ) noexcept 
+motor::format::future_item_t stb_image_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
+    motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
 {
-    return stb_image_module::import_from( loc, db, motor::shared( motor::property::property_sheet_t() ) ) ;
+    return stb_image_module::import_from( loc, db, motor::shared( motor::property::property_sheet_t() ), motor::move( mod_reg ) ) ;
 }
 
 // ***
 motor::format::future_item_t stb_image_module::import_from( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps ) noexcept 
+    motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps,
+    motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     { 
         motor::mtr_release_guard< motor::property::property_sheet_t > psr( ps ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
 
         motor::memory::malloc_guard<char_t> data_buffer ;
 
@@ -54,7 +58,7 @@ motor::format::future_item_t stb_image_module::import_from( motor::io::location_
 
         if( !res ) 
         {
-            motor::log::global_t::error( "[wav_import] : can not load location " + loc.as_string() ) ;
+            motor::log::global_t::error( "[stb_image_module] : can not load location " + loc.as_string() ) ;
             return motor::shared( motor::format::status_item_t( "error" ) ) ;
         }
 
@@ -145,36 +149,41 @@ motor::format::future_item_t stb_image_module::import_from( motor::io::location_
         }
         stbi_image_free( stb_data_ptr ) ;
 
-        return motor::shared( motor::format::image_item_t( motor::shared( std::move( img ) ) ), "fitem" ) ;
+        return motor::shared( motor::format::image_item_t( motor::shared( std::move( img ), "[stb module] : image" ) ), "fitem" ) ;
     } ) ;
 }
 
 // ***************************************************************************
 motor::format::future_item_t stb_image_module::export_to( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t, motor::format::item_mtr_safe_t what ) noexcept 
+    motor::io::database_mtr_t, motor::format::item_mtr_safe_t what,
+    motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
         motor::mtr_release_guard< motor::format::item_t > rel( what ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
+
         return motor::shared( motor::format::status_item_t( "Export not implemented" ) ) ;
     } ) ;
 }
 
 // ***************************************************************************
 motor::format::future_item_t stb_audio_module::import_from( motor::io::location_cref_t loc, 
-    motor::io::database_mtr_t db ) noexcept
+    motor::io::database_mtr_t db, motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
 {
     return stb_audio_module::import_from( loc, std::move( db ), 
-        motor::shared( motor::property::property_sheet_t() ) ) ;
+        motor::shared( motor::property::property_sheet_t() ), motor::move( mod_reg ) ) ;
 }
 
 // ***************************************************************************
 motor::format::future_item_t stb_audio_module::import_from( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps ) noexcept 
+    motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps,
+    motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
         motor::mtr_release_guard< motor::property::property_sheet_t > psr( ps ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
 
         motor::memory::malloc_guard<char_t> data_buffer ;
 
@@ -254,28 +263,33 @@ motor::format::future_item_t stb_audio_module::import_from( motor::io::location_
 
 // ***
 motor::format::future_item_t stb_audio_module::export_to( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t, motor::format::item_mtr_safe_t what ) noexcept 
+    motor::io::database_mtr_t, motor::format::item_mtr_safe_t what,
+    motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
         motor::mtr_release_guard< motor::format::item_t > rel( what ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
         return motor::shared( motor::format::status_item_t( "Export not implemented" ) ) ;
     } ) ;
 }
 
 // ***
-motor::format::future_item_t stb_font_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db ) noexcept
+motor::format::future_item_t stb_font_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
+    motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
 {
-    return stb_font_module::import_from( loc, std::move( db ), motor::shared( motor::property::property_sheet_t() ) ) ;
+    return stb_font_module::import_from( loc, std::move( db ), motor::shared( motor::property::property_sheet_t() ), motor::move( mod_reg ) ) ;
 }
 
 // ***
 motor::format::future_item_t stb_font_module::import_from( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps ) noexcept 
+    motor::io::database_mtr_t db, motor::property::property_sheet_mtr_safe_t ps,
+    motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
         motor::mtr_release_guard< motor::property::property_sheet_t > psr( ps ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
 
         motor::memory::malloc_guard<char_t> data_buffer ;
 
@@ -341,11 +355,14 @@ motor::format::future_item_t stb_font_module::import_from( motor::io::location_c
 
 // ***
 motor::format::future_item_t stb_font_module::export_to( motor::io::location_cref_t loc, 
-                motor::io::database_mtr_t, motor::format::item_mtr_safe_t what ) noexcept 
+    motor::io::database_mtr_t, motor::format::item_mtr_safe_t what,
+    motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=] ( void_t ) mutable -> item_mtr_t
     {
         motor::mtr_release_guard< motor::format::item_t > resl( what ) ;
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ ) ;
+
         return motor::shared( motor::format::status_item_t( "Export not implemented" ) ) ;
     } ) ;
 }

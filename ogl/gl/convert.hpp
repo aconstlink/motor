@@ -406,17 +406,20 @@ namespace motor
             return empty_funk ;
         }
 
-        static motor::string_t to_string( GLenum const e ) noexcept
+        static char const * to_string( GLenum const e ) noexcept
         {
+            char const * const __msgs__[] = {"STRING_NOT_SPECIFIED", "GL_NO_ERROR", "GL_INVALID_ENUM", 
+                "GL_INVALID_VALUE", "GL_INVALID_OPERATION" } ;
+
             switch( e )
             {
-            case GL_NO_ERROR: return motor::string_t( "GL_NO_ERROR" ) ;
-            case GL_INVALID_ENUM: return motor::string_t( "GL_INVALID_ENUM" ) ;
-            case GL_INVALID_VALUE: return motor::string_t( "GL_INVALID_VALUE" ) ;
-            case GL_INVALID_OPERATION: return motor::string_t( "GL_INVALID_OPERATION" ) ;
+            case GL_NO_ERROR: return __msgs__[1] ;
+            case GL_INVALID_ENUM: return __msgs__[2] ;
+            case GL_INVALID_VALUE: return __msgs__[3] ;
+            case GL_INVALID_OPERATION: return __msgs__[4] ;
             default: break ;
             }
-            return motor::to_string( e ) ;
+            return __msgs__[0] ;
         }
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../typedefs.h"
+#include "../device.hpp"
 
 #include "../components/key.hpp"
 
