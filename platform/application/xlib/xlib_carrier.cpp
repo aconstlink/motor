@@ -195,7 +195,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 
                 case DestroyNotify:
                     {
-                        int bp = 0 ;
+                        
                     }
                     break ;
 

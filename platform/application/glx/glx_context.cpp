@@ -405,7 +405,7 @@ bool_t context::determine_gl_version( motor::application::gl_version & gl_out ) 
     return true ;
 }
 
-context::this_mtr_safe_t context::create_shared( void_t ) noexcept 
+motor::platform::opengl::rendering_context_mtr_safe_t context::create_shared( void_t ) noexcept 
 {
-    return nullptr ;
+    return this_mtr_safe_t() ;
 }
