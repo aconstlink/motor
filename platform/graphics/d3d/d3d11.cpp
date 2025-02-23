@@ -5082,11 +5082,13 @@ motor::graphics::result d3d11_backend::update( motor::graphics::image_object_mtr
 //************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::render_object_mtr_t obj, size_t const varset ) noexcept 
 {
+    if( obj == nullptr ) return motor::graphics::result::invalid_argument ;
+
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( d3d11_backend_log( "invalid id" ) ) ;
+        d3d11_log_errorv( "[update|render_object] : invalid id for %s", obj->name().c_str() ) ;
         return motor::graphics::result::failed ;
     }
 
@@ -5182,11 +5184,13 @@ motor::graphics::result d3d11_backend::pop( motor::graphics::gen4::backend::pop_
 //************************************************************************************************************
 motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mtr_t obj, motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept 
 {     
+    if( obj == nullptr ) return motor::graphics::result::invalid_argument ;
+
     size_t const oid = obj->get_oid( this_t::get_bid() ) ;
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( d3d11_backend_log( "invalid id" ) ) ;
+        d3d11_log_errorv( "[render|render_object] : invalid id for %s", obj->name().c_str() ) ;
         return motor::graphics::result::failed ;
     }
 
@@ -5213,7 +5217,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
 
     if( oid == size_t(-1) )
     {
-        motor::log::global_t::error( d3d11_backend_log( "invalid id" ) ) ;
+        d3d11_log_errorv( "[render|render_object] : invalid id for %s", obj->name().c_str() ) ;
         return motor::graphics::result::failed ;
     }
 
