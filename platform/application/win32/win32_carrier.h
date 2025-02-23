@@ -22,6 +22,8 @@ namespace motor
                 using base_t = motor::application::carrier_t ;
                 motor_this_typedefs( win32_carrier ) ;
 
+                using _clock_t = std::chrono::high_resolution_clock ;
+
             private:
 
                 bool_t _done = false ;
@@ -70,6 +72,7 @@ namespace motor
                 {
                     HWND hwnd ;
                     d3d11_pimpl * ptr ;
+                    _clock_t::time_point rnd_beg ;
                     size_t micro_rnd ;
                     uint_t frame_miss ;
                 };

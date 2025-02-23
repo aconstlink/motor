@@ -93,7 +93,6 @@ win32_carrier::~win32_carrier( void_t ) noexcept
 //***********************************************************************
 motor::application::result win32_carrier::on_exec( void_t ) noexcept
 {
-    using _clock_t = std::chrono::high_resolution_clock ;
     _clock_t::time_point tp_begin = _clock_t::now() ;
 
     while( !_done )
@@ -250,6 +249,18 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             {
                 for( auto & d : _d3d11_windows )
                 {
+                    #if 0
+                    // we can try to access the renderer a few times and
+                    // wait for unlocking.
+                    {
+                        size_t trys = 5 ;
+                        while( --trys > 0 && !d.ptr->re.can_execute() )
+                        {
+                            std::this_thread::sleep_for( std::chrono::microseconds(10) ) ;
+                        }
+                    }
+                    #endif
+
                     // could be threaded
                     {
                         if( d.ptr->re.can_execute() )
@@ -264,15 +275,15 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                                     size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
                             }
 
-                            _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
-
                             d.ptr->ctx.borrow_backend()->render_begin() ;
                             d.ptr->re.execute_frame() ;
                             d.ptr->ctx.borrow_backend()->render_end() ;
+
                             d.ptr->ctx.swap() ;
 
                             d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
-                                _clock_t::now() - rnd_beg_tp ).count() ;
+                                _clock_t::now() - d.rnd_beg ).count() ;
+                            d.rnd_beg = _clock_t::now() ;
 
                             d.ptr->ctx.deactivate() ;
 
@@ -403,7 +414,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
-                            _d3d11_windows.emplace_back( d3d11_window_data({ hwnd, pimpl, 0, 0 }) )  ;
+                            _d3d11_windows.emplace_back( d3d11_window_data({ hwnd, pimpl, this_t::_clock_t::now(), 0, 0 }) )  ;
                         }
                         else
                         {
