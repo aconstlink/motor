@@ -15,67 +15,53 @@ namespace motor
 {
     namespace math
     {
-        template< typename type >
+        template< typename T >
         class vector2
         {
-            motor_this_typedefs( vector2< type > ) ;
+            motor_this_typedefs( vector2< T > ) ;
+
+
+        private:
+
+                T _elem[2] ;
 
         public:
 
-            motor_typedef( type ) ;
+            motor_typedefs( T, type ) ;
 
-            motor_typedefs( vector2<type>, vec2 ) ;
-            motor_typedefs( vector3<type>, vec3 ) ;
-            motor_typedefs( vector4<type>, vec4 ) ;
+            motor_typedefs( vector2<type_t>, vec2 ) ;
+            motor_typedefs( vector3<type_t>, vec3 ) ;
+            motor_typedefs( vector4<type_t>, vec4 ) ;
 
             motor_typedefs( vector2b, vecb ) ;
 
         public:
 
             //***************************************************
-            vector2( void ) noexcept
-            {
-                _elem[0] = type_t(0) ;
-                _elem[1] = type_t(0) ;
-            }
+            vector2( void ) noexcept : _elem{type_t(0),type_t(0) } {}
 
             //***************************************************
-            vector2( type_t s ) noexcept
-            {
-                _elem[0] = s ;
-                _elem[1] = s ;
-            }
+            vector2( type_t const s ) noexcept : _elem{ s, s } {}
 
             //***************************************************
-            vector2( type_t x, type_t y ) noexcept
-            {
-                (*this)(x,y) ;
-            }
+            vector2( type_t x, type_t y ) noexcept : _elem{x, y}{}
 
             //***************************************************
-            vector2( this_cref_t rhv )  noexcept
-            {
-                (*this)(rhv.x(),rhv.y()) ;
-            }
+            vector2( this_cref_t rhv )  noexcept : 
+                _elem{ rhv._elem[0], rhv._elem[1] } {}
 
             //***************************************************
             template< typename other_t >
-            vector2( vector2<other_t> const & rhv ) noexcept 
-            {
-                (*this)(type_t(rhv.x()),type_t(rhv.y())) ;
-            }
+            vector2( vector2<other_t> const & rhv ) noexcept : 
+                _elem{ type_t(rhv.x()), type_t(rhv.y()) } {}
 
             //***************************************************
-            explicit vector2( vec3_t const & rhv )  noexcept
-            {
-                (*this)( rhv.x(), rhv.y() ) ;
-            }
+            explicit vector2( vec3_t const & rhv )  noexcept : 
+                _elem{ rhv.x(), rhv.y() }{}
 
             //***************************************************
-            explicit vector2( vec4_t const & rhv )  noexcept
-            {
-                (*this)(rhv.x(),rhv.y()) ;
-            }
+            explicit vector2( vec4_t const & rhv )  noexcept :
+                _elem{ rhv.x(), rhv.y() }{}
 
         public: // x,y,z accessor
 
@@ -449,7 +435,7 @@ namespace motor
             //***************************************************
             type_t length( void ) const  noexcept
             {
-                return sqrt(this_t::length2()) ;
+                return motor::math::fn<type_t>::sqrt( this_t::length2() ) ;
             }
 
             //***************************************************
@@ -637,11 +623,6 @@ namespace motor
             {
                 return this_t( std::sin( angle ), std::cos( angle ) ) ;
             }
-
-        private:
-
-                type_t _elem[2] ;
-
         } ;
 
         motor_typedefs( vector2< char_t >, vec2c ) ;

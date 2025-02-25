@@ -46,7 +46,7 @@ namespace motor
             }
 
             static type_t sqrt( typec_t x ) {
-                return std::sqrt( x ) ;
+                return type_t( std::sqrt( x ) ) ;
             }
 
             static type_t sin( typec_t x ) {

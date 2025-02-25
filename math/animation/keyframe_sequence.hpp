@@ -73,7 +73,7 @@ namespace motor
             ~keyframe_sequence( void_t ) noexcept
             {}
 
-        public: // operator = 
+        public: // operators
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
@@ -95,10 +95,19 @@ namespace motor
                 return *this ;
             }
 
+            keyframe_t operator[]( size_t const i ) const noexcept
+            {
+                assert( i < _keyframes.size() ) ;
+                return _keyframes[i] ;
+            }
+
+        public:
+
             spline_cref_t get_spline( void_t ) noexcept
             {
                 return _value_spline ;
             }
+
 
         public:
 
