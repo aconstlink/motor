@@ -138,6 +138,7 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
 }
 
 #define USE_SIB_OPTIMIZATION 0
+#define OBSERVE_CONCURRENT_ACCESS 0
 
 //*************************************************************************************
 void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept 
@@ -163,9 +164,24 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
         
 
     {
+        #if OBSERVE_CONCURRENT_ACCESS
+        static std::atomic< size_t > __access__(0) ;
+        ++__access__ ;
+        #endif
+
         lock_t lk( _mtx ) ;
         _ptr_to_info[ptr] = memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ;
         _allocated_sib += sib ;
+
+        #if OBSERVE_CONCURRENT_ACCESS
+        // check how many thread are accessing at the same time
+        // and if some of then are required to wait for _mtx
+        if( __access__ > 2 )
+        {
+            int bp =0 ;
+        }
+        --__access__ ;
+        #endif
     }
 
 #if MOTOR_MEMORY_OBSERVER
@@ -175,6 +191,8 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
         std::cout << "[MOTOR_MEMORY_OBSERVER] : swap and clear" << std::endl ;
     }
 #endif
+
+    
 
     return ptr ;
 }
