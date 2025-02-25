@@ -731,7 +731,7 @@ void_t database::dump_to_std( void_t ) const noexcept
 }
 
 //******************************************************************
-void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_safe_t::mtr_t mon ) noexcept 
+void_t database::attach( motor::io::location_cref_t loc, motor::io::monitor_mtr_safe_t mon ) noexcept 
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
     
@@ -771,18 +771,19 @@ void_t database::detach( motor::io::location_cref_t loc, motor::io::monitor_mtr_
 }
 
 //******************************************************************
-void_t database::attach( motor::io::monitor_safe_t::mtr_t moni ) noexcept 
+void_t database::attach( motor::io::monitor_mtr_safe_t moni ) noexcept 
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _ac ) ;
-    auto iter = std::find_if( _db->monitors.begin(), _db->monitors.end(), 
-        [&]( motor::io::monitor_mtr_t m )
-    {
-        return m == moni ;
-    } ) ;
 
-    if( iter != _db->monitors.end() ) return ;
-        
-    _db->monitors.emplace_back( moni ) ;
+    size_t i = size_t(-1) ;
+    while( ++i < _db->monitors.size() && _db->monitors[i] != moni ) ;
+    if( i < _db->monitors.size() )
+    {
+        motor::release( motor::move( moni ) ) ;
+        return ;
+    }
+
+    _db->monitors.emplace_back( motor::move( moni ) ) ;
 }
 
 //******************************************************************
