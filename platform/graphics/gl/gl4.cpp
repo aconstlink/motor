@@ -460,6 +460,8 @@ struct gl4_backend::pimpl
     struct state_data
     {
         motor::vector< motor::graphics::render_state_sets_t > states ;
+
+        void_t invalidate( motor::string_in_t ) {}
     } ;
     motor_typedef( state_data ) ;
 
@@ -1016,6 +1018,7 @@ public:
         this_t::release_and_clear_all_array_data( false ) ;
         this_t::release_and_clear_all_feedback_data( false ) ;
         this_t::release_and_clear_all_msl_data( false ) ;
+        this_t::release_and_clear_all_state_data( false ) ;
     }
 
     // silent clear. No gl release will be done.
@@ -1033,6 +1036,7 @@ public:
         this_t::release_and_clear_all_array_data( false ) ;
         this_t::release_and_clear_all_feedback_data( false ) ;
         this_t::release_and_clear_all_msl_data( false ) ;
+        this_t::release_and_clear_all_state_data( false ) ;
     }
 
     //****************************************************************************************
@@ -1917,12 +1921,18 @@ public:
             } ) ;
         }
 
-        _renders.for_each( [&]( this_t::render_data_ref_t rd )
+        _renders.for_each( [&]( this_t::render_data_ref_t rd ) 
         {
             rd.geo_ids.clear() ;
         } ) ;
         
         _geometries.invalidate_and_clear() ;
+    }
+
+    //****************************************************************************************
+    void_t release_and_clear_all_state_data( bool_t const with_gl = false ) noexcept
+    {
+        _states.invalidate_and_clear() ;
     }
 
     //****************************************************************************************

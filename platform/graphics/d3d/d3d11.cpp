@@ -1090,7 +1090,6 @@ public: // msl data
     static bool_t find_ro( msl_datas_t & items, motor::string_in_t name, 
         std::function< void_t ( size_t const, this_t::msl_data_ref_t ) > funk ) noexcept
     {
-        #if 1
         auto const res = items.for_each_with_break( 
             [&]( size_t const j, this_t::msl_data_ref_t d )
         {
@@ -1102,23 +1101,6 @@ public: // msl data
             return false ;
         } ) ;
         return res ;
-        #else
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-
-        size_t j = 0;
-        for(j; j<items.size(); ++j ) 
-        {
-            auto i = size_t( -1 ) ;
-            while ( ++i < items[j].ros.size() && items[ j ].ros[i].name() != name ) ;
-            if( i != items[j].ros.size() ) break ;
-        }
-            
-        if( j == items.size() ) return false ;
-
-        funk( j, items[ j ] ) ;
-       
-        return true ;
-         #endif
     }
 
     // find a msl object by a render object name

@@ -24,7 +24,7 @@ namespace motor
             bool_t valid = false ;
             motor::string_t name ;
 
-            T * data ;
+            T * data = nullptr ;
         };
 
         using items_t = motor::vector< wrapper > ;
@@ -43,10 +43,7 @@ namespace motor
         }
         ~datas( void_t ) noexcept
         {
-            for( auto & i : items )
-            {
-                motor::memory::global::dealloc<T>( motor::move( i.data ) ) ;
-            }
+            this_t::invalidate_and_clear() ;
         }
 
     public: // read and write access
@@ -215,7 +212,9 @@ namespace motor
 
             v[ oid ].valid = true ;
             v[ oid ].name = name ;
-            v[ oid ].data = motor::memory::global::alloc<T>() ;
+
+            if( v[oid].data == nullptr ) 
+                v[ oid ].data = motor::memory::global::alloc<T>( typeid(T).name() ) ;
 
             return oid ;
         }
@@ -354,6 +353,8 @@ namespace motor
             {
                 if( !i.valid ) continue ;
                 i.data->invalidate( i.name ) ;
+                motor::memory::global::dealloc<T>( 
+                    motor::move( i.data ) ) ;
             }
             items.clear() ;
         }
