@@ -58,6 +58,7 @@ namespace motor
                 {
                     HWND hwnd ;
                     wgl_pimpl * ptr ;
+                    _clock_t::time_point rnd_beg ;
                     size_t micro_rnd ;
                 };
                 motor_typedef( wgl_window_data ) ;

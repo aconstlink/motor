@@ -213,15 +213,14 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                                         size_t(rect.right-rect.left), size_t(rect.bottom-rect.top) } ) ;
                                 }
 
-                                _clock_t::time_point rnd_beg_tp = _clock_t::now() ;
-
                                 d.ptr->ctx.borrow_backend()->render_begin() ;
                                 d.ptr->re.execute_frame() ;
                                 d.ptr->ctx.borrow_backend()->render_end() ;
                                 d.ptr->ctx.swap() ;
 
                                 d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
-                                    _clock_t::now() - rnd_beg_tp ).count() ;
+                                    _clock_t::now() - d.rnd_beg ).count() ;
+                                d.rnd_beg = _clock_t::now() ;
                             }
                             else
                             {
@@ -380,7 +379,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                              
                              _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
-                            _wgl_windows.emplace_back( wgl_window_data({ hwnd, pimpl }) )  ;
+                            _wgl_windows.emplace_back( wgl_window_data({ hwnd, pimpl, _clock_t::now() }) )  ;
                         }
                         else
                         {
