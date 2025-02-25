@@ -351,8 +351,10 @@ namespace motor
         {
             for( auto & i : items ) 
             {
-                if( !i.valid ) continue ;
-                i.data->invalidate( i.name ) ;
+                if( i.valid ) 
+                {
+                    i.data->invalidate( i.name ) ;
+                }
                 motor::memory::global::dealloc<T>( 
                     motor::move( i.data ) ) ;
             }

@@ -354,13 +354,13 @@ namespace motor
     }
 
     template< typename T >
-    static core::mtr_safe< T > shared( T const & v, char_cptr_t purpose="" ) noexcept
+    static core::mtr_safe< T > shared( T const & v, char_cptr_t purpose=typeid(T).name() ) noexcept
     {
         return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( v, purpose ) ) ;
     }
 
     template< typename T >
-    static core::mtr_safe< T > shared( T && v, char_cptr_t purpose = "" ) noexcept
+    static core::mtr_safe< T > shared( T && v, char_cptr_t purpose=typeid(T).name() ) noexcept
     {
         return core::mtr_safe<T>::make( motor::memory::create_ptr<T>( std::move( v ), purpose ) ) ;
     }
