@@ -40,6 +40,7 @@
 #endif
 
 #define d3d11_backend_log( text ) "[D3D11] : " text
+#define d3d11_log_warningv( text, ... ) motor::log::global_t::warning<2048>( "[d3d11] : " text, __VA_ARGS__ ) ;
 #define d3d11_log_errorv( text, ... ) motor::log::global_t::error<2048>( "[d3d11] : " text, __VA_ARGS__ ) ;
 
 
@@ -139,15 +140,10 @@ struct d3d11_backend::pimpl
     template< typename T >
     using datas = motor::platform::datas<T> ;
 
-
     //*******************************************************************************************
     struct so_data
     {
         motor_this_typedefs( so_data ) ;
-
-        bool_t valid = false ;
-        // empty names indicate free configs
-        motor::string_t name ;
         
         // this is for rendering the streamout buffer
         struct layout_element
@@ -200,8 +196,6 @@ struct d3d11_backend::pimpl
         so_data( so_data const & ) = delete ;
         so_data( so_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            name = rhv.name ;
             stride = rhv.stride ;
             pt = rhv.pt ;
 
@@ -221,7 +215,7 @@ struct d3d11_backend::pimpl
         }
         ~so_data( void_t ) noexcept
         {
-            invalidate() ;
+            invalidate("") ;
         }
 
         DXGI_FORMAT get_format_from_element( motor::graphics::vertex_attribute const va ) const noexcept
@@ -262,11 +256,8 @@ struct d3d11_backend::pimpl
             return UINT( ret ) ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            valid = false ;
-            name = "" ;
-
             elements.clear() ;
 
             for( size_t b=0; b<2; ++b )
@@ -292,11 +283,6 @@ struct d3d11_backend::pimpl
     //*******************************************************************************************
     struct geo_data
     {
-        bool_t valid = false ;
-
-        // empty names indicate free configs
-        motor::string_t name ;
-
         void_ptr_t vb_mem = nullptr ;
         void_ptr_t ib_mem = nullptr ;
 
@@ -333,9 +319,6 @@ struct d3d11_backend::pimpl
         geo_data( geo_data const & ) = delete ;
         geo_data( geo_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            name = rhv.name ;
-
             motor_move_member_ptr( vb_mem, rhv ) ;
             motor_move_member_ptr( ib_mem, rhv ) ;
 
@@ -356,9 +339,6 @@ struct d3d11_backend::pimpl
         }
         geo_data & operator = ( geo_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            name = rhv.name ;
-
             motor_move_member_ptr( vb_mem, rhv ) ;
             motor_move_member_ptr( ib_mem, rhv ) ;
 
@@ -382,7 +362,7 @@ struct d3d11_backend::pimpl
 
         ~geo_data( void_t ) noexcept
         {
-            invalidate() ;
+            invalidate("") ;
         }
 
         DXGI_FORMAT get_format_from_element( motor::graphics::vertex_attribute const va ) const noexcept
@@ -438,11 +418,8 @@ struct d3d11_backend::pimpl
             return UINT( ret ) ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            valid = false ;
-            name = "" ;
-
             motor::memory::global_t::dealloc_raw( vb_mem ) ;
             motor::memory::global_t::dealloc_raw( ib_mem ) ;
 
@@ -473,9 +450,6 @@ struct d3d11_backend::pimpl
     //*******************************************************************************************
     struct shader_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
-
         bool_t compiled = false ;
 
         // vs, gs, ps, else?
@@ -553,8 +527,7 @@ struct d3d11_backend::pimpl
 
         shader_data( void_t ) noexcept {}
         shader_data( shader_data const & ) = delete ;
-        shader_data( shader_data && rhv ) noexcept : valid( rhv.valid ),
-            name( std::move( rhv.name ) ), compiled( rhv.compiled ),
+        shader_data( shader_data && rhv ) noexcept : compiled( rhv.compiled ),
             vs( std::move( rhv.vs ) ), gs( std::move( rhv.gs ) ), 
             ps( std::move( rhv.ps ) ), vs_blob( std::move( rhv.vs_blob ) ),
             vertex_inputs( std::move( rhv.vertex_inputs) ), 
@@ -568,37 +541,10 @@ struct d3d11_backend::pimpl
             gs_buffers( std::move( rhv.gs_buffers ) ),
             ps_buffers( std::move( rhv.ps_buffers ) )
 
-        {
-            #if 0
-            valid = rhv.valid ;
-            name = std::move( rhv.name ) ;
-            compiled = rhv.compiled ;
-
-            vs = std::move( rhv.vs ) ;
-            gs = std::move( rhv.gs ) ;
-            ps = std::move( rhv.ps ) ;
-            vs_blob = std::move( rhv.vs_blob ) ;
-            
-            vertex_inputs = std::move( rhv.vertex_inputs ) ;
-            
-            vs_cbuffers = std::move( rhv.vs_cbuffers ) ;
-            gs_cbuffers = std::move( rhv.gs_cbuffers ) ;
-            ps_cbuffers = std::move( rhv.ps_cbuffers ) ;
-            
-            vs_textures = std::move( rhv.vs_textures ) ;
-            gs_textures = std::move( rhv.gs_textures ) ;
-            ps_textures = std::move( rhv.ps_textures ) ;
-            
-            vs_buffers = std::move( rhv.vs_buffers ) ;
-            gs_buffers = std::move( rhv.gs_buffers ) ;
-            ps_buffers = std::move( rhv.ps_buffers ) ;
-            #endif
-        }
+        {}
 
         shader_data & operator = ( shader_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            name = std::move( rhv.name ) ;
             compiled = rhv.compiled ;
 
             vs = std::move( rhv.vs ) ;
@@ -623,10 +569,8 @@ struct d3d11_backend::pimpl
             return *this ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            valid = false ;
-            name = "" ;
             compiled = false ;
 
             vs = guard< ID3D11VertexShader >() ;
@@ -653,9 +597,6 @@ struct d3d11_backend::pimpl
     //*******************************************************************************************
     struct image_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
-
         guard< ID3D11ShaderResourceView > view ;
         guard< ID3D11Texture2D > texture ;
         guard< ID3D11SamplerState > sampler ;
@@ -672,9 +613,6 @@ struct d3d11_backend::pimpl
         image_data( image_data const & ) = delete ;
         image_data( image_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            rhv.valid = false ;
-            name = std::move( rhv.name ) ;
             view = std::move( rhv.view ) ;
             texture = std::move( rhv.texture ) ;
             sampler = std::move( rhv.sampler ) ;
@@ -683,14 +621,11 @@ struct d3d11_backend::pimpl
 
         ~image_data( void_t ) noexcept
         {
-            invalidate() ;
+            invalidate("") ;
         }
 
         image_data & operator = ( image_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            rhv.valid = false ;
-            name = std::move( rhv.name ) ;
             view = std::move( rhv.view ) ;
             texture = std::move( rhv.texture ) ;
             sampler = std::move( rhv.sampler ) ;
@@ -699,10 +634,8 @@ struct d3d11_backend::pimpl
             return *this ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            valid = false ;
-            name = "" ;
             view = guard< ID3D11ShaderResourceView >() ;
             texture = guard< ID3D11Texture2D >() ;
             sampler = guard< ID3D11SamplerState >() ;
@@ -717,8 +650,6 @@ struct d3d11_backend::pimpl
     //*******************************************************************************************
     struct array_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
         guard< ID3D11Buffer > buffer ;
         guard< ID3D11ShaderResourceView > view ;
 
@@ -726,31 +657,23 @@ struct d3d11_backend::pimpl
         array_data( array_data const & ) = delete ;
         array_data( array_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            rhv.valid = false ;
-            name = std::move( rhv.name ) ;
             buffer = std::move( rhv.buffer ) ;
             view = std::move( rhv.view ) ;
         }
         ~array_data( void_t ) noexcept
         {
-            invalidate() ;
+            invalidate("") ;
         }
 
         array_data & operator = ( array_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            rhv.valid = false ;
-            name = std::move( rhv.name ) ;
             buffer = std::move( rhv.buffer ) ;
             view = std::move( rhv.view ) ;
             return *this ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            valid = false ;
-            name = "" ;
             buffer = guard< ID3D11Buffer >() ;
             view = guard< ID3D11ShaderResourceView >() ;
         }
@@ -789,7 +712,7 @@ struct d3d11_backend::pimpl
             //invalidate() ;
         }
         
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
             rss = motor::graphics::render_state_sets_t() ;
             depth_stencil_state = guard< ID3D11DepthStencilState >() ;
@@ -811,11 +734,9 @@ struct d3d11_backend::pimpl
     //*******************************************************************************************
     struct state_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
         motor::vector< motor::graphics::render_state_sets_t > states ;
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {}
     } ;
     motor_typedef( state_data ) ;
@@ -823,10 +744,6 @@ struct d3d11_backend::pimpl
     //*******************************************************************************************
     struct render_data
     {
-        bool_t valid = false ;
-
-        motor::string_t name ;
-
         motor::vector< size_t > geo_ids ;
         motor::vector< size_t > so_ids ; // feed from for geometry
         size_t shd_id = size_t( -1 ) ;
@@ -954,8 +871,6 @@ struct d3d11_backend::pimpl
         render_data( render_data const & ) = delete ;
         render_data( render_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            name = std::move( rhv.name ) ;
             geo_ids = std::move( rhv.geo_ids ) ;
             so_ids = std::move( rhv.so_ids ) ;
             shd_id = rhv.shd_id ;
@@ -979,15 +894,14 @@ struct d3d11_backend::pimpl
             _cbuffers_gs = std::move( rhv._cbuffers_gs ) ;
             _cbuffers_ps = std::move( rhv._cbuffers_ps ) ;
         }
+
         ~render_data( void_t ) noexcept
         {
-            invalidate() ;
+            invalidate("") ;
         }
 
         render_data & operator = ( render_data && rhv ) noexcept
         {
-            valid = rhv.valid ;
-            name = std::move( rhv.name ) ;
             geo_ids = std::move( rhv.geo_ids ) ;
             so_ids = std::move( rhv.so_ids ) ;
             shd_id = rhv.shd_id ;
@@ -1014,10 +928,8 @@ struct d3d11_backend::pimpl
             return *this ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            valid = false ;
-            name = "" ;
             shd_id = size_t( -1 ) ;
 
             geo_ids.clear() ;
@@ -1154,10 +1066,6 @@ public: // msl data
     //*******************************************************************************************
     struct msl_data
     {
-        bool_t valid = false ;
-        // empty names indicate free configs
-        motor::string_t name ;
-
         // purpose: keep track of the data within the msl object
         // if recompilation is triggered. On recompilation, there
         // might be no/lost data of the original msl object, so 
@@ -1168,7 +1076,7 @@ public: // msl data
         motor::vector< motor::graphics::render_object_t > ros ; 
         motor::vector< motor::graphics::shader_object_t > sos ; 
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
             msl_obj.~msl_object() ;
         }
@@ -1251,7 +1159,7 @@ public: // framebuffer
 
         ID3D11DepthStencilView * ds_view = nullptr ;
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t ) noexcept
         {
             for( size_t i=0; i<9; ++i ) image_ids[i] = size_t( -1 ) ;
             for( size_t i=0; i<8; ++i ) if( rt_view[i] ) rt_view[i]->Release() ;
@@ -1967,12 +1875,11 @@ public: // functions
                     // store data
                     {
                         motor::string_t const name = obj.name() + "." + motor::to_string( i ) ;
+
                         _images.access( fb.image_ids[ i ], name, [&] ( this_t::image_data_ref_t img )
                         {
-                            img.name = obj.name() + "." + motor::to_string( i ) ;
                             img.sampler = smp.move_out() ;
                             img.texture = tex.move_out() ;
-                            img.valid = true ;
                             img.view = srv.move_out() ;
                             img.requires_y_flip = 1.0f ;
                             return true ;
@@ -2112,7 +2019,6 @@ public: // functions
                         {
                             img.sampler = smp.move_out() ;
                             img.texture = tex.move_out() ;
-                            img.valid = true ;
                             img.view = srv.move_out() ;
                             img.requires_y_flip = 1.0f ;
                             return true ;
@@ -2142,10 +2048,7 @@ public: // functions
         //auto & fb = _framebuffers[ oid ] ;
         //fb.invalidate() ;
 
-        _framebuffers.access( oid, [&]( this_t::framebuffer_data_ref_t fb )
-        {
-            fb.invalidate() ;
-        } ) ;
+        _framebuffers.invalidate( oid ) ;
     }
 
     //************************************************************************************************************
@@ -2189,11 +2092,8 @@ public: // functions
     //************************************************************************************************************
     size_t construct_streamout( size_t oid, motor::graphics::streamout_object_ref_t obj ) noexcept
     {
-        auto const res = _streamouts.access( oid, obj.name(), [&] ( this_t::so_data_ref_t config )
+        auto const res = _streamouts.access( oid, obj.name(), [&] ( motor::string_in_t conf_name, this_t::so_data_ref_t config )
         {
-            config.valid = true ;
-            config.name = obj.name() ;
-
             // capture the vertex layout for stream out
             if ( obj.num_buffers() > 0 )
             {
@@ -2252,7 +2152,10 @@ public: // functions
                             auto & b = config._ping_pong[ j ].buffers[ i ] ;
                             auto & v = config._ping_pong[ j ].views[ i ].invalidate() ;
                             auto const hr = _ctx->dev()->CreateShaderResourceView( b, &res_desc, v ) ;
-                            motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateShaderResourceView for buffer : [" + config.name + "]" ) ) ;
+                            if( FAILED( hr ) )
+                            {
+                                d3d11_log_errorv("CreateShaderResourceView for buffer : [%s]", conf_name.c_str() ) ;
+                            }
                         }
                     }
                 } ) ;
@@ -2287,10 +2190,7 @@ public: // functions
         } ) ;
 
         //auto & d = _streamouts[ oid ] ;
-        _streamouts.access( oid,[&]( this_t::so_data_ref_t d )
-        {
-            d.invalidate() ;
-        } ) ;
+        _streamouts.invalidate( oid ) ;
         
     }
 
@@ -2322,7 +2222,8 @@ public: // functions
 
                     auto & b = d._ping_pong[pp].buffers[i].invalidate() ;
                     HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, NULL, b ) ;
-                    motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) ) ;
+                    motor::log::global_t::error( FAILED( hr ), d3d11_backend_log( 
+                        "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) ) ;
                 }
             } ) ;
             return true ;
@@ -2601,8 +2502,6 @@ public: // functions
     {
         auto const res = _geos.access( oid, obj.name(), [&]( this_t::geo_data_ref_t config )
         {
-            config.valid = true ;
-            config.name = obj.name() ;
             config.pt = obj.primitive_type() ;
 
             // vertex buffer object
@@ -2735,8 +2634,6 @@ public: // functions
         //auto& config = _geos[ id ] ;
         return _geos.access( id, [&]( this_t::geo_data_ref_t config )
         {
-            if( !config.valid ) return false ;
-
             if( geo->index_buffer().get_num_elements() != 0 && config.ib == nullptr )
             {
                 this_t::construct_geo( id, *geo ) ;
@@ -2846,7 +2743,6 @@ public: // functions
     {
         auto tp_begin = std::chrono::high_resolution_clock::now() ;
 
-        shd.name = obj.name() ;
         shd.compiled = false ;
 
         // shader code
@@ -2903,7 +2799,7 @@ public: // functions
                             errblob->Release() ;
                         }
 
-                        shd.invalidate() ;
+                        shd.invalidate( obj.name() ) ;
 
                         return false ;
                     }
@@ -2949,7 +2845,7 @@ public: // functions
                         errblob->Release() ;
                     }
 
-                    shd.invalidate() ;
+                    shd.invalidate( obj.name() ) ;
 
                     return false ;
                 }
@@ -2994,7 +2890,7 @@ public: // functions
                         errblob->Release() ;
                     }
 
-                    shd.invalidate() ;
+                    shd.invalidate( obj.name() ) ;
 
                     return false ;
                 }
@@ -3098,7 +2994,7 @@ public: // functions
             } ) ;
         }
 
-        motor_status2( 1024, "[D3D11] : Compilation Successful : [%s]", shd.name.c_str() ) ;
+        motor_status2( 1024, "[D3D11] : Compilation Successful : [%s]", obj.name().c_str() ) ;
 
         shd.compiled = true ;
 
@@ -3107,7 +3003,7 @@ public: // functions
                 ( std::chrono::high_resolution_clock::now() - tp_begin ).count() ;
 
             motor_status2( 2048, "[d3d11] : shader compilation %zu ms [%s]", 
-                milli, shd.name.c_str() ) ;
+                milli, obj.name().c_str() ) ;
         }
 
         return true ;
@@ -3123,7 +3019,6 @@ public: // functions
         {
             auto const res = _shaders.access( oid, obj.name(), [&]( pimpl::shader_data_ref_t sd )
             {
-                new_shader.valid = true ;
                 sd = std::move( new_shader ) ;
                 return true ;
             } ) ;
@@ -3143,11 +3038,7 @@ public: // functions
             if( rd.shd_id == oid ) rd.shd_id = size_t( -1 ) ;
         } ) ;
 
-        _shaders.access( oid, [&]( this_t::shader_data_ref_t shd )
-        {
-            shd.invalidate() ;
-            return true ;
-        } ) ;
+        _shaders.invalidate( oid ) ;
     }
 
     //************************************************************************************************************
@@ -3297,7 +3188,7 @@ public: // functions
                     {
                         vibs.erase( vibs.begin() + i ) ;
                         motor::log::global_t::warning( d3d11_backend_log(
-                            "removed shader input attribute in [" + rd.name + "]. "
+                            "removed shader input attribute in [" + rc.name() + "]. "
                             "Attribute not found in geometry layout." ) ) ;
                     }
                     // .. or entries are not at the same spot. exchange.
@@ -3339,7 +3230,7 @@ public: // functions
                 }
 
                 bool_t failed = false ;
-                _shaders.access( rd.shd_id, [&] ( this_t::shader_data_ref_t shd )
+                _shaders.access( rd.shd_id, [&] ( motor::string_in_t name, this_t::shader_data_ref_t shd )
                 {
                     auto const hr = _ctx->dev()->CreateInputLayout( rd.layout, num_elements,
                         shd.vs_blob->GetBufferPointer(),
@@ -3347,9 +3238,9 @@ public: // functions
 
                     if ( FAILED( hr ) )
                     {
-                        motor::log::global_t::warning( d3d11_backend_log(
-                            "CreateInputLayout for shader [" + shd.name + "] and "
-                            "render object[" + rc.name() + "]" ) ) ;
+                        d3d11_log_warningv(
+                            "CreateInputLayout for shader [%s] and render object[%s]",
+                            name.c_str(), rc.name().c_str() ) ;
 
                         failed = true ;
                     }
@@ -3388,7 +3279,7 @@ public: // functions
                 {
                     motor::log::global_t::error(
                         "[d3d11] : number of shader input attributes(" + motor::to_string( vibs.size() ) + ") do not match the number of streamout "
-                        "vertex attributes(" + motor::to_string( elems.size() ) + ") for render object[" + rd.name + "] " ) ;
+                        "vertex attributes(" + motor::to_string( elems.size() ) + ") for render object[" + rc.name() + "] " ) ;
                 }
 
                 for ( size_t i = 0; i < n; ++i )
@@ -3403,10 +3294,10 @@ public: // functions
                     else if ( j == vibs.size() )
                     {
                         vibs.erase( vibs.begin() + i ) ;
-                        _shaders.access( rd.shd_id, [&] ( this_t::shader_data_ref_t shd )
+                        _shaders.access( rd.shd_id, [&] ( motor::string_in_t shd_name, this_t::shader_data_ref_t shd )
                         {
                             motor::log::global_t::warning( d3d11_backend_log(
-                                "removed shader input attribute in [" + shd.name + "]. "
+                                "removed shader input attribute in [" + shd_name + "]. "
                                 "Attribute not found in geometry layout." ) ) ;
                         } ) ;
                     }
@@ -3449,7 +3340,7 @@ public: // functions
                     rd.vertex_layout_so = nullptr ;
                 }
 
-                auto const res = _shaders.access( rd.shd_id, [&] ( this_t::shader_data_ref_t shd )
+                auto const res = _shaders.access( rd.shd_id, [&] ( motor::string_in_t shd_name, this_t::shader_data_ref_t shd )
                 {
                     HRESULT const hr = _ctx->dev()->CreateInputLayout( rd.layout_so, num_elements,
                         shd.vs_blob->GetBufferPointer(),
@@ -3458,7 +3349,7 @@ public: // functions
                     if ( FAILED( hr ) )
                     {
                         motor::log::global_t::warning( d3d11_backend_log(
-                            "CreateInputLayout for shader [" + shd.name + "] and "
+                            "CreateInputLayout for shader [" + shd_name + "] and "
                             "render object[" + rc.name() + "]" ) ) ;
                         return false ;
                     }
@@ -3691,10 +3582,8 @@ public: // functions
         #endif
 
         size_t oid = obj.get_oid( _bid ) ;
-        auto const res = _images.access( oid, obj.name(), [&]( this_t::image_data_ref_t img )
+        auto const res = _images.access( oid, obj.name(), [&]( motor::string_in_t img_name, this_t::image_data_ref_t img )
         {
-            img.name = obj.name() ;
-
             if ( img.texture != nullptr )
             {
                 img.texture->Release() ;
@@ -3806,7 +3695,8 @@ public: // functions
                     auto const hr = dev->CreateShaderResourceView( img.texture, &res_desc, img.view ) ;
                     if ( FAILED( hr ) )
                     {
-                        motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for texture : [" + img.name + "]" ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( 
+                            "CreateShaderResourceView for texture : [" + img_name + "]" ) ) ;
                         return false ;
                     }
                 }
@@ -3850,8 +3740,6 @@ public: // functions
         //this_t::array_data_ref_t data = _arrays[ oid ] ;
         auto const res = _arrays.access( oid, obj.name(), [&]( this_t::array_data_ref_t data )
         {
-            data.name = obj.name() ;
-
             ID3D11Device * dev = _ctx->dev() ;
 
             // = number of vertices * sizeof( vertex )
@@ -3910,7 +3798,8 @@ public: // functions
                 auto const hr = dev->CreateShaderResourceView( data.buffer, &res_desc, data.view ) ;
                 if ( FAILED( hr ) )
                 {
-                    motor::log::global_t::error( d3d11_backend_log( "CreateShaderResourceView for buffer : [" + data.name + "]" ) ) ;
+                    motor::log::global_t::error( d3d11_backend_log( 
+                        "CreateShaderResourceView for buffer : [" + obj.name() + "]" ) ) ;
                 }
             }
 
@@ -4111,7 +4000,7 @@ public: // functions
 
         //this_t::render_data_ref_t rnd = _renders[ id ] ;
 
-        return _renders.access( id, [&]( this_t::render_data_ref_t rnd )
+        return _renders.access( id, [&]( motor::string_in_t rnd_name, this_t::render_data_ref_t rnd )
         {
             if ( rnd.shd_id == size_t( -1 ) )
             {
@@ -4123,7 +4012,7 @@ public: // functions
             if ( geo_idx >= rnd.geo_ids.size() && !feed_from_so )
             {
                 motor::log::global_t::error( "[d3d11::render] : used geometry idx invalid "
-                    "because exceeds array size for render object : " + rnd.name ) ;
+                    "because exceeds array size for render object : " + rnd_name ) ;
                 return false ;
             }
 
@@ -4132,11 +4021,11 @@ public: // functions
             //this_t::shader_data_ref_t shd = _shaders[ rnd.shd_id ] ;
 
             {
-                auto const res = _shaders.access( rnd.shd_id, [&] ( this_t::shader_data_ref_t shd )
+                auto const res = _shaders.access( rnd.shd_id, [&] ( motor::string_in_t shd_name, this_t::shader_data_ref_t shd )
                 {
                     if ( shd.vs == nullptr )
                     {
-                        motor::log::global_t::error( d3d11_backend_log( "shader missing for " + shd.name ) ) ;
+                        motor::log::global_t::error( d3d11_backend_log( "shader missing for " + shd_name ) ) ;
                         return false ;
                     }
 

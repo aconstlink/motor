@@ -92,9 +92,6 @@ struct gl4_backend::pimpl
     {
         motor_this_typedefs( feedback_data ) ;
 
-        bool_t valid = false ;
-        motor::string_t name ;
-
         struct buffer
         {
             static constexpr size_t max_buffers = 4 ;
@@ -162,7 +159,7 @@ struct gl4_backend::pimpl
         buffer & write_buffer( void_t ) noexcept { return _buffers[ this_t::write_index() ] ; }
         buffer const & write_buffer( void_t ) const noexcept { return _buffers[ this_t::write_index() ] ; }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t name ) noexcept
         {
             for( size_t rw=0; rw<2; ++rw )
             {
@@ -200,9 +197,6 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct geo_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
-
         GLuint vb_id = GLuint( -1 ) ;
         GLuint ib_id = GLuint( -1 ) ;
 
@@ -248,11 +242,8 @@ struct gl4_backend::pimpl
             rd_ids.push_back( rid ) ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            name.clear() ;
-            valid = false ;
-        
             elements.clear() ;
             ib_elem_sib = 0 ;
             stride = 0 ;
@@ -282,9 +273,6 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct shader_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
-
         GLuint vs_id = GLuint( -1 ) ;
         GLuint gs_id = GLuint( -1 ) ;
         GLuint ps_id = GLuint( -1 ) ;
@@ -445,11 +433,9 @@ struct gl4_backend::pimpl
     public:
 
         //*******************************************************
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
-            valid = false ;
             is_linkage_ok = false ;
-            name.clear() ;
 
             detach_shaders() ;
             delete_shaders() ;
@@ -473,8 +459,6 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct state_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
         motor::vector< motor::graphics::render_state_sets_t > states ;
     } ;
     motor_typedef( state_data ) ;
@@ -487,9 +471,6 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct render_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
-
         motor::vector< size_t > geo_ids ;
         motor::vector< size_t > tf_ids ; // feed from for geometry
         size_t shd_id = size_t( -1 ) ;
@@ -587,7 +568,7 @@ struct gl4_backend::pimpl
             geo_ids.erase( iter ) ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t name ) noexcept
         {
             // need to clear geometry connections before!
             // I am trying to remove those connections.
@@ -615,7 +596,7 @@ struct gl4_backend::pimpl
             for( auto & d : geo_to_vaos ) 
             {
                 glDeleteVertexArrays( 1, &d.vao ) ;
-                gl4_log_error( "glDeleteVertexArrays" ) ;
+                gl4_log_error2( "glDeleteVertexArrays", name ) ;
             }
 
             geo_to_vaos.clear() ;
@@ -628,9 +609,6 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct image_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
-
         GLenum type = GL_NONE ;
 
         GLuint tex_id = GLuint( -1 ) ;
@@ -641,16 +619,14 @@ struct gl4_backend::pimpl
 
         // sampler ids for gl>=3.3
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t name ) noexcept
         {
-            valid = false ;
-            name.clear() ;
             type = GL_NONE ;
 
             if( tex_id != GLuint( -1 ) )
             {
                 glDeleteTextures( 1, &tex_id ) ;
-                gl4_log_error( "glDeleteTextures" ) ;
+                gl4_log_error2( "glDeleteTextures", name ) ;
                 tex_id = GLuint( -1 ) ;
             }
         
@@ -665,15 +641,12 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct array_data
     {
-        bool_t valid = false ;
-        motor::string_t name ;
-
         GLuint tex_id = GLuint( -1 ) ;
         GLuint buf_id = GLuint( -1 ) ;
 
         GLuint sib = 0 ;
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t name ) noexcept
         {
             if( buf_id != GLuint(-1) )
             {
@@ -689,8 +662,6 @@ struct gl4_backend::pimpl
                 tex_id = GLuint( -1 ) ;
             }
 
-            valid = false ;
-            name.clear() ;
             sib = 0 ;
         }
     } ;
@@ -703,10 +674,6 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct framebuffer_data
     {
-        bool_t valid = false ;
-
-        motor::string_t name ;
-
         GLuint gl_id = GLuint( -1 ) ;
 
         size_t nt = 0 ;
@@ -727,7 +694,7 @@ struct gl4_backend::pimpl
             depth = GLuint(-1) ;
         }
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
             if( gl_id != GLuint( -1 ) )
             {
@@ -762,10 +729,6 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct msl_data
     {
-        bool_t valid = false ;
-        // empty names indicate free configs
-        motor::string_t name ;
-
         // purpose: keep track of the data within the msl object
         // if recompilation is triggered.
         motor::graphics::msl_object_t msl_obj ;
@@ -773,7 +736,7 @@ struct gl4_backend::pimpl
         motor::vector< motor::graphics::render_object_t > ros ; 
         motor::vector< motor::graphics::shader_object_t > sos ; 
 
-        void_t invalidate( void_t ) noexcept
+        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
         }
     };
@@ -1277,7 +1240,7 @@ public:
     size_t construct_framebuffer( motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
         size_t oid = obj.get_oid( _bid ) ;
-        auto const res = _framebuffers.access( oid, obj.name(), [&]( this_t::framebuffer_data_ref_t fb )
+        auto const res = _framebuffers.access( oid, obj.name(), [&]( motor::string_in_t fb_name, this_t::framebuffer_data_ref_t fb )
         {
             if( fb.gl_id == GLuint( -1 ) )
             {
@@ -1431,7 +1394,7 @@ public:
                 for( size_t i = 0; i < nt; ++i )
                 {
                     size_t new_iid = size_t(-1) ;
-                    motor::string_t name = fb.name + "." + motor::to_string( i ) ;
+                    motor::string_t name = fb_name + "." + motor::to_string( i ) ;
                     _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
                     {
                         id.tex_id = fb.colors[ i ] ;
@@ -1453,7 +1416,7 @@ public:
             if( requires_store )
             {
                 size_t new_iid = size_t(-1) ;
-                motor::string_t name = fb.name + ".depth" ;
+                motor::string_t name = fb_name + ".depth" ;
                 _images.access( new_iid, name, [&]( this_t::image_data_ref_t id )
                 {
                     id.tex_id = fb.depth ;
@@ -1694,7 +1657,7 @@ public:
         //
 
         size_t oid = obj.get_oid( _bid ) ;
-        auto const shd_res = _shaders.access( oid, obj.name(), [&]( this_t::shader_data_ref_t sd )
+        auto const shd_res = _shaders.access( oid, obj.name(), [&]( motor::string_in_t shd_name, this_t::shader_data_ref_t sd )
         {
             // handle old shader ids and stuff
             {
@@ -1773,7 +1736,7 @@ public:
                     return false ;
                 }
                 sd.is_linkage_ok = true ;
-                motor_status2( 1024, "[GL4] : Compilation Successful : [%s]", sd.name.c_str() ) ;
+                motor_status2( 1024, "[GL4] : Compilation Successful : [%s]", shd_name.c_str() ) ;
             }
 
             {
@@ -2171,7 +2134,7 @@ public:
     }
 
     //****************************************************************************************
-    bool_t bind_attributes( this_t::shader_data & sconfig, this_t::geo_data & gconfig ) const noexcept
+    bool_t bind_attributes( motor::string_in_t shd_name, this_t::shader_data & sconfig, this_t::geo_data & gconfig ) const noexcept
     {
         // bind vertex buffer
         {
@@ -2234,8 +2197,8 @@ public:
                 type = motor::platform::gl3::convert( e.type ) ;
 
                 motor::log::global_t::warning( gl4_log( "Vertex attribute (" +
-                    motor::graphics::to_string(e.va) + ") in shader (" + sconfig.name + ") not used."
-                    "Will bind geometry (" +sconfig.name+ ") layout attribute to custom location (" 
+                    motor::graphics::to_string(e.va) + ") in shader (" + shd_name + ") not used."
+                    "Will bind geometry (" + shd_name + ") layout attribute to custom location (" 
                     + motor::to_string( uint_t(loc) ) + ").") ) ;
             }
             else
@@ -2457,6 +2420,10 @@ public:
                 auto [i, o] = this_t::find_pair_by_ro_name( c_exp, _msls ) ;
                 oid = i ;
                 obj = o ;
+                _msls.access( oid, [&]( this_t::msl_data_ref_t d )
+                {
+                   
+                } ) ;
             }
             
             // msl database contains render configuration 
@@ -2619,6 +2586,10 @@ public:
         {
             obj_in->set_oid( _bid, oid ) ;
         }
+        else
+        {
+            obj_in->set_oid( _bid, size_t(-1) ) ;
+        }
 
         return is_valid_msl ;
     }
@@ -2768,9 +2739,9 @@ public:
             }
 
             //auto & gd = _geometries[ gid ] ;
-            auto const [c,d] = _geometries.access<bool_t>( gid, [&]( this_t::geo_data_ref_t gd )
+            auto const [c,d] = _geometries.access<bool_t>( gid, [&]( motor::string_in_t name, this_t::geo_data_ref_t gd )
             {
-                return this_t::bind_attributes( sd, gd ) ;
+                return this_t::bind_attributes( name, sd, gd ) ;
             } ) ;
             
             return c && d ;
@@ -3681,9 +3652,9 @@ public:
                                 motor::log::global::warning("[gl4] : image variable value not found : " 
                                     "%s : Resetting to old name.", link.var->get().name().c_str() ) ;
 
-                                _images.access( link.img_id, [&]( this_t::image_data_ref_t id )
+                                _images.access( link.img_id, [&]( motor::string_in_t id_name, this_t::image_data_ref_t )
                                 {
-                                    link.var->set( id.name ) ;
+                                    link.var->set( id_name ) ;
                                 } ) ;
                             }
                             else
@@ -3748,7 +3719,7 @@ public:
     {
         MOTOR_PROBE( "Graphics", "[gl4] : render" ) ;
 
-        _renders.access( id, [&]( this_t::render_data_ref_t config )
+        _renders.access( id, [&]( motor::string_in_t name, this_t::render_data_ref_t config )
         {
             _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t sconfig )
             {
@@ -3776,9 +3747,10 @@ public:
                 // #3 : otherwise we can not render
                 else
                 {
-                    motor::log::global_t::error( "[gl3::render] : used geometry idx invalid because" 
-                        "exceeds array size for render object : " + config.name ) ;
-                        return false ;
+                    motor::log::global::error<1024>( "used geometry idx invalid because" 
+                        "exceeds array size for render object : %s", name.c_str() ) ;
+
+                    return false ;
                 }
 
             
@@ -3914,14 +3886,15 @@ public:
                                 if ( link.var_set_idx < varset_id ) continue ;
 
                                 //auto const & tfd = _feedbacks[ link.so_id ] ;
-                                auto const [a, b] = _feedbacks.access<bool_t>( link.so_id, [&]( this_t::feedback_data_ref_t tfd )
+                                auto const [a, b] = _feedbacks.access<bool_t>( link.so_id, [&]( motor::string_in_t name, 
+                                    this_t::feedback_data_ref_t tfd )
                                 {
                                     GLuint const tid = link.tex_id[tfd.read_index()] ;
 
                                     glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
-                                    if( gl4_log_error2( "glActiveTexture", tfd.name.c_str() ) ) return false ;
+                                    if( gl4_log_error2( "glActiveTexture", name.c_str() ) ) return false ;
                                     glBindTexture( GL_TEXTURE_BUFFER, tid ) ;
-                                    if( gl4_log_error2( "glBindTexture", tfd.name.c_str() ) ) return false ;
+                                    if( gl4_log_error2( "glBindTexture", name.c_str() ) ) return false ;
 
                                     return true ;
                                 } ) ;
