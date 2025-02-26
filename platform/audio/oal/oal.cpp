@@ -338,6 +338,7 @@ struct motor::platform::oal_backend::pimpl
 
     bool_t control_what_u_hear_capturing( bool_t const do_capture )
     {
+        if( _gc == nullptr ) return false ;
         //ALCdevice* dev = _gc->dev ;
 
         if( _do_captures == 0 && do_capture )
