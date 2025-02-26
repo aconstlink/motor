@@ -14,17 +14,83 @@ namespace motor
     {
         motor_this_typedefs( datas< T > ) ;
 
+
+        class try_guard
+        {
+            std::atomic< bool_t > & _what ;
+
+            bool_t _expected = false ;
+            bool_t _accessed = false ;
+
+        public:
+            
+            try_guard( std::atomic< bool_t > & w ) noexcept : _what(w) {}
+            ~try_guard( void_t ) noexcept 
+            {
+                if( _accessed ) _what = _expected ;
+            }
+
+            bool_t now( bool_t expected, bool_t desired ) noexcept
+            {
+                _expected = expected ;
+                _accessed = _what.compare_exchange_weak( expected, desired ) ;
+                return _accessed ;
+            }
+        };
+
+        class busy_guard
+        {
+        private:
+
+            std::atomic< bool_t > & _what ;
+
+            bool_t _expected = false ;
+
+        public:
+
+            busy_guard( std::atomic< bool_t > & w ) noexcept : _what( w ){}
+
+            ~busy_guard( void_t ) noexcept
+            {
+                _what = _expected ;
+            }
+
+            void_t now( bool_t expected, bool_t desired ) noexcept
+            {
+                _expected = expected ;
+                while( !_what.compare_exchange_weak( _expected, desired ) ) ;
+            }
+        };
+
     private:
 
         struct wrapper
         {
             //motor::concurrent::mrsw_t busy_mtx ;
-            bool_t busy = false ;
+            //bool_t busy = false ;
+            std::atomic< bool_t > busy = false ;
+
 
             bool_t valid = false ;
             motor::string_t name ;
 
             T * data = nullptr ;
+
+            wrapper( void_t ) noexcept{}
+
+            wrapper( wrapper && rhv ) noexcept : busy( false ),
+                valid( rhv.valid), name( std::move( rhv.name) ), data( motor::move( rhv.data ) )
+            {}
+
+            wrapper & operator = ( wrapper && rhv ) noexcept 
+            {
+                busy = false ;
+                valid = rhv.valid ;
+                rhv.valid = false ;
+                name = std::move( rhv.name ) ;
+                data = motor::move( rhv.data ) ;
+                return *this ;
+            }
         };
 
         using items_t = motor::vector< wrapper > ;
@@ -35,7 +101,9 @@ namespace motor
     public:
 
         datas( void_t ) noexcept {}
+        datas( this_cref_t ) = delete ;
         datas( this_rref_t rhv ) noexcept : items( std::move( rhv.items ) ) {}
+        this_ref_t operator = ( this_cref_t ) = delete ;
         this_ref_t operator = ( this_rref_t rhv ) noexcept
         {
             items = std::move( rhv.items ) ;
@@ -70,6 +138,9 @@ namespace motor
             if( oid != size_t( -1 ) )
             {
                 motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+
+                this_t::busy_guard busy_wait( items[oid].busy ) ;
+                busy_wait.now( false, true ) ;
                 return funk( oid, items[ oid ].name, *items[ oid ].data ) ;
             }
 
@@ -107,6 +178,64 @@ namespace motor
             } ) ;
         }
 
+    private: // internal access
+
+        std::pair< bool_t, bool_t > try_access( size_t oid, std::function< void_t ( this_t::wrapper & ) > funk ) noexcept
+        {
+            if( oid == size_t(-1) ) return std::make_pair( false, false ) ;
+
+            {
+                motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+                
+                if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
+                    return std::make_pair( false, false ) ;
+                
+                this_t::try_guard try_lock( items[oid].busy ) ;
+                if( !try_lock.now( false, true ) )
+                    return std::make_pair( true, false ) ;
+
+                funk( items[ oid ] ) ;
+            }
+            return std::make_pair( false, true ) ;
+        }
+
+    public: // try access
+
+        std::pair< bool_t, bool_t > try_access( size_t oid, std::function< void_t ( T & ) > funk ) noexcept
+        {
+            return this_t::try_access( oid, [&]( this_t::wrapper & wrp )
+            {
+                funk( *wrp.data ) ;
+            } ) ;
+        }
+
+        std::pair< bool_t, bool_t > try_access( size_t oid, std::function< void_t ( motor::string_in_t, T & ) > funk ) noexcept
+        {
+            return this_t::try_access( oid, [&]( this_t::wrapper & wrp )
+            {
+                funk( wrp.name, *wrp.data ) ;
+            } ) ;
+        }
+
+        // access by id only
+        // if you have an id and you know the object exists, use this function
+        template< typename R >
+        std::pair< bool_t, R > try_access( size_t const oid, std::function< R ( T & ) > funk ) noexcept
+        {
+            if( oid == size_t(-1) ) return std::make_pair( false, R() ) ; 
+
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+                
+            if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
+                return std::make_pair( false, R() ) ;
+               
+            this_t::try_guard try_lock( items[oid].busy ) ;
+            if( !try_lock.now( false, true ) )
+                return std::make_pair( true, R() ) ;
+
+            return std::make_pair( true, funk( *items[ oid ].data ) ) ;
+        }
+
     public: // read access
 
         bool_t access( size_t oid, std::function< void_t ( T & ) > funk ) noexcept
@@ -127,7 +256,11 @@ namespace motor
                 if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
                     return false ;
 
+                this_t::busy_guard busy_wait( items[oid].busy ) ;
+                busy_wait.now( false, true ) ;
+
                 funk( items[ oid ].name, *items[ oid ].data ) ;
+                
             }
             return true ;
         }
@@ -174,8 +307,6 @@ namespace motor
                 return funk( d ) ;
             } ) ;
         }
-        
-        
 
     private:
 
@@ -204,17 +335,29 @@ namespace motor
                 while ( ++oid < v.size() && v[ oid ].valid ) ;
             }
 
-            if ( oid >= v.size() )
+            if ( oid >= v.size() && 
+                v.size() == v.capacity() )
             {
                 oid = v.size() ;
-                v.resize( oid + 10 ) ;
+                v.reserve( oid + 20 ) ;
             }
 
-            v[ oid ].valid = true ;
-            v[ oid ].name = name ;
+            if( oid == v.size() )
+            {
+                this_t::wrapper w ;
+                w.busy = false ;
+                w.valid = true ;
+                w.name = name ;
+                w.data = motor::memory::global::alloc<T>( typeid(T).name() ) ;
 
-            if( v[oid].data == nullptr ) 
-                v[ oid ].data = motor::memory::global::alloc<T>( typeid(T).name() ) ;
+                v.emplace_back( std::move( w ) ) ;
+            }
+            else
+            {
+                v[ oid ].valid = true ;
+                v[ oid ].name = name ;
+            }
+            
 
             return oid ;
         }
@@ -336,12 +479,6 @@ namespace motor
         size_t size( void_t ) const noexcept
         {
             return items.size() ;
-        }
-
-        void_t resize( size_t const ni ) noexcept
-        {
-            motor::concurrent::mrsw_t::writer_lock_t lk( mtx ) ;
-            items.resize( ni ) ;
         }
 
     public:

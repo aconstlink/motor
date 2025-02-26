@@ -3729,7 +3729,7 @@ public:
     {
         MOTOR_PROBE( "Graphics", "[gl4] : render" ) ;
 
-        _renders.access( id, [&]( motor::string_in_t name, this_t::render_data_ref_t config )
+        auto const [a,b] = _renders.try_access( id, [&]( motor::string_in_t name, this_t::render_data_ref_t config )
         {
             _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t sconfig )
             {
@@ -4015,6 +4015,11 @@ public:
             } ) ;
         } ) ;
 
+        if( a )
+        {
+            int  pb = 0 ;
+        }
+
         //this_t::shader_data & sconfig = _shaders[ config.shd_id ] ;
         
 
@@ -4122,7 +4127,7 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
     }
 
     auto const oid = obj->get_oid( this_t::get_bid() ) ;
-
+    
     // is it in transit
     if( oid == size_t(-2) )
     {
@@ -4592,7 +4597,7 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
         return motor::graphics::result::in_transit ;
     }
 
-    auto const [a,b] = _pimpl->_msls.access<motor::graphics::result>( oid, [&]( pimpl::msl_data_ref_t msl )
+    auto const [a,b] = _pimpl->_msls.try_access<motor::graphics::result>( oid, [&]( pimpl::msl_data_ref_t msl )
     {
         motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
         return this_t::render( ro, detail ) ;

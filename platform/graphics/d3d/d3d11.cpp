@@ -1341,7 +1341,6 @@ public: // functions
     pimpl( size_t const bid, motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept : _bid( bid )
     {
         _ctx = ctx ;
-        _geos.resize( 10 ) ;
 
         {
             motor::graphics::state_object_t obj( "d3d11_default_states" ) ;
