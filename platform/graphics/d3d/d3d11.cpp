@@ -2474,6 +2474,10 @@ public: // functions
         {
             obj_in->set_oid( _bid, oid ) ;
         }
+        else
+        {
+            obj_in->set_oid( _bid, size_t(-1) ) ;
+        }
 
         return is_valid_msl ;
     }
