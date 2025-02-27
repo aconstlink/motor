@@ -1663,6 +1663,8 @@ public:
         size_t oid = obj.get_oid( _bid ) ;
         auto const shd_res = _shaders.access( oid, obj.name(), [&]( motor::string_in_t shd_name, this_t::shader_data_ref_t sd )
         {
+            sd.invalidate( shd_name ) ;
+
             // handle old shader ids and stuff
             {
                 sd.detach_shaders() ;
@@ -2531,24 +2533,24 @@ public:
                 ro.add_variable_sets( obj.get_varibale_sets() ) ;
             }
 
-                        
-            {
-                //so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
-                //if ( !ctsd->owner->construct_shader_config( so ) )
-                if( !this_t::construct_shader_data( so ) )
-                {
-                    // construction/compilation failed
-                    // @todo return here.
-                    continue ;
-                }
-                //if( !ctsd->owner->construct_render_config( ro ) )
-                if( !this_t::construct_render_data( ro ) )
-                {
-                }
-            }
-
             auto const access_res = _msls.access( oid, obj.name(), [&] ( this_t::msl_data_ref_t msl )
             {
+                {
+                    //so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
+                    //if ( !ctsd->owner->construct_shader_config( so ) )
+                    if( !this_t::construct_shader_data( so ) )
+                    {
+                        // construction/compilation failed
+                        // @todo return here.
+                        return false ;
+                    }
+                    //if( !ctsd->owner->construct_render_config( ro ) )
+                    if( !this_t::construct_render_data( ro ) )
+                    {
+                        return false ;
+                    }
+                }
+
                 // render object
                 {
                     size_t i = size_t( -1 ) ;
@@ -2614,7 +2616,7 @@ public:
     //****************************************************************************************
     bool_t construct_render_data( motor::graphics::render_object_ref_t obj ) noexcept
     {
-        if( this_t::release_render_data( obj.get_oid(_bid) ) )
+        if( this_t::release_render_data( obj ) )
         {
             obj.set_oid( _bid, size_t(-1) ) ;
         }
@@ -2628,10 +2630,12 @@ public:
     }
 
     //****************************************************************************************
-    bool_t release_render_data( size_t const oid ) noexcept
+    bool_t release_render_data( motor::graphics::render_object_ref_t obj ) noexcept
     {
+        size_t oid = obj.get_oid( _bid ) ;
+
         // #1 break connections BEFORE invalidating the item
-        _renders.access( oid, [&]( this_t::render_data_ref_t rd )
+        auto const res = _renders.access( oid, obj.name(), [&]( this_t::render_data_ref_t rd )
         {
             for( auto id : rd.geo_ids )
             {
@@ -2648,6 +2652,7 @@ public:
                     d.remove_render_data_id( oid ) ;
                 } ) ;
             }
+            return true ;
         } ) ;
 
         _renders.invalidate( oid ) ;
@@ -4270,7 +4275,7 @@ motor::graphics::result gl4_backend::release( motor::graphics::render_object_mtr
     }
 
     {
-        _pimpl->release_render_data( obj->get_oid( this_t::get_bid() ) ) ;
+        _pimpl->release_render_data( *obj ) ;
         obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
     }
 
