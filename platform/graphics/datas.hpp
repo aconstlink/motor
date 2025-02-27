@@ -14,26 +14,29 @@ namespace motor
     {
         motor_this_typedefs( datas< T > ) ;
 
-
         class try_guard
         {
-            std::atomic< bool_t > & _what ;
+        public:
 
-            bool_t _expected = false ;
+            using atomic_t = std::atomic< size_t > ;
+
+        private:
+
+            atomic_t & _what ;
             bool_t _accessed = false ;
 
         public:
             
-            try_guard( std::atomic< bool_t > & w ) noexcept : _what(w) {}
+            try_guard( atomic_t & w ) noexcept : _what(w) {}
             ~try_guard( void_t ) noexcept 
             {
-                if( _accessed ) _what = _expected ;
+                if( _accessed ) _what = 0 ;
             }
 
-            bool_t now( bool_t expected, bool_t desired ) noexcept
+            bool_t now( void_t ) noexcept
             {
-                _expected = expected ;
-                _accessed = _what.compare_exchange_weak( expected, desired ) ;
+                size_t expected = 0 ;
+                _accessed = _what.compare_exchange_weak( expected, 1 ) ;
                 return _accessed ;
             }
         };
@@ -42,33 +45,30 @@ namespace motor
         {
         private:
 
-            std::atomic< bool_t > & _what ;
-
-            bool_t _expected = false ;
+            std::atomic< size_t > & _what ;
 
         public:
 
-            busy_guard( std::atomic< bool_t > & w ) noexcept : _what( w ){}
+            busy_guard( std::atomic< size_t > & w ) noexcept : _what( w )
+            {
+                size_t expected = 0 ;
+                while( !_what.compare_exchange_weak( expected, size_t(1) ) ) ;
+            }
 
             ~busy_guard( void_t ) noexcept
             {
-                _what = _expected ;
-            }
-
-            void_t now( bool_t expected, bool_t desired ) noexcept
-            {
-                _expected = expected ;
-                while( !_what.compare_exchange_weak( _expected, desired ) ) ;
+                _what = 0 ;
             }
         };
-
+        
     private:
 
         struct wrapper
         {
             //motor::concurrent::mrsw_t busy_mtx ;
             //bool_t busy = false ;
-            std::atomic< bool_t > busy = false ;
+            //std::atomic< bool_t > busy = false ;
+            std::atomic< size_t > busy = 0 ;
 
 
             bool_t valid = false ;
@@ -140,7 +140,6 @@ namespace motor
                 motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
 
                 this_t::busy_guard busy_wait( items[oid].busy ) ;
-                busy_wait.now( false, true ) ;
                 return funk( oid, items[ oid ].name, *items[ oid ].data ) ;
             }
 
@@ -191,7 +190,7 @@ namespace motor
                     return std::make_pair( false, false ) ;
                 
                 this_t::try_guard try_lock( items[oid].busy ) ;
-                if( !try_lock.now( false, true ) )
+                if( !try_lock.now() )
                     return std::make_pair( true, false ) ;
 
                 funk( items[ oid ] ) ;
@@ -230,7 +229,7 @@ namespace motor
                 return std::make_pair( false, R() ) ;
                
             this_t::try_guard try_lock( items[oid].busy ) ;
-            if( !try_lock.now( false, true ) )
+            if( !try_lock.now() )
                 return std::make_pair( true, R() ) ;
 
             return std::make_pair( true, funk( *items[ oid ].data ) ) ;
@@ -257,29 +256,25 @@ namespace motor
                     return false ;
 
                 this_t::busy_guard busy_wait( items[oid].busy ) ;
-                busy_wait.now( false, true ) ;
-
                 funk( items[ oid ].name, *items[ oid ].data ) ;
                 
             }
             return true ;
         }
-
-        bool_t access_by_name( motor::string_cref_t name, std::function< void_t ( size_t const id, T & ) > funk ) noexcept
+        
+        bool_t access_by_name( motor::string_in_t name, std::function< void_t ( size_t const, T & ) > funk ) noexcept
         {
-            bool_t res = false ;
-            this_t::for_each_with_break( [&]( size_t const id, motor::string_in_t name_, T & d )
-            {
-                if( name_ == name ) 
-                {
-                    funk( id, d ) ;
-                    res = true ;
-                    return false ;
-                }
-                return true ;
-            } ) ;
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
+            
+            auto i=size_t(-1) ;
+            while( ++i < items.size() && items[i].name != name ) ;
 
-            return res ;
+            if( i == items.size() ) return false ;
+
+            this_t::busy_guard busy_wait( items[i].busy ) ;
+            funk( i, *items[ i ].data ) ;
+
+            return true ;
         }
 
         // access by id only
@@ -294,6 +289,8 @@ namespace motor
             if( this_t::check_oid( oid, items ) == size_t( -1 ) ) 
                 return std::make_pair( false, R() ) ;
                
+            this_t::busy_guard busy_wait( items[oid].busy ) ;
+
             return std::make_pair( true, funk( items[oid].name, *items[ oid ].data ) ) ;
         }
 
@@ -364,21 +361,6 @@ namespace motor
 
     public:
 
-        // find by name
-        bool_t find( motor::string_in_t name, std::function< void_t ( size_t const, T & ) > funk ) noexcept
-        {
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx ) ;
-            
-            auto i=size_t(-1) ;
-            while( ++i < items.size() && items[i].name != name ) ;
-
-            if( i == items.size() ) return false ;
-
-            funk( i, *items[ i ].data ) ;
-
-            return true ;
-        }
-
         size_t find_by_name( motor::string_in_t name ) const noexcept
         {
             if( name.empty() ) return size_t(-1) ;
@@ -396,6 +378,8 @@ namespace motor
             for( auto & i : items ) 
             {
                 if( !i.valid ) continue ;
+
+                this_t::busy_guard busy_wait( i.busy ) ;
                 funk( *i.data ) ;
             }
         }
@@ -406,6 +390,8 @@ namespace motor
             for( size_t i=0; i<items.size(); ++i ) 
             {
                 if( !items[i].valid ) continue ;
+
+                this_t::busy_guard busy_wait( items[i].busy ) ;
                 funk( i, *items[i].data ) ;
             }
         }
@@ -416,6 +402,8 @@ namespace motor
             for( auto & i : items ) 
             {
                 if( !i.valid ) continue ;
+
+                this_t::busy_guard __( items[i].busy ) ;
                 funk( i.name, *i.data ) ;
             }
         }
@@ -429,6 +417,7 @@ namespace motor
             for( auto & i : items ) 
             {
                 if( !i.valid ) continue ;
+                this_t::busy_guard __( items[i].busy ) ;
                 if( !funk( *i.data ) ) return true ;
             }
             return false ;
@@ -440,6 +429,7 @@ namespace motor
             for( auto & i : items ) 
             {
                 if( !i.valid ) continue ;
+                this_t::busy_guard __( items[i].busy ) ;
                 if( !funk( i.name, *i.data ) ) return true ;
             }
             return false ;
@@ -451,6 +441,7 @@ namespace motor
             for( size_t i=0; i<items.size(); ++i )
             {
                 if( !items[i].valid ) continue ;
+                this_t::busy_guard __( items[i].busy ) ;
                 if( !funk( i, *items[i].data ) ) return true ;
             }
             return false ;
@@ -462,19 +453,14 @@ namespace motor
             for( size_t i=0; i<items.size(); ++i )
             {
                 if( !items[i].valid ) continue ;
+                this_t::busy_guard __( items[i].busy ) ;
                 if( !funk( i, items[i].name, *items[i].data ) ) return true ;
             }
             return false ;
         }
 
     public: // unsave
-
-        #if 0
-        T & operator[] ( size_t const idx ) noexcept
-        {
-            return items[idx] ;
-        }
-        #endif
+       
 
         size_t size( void_t ) const noexcept
         {
@@ -510,4 +496,4 @@ namespace motor
         }
     } ;
     }
-}
+} 
