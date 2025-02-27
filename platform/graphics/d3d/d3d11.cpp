@@ -5101,7 +5101,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
 
     motor::graphics::result res = motor::graphics::result::failed ;
 
-    _pimpl->_msls.access( oid, [&]( pimpl::msl_data_ref_t msl )
+    _pimpl->_msls.try_access( oid, [&]( pimpl::msl_data_ref_t msl )
     {
         motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
         res = this_t::render( ro, detail ) ;
