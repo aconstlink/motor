@@ -65,11 +65,9 @@ namespace motor
 
         struct wrapper
         {
-            //motor::concurrent::mrsw_t busy_mtx ;
-            //bool_t busy = false ;
-            //std::atomic< bool_t > busy = false ;
+            // allow only one entity to access
+            // the critical section. 
             std::atomic< size_t > busy = 0 ;
-
 
             bool_t valid = false ;
             motor::string_t name ;
@@ -354,7 +352,6 @@ namespace motor
                 v[ oid ].valid = true ;
                 v[ oid ].name = name ;
             }
-            
 
             return oid ;
         }
@@ -460,7 +457,6 @@ namespace motor
         }
 
     public: // unsave
-       
 
         size_t size( void_t ) const noexcept
         {

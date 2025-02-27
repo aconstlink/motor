@@ -190,7 +190,6 @@ struct gl4_backend::pimpl
     };
     motor_typedef( feedback_data ) ;
 
-    //typedef motor::vector< this_t::tf_data_t > tf_datas_t ;
     using feedbacks_t = motor::platform::datas< this_t::feedback_data_t > ;
     feedbacks_t _feedbacks ;
 
@@ -465,7 +464,6 @@ struct gl4_backend::pimpl
     } ;
     motor_typedef( state_data ) ;
 
-    //typedef motor::vector< this_t::state_data_t > state_datas_t ;
     using states_t = motor::platform::datas< state_data > ;
     states_t _states ;
     motor::stack< motor::graphics::render_state_sets_t, 10 > _state_stack ;
@@ -669,7 +667,6 @@ struct gl4_backend::pimpl
     } ;
     motor_typedef( array_data ) ;
 
-    //typedef motor::vector< this_t::array_data_t > array_datas_t ;
     using arrays_t = motor::platform::datas< array_data_t > ;
     arrays_t _arrays ;
 
@@ -724,7 +721,6 @@ struct gl4_backend::pimpl
     };
     motor_typedef( framebuffer_data ) ;
 
-    //typedef motor::vector< this_t::framebuffer_data_t > framebuffer_datas_t ;
     using framebuffer_datas_t = motor::platform::datas< framebuffer_data_t > ;
     framebuffer_datas_t _framebuffers ;
 
@@ -744,7 +740,6 @@ struct gl4_backend::pimpl
     };
     motor_typedef( msl_data ) ;
 
-    //typedef motor::vector< this_t::msl_data_t > msl_datas_t ;
     using msls_t = motor::platform::datas< msl_data_t > ;
     msls_t _msls ;
 
@@ -796,7 +791,6 @@ struct gl4_backend::pimpl
     size_t _bid = size_t(-1) ;
 
 private: // support thread
-    
 
     // for the support thread
     struct shared_data
@@ -2536,15 +2530,13 @@ public:
             auto const access_res = _msls.access( oid, obj.name(), [&] ( this_t::msl_data_ref_t msl )
             {
                 {
-                    //so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
-                    //if ( !ctsd->owner->construct_shader_config( so ) )
                     if( !this_t::construct_shader_data( so ) )
                     {
                         // construction/compilation failed
                         // @todo return here.
                         return false ;
                     }
-                    //if( !ctsd->owner->construct_render_config( ro ) )
+
                     if( !this_t::construct_render_data( ro ) )
                     {
                         return false ;

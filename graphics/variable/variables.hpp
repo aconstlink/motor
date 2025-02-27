@@ -33,22 +33,10 @@ namespace motor
 
         public:
 
-            data_variable( void_t ) noexcept
-            {}
-
-            data_variable( value_cref_t v ) noexcept : _value(v)
-            {}
-
-            data_variable( this_cref_t rhv ) noexcept 
-            {
-                _value = rhv._value ;
-            }
-
-            data_variable( this_rref_t rhv ) noexcept
-            {
-                _value = std::move( rhv._value ) ;
-            }
-
+            data_variable( void_t ) noexcept{}
+            data_variable( value_cref_t v ) noexcept : _value(v){}
+            data_variable( this_cref_t rhv ) noexcept : _value( rhv._value ){}
+            data_variable( this_rref_t rhv ) noexcept : _value( std::move( rhv._value ) ){}
             virtual ~data_variable( void_t ) noexcept {}
 
         public:
