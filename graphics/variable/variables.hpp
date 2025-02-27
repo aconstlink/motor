@@ -5,6 +5,7 @@
 #include "../typedefs.h"
 
 #include <functional>
+#include <chrono>
 
 namespace motor
 {
