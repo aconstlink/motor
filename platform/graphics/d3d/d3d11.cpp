@@ -2290,7 +2290,6 @@ public: // functions
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
         size_t oid = obj.get_oid( _bid ) ;
-        _msls.access( oid, obj.name(), [] ( this_t::msl_data_ref_t ) { return true ; } ) ;
 
         // if -1, it is probably a library shader or some tmp 
         // msl object. So do not return any valid is below.
