@@ -2289,7 +2289,8 @@ public: // functions
 
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
-        size_t oid = obj.get_oid( _bid ) ;
+        size_t oid = obj_in->get_oid( _bid ) ;
+        _msls.access( oid, obj.name(), [] ( this_t::msl_data_ref_t ) { return true ; } ) ;
 
         // if -1, it is probably a library shader or some tmp 
         // msl object. So do not return any valid is below.
@@ -2314,7 +2315,6 @@ public: // functions
                 obj = o ;
             }
 
-                        
             // msl database contains render configuration 
             // which has not been configured by the user...
             if ( oid == size_t( -1 ) )
@@ -2410,22 +2410,22 @@ public: // functions
                 ro.add_variable_sets( obj.get_varibale_sets() ) ;
             }
 
-                        
-            {
-                //so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
-                if ( !this_t::construct_shader_config( so ) )
-                {
-                    // construction/compilation failed
-                    // @todo return here.
-                    continue ;
-                }
-                if( !this_t::construct_render_config( ro ) )
-                {
-                }
-            }
-
             auto const access_res = _msls.access( oid, obj.name(), [&] ( this_t::msl_data_ref_t msl )
             {
+                {
+                    //so.set_oid( bid, this_t::construct_shader_config( so.get_oid( bid ), so ) ) ;
+                    if ( !this_t::construct_shader_config( so ) )
+                    {
+                        // construction/compilation failed
+                        // @todo return here.
+                        return false ;
+                    }
+                    if( !this_t::construct_render_config( ro ) )
+                    {
+                        return false ;
+                    }
+                }
+
                 // render object
                 {
                     size_t i = size_t( -1 ) ;
