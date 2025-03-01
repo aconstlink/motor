@@ -41,8 +41,9 @@ namespace motor{ namespace mstd {
         }
 
         vector_pod( this_cref_t rhv ) noexcept : _capacity( rhv._capacity ),
-            _size( rhv._size ), _ptr( motor::memory::global::alloc_raw<T>( _size ) )
+            _size( rhv._size ), _ptr( nullptr )
         {
+            _ptr = motor::memory::global::alloc_raw<T>( _capacity ) ;
             std::memcpy( _ptr, rhv._ptr, sizeof( T ) * _size ) ;
         }
 
@@ -219,7 +220,7 @@ namespace motor{ namespace mstd {
 
         void_t push_back( T const & v, size_t const grow_by = 10 ) noexcept
         {
-            size_t const pos = this_t::resize_by( 1 ) ;
+            size_t const pos = this_t::resize_by( 1, grow_by ) ;
             _ptr[ pos ] = v ;
         }
 

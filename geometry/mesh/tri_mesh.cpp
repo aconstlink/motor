@@ -112,6 +112,7 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
     // position must be duplicated and a new vertex must be created.
     more_per_vertex_index_vectors_t per_position_references( num_vertices ) ;
 
+    
     //
     // PASS #1 : Find references
     //
@@ -149,19 +150,14 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
 
             #if 1
             {
-                size_t i = 0 ;
-
-                for ( i; i < cur_index_vectors.size(); ++i )
+                size_t i = size_t(-1) ; 
+                while( ++i < cur_index_vectors.size() && !(cur_index_vectors[ i ] == iv) ) ;
+                
+                if ( i != cur_index_vectors.size() )
                 {
-                    auto & item = cur_index_vectors[ i ] ;
-                    if ( item == iv )
-                    {
-                        item.ref_iids.push_back( iid ) ;
-                        break ;
-                    }
+                    cur_index_vectors[i].ref_iids.push_back( iid ) ;
                 }
-
-                if ( i == cur_index_vectors.size() )
+                else
                 {
                     iv.ref_iids.push_back( iid, 1000 ) ;
                     cur_index_vectors.push_back( iv ) ;
@@ -187,7 +183,7 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
             #endif
         }        
     }
-
+    #if 1
     //
     // PASS #2 : Count required vertices
     //
@@ -318,5 +314,6 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
         mesh_out.indices = std::move( new_indices ) ;
     }
 
+    #endif
     return motor::geometry::ok ;
 }
