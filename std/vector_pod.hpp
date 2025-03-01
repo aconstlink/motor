@@ -109,6 +109,22 @@ namespace motor{ namespace mstd {
             _size -= 1 ;
         }
 
+        void_t insert( size_t const idx, T const & item ) noexcept
+        {
+            if( idx == _size ) return this_t::push_back( item ) ;
+
+            this_t::make_room( idx, 1 ) ;
+            _ptr[idx] = item ;
+        }
+
+        void_t insert( size_t const idx, T && item ) noexcept
+        {
+            if( idx == _size ) return this_t::push_back( std::move( item ) ) ;
+
+            this_t::make_room( idx, 1 ) ;
+            _ptr[idx] = std::move( item ) ;
+        }
+
         size_t size( void_t ) const noexcept
         {
             return _size ;
@@ -124,6 +140,18 @@ namespace motor{ namespace mstd {
             _size = 0 ;
         }
 
+        T const & front( void_t ) const noexcept
+        {
+            assert( _size > 0 ) ;
+            return _ptr[0] ;
+        }
+
+        T const & back( void_t ) const noexcept
+        {
+            assert( _size != 0 ) ;
+            return _ptr[ _size - 1 ] ;
+        }
+
         void_t reserve( size_t const num_elems, size_t const grow = 10 ) noexcept
         {
             if ( _capacity > num_elems ) return ;
@@ -137,6 +165,18 @@ namespace motor{ namespace mstd {
             }
             motor::memory::global::dealloc_raw( _ptr ) ;
             _ptr = new_mem ;
+        }
+
+        size_t resize_and_init( size_t const num_elems, size_t const grow = 10 ) noexcept
+        {
+            auto old_size = this_t::resize( num_elems, grow ) ;
+            if( old_size >= num_elems ) return old_size ;
+
+            for( size_t i=old_size; i<num_elems; ++i )
+            {
+                *new(_ptr+i)T() ;
+            }
+            return old_size ;
         }
 
         size_t resize( size_t const num_elems, size_t const grow = 10 ) noexcept
@@ -173,14 +213,20 @@ namespace motor{ namespace mstd {
 
         T & operator [] ( size_t const i ) noexcept
         {
-            assert( i < _capacity ) ;
+            assert( i < _size ) ;
             return _ptr[ i ] ;
         }
 
         void_t push_back( T const & v, size_t const grow_by = 10 ) noexcept
         {
-            this_t::reserve( _capacity + 1, grow_by ) ;
-            _ptr[ _size++ ] = v ;
+            size_t const pos = this_t::resize_by( 1 ) ;
+            _ptr[ pos ] = v ;
+        }
+
+        void_t push_back( T && v, size_t const grow_by = 10 ) noexcept
+        {
+            size_t const pos = this_t::resize_by( 1 ) ;
+            _ptr[ pos ] = std::move( v ) ;
         }
 
     public: // for each
@@ -193,6 +239,26 @@ namespace motor{ namespace mstd {
         void_t for_each( std::function< void_t ( size_t const, T & ) > f ) noexcept
         {
             for ( size_t i = 0; i < _size; ++i ) f( i, _ptr[ i ] ) ;
+        }
+
+    private:
+
+        // shifts the memory to the right by num_elems
+        // also resizes the internal data by num_elems
+        // this makes room at idx by num_elems
+        // @note the new space is uninitialized or contains old values!
+        void_t make_room( size_t const idx, size_t const num_elems ) noexcept
+        {
+            size_t const old_size = this_t::resize_by( num_elems ) ;
+            size_t const dif = old_size - idx ;
+            std::memcpy( void_ptr_t( _ptr + idx + num_elems), void_cptr_t( _ptr + idx ), sizeof(T) * dif ) ;
+        }
+
+        // makes what make_room does but also zeros the memory.
+        void_t make_room_and_zero( size_t const idx, size_t const num_elems ) noexcept
+        {
+            this_t::make_room( idx, num_elems ) ;
+            std::memset( void_ptr_t( _ptr + idx ), 0, sizeof(T) * num_elems ) ;
         }
     };
 

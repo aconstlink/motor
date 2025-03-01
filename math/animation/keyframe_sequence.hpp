@@ -6,7 +6,7 @@
 #include "../spline/cubic_hermit_spline.hpp"
 #include "../spline/linear_bezier_spline.hpp"
 
-#include <motor/std/vector>
+#include <motor/std/vector_pod>
 #include <functional>
 
 namespace motor
@@ -23,15 +23,15 @@ namespace motor
             motor_typedefs( T, spline ) ;
             motor_typedefs( typename T::value_t, value ) ;
             motor_typedefs( keyframe<value_t>, keyframe ) ;
-            motor_typedefs( motor::vector< keyframe_t >, keyframes ) ;
-            motor_typedefs( motor::vector< size_t >, time_stamps ) ;
+            motor_typedefs( motor::vector_pod< keyframe_t >, keyframes ) ;
+            motor_typedefs( motor::vector_pod< size_t >, time_stamps ) ;
 
             motor_typedefs( typename keyframe_t::time_stamp_t, time_stamp ) ;
 
-            motor_typedefs( motor::vector< float_t >, scalings ) ;
+            motor_typedefs( motor::vector_pod< float_t >, scalings ) ;
 
             typedef std::function< float_t( float_t ) > time_funk_t ;
-            motor_typedefs( motor::vector<time_funk_t>, time_funks ) ;
+            motor_typedefs( motor::vector_pod<time_funk_t>, time_funks ) ;
 
         private:
 
@@ -116,17 +116,26 @@ namespace motor
                 if( kf.get_time() == time_stamp_t(-1) )
                     return false ;
                 
+                #if 1
+                {
+                    size_t found_idx = size_t(-1) ;
+                    while( ++found_idx < _keyframes.size() && _keyframes[found_idx] < kf ) ;
+                    _keyframes.insert( found_idx, kf ) ;
+                    _value_spline.insert( found_idx, kf.get_value() ) ;
+                }
+                #else
                 // 1. insert keyframe
                 auto const iter = _keyframes.insert( std::lower_bound( _keyframes.begin(), _keyframes.end(), kf ), kf ) ;
-                
                 // 2. fix spline
                 _value_spline.insert( std::distance( _keyframes.begin(), iter ), kf.get_value() ) ;
+                #endif
 
+                
                 // 3. compute scalings
                 {
                     // num_segments
                     size_t const ns = _keyframes.size()-1 ;
-                    _time_funks.resize( ns ) ;
+                    _time_funks.resize_and_init( ns ) ;
 
                     for( size_t i = 1; i < _keyframes.size(); ++i )
                     {
@@ -136,7 +145,7 @@ namespace motor
                         float_t const m = 1.0f / (float_t( ns ) * (t1-t0)) ;
 
                         float_t const t_off = ( float_t( i ) / float_t( ns ) ) - t1 * m ;
-
+                        
                         _time_funks[i-1] = [=]( float_t const t )
                         {
                             return t * m + t_off ;

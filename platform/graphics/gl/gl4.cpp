@@ -2403,7 +2403,6 @@ public:
         // if the incoming msl shader is a library shader for example,
         // it does not need to have a associated background object
         size_t oid = obj.get_oid( _bid ) ;
-        _msls.access( oid, obj.name(), [] ( this_t::msl_data_ref_t ) { return true ; } ) ;
 
         // if -1, it is probably a library shader or some tmp 
         // msl object. So do not return any valid is below.
@@ -2426,10 +2425,6 @@ public:
                 auto [i, o] = this_t::find_pair_by_ro_name( c_exp, _msls ) ;
                 oid = i ;
                 obj = o ;
-                _msls.access( oid, [&]( this_t::msl_data_ref_t d )
-                {
-                   
-                } ) ;
             }
             
             // msl database contains render configuration 

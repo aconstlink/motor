@@ -4,7 +4,7 @@
 #include "continuity.h"
 #include "../interpolation/interpolate.hpp"
 
-#include <motor/std/vector>
+#include <motor/std/vector_pod>
 
 namespace motor
 {
@@ -21,8 +21,8 @@ namespace motor
 
         public:
             
-            motor_typedefs( motor::vector< value_t >, points ) ;
-            motor_typedefs( motor::vector< value_t >, tangents ) ;
+            motor_typedefs( motor::vector_pod< value_t >, points ) ;
+            motor_typedefs( motor::vector_pod< value_t >, tangents ) ;
 
             struct control_point
             {
@@ -184,33 +184,33 @@ namespace motor
             {
                 if( _cps.size() < 3 ) 
                 {
-                    _cps.emplace_back( cp ) ;
+                    _cps.push_back( cp ) ;
                     _lts.clear() ;
                     _rts.clear() ;
 
                     for( size_t i=1; i<_cps.size(); ++i )
                     {
                         auto const m = _cps[i] - _cps[i-1] ;
-                        _lts.emplace_back( m * 0.5f ) ;
-                        _rts.emplace_back( m * 0.5f ) ;
+                        _lts.push_back( m * 0.5f ) ;
+                        _rts.push_back( m * 0.5f ) ;
                     }
 
                     if( _lts.size() != 0 ) 
                     {
-                        _lts.emplace_back( _lts.back() ) ;
-                        _rts.emplace_back( _rts.back() ) ;
+                        _lts.push_back( _lts.back() ) ;
+                        _rts.push_back( _rts.back() ) ;
                     }
 
                     return ;
                 }
 
-                _cps.emplace_back( cp ) ;
+                _cps.push_back( cp ) ;
 
                 size_t const lp = _cps.size() - 1 ;
                 auto const m = (_cps[lp]-_cps[lp-2]) * 0.5f ;
                 
-                _lts.emplace_back( m ) ;
-                _rts.emplace_back( m ) ;
+                _lts.push_back( m ) ;
+                _rts.push_back( m ) ;
             }
 
             /// Adds a control point to the end of the control point array.
@@ -222,9 +222,9 @@ namespace motor
             // add an interpolating control point.
             void_t append( control_point_in_t cp ) noexcept
             {
-                _cps.emplace_back( cp.p ) ;
-                _lts.emplace_back( cp.lt ) ;
-                _rts.emplace_back( cp.rt ) ;
+                _cps.push_back( cp.p ) ;
+                _lts.push_back( cp.lt ) ;
+                _rts.push_back( cp.rt ) ;
             }
 
             void_t change_point( size_t const i, value_cref_t cp ) noexcept
@@ -250,9 +250,15 @@ namespace motor
             {
                 if( index >= _cps.size() ) return this_t::append( cp ) ;
 
+                #if 1
+                _cps.insert( index, cp ) ;
+                _lts.insert( index, _lts[index] ) ;
+                _rts.insert( index, _rts[index] ) ;
+                #else
                 _cps.insert( _cps.cbegin() + index, cp ) ;
                 _lts.insert( _lts.cbegin() + index, _lts[index] ) ;
                 _rts.insert( _rts.cbegin() + index, _rts[index] ) ;
+                #endif
             }
 
             /// return the number of segments.
