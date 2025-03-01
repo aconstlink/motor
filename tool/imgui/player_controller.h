@@ -36,7 +36,7 @@ namespace motor
 
         public:
 
-            player_state do_tool( motor::string_cref_t label, bool_t const play_toggle = false ) noexcept ;
+            player_state do_tool( char const *, bool_t const play_toggle = false ) noexcept ;
 
             bool_t is_play_clicked( void_t ) const noexcept ;
             bool_t is_pause_clicked( void_t ) const noexcept ;

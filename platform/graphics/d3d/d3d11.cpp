@@ -5103,6 +5103,9 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
 
     _pimpl->_msls.try_access( oid, [&]( pimpl::msl_data_ref_t msl )
     {
+        // @note if ros == 0, the shader probably did not compile.
+        // check the console! This happens only for the initial compilation
+        // need fix.
         motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
         res = this_t::render( ro, detail ) ;
     } ) ;
