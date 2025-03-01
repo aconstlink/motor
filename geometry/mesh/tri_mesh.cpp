@@ -147,43 +147,21 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
         {
             auto & cur_index_vectors = per_position_references[pos_id] ;
             
-
-            #if 1
-            {
-                size_t i = size_t(-1) ; 
-                while( ++i < cur_index_vectors.size() && !(cur_index_vectors[ i ] == iv) ) ;
+            size_t i = size_t(-1) ; 
+            while( ++i < cur_index_vectors.size() && !(cur_index_vectors[ i ] == iv) ) ;
                 
-                if ( i != cur_index_vectors.size() )
-                {
-                    cur_index_vectors[i].ref_iids.push_back( iid ) ;
-                }
-                else
-                {
-                    iv.ref_iids.push_back( iid, 1000 ) ;
-                    cur_index_vectors.push_back( iv ) ;
-                }
-            }
-            #else
-            auto found = std::find_if( cur_index_vectors.begin(), cur_index_vectors.end(),
-                [&]( per_vertex_index_vector const & item )
+            if ( i != cur_index_vectors.size() )
             {
-                return item == iv ;
-            } ) ;
-
-            // if found, that vertex is referenced by another polygon
-            if(found != cur_index_vectors.end())
-            {
-                found->ref_iids.push_back( iid ) ;
+                cur_index_vectors[i].ref_iids.push_back( iid ) ;
             }
             else
             {
-                iv.ref_iids.push_back( iid ) ;
-                cur_index_vectors.push_back( iv ) ;
+                iv.ref_iids.push_back( iid, 1000 ) ;
+                cur_index_vectors.push_back( std::move( iv ) ) ;
             }
-            #endif
-        }        
+        }
     }
-    #if 1
+
     //
     // PASS #2 : Count required vertices
     //
@@ -314,6 +292,5 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
         mesh_out.indices = std::move( new_indices ) ;
     }
 
-    #endif
     return motor::geometry::ok ;
 }
