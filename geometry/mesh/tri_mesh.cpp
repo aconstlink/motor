@@ -146,7 +146,11 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
         // if not - add the whole index vector to the index vector array of the position vertex.
         {
             auto & cur_index_vectors = per_position_references[pos_id] ;
-            
+            if( cur_index_vectors.size() == cur_index_vectors.capacity() )
+            {
+                cur_index_vectors.reserve( cur_index_vectors.size() + 10 ) ;
+            }
+
             size_t i = size_t(-1) ; 
             while( ++i < cur_index_vectors.size() && !(cur_index_vectors[ i ] == iv) ) ;
                 
