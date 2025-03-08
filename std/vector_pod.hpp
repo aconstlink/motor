@@ -206,6 +206,20 @@ namespace motor{ namespace mstd {
             return this_t::resize( _size + num_elems, grow ) ;
         }
 
+        void_t push_back( T const & v, size_t const grow_by = 10 ) noexcept
+        {
+            size_t const pos = this_t::resize_by( 1, grow_by ) ;
+            _ptr[ pos ] = v ;
+        }
+
+        void_t push_back( T && v, size_t const grow_by = 10 ) noexcept
+        {
+            size_t const pos = this_t::resize_by( 1 ) ;
+            _ptr[ pos ] = std::move( v ) ;
+        }
+
+    public:
+
         T const & operator [] ( size_t const i ) const noexcept
         {
             assert( i < _capacity ) ;
@@ -218,16 +232,14 @@ namespace motor{ namespace mstd {
             return _ptr[ i ] ;
         }
 
-        void_t push_back( T const & v, size_t const grow_by = 10 ) noexcept
+        T * data( void_t ) noexcept
         {
-            size_t const pos = this_t::resize_by( 1, grow_by ) ;
-            _ptr[ pos ] = v ;
+            return _ptr ;
         }
 
-        void_t push_back( T && v, size_t const grow_by = 10 ) noexcept
+        T const * data( void_t ) const noexcept
         {
-            size_t const pos = this_t::resize_by( 1 ) ;
-            _ptr[ pos ] = std::move( v ) ;
+            return _ptr ;
         }
 
     public: // for each

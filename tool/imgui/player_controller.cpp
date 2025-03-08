@@ -6,9 +6,9 @@
 using namespace motor::tool ;
 
 //****************************************************************
-player_controller::player_state player_controller::do_tool( motor::string_cref_t label_, bool_t const play_toggle ) noexcept 
+player_controller::player_state player_controller::do_tool( char const * label_, bool_t const play_toggle ) noexcept 
 {
-    auto circle_button = [&]( motor::string_cref_t l, ImVec2 const & pos, float_t const r ) -> bool_t
+    auto circle_button = [&]( char const * l, ImVec2 const & pos, float_t const r ) -> bool_t
     {
         ImGuiContext& ctx = *ImGui::GetCurrentContext() ;
         const ImGuiStyle& style = ctx.Style;
@@ -19,7 +19,7 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
 
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-        const ImGuiID id = window->GetID( l.c_str() ) ;
+        const ImGuiID id = window->GetID( l ) ;
         
         ImVec2 const size( 2.0f * r, 2.0f * r ) ;
 
@@ -186,8 +186,11 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
 
     // prev button
     {
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "prev##%s", label_  ) ;
+
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        if( circle_button( "prev##" + label_, pos, r ) )
+        if( circle_button( buffer, pos, r ) )
         { 
         }
         draw_prev( pos, r ) ;
@@ -197,8 +200,11 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
 
     if( !_internal_play )
     {
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "play##%s", label_  ) ;
+
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        bool_t const pressed = circle_button( "play##" + label_, pos, r ) ; 
+        bool_t const pressed = circle_button( buffer, pos, r ) ; 
         if( pressed || click_play_pause )
         {
             _play = true ;
@@ -210,8 +216,11 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
     }
     else
     {
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "pause##%s", label_ ) ;
+
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        auto const pressed = circle_button( "pause##" + label_, pos, r ) ;
+        auto const pressed = circle_button( buffer, pos, r ) ;
         if( pressed || click_play_pause )
         {
             _pause = true ;
@@ -226,8 +235,11 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
 
     // next button
     {
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "next##%s", label_ ) ;
+
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        if( circle_button( "next##" + label_, pos, r ) )
+        if( circle_button( buffer, pos, r ) )
         { 
             //ret = this_t::player_state:: ;
         }
@@ -238,8 +250,11 @@ player_controller::player_state player_controller::do_tool( motor::string_cref_t
 
     // stop button
     {
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "stop##%s", label_ ) ;
+
         ImVec2 const pos = ImGui::GetCursorScreenPos() ;
-        if( circle_button( "stop##" + label_, pos, r ) || click_stop )
+        if( circle_button( buffer, pos, r ) || click_stop )
         {
             _play = false ;
             _pause = false ;

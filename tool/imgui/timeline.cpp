@@ -80,7 +80,11 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
     //ImVec2 const scrolling_child_size = ImVec2( 0, ImGui::GetContentRegionAvail().y ) - ImVec2(0.0f, ImGui::GetTextLineHeight()+10) ;
-    ImGui::BeginChild((_label + "##timeline").c_str(), ImVec2(0,100), true, ImGuiWindowFlags_HorizontalScrollbar) ;
+    {
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "%s##timeline", _label.c_str()  ) ;
+        ImGui::BeginChild(buffer, ImVec2(0,100), true, ImGuiWindowFlags_HorizontalScrollbar) ;
+    }
 
     auto draw_list = ImGui::GetWindowDrawList() ;
 
@@ -316,16 +320,22 @@ void_t timeline::end( void_t ) noexcept
     ImGui::SameLine() ;
 
     {
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "Zoom##dragInt.%s", _label.c_str()  ) ;
+
         int_t z = (int_t)_zoom;
         ImGui::SetNextItemWidth( 50 ) ;
-        ImGui::DragInt( ("Zoom##dragInt" + _label).c_str(), &z, 5.0f, 0, (int_t)_max_milli / (int_t)ImGui::GetContentRegionAvail().x );
+        ImGui::DragInt( buffer, &z, 5.0f, 0, (int_t)_max_milli / (int_t)ImGui::GetContentRegionAvail().x );
         _zoom = (size_t)std::max( z, 1 )  ;
     }
 
     ImGui::SameLine() ;
 
     {
-        ImGui::Checkbox( ("lock##timeline" + _label).c_str(), &_lock_player ) ;
+        char buffer[1024] ;
+        std::snprintf( buffer, 1024, "lock##timeline.%s", _label.c_str()  ) ;
+
+        ImGui::Checkbox( buffer, &_lock_player ) ;
     }
 
     _begin = false ;

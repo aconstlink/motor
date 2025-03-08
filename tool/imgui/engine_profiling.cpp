@@ -3,6 +3,7 @@
 #include "custom_widgets.h"
 
 #include <motor/profiling/global.h>
+#include <motor/std/vector_pod>
 
 using namespace motor::tool ;
 
@@ -75,6 +76,8 @@ bool_t engine_profiling::display( void_t ) noexcept
 {
     if ( !ImGui::Begin( "Profiling Data" ) ) return false ;
 
+    motor::vector_pod< int_t > xs ;
+    motor::vector_pod< int_t > ys ;
 
     if ( ImGui::BeginTabBar( "Profiling Data##TabBar" ) )
     {
@@ -82,8 +85,8 @@ bool_t engine_profiling::display( void_t ) noexcept
 
         auto common_histogram = [&] ( void_t )
         {
-            motor::vector< int_t > xs( _profiling_data.memory_current.get_num_entries() )  ;
-            motor::vector< int_t > ys( _profiling_data.memory_current.get_num_entries() )  ;
+            xs.resize( _profiling_data.memory_current.get_num_entries() )  ;
+            ys.resize( _profiling_data.memory_current.get_num_entries() )  ;
 
             _profiling_data.memory_current.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
             {
@@ -101,8 +104,6 @@ bool_t engine_profiling::display( void_t ) noexcept
         {
             if ( ImPlot::BeginPlot( "CPU Memory##the_plot" ) )
             {
-                motor::vector< int_t > xs ;
-                motor::vector< int_t > ys ;
                 int_t max_value = 0 ;
 
                 // draw allocation difference
@@ -113,9 +114,13 @@ bool_t engine_profiling::display( void_t ) noexcept
                 {
                     if ( _profiling_data.display_allocations )
                     {
-                        xs = motor::vector< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
-                        ys = motor::vector< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
-
+                        #if 1
+                        xs.resize( _profiling_data.memory_allocations.get_num_entries() ) ;
+                        ys.resize( _profiling_data.memory_allocations.get_num_entries() ) ;
+                        #else
+                        xs = motor::vector_pod< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
+                        ys = motor::vector_pod< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
+                        #endif
                         _profiling_data.memory_allocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
                         {
                             xs[ i ] = (int_t) d.value ;
@@ -141,9 +146,13 @@ bool_t engine_profiling::display( void_t ) noexcept
                 {
                     if ( _profiling_data.display_deallocations )
                     {
-                        xs = motor::vector< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
-                        ys = motor::vector< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
-
+                        #if 1
+                        xs.resize( _profiling_data.memory_deallocations.get_num_entries() ) ;
+                        ys.resize( _profiling_data.memory_deallocations.get_num_entries() ) ;
+                        #else
+                        xs = motor::vector_pod< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
+                        ys = motor::vector_pod< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
+                        #endif
                         _profiling_data.memory_deallocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
                         {
                             xs[ i ] = (int_t) d.value ;
