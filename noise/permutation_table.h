@@ -26,6 +26,7 @@ namespace motor { namespace noise
 
     public:
 
+        permutation_table( void_t ) noexcept ;
         permutation_table( uint_t const seed, uint_t const bit, uint_t num_mixes ) noexcept ;
         permutation_table( this_cref_t rhv ) noexcept ;
         permutation_table( this_rref_t rhv ) noexcept ;

@@ -32,6 +32,17 @@ namespace motor
 
             motor::application::graphics_generation gen = 
                 motor::application::graphics_generation::gen4_auto ;
+
+            static window_info create( int_t const x, int_t const y, int_t const w, int_t const h, motor::application::graphics_generation const gen ) noexcept
+            {
+                window_info wi ;
+                wi.x = x ;
+                wi.y = y ;
+                wi.w = w ;
+                wi.h = h ;
+                wi.gen = gen ;
+                return wi ;
+            }
         };
         motor_typedef( window_info ) ;
     }

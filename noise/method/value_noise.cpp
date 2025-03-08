@@ -8,6 +8,12 @@
 
 using namespace motor::noise ;
 
+
+//***********************************************************************************
+value_noise::value_noise( void_t ) noexcept
+{
+}
+
 //***********************************************************************************
 value_noise::value_noise( uint_t const seed, uint_t bit, uint_t const num_mixes ) noexcept : _pt( seed, bit, num_mixes )
 {
@@ -33,6 +39,22 @@ value_noise::value_noise( this_rref_t rhv ) noexcept : _pt( std::move( rhv._pt )
 //***********************************************************************************
 value_noise::~value_noise( void_t ) noexcept
 {
+}
+
+//***********************************************************************************
+value_noise::this_ref_t value_noise::operator = ( this_cref_t rhv ) noexcept 
+{
+    _pt = rhv._pt ;
+    _noises = rhv._noises ;
+    return *this ;
+}
+
+//***********************************************************************************
+value_noise::this_ref_t value_noise::operator = ( this_rref_t rhv ) noexcept 
+{
+    _pt = std::move( rhv._pt ) ;
+    _noises = std::move( rhv._noises ) ;
+    return *this ;
 }
 
 //***********************************************************************************

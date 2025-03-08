@@ -23,9 +23,15 @@ namespace motor { namespace noise
 
     public:
 
+        value_noise( void_t ) noexcept ;
         value_noise( uint_t const seed, uint_t bit, uint_t num_mixes=2 ) noexcept ;
         value_noise( this_rref_t )  noexcept;
         virtual ~value_noise( void_t ) noexcept ;
+
+    public:
+
+        this_ref_t operator = ( this_cref_t ) noexcept ;
+        this_ref_t operator = ( this_rref_t ) noexcept ;
 
     public:
 

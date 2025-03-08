@@ -4,6 +4,12 @@
 using namespace motor::noise ;
 
 //***********************************************************************************
+permutation_table::permutation_table( void_t ) noexcept : 
+    _seed(0), _bit(0), _upper_bound(0)
+{
+}
+
+//***********************************************************************************
 permutation_table::permutation_table( uint_t const seed, uint_t const bit, uint_t num_mixes = 1 ) noexcept
 {
     num_mixes = std::min( std::max( 0u, num_mixes), 10u ) ;
@@ -37,10 +43,10 @@ permutation_table::permutation_table( uint_t const seed, uint_t const bit, uint_
 }
 
 //***********************************************************************************
-permutation_table::permutation_table( this_cref_t rhv ) noexcept
-{
-    *this = rhv ;
-}
+permutation_table::permutation_table( this_cref_t rhv ) noexcept :
+    _seed( rhv._seed ), _bit( rhv._bit ), _upper_bound( rhv._upper_bound ),
+    _indices( std::move( rhv._indices ) )
+{}
 
 //***********************************************************************************
 permutation_table::permutation_table( this_rref_t rhv ) noexcept
