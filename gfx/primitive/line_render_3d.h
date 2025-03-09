@@ -12,6 +12,7 @@
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
+#include <motor/concurrent/typedefs.h>
 #include <motor/std/vector>
 
 namespace motor

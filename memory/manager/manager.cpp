@@ -76,10 +76,11 @@ manager::manager( void_t ) noexcept
 }
 
 //*************************************************************************************
-manager::manager( this_rref_t rhv ) noexcept : _allocated_sib( rhv._allocated_sib ),
+manager::manager( this_rref_t rhv ) noexcept : 
     _ptr_to_info( std::move( rhv._ptr_to_info ))
 {
-    rhv._allocated_sib = 0 ;
+    _allocated_sib = ( rhv._allocated_sib ) ;
+    rhv._allocated_sib = size_t(-1) ;
 
     // @note potential leak. Old observer will be lost.
     // depends of where the observer is coming from.
@@ -109,6 +110,7 @@ manager::this_ref_t manager::operator = ( this_rref_t rhv ) noexcept
 {
     _allocated_sib = rhv._allocated_sib ;
     rhv._allocated_sib = 0 ;
+
     _ptr_to_info = std::move( rhv._ptr_to_info ) ;
     _observer = motor::move( rhv._observer ) ;
 
@@ -135,14 +137,7 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
 {
     if( ptr == nullptr ) return nullptr ;
 
-    lock_t lk( _mtx ) ;
-
-    auto iter = _ptr_to_info.find( ptr ) ;
-
-    assert( iter != _ptr_to_info.end() && "[manager::create] : ptr is not found in manager." ) ;
-    assert( iter->second.rc != size_t(-1) && "[manager::create] : non-managed pointer is not ref counted." ) ;
-
-    ++iter->second.rc ;
+    this_t::share_entry( ptr ) ;
 
     #if MOTOR_MEMORY_OBSERVER
     _observer->on_ref_inc() ;
@@ -154,7 +149,7 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
 #define USE_SIB_OPTIMIZATION 0
 #define OBSERVE_CONCURRENT_ACCESS 0
 
-#define USE_SIB_OPT_TASK 1
+#define USE_SIB_OPT_TASK 0
 
 //*************************************************************************************
 void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept 
@@ -192,19 +187,13 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
         static std::atomic< size_t > __access__(0) ;
         ++__access__ ;
         #endif
-
-        #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
-        {
-            m
-        }
-        #else
+        
         #if 1
-        this_t::create_entry( ptr, sib, memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ) ;
+        this_t::create_entry( ptr, sib, managed, purpose ) ;
         #else
         lock_t lk( _mtx ) ;
         _ptr_to_info[ptr] = memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ;
         _allocated_sib += sib ;
-        #endif
         #endif
 
         #if OBSERVE_CONCURRENT_ACCESS
@@ -226,8 +215,6 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
     }
 #endif
 
-    
-
     return ptr ;
 }
 
@@ -247,36 +234,9 @@ void_ptr_t manager::alloc( size_t const sib ) noexcept
 void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk ) noexcept 
 {
     if( ptr == nullptr ) return nullptr ;
-    
-    #if 1
+
     size_t const sib = this_t::release_entry( ptr ) ;
     if( sib == size_t(-1) ) return ptr ;
-    #else
-    size_t sib = 0 ;
-
-    {
-        lock_t lk(_mtx) ;
-        auto iter = _ptr_to_info.find( ptr ) ;
-
-        assert( iter != _ptr_to_info.end() && "[manager::release] : ptr is not found in manager." ) ;
-
-        assert( iter->second.rc != size_t(-1) && "[manager::release] : non-managed pointer is not ref counted." ) ;
-
-        if( --(iter->second.rc) != size_t(0) )
-        {
-            #if MOTOR_MEMORY_OBSERVER
-            _observer->on_ref_dec() ;
-            #endif
-
-            return ptr ;
-        }
-
-        sib = iter->second.sib ;
-
-        _allocated_sib -= iter->second.sib ;
-        _ptr_to_info.erase( iter ) ;
-    }
-    #endif
 
     rel_funk() ;
 
@@ -319,24 +279,7 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
 {
     if( ptr == nullptr ) return ;
 
-    #if 1
     size_t const sib = this_t::release_entry_dealloc( ptr ) ;
-    #else
-    size_t sib = 0 ;
-    {
-        lock_t lk(_mtx) ;
-        auto iter = _ptr_to_info.find( ptr ) ;
-
-        assert( iter != _ptr_to_info.end() && "[manager::dealloc] : ptr is not found in manager." ) ;
-        assert( iter->second.rc == size_t(-1) && "[manager::release] : managed pointer must be released" ) ;
-
-        sib = iter->second.sib ;
-
-        _allocated_sib -= iter->second.sib ;
-        _ptr_to_info.erase( iter ) ;
-    }
-    #endif
-
 
     #if USE_SIB_OPTIMIZATION
     if ( sib <= 16 )
@@ -371,50 +314,48 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
 }
 
 //*************************************************************************************
-void_t manager::create_entry( void_ptr_t ptr, size_t const sib, this_t::memory_info && info ) noexcept 
+void_t manager::create_entry( void_ptr_t ptr, size_t const sib, bool_t const managed, char_cptr_t purpose ) noexcept 
 {
-    #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
-    {
-        m
-    }
-    #else
     lock_t lk( _mtx ) ;
-    _ptr_to_info[ptr] = std::move( info ) ;
+    _ptr_to_info[ ptr ] = std::move( memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ) ;
     _allocated_sib += sib ;
-    #endif
+}
+
+//*************************************************************************************
+void_t manager::share_entry( void_ptr_t ptr ) noexcept 
+{
+    lock_t lk( _mtx ) ;
+
+    auto iter = _ptr_to_info.find( ptr ) ;
+
+    assert( iter != _ptr_to_info.end() && "[manager::share_entry] : ptr is not found in manager." ) ;
+    assert( iter->second.rc != size_t(-1) && "[manager::share_entry] : non-managed pointer is not ref counted." ) ;
+
+    ++iter->second.rc ;
 }
 
 //*************************************************************************************
 size_t manager::release_entry( void_ptr_t ptr ) noexcept 
 {
-    #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
-    {
-        m
-    }
-    #else
-
-    size_t sib = 0 ;
-
-    lock_t lk(_mtx) ;
+    lock_t lk( _mtx ) ;
     auto iter = _ptr_to_info.find( ptr ) ;
 
-    assert( iter != _ptr_to_info.end() && "[manager::release] : ptr is not found in manager." ) ;
-    assert( iter->second.rc != size_t(-1) && "[manager::release] : non-managed pointer is not ref counted." ) ;
+    assert( iter != _ptr_to_info.end() && "[manager::release_entry] : ptr is not found in manager." ) ;
+    assert( iter->second.rc != size_t( -1 ) && "[manager::release_entry] : non-managed pointer is not ref counted." ) ;
 
-    if( --(iter->second.rc) != size_t(0) )
+    if ( --( iter->second.rc ) != size_t( 0 ) )
     {
         #if MOTOR_MEMORY_OBSERVER
         _observer->on_ref_dec() ;
         #endif
 
-        return size_t(-1) ;
+        return size_t( -1 ) ;
     }
 
-    sib = iter->second.sib ;
+    auto const sib = iter->second.sib ;
 
     _allocated_sib -= iter->second.sib ;
     _ptr_to_info.erase( iter ) ;
-    #endif
 
     return sib ;
 }
@@ -422,11 +363,11 @@ size_t manager::release_entry( void_ptr_t ptr ) noexcept
 //*************************************************************************************
 size_t manager::release_entry_dealloc( void_ptr_t ptr ) noexcept 
 {
-    lock_t lk(_mtx) ;
+    lock_t lk( _mtx ) ;
     auto iter = _ptr_to_info.find( ptr ) ;
 
     assert( iter != _ptr_to_info.end() && "[manager::dealloc] : ptr is not found in manager." ) ;
-    assert( iter->second.rc == size_t(-1) && "[manager::release] : managed pointer must be released" ) ;
+    assert( iter->second.rc == size_t( -1 ) && "[manager::release] : managed pointer must be released" ) ;
 
     size_t const sib = iter->second.sib ;
 
@@ -446,7 +387,7 @@ size_t manager::get_sib( void_t ) const noexcept
 bool_t manager::get_purpose( void_ptr_t ptr, char_cptr_t & pout ) const noexcept 
 {
     if( ptr == nullptr ) return false ;
-
+    
     {
         lock_t lk( _mtx ) ;
         auto const iter = _ptr_to_info.find( ptr ) ;

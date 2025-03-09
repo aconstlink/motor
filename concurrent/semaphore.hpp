@@ -1,22 +1,24 @@
 #pragma once
 
-#include "typedefs.h"
-#include "api.h"
-#include "result.h"
+#include <motor/base/types.hpp>
 
+#include <mutex>
 #include <cassert>
+#include <functional>
 
 namespace motor
 {
     namespace concurrent
     {
+        using namespace motor::core::types ;
+
         class semaphore
         {
             motor_this_typedefs( semaphore ) ;
 
         private:
 
-            motor::concurrent::mutex_t _mtx ;
+            std::mutex _mtx ;
             std::condition_variable _cv ;
 
             size_t _count = 0 ;
@@ -49,38 +51,38 @@ namespace motor
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
                 _count = rhv._count ;
                 return *this ;
             }
 
             bool_t operator <= ( size_t c ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
                 return _count <= c ;
             }
 
             bool_t operator > ( size_t c ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
                 return _count > c ;
             }
 
             bool_t operator >= ( size_t c ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
                 return _count >= c ;
             }
 
             bool_t operator == ( size_t c ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
                 return _count == c ;
             }
 
             bool_t operator != ( size_t c ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
                 return _count != c ;
             }
 
@@ -102,7 +104,7 @@ namespace motor
 
             bool_t increment_by( size_t const n ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
 
                 _count += n ;
 
@@ -111,7 +113,7 @@ namespace motor
 
             bool_t increment( void_t ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
 
                 ++_count ;
 
@@ -120,7 +122,7 @@ namespace motor
 
             bool_t increment( size_t const max_count ) noexcept
             { 
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
 
                 bool_t const hit_max = _count < max_count ;
                 _count = hit_max ? _count + 1 : _count ;
@@ -130,7 +132,7 @@ namespace motor
 
             bool_t decrement( void_t ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
 
                 if( _count == 0 )
                     return false ;
@@ -145,7 +147,7 @@ namespace motor
 
             bool_t decrement( comp_funk_t funk ) noexcept
             {
-                motor::concurrent::lock_guard_t lk( _mtx ) ;
+                std::lock_guard<std::mutex> lk( _mtx ) ;
 
                 if( _count == 0 )
                     return false ;
@@ -161,7 +163,7 @@ namespace motor
             /// wait until semaphore becomes value
             void_t wait( size_t const value = 0, int_t const inc = 0 ) noexcept
             {
-                motor::concurrent::lock_t lk( _mtx ) ;
+                std::unique_lock<std::mutex>lk( _mtx ) ;
                 while( _count != value ) _cv.wait( lk ) ;
                 _count += inc ;
             }
@@ -170,7 +172,7 @@ namespace motor
             // then call funk
             void_t wait( size_t const value, std::function< void_t ( void_t ) > funk ) noexcept
             {
-                motor::concurrent::lock_t lk( _mtx ) ;
+                std::unique_lock<std::mutex> lk( _mtx ) ;
                 while ( _count != value ) _cv.wait( lk ) ;
                 funk() ;
             }
