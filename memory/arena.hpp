@@ -97,7 +97,7 @@ namespace motor
             {
                 motor_this_typedefs( pages ) ;
 
-                size_t _pre_alloc = 10 ;
+                size_t _pre_alloc = 20 ;
 
                 size_t _size = 0 ;
                 size_t _cap = 0 ;
@@ -108,7 +108,7 @@ namespace motor
                 pages( void_t ) noexcept
                 {
                     _pages = reinterpret_cast< void_ptr_t*>(malloc( sizeof( page_t*) * _pre_alloc )) ;
-                    _size = _pre_alloc ;
+                    _cap = _pre_alloc ;
                 }
 
                 pages( this_rref_t rhv ) noexcept
@@ -132,9 +132,8 @@ namespace motor
 
                 void_t push_back( page_ptr_t ptr ) noexcept
                 {
-                    pages::resize( _pre_alloc ) ;
-
-                    _pages[_cap++] = reinterpret_cast<void_ptr_t>( ptr ) ;
+                    auto const idx = pages::resize_by( 1, _pre_alloc ) ;
+                    _pages[idx] = reinterpret_cast<void_ptr_t>( ptr ) ;
                 }
 
                 void_t clear( void_t ) noexcept
@@ -148,7 +147,7 @@ namespace motor
                 using for_each_funk_t = std::function< bool_t ( size_t const, page_ptr_t ) > ;
                 void_t for_each( for_each_funk_t f ) noexcept
                 {
-                    for( size_t i=0; i<_cap; ++i )
+                    for( size_t i=0; i<_size; ++i )
                     {
                         if( !f( i, reinterpret_cast<page_ptr_t>( _pages[i] ) ) ) break ;
                     }
@@ -156,23 +155,24 @@ namespace motor
 
             private:
 
-                void_t resize( size_t const pre_alloc ) noexcept
+                size_t resize_by( size_t const num_items, size_t const pre_alloc ) noexcept
                 {
-                    if ( _cap < (_size-1) ) return ;
+                    size_t const old_size = _size ;
+                    size_t const new_size = _size + num_items ;
+                    _size = new_size ;
+                    if ( new_size < _cap ) return old_size ;
                     
-                    void_ptr_t tmp = malloc( (_size + pre_alloc) * sizeof( page *) ) ;
-                    std::memcpy( tmp, _pages, sizeof( page* )*_size ) ;
+                    _cap = new_size + pre_alloc ;
+
+                    void_ptr_t tmp = malloc( _cap * sizeof( page * ) ) ;
+                    std::memcpy( tmp, _pages, sizeof( page* ) * old_size ) ;
                     free( _pages ) ;
                     _pages = reinterpret_cast< void_ptr_t*>(tmp) ;
+                    return old_size ;
 
                 }
             };
             motor_typedef( pages ) ;
-
-            // currently, it is std and needs to stay like that
-            // if this arena is used internally in the memory
-            // manager itself.
-            //motor_typedefs( std::vector< page_ptr_t >, pages ) ;
 
         private:
 

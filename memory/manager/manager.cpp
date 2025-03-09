@@ -188,13 +188,7 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
         ++__access__ ;
         #endif
         
-        #if 1
         this_t::create_entry( ptr, sib, managed, purpose ) ;
-        #else
-        lock_t lk( _mtx ) ;
-        _ptr_to_info[ptr] = memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ;
-        _allocated_sib += sib ;
-        #endif
 
         #if OBSERVE_CONCURRENT_ACCESS
         // check how many thread are accessing at the same time
