@@ -72,7 +72,7 @@ namespace motor
 
         static void_t sort_shader_type_array( shader_type_array_t & types ) noexcept
         {
-            motor::mstd::insertion_sort< shader_type >::for_all< size_t(shader_type::num_shader_types) >( types ) ;
+            motor::mstd::insertion_sort< shader_type_array_t >::for_all( types ) ;
         }
 
         static shader_type shader_type_before( shader_type const cur, shader_type_array_t const & types ) noexcept

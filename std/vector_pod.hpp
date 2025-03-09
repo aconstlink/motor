@@ -10,6 +10,13 @@ namespace motor{ namespace mstd {
     {
         motor_this_typedefs( vector_pod< T > ) ;
 
+    public:
+
+        // stl conform
+        using value_type = T ;
+
+    private:
+
         size_t _capacity = 0 ;
         size_t _size = 0 ;
 
