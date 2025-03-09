@@ -9,6 +9,12 @@
 #include <unordered_map>
 #include <mutex>
 
+#define MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER 0
+
+#if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
+#include <motor/concurrent/mrsw.hpp>
+#endif
+
 namespace motor
 {
     namespace memory
@@ -17,16 +23,26 @@ namespace motor
         {
             motor_this_typedefs( manager ) ;
 
+            // can not use motor std because that would trigger 
+            // this manager which requires this map type.
+            #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
+            struct memory_info
+            {
+                void_ptr_t ptr ;
+                size_t sib ;
+                size_t rc ; // refcount
+                char_cptr_t purpose ;
+            } ;
+            using ptr_to_info_t = std::vector< memory_info > ;
+            #else
             struct memory_info
             {
                 size_t sib ;
                 size_t rc ; // refcount
                 char_cptr_t purpose ;
             } ;
-
-            // can not use motor std because that would trigger 
-            // this manager which requires this map type.
             typedef std::unordered_map< void_ptr_t, memory_info > ptr_to_info_t ;
+            #endif
 
             typedef std::mutex mutex_t ;
             typedef std::unique_lock< mutex_t > lock_t ;
@@ -35,7 +51,12 @@ namespace motor
 
         private:
 
+            #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
+            mutable motor::concurrent::mrsw_t _mtx ;
+            #else
             mutable mutex_t _mtx ;
+            #endif
+
             size_t _allocated_sib = 0 ;
             ptr_to_info_t _ptr_to_info ;
 
@@ -82,6 +103,10 @@ namespace motor
         private:
 
             void_ptr_t alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept ;
+
+            void_t create_entry( void_ptr_t, size_t const, this_t::memory_info && ) noexcept ;
+            size_t release_entry( void_ptr_t ) noexcept ;
+            size_t release_entry_dealloc( void_ptr_t ) noexcept ;
         };
         motor_typedefs( manager, default_manager ) ;
     }

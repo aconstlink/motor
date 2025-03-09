@@ -23,6 +23,16 @@ namespace this_file
     {
         char _dummy[ 32 ] ;
     };
+
+    // the concurrent lib is above this library, 
+    // so we can not access those files. For that
+    // purpose, lets make a little shortcut. 
+    // if the tasks sib changes, this here must be
+    // changed too.
+    struct sib_task
+    {
+        char _dummy[ 688 ] ;
+    };
 }
 
 struct motor::memory::manager::pimpl
@@ -32,6 +42,9 @@ struct motor::memory::manager::pimpl
 
     using area_32_t = motor::memory::arena< this_file::sib_32, motor::memory::detail::arena_allocator > ;
     area_32_t a32 = area_32_t( 1000 ) ;
+
+    using area_task_t = motor::memory::arena< this_file::sib_task, motor::memory::detail::arena_allocator > ;
+    area_task_t atasks = area_task_t( 1000 ) ;
 
     pimpl( void_t ) noexcept{}
     ~pimpl( void_t ) noexcept 
@@ -47,6 +60,7 @@ struct motor::memory::manager::pimpl
     {
         a16.~arena() ;
         a32.~arena() ;
+        atasks.~arena() ;
     }
 };
 
@@ -140,6 +154,8 @@ void_ptr_t manager::create( void_ptr_t ptr ) noexcept
 #define USE_SIB_OPTIMIZATION 0
 #define OBSERVE_CONCURRENT_ACCESS 0
 
+#define USE_SIB_OPT_TASK 1
+
 //*************************************************************************************
 void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const managed ) noexcept 
 {
@@ -156,8 +172,16 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
     {
         ptr = reinterpret_cast<void_ptr_t>( _pimpl->a32.alloc() ) ;
     }
-    else
     #endif
+
+    #if USE_SIB_OPT_TASK 
+    if( sib == sizeof( this_file::sib_task ) ) 
+    {
+        ptr = reinterpret_cast<void_ptr_t>( _pimpl->atasks.alloc() ) ;
+    }
+    #endif
+
+    if( ptr == nullptr )
     {
         ptr = malloc( sib ) ;
     }
@@ -169,9 +193,19 @@ void_ptr_t manager::alloc( size_t const sib, char_cptr_t purpose, bool_t const m
         ++__access__ ;
         #endif
 
+        #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
+        {
+            m
+        }
+        #else
+        #if 1
+        this_t::create_entry( ptr, sib, memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ) ;
+        #else
         lock_t lk( _mtx ) ;
         _ptr_to_info[ptr] = memory_info{sib, managed ? size_t(1) : size_t(-1), purpose} ;
         _allocated_sib += sib ;
+        #endif
+        #endif
 
         #if OBSERVE_CONCURRENT_ACCESS
         // check how many thread are accessing at the same time
@@ -214,6 +248,10 @@ void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk
 {
     if( ptr == nullptr ) return nullptr ;
     
+    #if 1
+    size_t const sib = this_t::release_entry( ptr ) ;
+    if( sib == size_t(-1) ) return ptr ;
+    #else
     size_t sib = 0 ;
 
     {
@@ -238,16 +276,33 @@ void_ptr_t manager::release( void_ptr_t ptr, motor::memory::void_funk_t rel_funk
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }
+    #endif
 
     rel_funk() ;
 
     #if USE_SIB_OPTIMIZATION
     if( sib <= 16 )
+    {
         _pimpl->a16.dealloc( reinterpret_cast<this_file::sib_16*>(ptr) ) ;
+        ptr = nullptr ;
+    }
     else if( sib <= 32 )
+    {
         _pimpl->a32.dealloc( reinterpret_cast<this_file::sib_32*>(ptr) ) ;
-    else 
+        ptr = nullptr ;
+    }
     #endif
+
+    #if USE_SIB_OPT_TASK 
+
+    if( sib == sizeof( this_file::sib_task ) )
+    {
+        _pimpl->atasks.dealloc( reinterpret_cast<this_file::sib_task*>(ptr) ) ;
+        ptr = nullptr ;
+    }
+    #endif
+
+    if( ptr != nullptr )
     {
         free( ptr ) ;
     }
@@ -264,8 +319,10 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
 {
     if( ptr == nullptr ) return ;
 
+    #if 1
+    size_t const sib = this_t::release_entry_dealloc( ptr ) ;
+    #else
     size_t sib = 0 ;
-
     {
         lock_t lk(_mtx) ;
         auto iter = _ptr_to_info.find( ptr ) ;
@@ -278,19 +335,105 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
         _allocated_sib -= iter->second.sib ;
         _ptr_to_info.erase( iter ) ;
     }
+    #endif
+
 
     #if USE_SIB_OPTIMIZATION
     if ( sib <= 16 )
+    {
         _pimpl->a16.dealloc( reinterpret_cast<this_file::sib_16 *>( ptr ) ) ;
+        ptr = nullptr ;
+    }
     else if ( sib <= 32 )
+    {
         _pimpl->a32.dealloc( reinterpret_cast<this_file::sib_32 *>( ptr ) ) ;
-    else
+        ptr = nullptr ;
+    }
+    
     #endif
-    {free( ptr ) ;}
+
+    #if USE_SIB_OPT_TASK 
+    if( sib == sizeof( this_file::sib_task ) )
+    {
+        _pimpl->atasks.dealloc( reinterpret_cast<this_file::sib_task*>(ptr) ) ;
+        ptr = nullptr ;
+    }
+    #endif
+
+    if( ptr != nullptr )
+    {
+        free( ptr ) ;
+    }
 
     #if MOTOR_MEMORY_OBSERVER
     _observer->on_dealloc( sib ) ;
     #endif
+}
+
+//*************************************************************************************
+void_t manager::create_entry( void_ptr_t ptr, size_t const sib, this_t::memory_info && info ) noexcept 
+{
+    #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
+    {
+        m
+    }
+    #else
+    lock_t lk( _mtx ) ;
+    _ptr_to_info[ptr] = std::move( info ) ;
+    _allocated_sib += sib ;
+    #endif
+}
+
+//*************************************************************************************
+size_t manager::release_entry( void_ptr_t ptr ) noexcept 
+{
+    #if MOTOR_MEMORY_USE_LINEAR_INFO_CONTAINER
+    {
+        m
+    }
+    #else
+
+    size_t sib = 0 ;
+
+    lock_t lk(_mtx) ;
+    auto iter = _ptr_to_info.find( ptr ) ;
+
+    assert( iter != _ptr_to_info.end() && "[manager::release] : ptr is not found in manager." ) ;
+    assert( iter->second.rc != size_t(-1) && "[manager::release] : non-managed pointer is not ref counted." ) ;
+
+    if( --(iter->second.rc) != size_t(0) )
+    {
+        #if MOTOR_MEMORY_OBSERVER
+        _observer->on_ref_dec() ;
+        #endif
+
+        return size_t(-1) ;
+    }
+
+    sib = iter->second.sib ;
+
+    _allocated_sib -= iter->second.sib ;
+    _ptr_to_info.erase( iter ) ;
+    #endif
+
+    return sib ;
+}
+
+//*************************************************************************************
+size_t manager::release_entry_dealloc( void_ptr_t ptr ) noexcept 
+{
+    lock_t lk(_mtx) ;
+    auto iter = _ptr_to_info.find( ptr ) ;
+
+    assert( iter != _ptr_to_info.end() && "[manager::dealloc] : ptr is not found in manager." ) ;
+    assert( iter->second.rc == size_t(-1) && "[manager::release] : managed pointer must be released" ) ;
+
+    size_t const sib = iter->second.sib ;
+
+    _allocated_sib -= iter->second.sib ;
+    _ptr_to_info.erase( iter ) ;
+
+    return sib ;
 }
 
 //*************************************************************************************
