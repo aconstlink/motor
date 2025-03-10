@@ -72,7 +72,7 @@ namespace motor
 
         struct clear_states
         {
-            motor::math::vec4f_t clear_color = motor::math::vec4f_t( 0.4f, 0.1f, 0.2f, 1.0f ) ;
+            motor::math::vec4f_t clear_color = motor::math::vec4f_t( 0.1f, 0.2f, 0.4f, 1.0f ) ;
             bool_t do_activate = false ;
             bool_t do_color_clear = false ;
             bool_t do_depth_clear = false ;
