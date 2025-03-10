@@ -40,6 +40,8 @@ namespace motor
             motor::audio::system_ptr_t _audio_system = nullptr ;
             motor::network::system_ptr_t _network_system = nullptr ;
 
+            static std::chrono::microseconds sleep_for_micro ;
+
         public:
 
             carrier( void_t ) noexcept ;
@@ -84,6 +86,11 @@ namespace motor
 
             // close the carrier
             virtual motor::application::result close( void_t ) noexcept = 0 ;
+
+        public:
+
+            static std::chrono::microseconds set_cpu_sleep( std::chrono::microseconds const ) noexcept ;
+            static std::chrono::microseconds get_cpu_sleep( void_t ) noexcept ;
         };
         motor_typedef( carrier ) ;
     }

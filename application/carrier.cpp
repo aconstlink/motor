@@ -11,6 +11,25 @@
 using namespace motor ;
 using namespace motor::application ;
 
+std::chrono::microseconds carrier::sleep_for_micro = std::chrono::microseconds(0) ;
+
+//******************************************************
+std::chrono::microseconds carrier::set_cpu_sleep( std::chrono::microseconds const micro ) noexcept 
+{
+    static std::mutex mtx ;
+    std::lock_guard< std::mutex > lk( mtx ) ;
+
+    carrier::sleep_for_micro = std::min( micro, std::chrono::microseconds(30) ) ;
+
+    return carrier::sleep_for_micro ;
+}
+
+//******************************************************
+std::chrono::microseconds carrier::get_cpu_sleep( void_t ) noexcept 
+{
+    return carrier::sleep_for_micro ;
+}
+
 //******************************************************
 carrier::carrier( void_t ) noexcept
 {
@@ -82,6 +101,13 @@ motor::application::result carrier::start_update_thread( void_t ) noexcept
 
         while( _sd->update_running )
         {
+            {
+                auto const sleep_micro = motor::application::carrier::get_cpu_sleep() ;
+                if( sleep_micro > std::chrono::microseconds(0) ) 
+                    std::this_thread::sleep_for( sleep_micro ) ;
+            }
+            
+
             ca.update() ;
 
             // check user closed app

@@ -110,7 +110,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
             // required for now, otherwise the application stalls.
             if( micro == 0 )
             {
-                std::this_thread::sleep_for( std::chrono::microseconds(1) ) ;
+                auto const sleep_micro = motor::application::carrier::get_cpu_sleep() ;
+                std::this_thread::sleep_for( std::max( sleep_micro, std::chrono::microseconds(1) ) ) ;
             }
         }
 
@@ -172,7 +173,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             size_t const milli = d.micro_rnd/1000 ;
                             size_t const fps = size_t( 1.0 / (double_t(d.micro_rnd)/1000000.0) ) ;
 
-                            sprintf_s( tmp_text, "%s [ %zd ms; %zd fps ]", wd.window_text.c_str(), milli, fps  ) ;
+                            sprintf_s( tmp_text, "%s [ %zd ms; %zd fps; %zd mrs ]", wd.window_text.c_str(), milli, fps, 
+                                size_t(motor::application::carrier::get_cpu_sleep().count() ) ) ;
 
                             #if 1
                             SetWindowText( wd.hwnd, tmp_text ) ;
@@ -306,7 +308,8 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 
                             char buffer[100] ;
 
-                            std::snprintf( buffer, 100, "%s [%3d ms; %3d fps ; %3d miss]", wd.window_text.c_str(), milli, fps, d.frame_miss ) ;
+                            std::snprintf( buffer, 100, "%s [%3d ms; %3d fps ; %3d miss; %3zu mcs]", wd.window_text.c_str(), milli, fps, d.frame_miss,
+                                size_t(motor::application::carrier::get_cpu_sleep().count() )) ;
                             SetWindowText( wd.hwnd, buffer ) ;
                         }
 

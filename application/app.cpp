@@ -691,7 +691,17 @@ void_t app::display_engine_stats( void_t ) noexcept
 //************************************************************************
 void_t app::display_profiling_data( void_t ) noexcept
 {
-    _engine_profiling.display() ;
+    if( ImGui::Begin( "Engine Properties" ) )
+    {
+        int_t v = int_t( motor::application::carrier::get_cpu_sleep().count() ) ;
+        if( ImGui::SliderInt( "CPU Sleep Micro##__internal_app", &v, 0, 30 ) )
+        {
+            motor::application::carrier::set_cpu_sleep( std::chrono::microseconds( size_t(v) ) ) ;
+        }
+        ImGui::Separator() ;
+        _engine_profiling.display() ;
+    }
+    ImGui::End() ;
 }
 
 //************************************************************************
