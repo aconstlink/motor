@@ -133,6 +133,19 @@ namespace motor
 
             bool_t decrement( void_t ) noexcept
             {
+                // _cv.notify_all() should be called after 
+                // the lock is released!
+
+                #if 1
+
+                std::lock_guard<std::mutex> lk( _mtx ) ;
+
+                if( _count == 0 ) return false ;
+                if( --_count == 0 ) _cv.notify_all() ;
+                return true ;
+
+                #else // this should be the correct implementation
+
                 bool_t notify = false ;
 
                 {
@@ -147,12 +160,22 @@ namespace motor
                 }
 
                 if( notify ) _cv.notify_all() ;
-
                 return true ;
+                #endif
             }
 
             bool_t decrement( comp_funk_t funk ) noexcept
             {
+                #if 1
+
+                std::lock_guard<std::mutex> lk( _mtx ) ;
+
+                if( _count == 0 ) return false ;
+                if( --_count == 0 ) _cv.notify_all() ;
+                return funk( _count ) ;
+
+                #else // this should be the correct implementation
+
                 bool_t notify = false ;
 
                 {
@@ -168,6 +191,8 @@ namespace motor
 
                 if( notify ) _cv.notify_all() ;
                 return funk( _count ) ;
+
+                #endif
             }
 
             /// wait until semaphore becomes value
