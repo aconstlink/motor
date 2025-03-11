@@ -5,6 +5,7 @@
 #include <mutex>
 #include <cassert>
 #include <functional>
+#include <condition_variable>
 
 namespace motor
 {
