@@ -4,6 +4,8 @@
 #include "../typedefs.h"
 #include <motor/concurrent/mrsw.hpp>
 
+#include <atomic>
+
 namespace motor
 {
     namespace platform
