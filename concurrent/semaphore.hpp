@@ -133,31 +133,40 @@ namespace motor
 
             bool_t decrement( void_t ) noexcept
             {
-                std::lock_guard<std::mutex> lk( _mtx ) ;
+                bool_t notify = false ;
 
-                if( _count == 0 )
-                    return false ;
+                {
+                    std::lock_guard<std::mutex> lk( _mtx ) ;
 
-                --_count ;
+                    if( _count == 0 )
+                        return false ;
 
-                if( _count == 0 )
-                    _cv.notify_all() ;
+                    --_count ;
+
+                    notify = _count == 0 ;
+                }
+
+                if( notify ) _cv.notify_all() ;
 
                 return true ;
             }
 
             bool_t decrement( comp_funk_t funk ) noexcept
             {
-                std::lock_guard<std::mutex> lk( _mtx ) ;
+                bool_t notify = false ;
 
-                if( _count == 0 )
-                    return false ;
+                {
+                    std::lock_guard<std::mutex> lk( _mtx ) ;
 
-                --_count ;
+                    if( _count == 0 )
+                        return false ;
 
-                if( _count == 0 )
-                    _cv.notify_all() ;
+                    --_count ;
 
+                    notify = _count == 0 ;
+                }
+
+                if( notify ) _cv.notify_all() ;
                 return funk( _count ) ;
             }
 
