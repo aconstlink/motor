@@ -613,6 +613,18 @@ namespace motor
             }
 
             //***************************************************
+            vec2_t ortho_right( void_t ) const noexcept
+            {
+                return this_t( _elem[1], -_elem[0] ) ;
+            }
+
+            //***************************************************
+            vec2_t ortho_left( void_t ) const noexcept
+            {
+                return this_t( -_elem[1], _elem[0] ) ;
+            }
+
+            //***************************************************
             this_t cos_sin( type_t const angle ) noexcept
             {
                 return this_t( std::cos( angle ), std::sin( angle ) ) ;
