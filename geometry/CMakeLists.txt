@@ -4,6 +4,7 @@ set( SOURCES
     result.h
     api.h
     protos.h
+    simple_polygon.hpp
 
     3d/fractal/fractal.h
     3d/fractal/fractal.cpp
@@ -24,6 +25,9 @@ set( SOURCES
     2d/typedefs.h
     2d/circle.hpp
     2d/quad.hpp
+    
+    2d/triangles.hpp
+    2d/convex_hull_2d.hpp
 
     enums/component_formats.h
 
