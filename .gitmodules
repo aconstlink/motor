@@ -28,3 +28,6 @@
 [submodule "externals/nelarius/imnodes"]
 	path = externals/nelarius/imnodes
 	url = https://github.com/Nelarius/imnodes.git
+[submodule "externals/jkuhlmann/cgltf"]
+	path = externals/jkuhlmann/cgltf
+	url = https://github.com/jkuhlmann/cgltf.git

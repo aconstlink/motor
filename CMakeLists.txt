@@ -81,6 +81,7 @@ add_subdirectory( "externals/nothings" )
 add_subdirectory( "externals/aconstlink" )
 add_subdirectory( "externals/nlohmann" )
 add_subdirectory( "externals/nelarius" )
+add_subdirectory( "externals/jkuhlmann" )
 
 ################################################################
 # SECTION: find externals

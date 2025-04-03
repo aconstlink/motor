@@ -6,6 +6,7 @@
 #include "motor/motor_module.h"
 #include "aseprite/aseprite_module.h"
 #include "obj/obj_module.h"
+#include "gltf/cgltf_module.h"
 
 #include <motor/memory/global.h>
 
@@ -20,6 +21,7 @@ motor::format::module_registry_mtr_t global::register_default_modules( motor::fo
     motor::format::motor_module_register::register_module( mr ) ;
     motor::format::aseprite_module_register::register_module( mr ) ;
     motor::format::wav_obj_module_register::register_module( mr ) ;
+    motor::format::cgltf_module_register::register_module( mr ) ;
 
     return mr ;
 }

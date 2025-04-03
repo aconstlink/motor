@@ -17,6 +17,10 @@ set( sources
     "obj/obj_module_mtl.cpp"
     "obj/obj_module.h"
 
+    "gltf/gltf_module_structs.h"
+    "gltf/cgltf_module.h"
+    "gltf/cgltf_module.cpp"
+
     "stb/stb_module.cpp"
     "stb/stb_module.h"
 
@@ -44,6 +48,7 @@ target_link_libraries( ${cur_lib_name}
   PRIVATE stb
   PRIVATE rapidxml
   PRIVATE nlohmann_json
+  PRIVATE cgltf
   PUBLIC motor::geometry
   PUBLIC motor::font
   PUBLIC motor::msl
