@@ -68,7 +68,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             return motor::shared( motor::format::status_item_t( "error" ) ) ;
         }
 
-        cgltf_options options = {0};
+        cgltf_options options = {};
         cgltf_data* data = NULL;
         cgltf_result result = cgltf_parse(&options, data_buffer.data(), data_buffer.size(), &data);
         if (result == cgltf_result_success)
