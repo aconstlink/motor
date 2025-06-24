@@ -1,11 +1,21 @@
 #pragma once
 
+#if 0
 #include <ghc/filesystem.hpp>
 namespace motor
 {
     namespace filesystem = ghc::filesystem ;
-        namespace fs = ghc::filesystem ;
+    namespace fs = ghc::filesystem ;
 }
+#else
+#include <filesystem>
+namespace motor
+{
+    namespace filesystem = std::filesystem;
+    namespace fs = std::filesystem;
+}
+
+#endif
 
 /*
 #if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
