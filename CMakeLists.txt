@@ -72,7 +72,6 @@ motor_export_clear()
 # SECTION : Build in and compilable externals
 ################################################################
 
-add_subdirectory( "externals/gulrak" )
 add_subdirectory( "externals/kcat" )
 add_subdirectory( "externals/ocornut" )
 add_subdirectory( "externals/epezent" )
