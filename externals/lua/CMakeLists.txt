@@ -58,6 +58,7 @@ set_target_properties( onelua PROPERTIES FOLDER "motor/externals/lua" )
 # SECTION: Install
 ###########################################################
 
+export( TARGETS lua APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
 install_headers( "${SOURCES}" "include/lua" )
 install_library( lua ${PROJECT_NAME}-targets )
 
