@@ -39,9 +39,12 @@ if( NOT XINPUT_LIBRARY_GENERAL )
     message( FATAL_ERROR "XInput Library required. This may be due to the platform SDK path not found." )
 endif()
 
-add_library( xinput INTERFACE )
+add_library( xinput SHARED IMPORTED )
+set_property( TARGET xinput PROPERTY
+  IMPORTED_IMPLIB ${XINPUT_LIBRARY_GENERAL} )
+
 target_include_directories( xinput INTERFACE ${XINPUT_INCLUDE_DIRECTORY} )
-target_link_libraries( xinput INTERFACE ${XINPUT_LIBRARY_GENERAL} )
+#target_link_libraries( xinput INTERFACE ${XINPUT_LIBRARY_GENERAL} )
 message( STATUS "[XInput] : Target available : xinput" )
 
 unset( XINPUT_INCLUDE_DIRECTORY CACHE )
