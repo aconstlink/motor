@@ -9,7 +9,7 @@ set( INCLUDES
   "stb/stb_vorbis.c" )
 
 add_library( stb INTERFACE )
-#arget_sources( stb INTERFACE ${INCLUDES} )
+#target_sources( stb INTERFACE ${INCLUDES} )
 
 target_include_directories( stb 
   INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/stb> 
@@ -24,7 +24,7 @@ endif()
 message(${MOTOR_BINARY_DIR}/motor-targets.cmake)
 export( TARGETS stb NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
 
-#install_headers( "${SOURCES}" "include/lua" )
+install_headers( "${INCLUDES}" "include/stb" )
 install( TARGETS stb EXPORT ${PROJECT_NAME}-targets )
 
 message( STATUS "[stb] : target available : stb" )
