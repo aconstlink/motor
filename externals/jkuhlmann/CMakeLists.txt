@@ -17,5 +17,7 @@ endif()
 
 export( TARGETS cgltf NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
 
+install_library( cgltf ${PROJECT_NAME}-targets )
+
 message( STATUS "[cgltf] : target available : cgltf" )
 message( STATUS "<<< [external : cgltf] <<<" )

@@ -6,6 +6,7 @@ target_include_directories( rapidxml INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT
 
 export( TARGETS rapidxml NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
 
+install_library( rapidxml ${PROJECT_NAME}-targets )
 
 #
 # Khronos Header files
