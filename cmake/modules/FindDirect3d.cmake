@@ -6,6 +6,13 @@ set( D3D_FOUND False )
 
 message( STATUS ">>> FindDirect3d.cmake >>>" )
 
+if( NOT MOTOR_WINSDK_INCLUDE_PATHS )
+  message( "FildDirect3D Module requires the windows SDK" )
+  message( "Please use  the Windows SDK module first" )
+endif()
+
+message( STATUS "Windows SDK provided. Can search for Direct3D" )
+
 #see config_platform_sdk.cmake
 set( SEARCH_D3D_INCLUDE_PATHS 
   ${MOTOR_WINSDK_INCLUDE_PATHS}
