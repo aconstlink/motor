@@ -19,9 +19,9 @@ global::~global( void_t ) noexcept
 {}
 
 //*************************************************************************************
-void global::dump_to_std( void_t ) noexcept 
+size_t global::dump_to_std( void_t ) noexcept 
 {
-    this_t::_manager.dump_to_std() ;
+    return this_t::_manager.dump_to_std() ;
 }
 
 //*************************************************************************************
