@@ -60,7 +60,7 @@ namespace motor
 
             static bool_t get_purpose( void_ptr_t, char_cptr_t & ) noexcept ;
 
-            static void_t dump_to_std( void_t ) noexcept ;
+            static size_t dump_to_std( void_t ) noexcept ;
 
         public: // managed interface
 

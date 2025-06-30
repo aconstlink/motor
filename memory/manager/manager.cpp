@@ -406,7 +406,7 @@ motor::memory::observer_ptr_t manager::get_observer( void_t ) noexcept
 #endif
 
 //*************************************************************************************
-void_t manager::dump_to_std( void_t ) const noexcept 
+size_t manager::dump_to_std( void_t ) const noexcept 
 {
     lock_t lk(_mtx) ;
 
@@ -441,4 +441,6 @@ void_t manager::dump_to_std( void_t ) const noexcept
     {
         std::cout << "* Memory manager has no entries." << std::endl ;
     }
+
+    return _allocated_sib ;
 }
