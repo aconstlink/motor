@@ -17,6 +17,7 @@ set( sources
     "ring_buffer"
     "vector_pod.hpp"
     "vector_pod"
+    "double_buffer.hpp"
     )
 
 motor_vs_src_dir( sources )
