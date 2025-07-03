@@ -25,9 +25,9 @@ add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
 
 target_link_libraries( ${cur_lib_name}
         PUBLIC motor::core
-        INTERFACE ghc_filesystem
     )
 
+# target_include_directories() already done in the parent
 
 ###########################################################
 # SECTION: Build Tree
@@ -35,9 +35,10 @@ target_link_libraries( ${cur_lib_name}
 
 #motor_export( ${cur_lib_name} )
 
+
 ###########################################################
 # SECTION: Install
 ###########################################################
 
 install_headers( "${sources}" "include/${PROJECT_NAME}/${cur_lib_name}" )
-install_library( ${cur_lib_name} ${PROJECT_NAME}-targets )
+#install_library( ${cur_lib_name} ${PROJECT_NAME}-targets )

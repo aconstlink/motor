@@ -50,7 +50,9 @@ target_include_directories( imgui
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imgui>
   PUBLIC $<INSTALL_INTERFACE:"include/imgui"> ) 
 
-export( TARGETS imgui APPEND FILE ${PROJECT_NAME}-targets.cmake)
+export( TARGETS imgui 
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake)
 
 set_target_properties( imgui PROPERTIES POSITION_INDEPENDENT_CODE True )
 if( MOTOR_COMPILER_GNU )

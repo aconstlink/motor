@@ -18,6 +18,11 @@ endif()
 
 message( STATUS "C++ standard ok : " ${CMAKE_CXX_STANDARD} )
 
+set( motor_root_dir ${CMAKE_CURRENT_LIST_DIR} )
+
+file( REMOVE ${MOTOR_BINARY_DIR}/motor-targets.cmake  )
+file( REMOVE OUTPUT ${MOTOR_BINARY_DIR}/motor-external-targets.cmake  )
+
 ################################################################
 # SECTION: Configuring
 ################################################################
@@ -62,7 +67,7 @@ include( visual_studio_src_dir )
 #include( install_shaders )
 
 include( emacs_default_directory )
-motor_emacs_default_directory( "${CMAKE_CURRENT_LIST_DIR}" )
+motor_emacs_default_directory( ${motor_root_dir} )
 
 #include( InstallRequiredSystemLibraries )
 
@@ -72,7 +77,6 @@ motor_export_clear()
 # SECTION : Build in and compilable externals
 ################################################################
 
-add_subdirectory( "externals/gulrak" )
 add_subdirectory( "externals/kcat" )
 add_subdirectory( "externals/ocornut" )
 add_subdirectory( "externals/epezent" )
@@ -190,6 +194,10 @@ foreach( _subdir ${subdirs_header_only} )
 
     target_link_libraries( complete INTERFACE ${cur_lib_name} )
 
+    export( TARGETS ${cur_lib_name}
+      NAMESPACE motor::
+      APPEND FILE motor-targets.cmake
+      )
 endforeach()
 
 #
@@ -223,14 +231,20 @@ foreach( _subdir ${subdirs} )
     endif()
 
     #target_compile_options( ${cur_lib_name} PRIVATE ${MOTOR_COMPILER_OPTIONS_PRIVATE})
-    target_include_directories( ${cur_lib_name} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..> )
+    target_include_directories( ${cur_lib_name} 
+      PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
+      PUBLIC $<INSTALL_INTERFACE:include>)
     
     set_target_properties( ${cur_lib_name} PROPERTIES FOLDER "motor" )
     
     target_link_libraries( complete INTERFACE ${cur_lib_name} )
-
+    export( TARGETS ${cur_lib_name}
+      NAMESPACE motor::
+      APPEND FILE motor-targets.cmake
+      )
 endforeach()
-export( TARGETS complete NAMESPACE motor:: APPEND FILE ${PROJECT_NAME}-targets.cmake)
+#export( TARGETS complete NAMESPACE motor:: APPEND FILE ${PROJECT_NAME}-targets.cmake)
+
 
 ################################################################
 # SECTION : Extensions
@@ -244,12 +258,15 @@ export( TARGETS complete NAMESPACE motor:: APPEND FILE ${PROJECT_NAME}-targets.c
 # SECTION: in build tree fing_package generation
 ################################################################
 configure_file( 
-    "${MOTOR_SOURCE_DIR}/cmake/motor-config.in.cmake"
+    "${MOTOR_SOURCE_DIR}/cmake/motor-config.build.in.cmake"
     "${MOTOR_BINARY_DIR}/motor-config.cmake"
     @ONLY )
 
-install( 
-    FILES ${MOTOR_BINARY_DIR}/motor-config.cmake 
-    DESTINATION cmake )
+#
+#  Install tree 
+#
+#install( 
+ #   FILES ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-config.cmake 
+  #  DESTINATION cmake )
 
 #install( EXPORT ${PROJECT_NAME}-targets DESTINATION "cmake" )

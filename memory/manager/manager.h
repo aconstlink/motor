@@ -76,7 +76,7 @@ namespace motor
             motor::memory::observer_ptr_t get_observer( void_t ) noexcept ;
 #endif
 
-            void_t dump_to_std( void_t ) const noexcept ;
+            size_t dump_to_std( void_t ) const noexcept ;
 
         private:
 

@@ -27,7 +27,6 @@ add_library( ${cur_lib_name} INTERFACE ${sources} )
 target_link_libraries( ${cur_lib_name}
     INTERFACE motor::memory
     INTERFACE motor::base
-    INTERFACE ghc_filesystem
 )
 
 ###########################################################

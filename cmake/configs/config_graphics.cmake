@@ -88,6 +88,9 @@ if( MOTOR_TARGET_OS_WIN )
     set( MOTOR_GRAPHICS_DIRECT3D ON )
     target_compile_definitions( ${THIS_TARGET}_d3d INTERFACE -DMOTOR_GRAPHICS_DIRECT3D )
     target_link_libraries( ${THIS_TARGET}_d3d INTERFACE d3d11 )
+    export( TARGETS d3d11
+      NAMESPACE ${PROJECT_NAME}::
+      APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-targets.cmake )
     install( TARGETS d3d11 EXPORT ${PROJECT_NAME}-targets )
     message( STATUS "[graphics] : Direc3d 11 found" )
   endif()
@@ -100,6 +103,22 @@ endif()
 #####################################################################
 ##
 set( MOTOR_TARGET_GRAPHICS_CONFIGURED TRUE )
+
+export( TARGETS ${THIS_TARGET}_d3d
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-targets.cmake )
+
+export( TARGETS ${THIS_TARGET}_gl
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-targets.cmake )
+
+export( TARGETS ${THIS_TARGET}_es
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-targets.cmake )
+
+export( TARGETS ${THIS_TARGET}_all
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-targets.cmake )
 
 install( TARGETS ${THIS_TARGET}_d3d EXPORT ${PROJECT_NAME}-targets )
 install( TARGETS ${THIS_TARGET}_gl EXPORT ${PROJECT_NAME}-targets )

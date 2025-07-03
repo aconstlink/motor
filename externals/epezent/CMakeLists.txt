@@ -37,7 +37,9 @@ target_include_directories( implot
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/implot>
   PUBLIC $<INSTALL_INTERFACE:"include/implot"> ) 
 
-export( TARGETS implot APPEND FILE ${PROJECT_NAME}-targets.cmake)
+export( TARGETS implot 
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake)
 
 set_target_properties( implot PROPERTIES POSITION_INDEPENDENT_CODE True )
 if( MOTOR_COMPILER_GNU )

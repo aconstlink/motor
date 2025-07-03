@@ -652,7 +652,7 @@ bool_t database::unpack( void_t )
 motor::io::system_t::store_handle_t database::store( motor::io::location_cref_t loc, char_cptr_t d, size_t const s ) noexcept
 {
     auto p  = _db->working ;
-    p.append( loc.as_path() ) ;
+    p /= loc.as_path() ;
     return motor::io::global_t::store( p, d, s ) ;
 }
 
