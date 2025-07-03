@@ -27,5 +27,9 @@ else()
     set( MOTOR_EXTERNAL_LINKAGE_REQUIRED 0 )
 endif()
 
+export( TARGETS ${THIS_TARGET}
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-targets.cmake )
+
 install( TARGETS ${THIS_TARGET} 
         EXPORT ${PROJECT_NAME}-targets )

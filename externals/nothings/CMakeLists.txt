@@ -22,7 +22,9 @@ elseif( MOTOR_COMPILER_GNU )
 endif()
 
 message(${MOTOR_BINARY_DIR}/motor-targets.cmake)
-export( TARGETS stb NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
+export( TARGETS stb 
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
 install_headers( "${INCLUDES}" "include/stb" )
 install( TARGETS stb EXPORT ${PROJECT_NAME}-targets )

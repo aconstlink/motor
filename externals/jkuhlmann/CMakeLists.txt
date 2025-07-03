@@ -15,7 +15,9 @@ elseif( MOTOR_COMPILER_GNU )
   target_compile_options( cgltf INTERFACE -Wno-unused-local-typedefs -Wno-unused-parameter -Wno-sign-compare -Wno-unused-but-set-variable )
 endif()
 
-export( TARGETS cgltf NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
+export( TARGETS cgltf 
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
 install_library( cgltf ${PROJECT_NAME}-targets )
 

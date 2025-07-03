@@ -4,7 +4,9 @@
 add_library( rapidxml INTERFACE )
 target_include_directories( rapidxml INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rapidxml> )
 
-export( TARGETS rapidxml NAMESPACE motor:: APPEND FILE ${MOTOR_BINARY_DIR}/motor-targets.cmake )
+export( TARGETS rapidxml 
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
 install_library( rapidxml ${PROJECT_NAME}-targets )
 

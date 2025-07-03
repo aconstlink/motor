@@ -42,7 +42,9 @@ target_include_directories( imnodes
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imnodes>
   PUBLIC $<INSTALL_INTERFACE:"include/imnodes"> ) 
 
-export( TARGETS imnodes APPEND FILE ${PROJECT_NAME}-targets.cmake)
+export( TARGETS imnodes 
+  NAMESPACE ${PROJECT_NAME}::
+  APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake)
 
 set_target_properties( imnodes PROPERTIES POSITION_INDEPENDENT_CODE True )
 if( MOTOR_COMPILER_GNU )

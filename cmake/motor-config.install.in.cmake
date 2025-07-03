@@ -4,13 +4,13 @@
 # Automatically generated via CMake's configure_file for the build tree.
 #
 
-get_filename_component( _dir "${CMAKE_CURRENT_LIST_FILE}" PATH )
+get_filename_component( _dir "@CMAKE_CURRENT_LIST_FILE@" PATH )
 get_filename_component( _prefix "${_dir}/.." ABSOLUTE )
 
 ####################################################################
 # Import targets
 ####################################################################
-include( "${_prefix}/cmake/motor-targets.cmake" )
+include( "${CMAKE_CURRENT_LIST_DIR}/motor-targets.cmake" )
 
 ####################################################################
 # Directories

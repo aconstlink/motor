@@ -207,13 +207,13 @@ target_link_libraries( ${cur_lib_name}
   PRIVATE OpenAL
 
   # have changed
-  PUBLIC ct_motor_graphics_all
+  PRIVATE ct_motor_graphics_all
     )
 
 if( TARGET motor::ogl )
     target_link_libraries( ${cur_lib_name} 
-      PUBLIC gl_headers
-      PUBLIC motor::ogl )
+      PRIVATE gl_headers
+      PRIVATE motor::ogl )
 endif()
 
 # @todo need to check this out once more
