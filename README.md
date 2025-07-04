@@ -7,9 +7,7 @@
 motor is a software framework for real-time interactive audio/visual applications and is a personal endeavour into real-time engine coding. 
 
 ## About 
-This repository contains my experimental game and animation engine for real-time applications called motor. The philosophy shoud be an not too overloaded experience. It provides the user with some UI but the majority of any project done with motor is to code! Sure, some taks require an UI for simplicity but other just don't and are more easily and quickly achievable using plain old code.
-
-This repository is kept clean from any sample code. It is just the engine.
+This repository contains an experimental game and animation engine for real-time applications called motor. 
 
 ## Sample Code
 
@@ -17,7 +15,11 @@ The engine repo itself does not contain any sample code! The purpose here is to 
 
 Please see the following repos for samples:
 
-[Base tests](https://github.com/aconstlink/motor_suites) includes sample code and helps me test the engine and remember how this thing actually works, because its already a lot! That repo also shows how to include the engine as a subrepository.
+[Base tests](https://github.com/aconstlink/motor_suites) includes sample code and helps me test the engine and remember how this thing actually works, because its already a lot! That repo also shows how to include the engine as a git subrepository.
+
+If you want to use the engine as an external dependency, there is the [exdep](https://github.com/aconstlink/motor_exdep) repo which is designed to pull the engine from the build or the install tree using CMake package configurations.
+
+I also try to do demoing with my engine, so there is the [demos repo](https://github.com/aconstlink/motor_demos) where I share all my demos.
 
 ## Platforms 
 
