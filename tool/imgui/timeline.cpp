@@ -182,9 +182,9 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
 
                 #if 1
                 ImGui::SetCursorScreenPos( p0 + ImVec2(2.0f, height * 0.25f) + ImVec2(0.0f, ((the_big+i)%2)*ImGui::GetTextLineHeight()*0.5) ) ;
-                ImGui::SetWindowFontScale( 1.0f ) ;
+                //ImGui::SetWindowFontScale( 1.0f ) ;
                 ImGui::Text( this_t::make_time_string2( cur_milli ) ) ;
-                ImGui::SetWindowFontScale( 1.0f ) ;
+                //ImGui::SetWindowFontScale( 1.0f ) ;
                 ImGui::SameLine() ;
                 #endif
             }

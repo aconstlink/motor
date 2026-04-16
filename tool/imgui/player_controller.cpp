@@ -29,8 +29,8 @@ player_controller::player_state player_controller::do_tool( char const * label_,
             return false ;
 
         ImGuiButtonFlags flags = 0 ;
-        if( ctx.LastItemData.InFlags & ImGuiItemFlags_ButtonRepeat )
-            flags |= ImGuiButtonFlags_Repeat;
+        if( ctx.LastItemData.ItemFlags & ImGuiItemFlags_ButtonRepeat )
+            flags |= ImGuiItemFlags_ButtonRepeat;
 
         bool hovered, held ;
         bool pressed = ImGui::ButtonBehavior( bb, id, &hovered, &held, flags );

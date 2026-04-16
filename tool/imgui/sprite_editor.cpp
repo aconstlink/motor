@@ -1582,9 +1582,7 @@ void_t sprite_editor::show_image( motor::tool::imgui_ptr_t imgui, int_t const se
     ImGui::Image( imgui->texture( ss.name ), 
         ImVec2( crdims.x(), crdims.y() ), 
         ImVec2( uv_rect.x(), uv_rect.y()), 
-        ImVec2( uv_rect.z(), uv_rect.w()),
-        ImVec4( 1, 1, 1, 1),
-        ImVec4( 1, 1, 1, 1) ) ;
+        ImVec2( uv_rect.z(), uv_rect.w()) ) ;
 }
 
 //********************************************************************************************

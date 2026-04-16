@@ -20,6 +20,8 @@ imgui::imgui( motor::string_cref_t name ) noexcept
 //***
 imgui::imgui( this_rref_t rhv ) noexcept
 {
+    _name = std::move( rhv._name ) ;
+
     _ctx = motor::move( rhv._ctx ) ;
     _ip_ctx = motor::move( rhv._ip_ctx ) ;
     _in_ctx = motor::move( rhv._in_ctx ) ;
@@ -28,9 +30,9 @@ imgui::imgui( this_rref_t rhv ) noexcept
     _sc = motor::move( rhv._sc ) ;
     _gc = motor::move( rhv._gc ) ;
     _rs = motor::move( rhv._rs ) ;
-    _ic = motor::move( rhv._ic ) ;
 
     _vars = std::move( rhv._vars ) ;
+    _images = std::move( rhv._images ) ;
 }
 
 //***
@@ -55,10 +57,12 @@ imgui::~imgui( void_t ) noexcept
     motor::memory::release_ptr( motor::move(_sc) ) ;
     motor::memory::release_ptr( motor::move(_gc) ) ;
     motor::memory::release_ptr( motor::move(_rs) ) ;
-    motor::memory::release_ptr( motor::move(_ic) ) ;
     
     for( auto * mtr : _vars )
         motor::memory::release_ptr( mtr ) ;
+
+    for( auto * mtr : _images )
+        motor::release( motor::move( mtr ) ) ;
 }
 
 //***
@@ -84,6 +88,8 @@ void_t imgui::execute( exec_funk_t funk ) noexcept
 //***
 void_t imgui::init( motor::string_cref_t name ) noexcept 
 {
+    _name = name ;
+
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
 
@@ -267,6 +273,7 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
     }
 
     // image configuration
+    #if 0
     {
         ImGuiIO& io = ImGui::GetIO();
 
@@ -274,6 +281,7 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
         int width, height;
         io.Fonts->GetTexDataAsRGBA32( &pixels, &width, &height ) ;
         io.Fonts->TexID = (ImTextureID) 0 ;
+        ImTextureData::SetTexID
         motor::graphics::image_t img = motor::graphics::image_t( motor::graphics::image_t::dims_t( width, height, 1 ) )
             .update( [&] ( motor::graphics::image_ptr_t, motor::graphics::image_t::dims_in_t dims, void_ptr_t data_in )
         {
@@ -292,12 +300,13 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
         auto ic = motor::graphics::image_object_t( "motor.system.imgui."+name+".font", std::move( img ) )
             .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::clamp )
             .set_wrap( motor::graphics::texture_wrap_mode::wrap_t, motor::graphics::texture_wrap_type::clamp )
-            .set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::linear )
+            //.set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::linear )
             .set_filter( motor::graphics::texture_filter_mode::mag_filter, motor::graphics::texture_filter_type::linear ) ;
 
         _ic = motor::memory::create_ptr( std::move( ic ), "[imgui] : image object" );
 
     }
+    #endif
 
     // render configuration
     {
@@ -310,7 +319,7 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
         // imgui variable set for rendering default widgets
         {
             auto* var = _vars[ 0 ]->texture_variable( "u_tex" ) ;
-            var->set( "motor.system.imgui." + name + ".font" ) ;
+            var->set( "motor.system.imgui." + name + ".0.image" ) ;
         }
 
         rc.add_variable_set( motor::share( _vars[0] ) ) ;
@@ -361,28 +370,100 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
 
-    if( !_init )
+    // setup projection matrix
     {
-        fe->configure<motor::graphics::state_object_t>( _rs ) ;
-        fe->configure<motor::graphics::geometry_object_t>( _gc ) ;
-        fe->configure<motor::graphics::shader_object_t>( _sc ) ;
-        fe->configure<motor::graphics::image_object_t>( _ic ) ;
-        fe->configure<motor::graphics::render_object_t>( _rc ) ;
+        motor::math::mat4f_t const proj = motor::math::m3d::orthographic<float_t>::create(
+            float_t(_width), float_t(_height), 1.0f, 10.0f);
 
-        _init = true ;
-    }
-
-    motor::math::mat4f_t const proj = motor::math::m3d::orthographic<float_t>::create(
-        float_t( _width ), float_t(_height), 1.0f, 10.0f ) ;
-
-    for( auto & vars : _vars )
-    {
-        auto* var = vars->data_variable< motor::math::mat4f_t >( "u_proj" ) ;
-        var->set( proj ) ;
+        for (auto& vars : _vars)
+        {
+            auto* var = vars->data_variable< motor::math::mat4f_t >("u_proj");
+            var->set(proj);
+        }
     }
     
     ImGui::Render() ;
     ImDrawData* draw_data = ImGui::GetDrawData() ;
+
+    // Catch up with texture updates. Most of the times, the list will have 1 element with an OK status, aka nothing to do.
+    // (This almost always points to ImGui::GetPlatformIO().Textures[] but is part of ImDrawData to allow overriding or disabling texture updates).
+    if (draw_data->Textures != nullptr)
+    {
+        for (ImTextureData* tex : *draw_data->Textures)
+        {
+            switch( tex->Status )
+            {
+            case ImTextureStatus_WantCreate: 
+            {
+                size_t const width = size_t( tex->Width ) ;
+                size_t const height = size_t( tex->Height ) ;
+
+                IM_ASSERT(tex->TexID == ImTextureID_Invalid && tex->BackendUserData == nullptr);
+                IM_ASSERT(tex->Format == ImTextureFormat_RGBA32);
+
+                const void* pixels = tex->GetPixels();
+
+                motor::graphics::image_t img = motor::graphics::image_t( 
+                    motor::graphics::image_t::dims_t( width, height, 1 ) )
+                .update( [&] ( motor::graphics::image_ptr_t, 
+                    motor::graphics::image_t::dims_in_t dims, void_ptr_t data_in )
+                {
+                    typedef motor::math::vector4< uint8_t > rgba_t ;
+                    auto* dst = reinterpret_cast< rgba_t* >( data_in ) ;
+                    auto const * src = reinterpret_cast< rgba_t const * >( pixels ) ;
+
+                    size_t const ne = dims.x() * dims.y() * dims.z() ;
+                    for( size_t i = 0; i < ne; ++i )
+                    {
+                        size_t const start = ne - width * ( ( i / width ) + 1 ) ;
+                        dst[ i ] = rgba_t( src[ start + i % width ] );
+                    }
+                } ) ;
+
+                size_t const id = _images.size() ;
+
+                auto ic = motor::graphics::image_object_t( "motor.system.imgui."+_name+"."+motor::to_string(id)+".image", 
+                    std::move( img ) )
+                    .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::clamp )
+                    .set_wrap( motor::graphics::texture_wrap_mode::wrap_t, motor::graphics::texture_wrap_type::clamp )
+                    //.set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::linear )
+                    .set_filter( motor::graphics::texture_filter_mode::mag_filter, 
+                        motor::graphics::texture_filter_type::linear ) ;
+
+                
+                _images.emplace_back( motor::shared( std::move(ic), "[imgui] : image object" ) ) ;
+
+                fe->configure<motor::graphics::image_object_t>( _images[id] ) ;
+
+                tex->SetTexID( ImTextureID( id ) ) ;
+                tex->SetStatus(ImTextureStatus_OK);
+            }
+                break ;
+            case ImTextureStatus_WantUpdates:
+                motor::log::global::warning( "ImTextureStatus_WantUpdates not updated" ) ;
+                break ;
+            case ImTextureStatus_WantDestroy: 
+                motor::log::global::warning( "ImTextureStatus_WantDestroy not updated" ) ;
+                break ;
+            
+            case ImTextureStatus_Destroyed:
+            case ImTextureStatus_OK:
+            default: 
+                break ;
+            }
+            
+        }
+    }
+                
+    if( !_init )
+    {
+        fe->configure<motor::graphics::state_object_t>( _rs ) ;
+        fe->configure<motor::graphics::geometry_object_t>( _gc ) ;
+        fe->configure<motor::graphics::shader_object_t>( _sc ) ;        
+        fe->configure<motor::graphics::render_object_t>( _rc ) ;
+
+        _init = true ;
+    }
 
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
     int_t const fb_width = ( int_t ) ( draw_data->DisplaySize.x * draw_data->FramebufferScale.x );
@@ -579,7 +660,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                     motor::graphics::gen4::backend_t::render_detail_t rd ;
                     rd.num_elems = pcmd->ElemCount ;
                     rd.start = offset ;
-                    rd.varset = size_t( pcmd->TextureId ) ;
+                    rd.varset = size_t( pcmd->GetTexID() ) ;
                     fe->render(_rc, rd ) ;
                 }
 
@@ -602,8 +683,12 @@ void_t imgui::deinit( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     fe->release( motor::move( _gc ) ) ;
     fe->release( motor::move( _rc ) ) ;
     fe->release( motor::move( _sc ) ) ;
-    fe->release( motor::move( _ic ) ) ;
     fe->release( motor::move( _rs ) ) ;
+
+    for( auto * mtr : _images )
+    {
+        fe->release( motor::move( mtr ) ) ;
+    }
 }
 
 //*****************************************************************************
@@ -614,8 +699,10 @@ void_t imgui::do_default_imgui_init( void_t )
 
     // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
-    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;         // We can honor GetMouseCursor() values (optional)
-    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;          // We can honor io.WantSetMousePos requests (optional, rarely used)
+    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;           // We can honor GetMouseCursor() values (optional)
+    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;            // We can honor io.WantSetMousePos requests (optional, rarely used)
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures ;      // This came in around 1.91.x. 
+                                                                    // Textures need to be created in the backend now.
     io.BackendPlatformName = "imgui_impl_motor";
 
     io.DisplaySize = ImVec2( float_t( _width ), float_t( _height ) ) ;

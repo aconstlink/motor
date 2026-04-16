@@ -31,6 +31,8 @@ namespace motor
             ImPlotContext * _ip_ctx = nullptr ;
             ImNodesContext * _in_ctx = nullptr ;
 
+            motor::string_t _name ;
+
             struct vertex 
             { 
                 motor::math::vec2f_t pos ; 
@@ -41,7 +43,8 @@ namespace motor
             motor::graphics::render_object_mtr_t _rc = nullptr ;
             motor::graphics::shader_object_mtr_t _sc = nullptr ;
             motor::graphics::geometry_object_mtr_t _gc = nullptr ;
-            motor::graphics::image_object_mtr_t _ic = nullptr ;
+
+            motor::vector< motor::graphics::image_object_mtr_t > _images ;
 
             motor::vector< motor::graphics::variable_set_mtr_t > _vars ;
             motor::graphics::state_object_mtr_t  _rs = nullptr ;
