@@ -255,6 +255,7 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
                                 float2 uv = input.tx ;
                                 uv.y = lerp( uv.y, 1.0 - uv.y, sys_flipv_u_tex ) ;
                                 return u_tex.Sample( smp_u_tex, uv ) * input.color ;
+                                //return float4(1.0f,1.0f,1.0f,0.5f) ;
                             } )" 
                 ) ) ) ;
         }
@@ -483,8 +484,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                   motor::log::global::warning(
                       "ImTextureStatus_WantUpdates invalid index ");
                 }
-                
-
+                tex->SetStatus(ImTextureStatus_OK);
             }
                 break ;
             case ImTextureStatus_WantDestroy: 
