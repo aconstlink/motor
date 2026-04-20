@@ -440,10 +440,55 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             }
                 break ;
             case ImTextureStatus_WantUpdates:
-                motor::log::global::warning( "ImTextureStatus_WantUpdates not updated" ) ;
+            {
+                size_t const idx = size_t( tex->GetTexID() ) ;
+                if( idx < _images.size() )
+                {
+                    auto *img_ptr = _images[idx] ;
+
+                    const void *pixels = tex->GetPixels();
+
+                    img_ptr->image().update(
+                        [&](motor::graphics::image_ptr_t,
+                            motor::graphics::image_t::dims_in_t dims,
+                            void_ptr_t data_in) 
+                    {
+                        typedef motor::math::vector4<uint8_t> rgba_t;
+                        auto *dst = reinterpret_cast<rgba_t *>(data_in);
+
+                        auto const *src =
+                            reinterpret_cast<rgba_t const *>(pixels);
+
+                        size_t const ne = dims.x() * dims.y() * dims.z();
+                        for( size_t i = 0; i < ne; ++i ) 
+                        {
+                            size_t const start = ne - dims.x() * ((i / dims.x()) + 1);
+                            dst[i] = rgba_t(src[start + i % dims.x()]);
+                        }
+                        
+                        // maybe do the per rect thing
+                        #if 0
+                        for( ImTextureRect &r : tex->Updates ) 
+                        {
+                            const int src_pitch = r.w * tex->BytesPerPixel;
+                            
+                        }
+                        #endif
+                        });
+
+                    fe->update( img_ptr ) ;
+                }
+                else
+                {
+                  motor::log::global::warning(
+                      "ImTextureStatus_WantUpdates invalid index ");
+                }
+                
+
+            }
                 break ;
             case ImTextureStatus_WantDestroy: 
-                motor::log::global::warning( "ImTextureStatus_WantDestroy not updated" ) ;
+                motor::log::global::warning( "ImTextureStatus_WantDestroy not implemented" ) ;
                 break ;
             
             case ImTextureStatus_Destroyed:
