@@ -424,12 +424,13 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                 size_t const id = _images.size() ;
 
                 auto ic = motor::graphics::image_object_t( "motor.system.imgui."+_name+"."+motor::to_string(id)+".image", 
-                    std::move( img ) )
+                    std::move( img ) )                    
                     .set_wrap( motor::graphics::texture_wrap_mode::wrap_s, motor::graphics::texture_wrap_type::clamp )
                     .set_wrap( motor::graphics::texture_wrap_mode::wrap_t, motor::graphics::texture_wrap_type::clamp )
-                    //.set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::linear )
+                    .set_filter( motor::graphics::texture_filter_mode::min_filter, motor::graphics::texture_filter_type::nearest )
                     .set_filter( motor::graphics::texture_filter_mode::mag_filter, 
-                        motor::graphics::texture_filter_type::linear ) ;
+                        motor::graphics::texture_filter_type::nearest) ;
+
 
                 
                 _images.emplace_back( motor::shared( std::move(ic), "[imgui] : image object" ) ) ;
