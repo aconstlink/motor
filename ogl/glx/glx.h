@@ -6,9 +6,12 @@
 
 #include <motor/std/vector>
 
+#define Status int
 //#include <GL/glcorearb.h>
 #include <GL/glx.h>
 #include <GL/glxext.h>
+
+#undef Status
 
 namespace motor 
 {
