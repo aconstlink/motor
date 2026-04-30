@@ -1,0 +1,37 @@
+BasedOnStyle: LLVM
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+ColumnLimit: 120
+
+SortIncludes: false
+
+NamespaceIndentation: None
+
+AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Empty
+
+KeepEmptyLinesAtTheStartOfBlocks: true
+EmptyLineBeforeAccessModifier: Always
+EmptyLineAfterAccessModifier: Always
+
+# may not work, depending on the braces strat
+# used bellow.
+CompactNamespaces: true
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true        # New line before function braces
+  AfterControlStatement: Never # Keep if/for/while braces on same line
+  AfterClass: true          # Keep class braces on same line
+  AfterEnum: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false        # Align brace with function name
+  SplitEmptyNamespace: true
+
+
