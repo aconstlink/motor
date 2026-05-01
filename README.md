@@ -6,8 +6,6 @@
 
 motor is a custom C++ engine for real-time audio/visual applications, designed for performance, explicit control, and fast iteration.
 
----
-
 ## ✨ Key Features
 
 ### 🎮 Rendering
@@ -21,8 +19,6 @@ motor is a custom C++ engine for real-time audio/visual applications, designed f
 * Runtime shader compilation & hot-reload
 * Multiple renderers active simultaneously (debug & comparison)
 
----
-
 ### ⚡ Runtime & Systems
 
 * Custom job system (dependency-based, parallel execution)
@@ -30,16 +26,12 @@ motor is a custom C++ engine for real-time audio/visual applications, designed f
 * Deterministic ownership model (managed vs borrowed pointers)
 * Scene graph & runtime object management
 
----
-
 ### 🔁 Iteration Speed
 
 * Live shader hot-reload (async compilation)
 * Asset reload at runtime (file watcher integration)
 * No restart required for most changes
 * Immediate-mode tooling via Dear ImGui integration
-
----
 
 ### 🧠 Memory System
 
@@ -50,8 +42,6 @@ motor is a custom C++ engine for real-time audio/visual applications, designed f
   * full runtime visibility
 * Explicit ownership control (`*_mtr_t` vs `*_ptr_t`)
 * Leak detection via memory dump
-
----
 
 ### 🧱 Architecture Highlights
 
@@ -64,8 +54,6 @@ motor is a custom C++ engine for real-time audio/visual applications, designed f
 * CMake-based build with target-driven dependencies
 * CI-enabled, builds out-of-the-box
 
----
-
 ### 🛠 Tooling
 
 * Built-in tooling layer:
@@ -74,7 +62,7 @@ motor is a custom C++ engine for real-time audio/visual applications, designed f
 * Dear ImGui fully integrated across backends
 * Multi-window debug setup (tooling, debug, production)
 
----
+--- 
 
 ## 🎯 Design Philosophy
 
@@ -87,7 +75,7 @@ motor is built around a few core principles:
 
 The goal is not to replace existing engines, but to deeply understand and control the systems behind them.
 
----
+--- 
 
 ## 🚀 Why this project
 
@@ -107,8 +95,7 @@ It serves as both a **learning platform** and a **proof of system-level engineer
 Active development.
 The current focus is on completing a polished real-time demo showcasing the engine’s capabilities.
 
----
-
+--- 
 
 ## 📚 Sample Code & Related Repositories
 
@@ -118,8 +105,6 @@ The goal is to keep the engine codebase focused, clean, and free from unrelated 
 
 Instead, examples and usage are maintained in separate repositories:
 
----
-
 ### 🧪 Base Tests
 
 https://github.com/aconstlink/motor_suites
@@ -128,8 +113,6 @@ https://github.com/aconstlink/motor_suites
 * Used to validate engine features and workflows
 * Demonstrates how to include the engine as a Git subrepository
 
----
-
 ### 📦 External Dependency Setup (WIP)
 
 https://github.com/aconstlink/motor_exdep
@@ -137,8 +120,6 @@ https://github.com/aconstlink/motor_exdep
 * Shows how to use the engine as an external dependency
 * Uses CMake package configurations
 * Supports integration via build tree or install tree
-
----
 
 ### 🎬 Demo Focus (Work in Progress)
 
@@ -154,8 +135,6 @@ https://github.com/aconstlink/motor_demos
 Collection of real-time demos built with the engine
 Showcases rendering, runtime systems, and workflows in practice
 
----
-
 This separation keeps the engine modular and allows each repository to focus on a specific purpose:
 **core engine**, **testing**, **integration**, and **demonstration**.
 
@@ -167,11 +146,14 @@ This separation keeps the engine modular and allows each repository to focus on 
 
 Windows has the main development focus.
 
-#### Prerequisites
+### Prerequisites
 
-* Windows 10 SDK
+* Windows 10/11 SDK
 * Visual Studio 2019 (Community) or later
 * CMake
+
+In newer Version of VS, the SDK can just be installed along with the VS setup.
+You should not have to install anything other then whats included in VS for this project.
 
 ---
 
