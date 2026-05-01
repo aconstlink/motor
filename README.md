@@ -155,11 +155,11 @@ Windows has the main development focus.
 In newer Version of VS, the SDK can just be installed along with the VS setup.
 You should not have to install anything other then whats included in VS for this project.
 
----
-
 ### Linux
 
 The engine is also supported and regularly tested on Fedora/WSL/Ubuntu.
+
+---
 
 ## 🧩 Prerequisites (Linux)
 
