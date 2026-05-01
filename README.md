@@ -4,49 +4,7 @@
 [![CMake on Win32 with DirectX 11](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-motor is a software framework for real-time interactive audio/visual applications and is a personal endeavour into real-time engine coding. 
-
-## About 
-This repository contains an experimental game and animation engine for real-time applications called motor. 
-
-## Sample Code
-
-The engine repo itself does not contain any sample code! The purpose here is to keep the codebase clean from clutter and rubbish. Sample code also unnecessarily bloats the codebase with unused code if the engine itself is included in another project.
-
-Please see the following repos for samples:
-
-[Base tests](https://github.com/aconstlink/motor_suites) includes sample code and helps me test the engine and remember how this thing actually works, because its already a lot! That repo also shows how to include the engine as a git subrepository.
-
-If you want to use the engine as an external dependency, there is the [exdep](https://github.com/aconstlink/motor_exdep) repo which is designed to pull the engine from the build or the install tree using CMake package configurations.
-
-I also try to do demoing with my engine, so there is the [demos repo](https://github.com/aconstlink/motor_demos) where I share all my demos.
-
-## Platforms 
-
-### Windows
-Windows has my main focus.
-
-#### Prerequisits :
- - Windows 10 SDK
- - Visual Studio 2019 (Community) or later
- - CMake
- 
- The engine should compile for Windows 8 and Windows 7 still. There are some differences in the Windows SDKs which I might not support anymore.
-
-### Linux:
-
-The engine should compile and sample code should run on Linux but not every feature may work. I try to make that work though. My main distributions are Ubuntu and Fedora.
-
-
-
-
-
-
-
-
-
-
-
+motor is a custom C++ engine for real-time audio/visual applications, designed for performance, explicit control, and fast iteration.
 
 ---
 
@@ -203,9 +161,25 @@ This separation keeps the engine modular and allows each repository to focus on 
 
 --- 
 
-## 🧩 Prerequisites (Linux)
+## 🖥 Platforms
 
-The engine is developed and tested on Fedora/WSL/Ubuntu.
+### Windows
+
+Windows has the main development focus.
+
+#### Prerequisites
+
+* Windows 10 SDK
+* Visual Studio 2019 (Community) or later
+* CMake
+
+---
+
+### Linux
+
+The engine is also supported and regularly tested on Fedora/WSL/Ubuntu.
+
+## 🧩 Prerequisites (Linux)
 
 ### 🔧 Development Dependencies
 
@@ -240,7 +214,3 @@ cmake --build .
 ## 📄 License
 
 MIT License
-
-
-
-
