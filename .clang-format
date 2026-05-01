@@ -35,3 +35,5 @@ BraceWrapping:
   SplitEmptyNamespace: true
 
 
+SpaceBeforeParens: Never
+SpacesInParentheses: true
