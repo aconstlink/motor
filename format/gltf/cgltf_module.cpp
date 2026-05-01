@@ -52,7 +52,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
         // can be reused ?
         motor::format::mesh_item_t ret;
 
-        motor::mtr_release_guard<motor::property::property_sheet_t> psr( ps );
+        motor::mtr_release_guard< motor::property::property_sheet_t > psr( ps );
 
         motor::string_t data_buffer;
 
@@ -80,7 +80,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
         {
             size_t const milli =
-                std::chrono::duration_cast<std::chrono::milliseconds>( _clock_t::now() - tp_begin ).count();
+                std::chrono::duration_cast< std::chrono::milliseconds >( _clock_t::now() - tp_begin ).count();
 
             motor::log::global_t::status( "[cgltf] : loading file " + loc.as_string() + " took " +
                                           motor::to_string( milli ) + " ms." );
@@ -99,8 +99,8 @@ motor::format::future_item_t cgltf_module::export_to( motor::io::location_cref_t
                                                       motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [=]( void_t ) mutable -> item_mtr_t {
-        motor::mtr_release_guard<motor::format::item_t> rel( what );
-        motor::mtr_release_guard<motor::format::module_registry_t> mod_reg( mod_reg_ );
+        motor::mtr_release_guard< motor::format::item_t > rel( what );
+        motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ );
 
         return motor::shared( motor::format::status_item_t( "Cgltf export not implemented" ) );
     } );

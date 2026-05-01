@@ -37,3 +37,4 @@ BraceWrapping:
 
 SpaceBeforeParens: Never
 SpacesInParentheses: true
+SpacesInAngles: Always
