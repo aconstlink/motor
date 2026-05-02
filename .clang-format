@@ -23,7 +23,7 @@ CompactNamespaces: true
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterFunction: true        # New line before function braces
-  AfterControlStatement: Never # Keep if/for/while braces on same line
+  AfterControlStatement: true # Keep if/for/while braces on same line
   AfterClass: true          # Keep class braces on same line
   AfterEnum: true
   AfterNamespace: true
@@ -38,3 +38,4 @@ BraceWrapping:
 SpaceBeforeParens: Never
 SpacesInParentheses: true
 SpacesInAngles: Always
+SpaceAroundPointerQualifiers: Both
