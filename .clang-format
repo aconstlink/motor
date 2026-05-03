@@ -31,8 +31,10 @@ BraceWrapping:
   AfterUnion: false
   BeforeCatch: false
   BeforeElse: false
+  BeforeLambdaBody: true
   IndentBraces: false        # Align brace with function name
   SplitEmptyNamespace: true
+  
 
 
 SpaceBeforeParens: Never
