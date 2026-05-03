@@ -2,6 +2,7 @@
 
 #include "future_item.hpp"
 
+#include <motor/scene/node/node.h>
 #include <motor/geometry/mesh/polygon_mesh.h>
 #include <motor/audio/object/buffer_object.hpp>
 #include <motor/graphics/texture/image.hpp>
@@ -81,5 +82,15 @@ namespace motor
             
         };
         motor_typedef( mesh_item ) ;
+
+        //***********************************************
+        // used when im/exporting scenes with assets
+        struct scene_item : public item
+        {
+            motor::scene::node_mtr_t root ;
+
+            // @todo add asset maps here
+        } ;
+        motor_typedef( scene_item ) ;
     }
 }

@@ -5,6 +5,8 @@
 
 using namespace motor::scene ;
 
+motor_core_dd_id_init( switch_group ) ;
+
 //*******************************************************************
 switch_group::switch_group( void_t ) noexcept
 {

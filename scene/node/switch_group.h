@@ -8,10 +8,11 @@ namespace motor
     {
         /// idea:
         /// activate/deactivate traversal
-        class switch_group : public group
+        class MOTOR_SCENE_API switch_group : public group
         {
             typedef group base_t ;
             motor_this_typedefs( switch_group ) ;
+            motor_core_dd_id_fn() ;
 
             typedef motor::vector< bool_t > bools_t ;
 
@@ -51,5 +52,6 @@ namespace motor
             virtual motor::scene::result detach( node_ptr_t which_ptr ) noexcept ;
 
         };
+        motor_typedef( switch_group ) ;
     }
 }

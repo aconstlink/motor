@@ -55,6 +55,7 @@ target_link_libraries( ${cur_lib_name}
   PUBLIC motor::audio
   PUBLIC motor::graphics
   PUBLIC motor::io
+  PUBLIC motor::scene
     )
 
 if( MOTOR_COMPILER_GNU )
