@@ -12,14 +12,6 @@ if( PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR )
 endif()
 message( STATUS "Out-of-source build" ) 
 
-message( "CMake C++ Standard : "${CMAKE_CXX_STANDARD} )
-message( "Setting CMake C++ Standard to 20" )
-
-set( CMAKE_CXX_STANDARD 20 )
-set( CMAKE_CXX_STANDARD_REQUIRED 20 )
-set( CMAKE_CXX_EXTENSIONS OFF )
-
-
 set( motor_root_dir ${CMAKE_CURRENT_LIST_DIR} )
 
 file( REMOVE ${MOTOR_BINARY_DIR}/motor-targets.cmake  )
