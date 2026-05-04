@@ -8,24 +8,6 @@ namespace motor
 {
     namespace wire
     {
-        class MOTOR_WIRE_API iinput_slot : public islot
-        {
-            motor_this_typedefs( iinput_slot ) ;
-
-        public:
-            
-            virtual ~iinput_slot( void_t ) noexcept ;
-
-        public:
-
-            virtual void_t exchange( void_t ) noexcept = 0 ;
-            virtual void_t disconnect( bool_t const propagate = true ) noexcept = 0 ;
-            virtual void_t disconnect( motor::wire::ioutput_slot_ptr_t, bool_t const propagate = true  ) noexcept = 0 ;
-            virtual bool_t connect( motor::wire::ioutput_slot_mtr_safe_t, bool_t const propagate = true ) noexcept = 0 ;
-        };
-        motor_typedef( iinput_slot ) ;
-
-
         template< typename T >
         class input_slot : public iinput_slot
         {

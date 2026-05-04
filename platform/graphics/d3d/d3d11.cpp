@@ -1199,7 +1199,7 @@ public: // compilation thread ;
         }
 
         template<>
-        static obj_type deduce_type<motor::graphics::msl_object>( motor::graphics::msl_object * ptr ) noexcept
+        obj_type deduce_type<motor::graphics::msl_object>( motor::graphics::msl_object * ptr ) noexcept
         {
             return obj_type::msl ;
         }
@@ -3757,7 +3757,7 @@ public: // functions
                 // be resized in the update function. Important for now
                 // is that the buffer will be NOT nullptr.
                 bd.ByteWidth = UINT( std::max( byte_width, elem_sib ) ) ;
-                bd.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D10_BIND_SHADER_RESOURCE ;
+                bd.BindFlags = UINT(D3D11_BIND_VERTEX_BUFFER) | UINT(D3D10_BIND_SHADER_RESOURCE) ;
                 bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
 
                 HRESULT const hr = dev->CreateBuffer( &bd, nullptr, data.buffer ) ;

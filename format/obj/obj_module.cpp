@@ -457,12 +457,14 @@ motor::format::future_item_t wav_obj_module::import_from( motor::io::location_cr
                             uint_t const nid = t.nid < 0 ?
                                 uint_t( offsets[ offset_idx ].num_nrm + t.nid ) : (uint_t) t.nid - 1 ;
 
-                            cache_f.indices.emplace_back( mesh_data::index_tripple
+                            mesh_data::index_tripple tmp__ = 
                                 {
                                     pid,
                                     tid,
                                     nid
-                                } ) ;
+                                } ;
+
+                            cache_f.indices.emplace_back( std::move( tmp__ ) ) ;
                         }
                         cache_f.num_vertices = num_tripples ;
                     }
