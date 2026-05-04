@@ -6,6 +6,9 @@
 # 
 # the values here can be initialized using a toolchain file
 
+message( STATUS "" )
+message( STATUS ">>> config_compiler.cmake" )
+
 set( MOTOR_COMPILER_CONFIGURED FALSE )
 
 set( THIS_TARGET ct_motor_compiler )
@@ -74,26 +77,32 @@ else()
 
 endif()
 
+
+#
+# Checks ok, so set the standard
+#
+set( CMAKE_CXX_STANDARD ${MOTOR_CXX_STANDARD} )
+set( CMAKE_CXX_EXTENSIONS OFF )
+
+message( STATUS "[motor compiler] : Compiler Standard checks ok. Setting to C++" ${CMAKE_CXX_STANDARD} )
+
+
 #
 # Print Info
 #
 if( MOTOR_COMPILER_MSC )
 
-    message( STATUS "[compiler] : Microsoft Compiler Suite" )
+    message( STATUS "[motor compiler] : Microsoft Compiler Suite" )
 
 elseif( MOTOR_COMPILER_GNU )
 
-    message( STATUS "[compiler] : GNU Compiler Suite" )
+    message( STATUS "[motor compiler] : GNU Compiler Suite" )
 
 elseif( MOTOR_COMPILER_CLANG )
 
-    message( STATUS "[compiler] : LLVM CLang" )
+    message( STATUS "[motor compiler] : LLVM CLang" )
 
 endif()
-
-
-set( CMAKE_CXX_STANDARD ${MOTOR_CXX_STANDARD} )
-set( CMAKE_CXX_EXTENSIONS OFF )
 
 set( MOTOR_COMPILER_CONFIGURED TRUE )
 
@@ -102,3 +111,6 @@ export( TARGETS ${THIS_TARGET}
   APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-targets.cmake )
 
 install( TARGETS ${THIS_TARGET} EXPORT ${PROJECT_NAME}-targets )
+
+message( STATUS "<<< config_compiler.cmake" )
+message( STATUS "" )
