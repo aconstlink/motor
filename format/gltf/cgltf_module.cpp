@@ -8,6 +8,8 @@
 #include <motor/scene/node/logic_leaf.h>
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/node/switch_group.h>
+#include <motor/scene/node/trafo3d_node.h>
+
 #include <motor/scene/component/name_component.hpp>
 
 #include <motor/geometry/3d/cube.h>
@@ -20,6 +22,7 @@
 
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
+#include <motor/math/matrix/matrix4.hpp>
 
 #include <motor/core/document.hpp>
 
@@ -93,7 +96,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 {
                     auto const &gltf_scene = data->scenes[si];
 
-                    bool_t const active = (size_t(&gltf_scene) - size_t(data->scene)) == 0 ;
+                    bool_t const active = ( size_t( &gltf_scene ) - size_t( data->scene ) ) == 0;
 
                     motor::scene::logic_group_t cur_scene;
 
@@ -109,7 +112,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     //
                     // #1: go over all root nodes first.
-                    // 
+                    //
                     for( size_t ni = 0; ni < gltf_scene.nodes_count; ++ni )
                     {
                         auto const &gltf_node = gltf_scene.nodes[ni];
@@ -129,15 +132,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                             // only store groups
                             nnmap[gltf_node] = lg.move();
-
-                        } else
+                        }
+                        else
                         {
                             // leaf node
                             root.add_child( motor::shared( motor::scene::logic_leaf_t() ), active );
                         }
                     }
-
-                    
 
                     //
                     // #2: construct the node tree
@@ -155,13 +156,14 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 {
                                     auto const *gltf_node = gltf_parent->children[ni];
 
-                                    motor::string_t const name = gltf_node->name == nullptr
-                                                                     ? "node " + motor::to_string( ni )
-                                                                     : gltf_scene.name;
-
-                                    motor::scene::name_component_t nc( name );
                                     if( gltf_node->children_count > 0 )
                                     {
+                                        motor::string_t const name = gltf_node->name == nullptr
+                                                                         ? "node " + motor::to_string( ni )
+                                                                         : gltf_scene.name;
+
+                                        motor::scene::name_component_t nc( name );
+
                                         // group
                                         auto lg = motor::shared( motor::scene::logic_group_t() );
                                         lg->add_component( motor::shared( std::move( nc ) ) );
@@ -170,11 +172,70 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                         // only store groups
                                         nnmap[gltf_node] = lg.move();
-
-                                    } else
+                                    }
+                                    else
                                     {
+                                        motor::scene::node_mtr_t child = motor::shared( motor::scene::logic_leaf_t() );
+
+                                        motor::string_t const name = gltf_node->name == nullptr
+                                                                         ? "node " + motor::to_string( ni )
+                                                                         : gltf_scene.name;
+
+                                        motor::scene::name_component_t nc( name );
+
+                                        if( gltf_node->mesh != nullptr )
+                                        {
+                                            // attach mesh
+                                        }
+
+                                        bool_t has_trafo = false;
+                                        motor::math::m3d::trafof_t trafo;
+
+                                        if( gltf_node->has_matrix )
+                                        {
+                                            // colum major
+                                            auto const &glm = gltf_node->matrix;
+
+                                            motor::math::vec4f_t const col0( glm[0], glm[1], glm[2], glm[3] );
+                                            motor::math::vec4f_t const col1( glm[4], glm[5], glm[6], glm[7] );
+                                            motor::math::vec4f_t const col2( glm[8], glm[9], glm[10], glm[11] );
+                                            motor::math::vec4f_t const col3( glm[12], glm[13], glm[14], glm[15] );
+
+                                            motor::math::mat4f_t mat;
+
+                                            mat.set_column( 0, col0 );
+                                            mat.set_column( 1, col1 );
+                                            mat.set_column( 2, col2 );
+                                            mat.set_column( 3, col3 );
+
+                                            has_trafo = true;
+                                        }
+                                        else
+                                        {
+                                            if( gltf_node->has_translation )
+                                            {
+                                                has_trafo = true;
+                                            }
+                                            if( gltf_node->has_rotation )
+                                            {
+                                                has_trafo = true;
+                                            }
+                                            if( gltf_node->has_scale )
+                                            {
+                                                has_trafo = true;
+                                            }
+                                        }
+
+                                        if( has_trafo )
+                                        {
+                                            motor::scene::trafo3d_node_t tn( trafo );
+                                            tn.set_decorated( motor::move( child ) );
+
+                                            child = motor::shared( std::move( tn ) );
+                                        }
+
                                         // leaf node
-                                        parent->add_child( motor::shared( motor::scene::logic_leaf_t() ) );
+                                        parent->add_child( motor::move( child ) );
                                     }
                                 }
                             }
@@ -183,7 +244,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         }
                     }
 
-                    ret.root = motor::shared( std::move( root ), "gltf imported root node" ) ;
+                    ret.root = motor::shared( std::move( root ), "gltf imported root node" );
                 }
             }
 
@@ -198,7 +259,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             cgltf_free( data );
             motor::release( mod_reg );
 
-            return motor::shared( std::move( ret ), "[cgltf] : module item" ) ;            
+            return motor::shared( std::move( ret ), "[cgltf] : module item" );
         } );
 }
 
