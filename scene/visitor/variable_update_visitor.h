@@ -10,7 +10,6 @@ namespace motor
         class MOTOR_SCENE_API variable_update_visitor : public ivisitor
         {
             motor_this_typedefs( variable_update_visitor ) ;
-            motor_core_dd_id_fn() ;
 
         public:
 

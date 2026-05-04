@@ -2,8 +2,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( render_node ) ;
-
 //*****************************************************************
 render_node::render_node( this_rref_t rhv ) noexcept : 
     base_t( std::move( rhv) ), _vs( rhv._vs ), _brigde( std::move( rhv._brigde ) ),

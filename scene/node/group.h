@@ -11,7 +11,6 @@ namespace motor
         {
             typedef node base_t ;
             motor_this_typedefs( group ) ;
-            motor_core_dd_id_fn() ;
 
             typedef motor::vector< node_mtr_t > children_t ;
             typedef std::function< bool_t( size_t i ) > traverse_predicate_t ;

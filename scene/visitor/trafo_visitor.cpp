@@ -7,8 +7,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( trafo_visitor ) ;
-
 //******************************************************************************
 trafo_visitor::trafo_visitor( void_t ) noexcept 
 {

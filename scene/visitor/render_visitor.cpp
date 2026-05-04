@@ -8,8 +8,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( render_visitor ) ;
-
 //*****************************************************************************************
 render_visitor::render_visitor( motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept : 
     _fe( fe ), _cam( cam ) 

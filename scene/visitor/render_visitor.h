@@ -10,7 +10,6 @@ namespace motor
     {
         class MOTOR_SCENE_API render_visitor : public ivisitor
         {
-            motor_core_dd_id_fn() ;
             motor_this_typedefs( render_visitor ) ;
 
             motor::graphics::gen4::frontend_ptr_t _fe ;

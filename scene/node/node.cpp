@@ -5,8 +5,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( node ) ;
-
 //*******************************************************************
 node::traverser::traverser( node_ptr_t begin ) noexcept :_traverse( begin )
 {

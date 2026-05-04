@@ -11,7 +11,6 @@ namespace motor
         /// behavior. The default behavior is to do nothing.
         class MOTOR_SCENE_API log_visitor : public ivisitor
         {
-            motor_core_dd_id_fn() ;
             motor_this_typedefs( log_visitor ) ;
 
         private:

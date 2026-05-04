@@ -8,8 +8,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( decorator ) ;
-
 //*************************************************************************
 decorator::decorator( void_t ) noexcept
 {}
@@ -40,16 +38,13 @@ decorator::~decorator( void_t ) noexcept
 //*************************************************************************
 motor::scene::result decorator::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    //motor::scene::result const r = vptr->visit( this ) ;
-    motor::scene::result const r = motor::scene::global::resolve( vptr, this ).visit( vptr, this ) ;
-
+    motor::scene::result const r = vptr->visit( this ) ;
     if( motor::scene::success( r ) )
     {
         traverse_decorated( vptr ) ;
     }
     
-    //return vptr->post_visit( this, r ) ;
-    return motor::scene::global::resolve( vptr, this ).post_visit( vptr, this, r ) ;
+    return vptr->post_visit( this, r ) ;    
 }
 
 //*************************************************************************

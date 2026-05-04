@@ -5,8 +5,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( trafo3d_node ) ;
-
 //**********************************************************************************
 trafo3d_node::trafo3d_node( void_t ) noexcept 
 {}
@@ -38,7 +36,6 @@ bool_t trafo3d_node::inputs( motor::wire::inputs_out_t ins ) noexcept
     return true ;
 }
 
-#if 0
 //**********************************************************************************
 motor::scene::result trafo3d_node::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept 
 {
@@ -51,4 +48,3 @@ motor::scene::result trafo3d_node::apply( motor::scene::ivisitor_ptr_t vptr ) no
 
     return vptr->post_visit( this, r ) ;
 }
-#endif

@@ -18,8 +18,6 @@ namespace motor
             typedef motor::scene::logic_decorator base_t ;
             motor_this_typedefs( trafo3d_node ) ;
 
-            motor_core_dd_id_fn() ;
-
         private:
 
             motor_typedefs( motor::wire::input_slot< motor::math::m3d::trafof_t >, in_slot ) ;
@@ -66,7 +64,7 @@ namespace motor
         public:
 
             virtual bool_t inputs( motor::wire::inputs_out_t ) noexcept ;
-            //virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
+            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
         };
         motor_typedef( trafo3d_node ) ;
     }

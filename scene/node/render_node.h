@@ -18,7 +18,6 @@ namespace motor
         {
             motor_typedefs( leaf, base ) ;
             motor_this_typedefs( render_node ) ;
-            motor_core_dd_id_fn() ;
 
         private:
 

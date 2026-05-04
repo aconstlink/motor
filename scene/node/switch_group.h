@@ -12,7 +12,6 @@ namespace motor
         {
             typedef group base_t ;
             motor_this_typedefs( switch_group ) ;
-            motor_core_dd_id_fn() ;
 
             typedef motor::vector< bool_t > bools_t ;
 

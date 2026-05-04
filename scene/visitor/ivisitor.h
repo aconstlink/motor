@@ -5,15 +5,12 @@
 #include "../typedefs.h"
 #include "../api.h"
 
-#include <motor/core/double_dispatch.hpp>
-
 namespace motor
 {
     namespace scene
     {
         class MOTOR_SCENE_API ivisitor
         {
-            motor_core_dd_id_vfn() ;
 
         public: 
 
@@ -42,6 +39,16 @@ namespace motor
             }
 
             virtual motor::scene::result post_visit( motor::scene::decorator_ptr_t, motor::scene::result const ) noexcept
+            {
+                return motor::scene::result::ok ;
+            }
+
+            virtual motor::scene::result visit( motor::scene::trafo3d_node_ptr_t ) noexcept  
+            {
+                return motor::scene::result::ok ;
+            }
+
+            virtual motor::scene::result post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept 
             {
                 return motor::scene::result::ok ;
             }

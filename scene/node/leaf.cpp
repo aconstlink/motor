@@ -7,7 +7,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( leaf ) ;
 
 //*******************************************************************
 leaf::leaf( void_t ) noexcept
@@ -32,6 +31,5 @@ leaf::~leaf( void_t )  noexcept
 //*******************************************************************
 motor::scene::result leaf::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
-    //return vptr->visit( this ) ;
-    return motor::scene::global::resolve( vptr, this ).visit( vptr, this ) ;
+    return vptr->visit( this ) ;
 }

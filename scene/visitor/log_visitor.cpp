@@ -7,8 +7,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( log_visitor ) ;
-
 //*********************************************************************
 log_visitor::~log_visitor( void_t ) noexcept
 {

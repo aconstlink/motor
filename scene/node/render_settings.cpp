@@ -4,7 +4,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( render_settings ) ;
 
 //************************************************************************************************
 render_settings::render_settings( this_rref_t rhv ) noexcept : _rs( motor::move( rhv._rs )  )

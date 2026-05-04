@@ -12,7 +12,6 @@ namespace motor
         {
             motor_typedefs( logic_decorator, base ) ;
             motor_this_typedefs( render_settings ) ;
-            motor_core_dd_id_fn() ;
 
         private:
 

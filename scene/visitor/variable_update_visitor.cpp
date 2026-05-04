@@ -6,8 +6,6 @@
 
 using namespace motor::scene ;
 
-motor_core_dd_id_init( variable_update_visitor ) ;
-
 //*************************************************************************************************
 variable_update_visitor::variable_update_visitor( void_t ) noexcept 
 {
