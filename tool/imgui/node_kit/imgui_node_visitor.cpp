@@ -18,8 +18,6 @@
 
 using namespace motor::tool ;
 
-motor_core_dd_id_init( imgui_node_visitor ) ;
-
 //************************************************************************
 imgui_node_visitor::imgui_node_visitor( void_t ) noexcept 
 {
@@ -218,16 +216,6 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::render_node_ptr_t 
 void_t imgui_node_visitor::on_finish( void_t ) noexcept
 {
     _id = 0 ;
-}
-
-//************************************************************************
-void_t imgui_node_visitor::init_function_callbacks( void_t ) noexcept 
-{
-    motor::scene::global::register_default_callbacks<this_t, motor::scene::group>() ;
-    motor::scene::global::register_default_callbacks<this_t, motor::scene::leaf>() ;
-    motor::scene::global::register_default_callbacks<this_t, motor::scene::trafo3d_node>() ;
-    motor::scene::global::register_default_callbacks<this_t, motor::scene::render_node>() ;
-    motor::scene::global::register_default_callbacks<this_t, motor::scene::render_settings>() ;
 }
 
 //************************************************************************

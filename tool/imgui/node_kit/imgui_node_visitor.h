@@ -14,7 +14,6 @@ namespace motor
         class MOTOR_TOOL_API imgui_node_visitor : public motor::scene::ivisitor
         {
             motor_this_typedefs( imgui_node_visitor ) ;
-            motor_core_dd_id_fn() ;
 
         private:
 
@@ -45,9 +44,7 @@ namespace motor
 
             virtual void_t on_finish( void_t ) noexcept ;
 
-        public:
-
-            static void_t init_function_callbacks( void_t ) noexcept ;
+        public:            
 
             motor::scene::node_mtr_safe_t get_selected( void_t ) noexcept ; 
 
