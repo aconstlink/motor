@@ -41,3 +41,4 @@ SpaceBeforeParens: Never
 SpacesInParentheses: true
 SpacesInAngles: Always
 SpaceAroundPointerQualifiers: Both
+PointerAlignment: Middle
