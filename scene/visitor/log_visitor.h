@@ -41,6 +41,10 @@ namespace motor
 
             virtual motor::scene::result visit( motor::scene::trafo3d_node_ptr_t ) noexcept  ;
             virtual motor::scene::result post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept ;
+
+        private:
+
+            motor::string_t get_name_component( motor::scene::node_cptr_t ) const ;
         };
         motor_typedef( log_visitor ) ;
     }
