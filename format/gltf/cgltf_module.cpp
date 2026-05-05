@@ -23,6 +23,8 @@
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
 #include <motor/math/matrix/matrix4.hpp>
+#include <motor/math/matrix/matrix3.hpp>
+#include <motor/math/quaternion/quaternion4.hpp>
 
 #include <motor/core/document.hpp>
 
@@ -77,7 +79,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             }
 
             cgltf_options options = {};
-            cgltf_data *data = NULL;
+            cgltf_data * data = NULL;
             cgltf_result result = cgltf_parse( &options, data_buffer.data(), data_buffer.size(), &data );
 
             if( result != cgltf_result_success )
@@ -91,160 +93,195 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             {
                 using node_node_map_t = motor::hash_map< cgltf_node const *, motor::scene::logic_group_ptr_t >;
 
+                using node_to_idx_map_t = motor::hash_map< cgltf_node const *, size_t >;
+
+                // maps a gltf node idx to a motor scene node
+                using node_node_vec_t = motor::vector< motor::scene::logic_group_mtr_t >;
+
+                // mats a gltf node idx to a motor scene trafo node if there is one
+                using node_trafo_vec_t = motor::vector< motor::scene::trafo3d_node_mtr_t >;
+
+                node_to_idx_map_t nti_map;
+                node_node_vec_t nn_vec( data->nodes_count, nullptr );
+                node_trafo_vec_t nt_vec( data->nodes_count, nullptr );
+
+                // #1 : fill vectors with nodes
+                {
+                    for( size_t ni = 0; ni < data->nodes_count; ++ni )
+                    {
+                        auto const & gltf_node = data->nodes[ni];
+                        auto motor_node = motor::shared( motor::scene::logic_group_t() );
+
+                        nti_map[&gltf_node] = ni;
+
+                        // attach name
+                        {
+                            motor::string_t const name =
+                                gltf_node.name == nullptr ? "node " + motor::to_string( ni ) : gltf_node.name;
+
+                            motor_node->add_component( motor::shared( motor::scene::name_component_t( name ) ) );
+                        }
+
+                        // check for children
+                        {
+                            // do we have to do it? we just handle
+                            // every node as a group node.
+                        }
+
+                        // check transformation
+                        // make parent trafo3d_node decorator
+                        {
+                            bool_t attach = gltf_node.has_matrix || gltf_node.has_scale || gltf_node.has_rotation ||
+                                            gltf_node.has_translation;
+
+                            motor::math::m3d::trafof_t trafo;
+
+                            if( gltf_node.has_matrix )
+                            {
+                                // colum major
+                                auto const & glm = gltf_node.matrix;
+
+                                motor::math::vec4f_t const col0( glm[0], glm[1], glm[2], glm[3] );
+                                motor::math::vec4f_t const col1( glm[4], glm[5], glm[6], glm[7] );
+                                motor::math::vec4f_t const col2( glm[8], glm[9], glm[10], glm[11] );
+                                motor::math::vec4f_t const col3( glm[12], glm[13], glm[14], glm[15] );
+
+                                motor::math::mat4f_t mat;
+
+                                mat.set_column( 0, col0 );
+                                mat.set_column( 1, col1 );
+                                mat.set_column( 2, col2 );
+                                mat.set_column( 3, col3 );
+
+                                // thoughts:
+                                // in a TRS matrix, ths RS matrix should look like this
+                                // a b * sx 0  = asx bsy
+                                // c d   0  sy   csx dsy
+                                // so decomposing requires the length of the column vectors
+                                // asx = a * sx
+                                // csx   c
+                                // so computing the length of the [ac]^T column vector should
+                                // result in the sx scaling value.
+                                // so to be the rotation matrix R, we need to divide the column
+                                // vectors by the length.
+                                // I would like to store not the matrix, but the particular
+                                // parameters for translation, scaling and roation(quaternion)
+
+                                // has [sx, sy, sz]^T
+
+                                // fortunately, the trafo3 class already does all of this!
+                                trafo.set_transformation( mat );
+                            }
+                            else
+                            {
+                                if( gltf_node.has_scale )
+                                {
+                                    trafo.set_scale( motor::math::vec3f_t::from_array( gltf_node.scale ) );
+                                }
+
+                                if( gltf_node.has_rotation )
+                                {
+                                    auto const & q__ = gltf_node.rotation;
+                                    motor::math::vec3f_t const axis( q__[0], q__[1], q__[2] );
+                                    trafo.rotate_by_axis_fl( motor::math::is_normalized< motor::math::vec3f_t >( axis ),
+                                                             q__[3] );
+                                }
+
+                                if( gltf_node.has_translation )
+                                {
+                                    trafo.set_translation( motor::math::vec3f_t::from_array( gltf_node.translation ) );
+                                }
+                            }
+
+                            if( attach )
+                            {
+                                nt_vec[ni] = motor::shared( motor::scene::trafo3d_node_t( trafo ) );
+                                nt_vec[ni]->set_decorated( motor::share( motor_node ) );
+                            }
+                        }
+
+                        // check mesh
+                        {
+                            // make child mesh node
+                            // attach to current group
+                            // motor_node->add_child( /*mesh_node*/) ;
+                        }
+
+                        // check camera
+                        {
+                            // make child camera node
+                            // attach to current group
+                            // motor_node->add_child( /*camera_node*/) ;
+                        }
+
+                        nn_vec[ni] = motor::move( motor_node );
+                    }
+                }
+
+                // #2 : connect nodes
                 motor::scene::switch_group_t root;
+
+                // #2.1 : start with root nodes. need special handling
+                // because those come from the scene data.
                 for( size_t si = 0; si < data->scenes_count; ++si )
                 {
-                    auto const &gltf_scene = data->scenes[si];
-
-                    bool_t const active = ( size_t( &gltf_scene ) - size_t( data->scene ) ) == 0;
+                    auto const & gltf_scene = data->scenes[si];
 
                     motor::scene::logic_group_t cur_scene;
 
                     {
                         motor::string_t const name =
-                            gltf_scene.name == nullptr ? "root node " + motor::to_string( si ) : gltf_scene.name;
+                            gltf_scene.name == nullptr ? "scene node " + motor::to_string( si ) : gltf_scene.name;
 
                         motor::scene::name_component_t nc( name );
                         cur_scene.add_component( motor::shared( std::move( nc ) ) );
                     }
 
-                    node_node_map_t nnmap;
-
-                    //
-                    // #1: go over all root nodes first.
-                    //
                     for( size_t ni = 0; ni < gltf_scene.nodes_count; ++ni )
                     {
-                        auto const &gltf_node = gltf_scene.nodes[ni];
+                        auto const * gltf_node = gltf_scene.nodes[ni];
+                        size_t const idx = nti_map[gltf_node];
 
-                        motor::string_t const name =
-                            gltf_node->name == nullptr ? "root node " + motor::to_string( ni ) : gltf_scene.name;
-
-                        motor::scene::name_component_t nc( name );
-
-                        if( gltf_node->children_count > 0 )
-                        {
-                            // group
-                            auto lg = motor::shared( motor::scene::logic_group_t() );
-                            lg->add_component( motor::shared( std::move( nc ) ) );
-
-                            root.add_child( motor::share( lg ), active );
-
-                            // only store groups
-                            nnmap[gltf_node] = lg.move();
-                        }
+                        if( nt_vec[idx] == nullptr )
+                            cur_scene.add_child( motor::share( nn_vec[idx] ) );
                         else
-                        {
-                            // leaf node
-                            root.add_child( motor::shared( motor::scene::logic_leaf_t() ), active );
-                        }
+                            cur_scene.add_child( motor::share( nt_vec[idx] ) );
                     }
 
-                    //
-                    // #2: construct the node tree
-                    //
                     {
-                        auto nnmap2 = std::move( nnmap );
-                        while( nnmap2.size() > 0 )
+                        bool_t const active = ( size_t( &gltf_scene ) - size_t( data->scene ) ) == 0;
+                        root.add_child( motor::shared( std::move( cur_scene ) ), active );
+                    }
+                }
+
+                // #2.2 : continue with connecting the nodes themselfs.
+                {
+                    for( size_t i = 0; i < nn_vec.size(); ++i )
+                    {
+                        auto const & gltf_node = data->nodes[i];
+
+                        auto * group_node = nn_vec[i];
+
+                        for( size_t ci = 0; ci < gltf_node.children_count; ++ci )
                         {
-                            for( auto &nn : nnmap2 )
+                            size_t const idx = nti_map[gltf_node.children[ci]];
+
+                            if( nt_vec[idx] == nullptr )
                             {
-                                auto const *gltf_parent = nn.first;
-                                auto *parent = nn.second;
-
-                                for( size_t ni = 0; ni < gltf_parent->children_count; ++ni )
-                                {
-                                    auto const *gltf_node = gltf_parent->children[ni];
-
-                                    if( gltf_node->children_count > 0 )
-                                    {
-                                        motor::string_t const name = gltf_node->name == nullptr
-                                                                         ? "node " + motor::to_string( ni )
-                                                                         : gltf_scene.name;
-
-                                        motor::scene::name_component_t nc( name );
-
-                                        // group
-                                        auto lg = motor::shared( motor::scene::logic_group_t() );
-                                        lg->add_component( motor::shared( std::move( nc ) ) );
-
-                                        parent->add_child( motor::share( lg ) );
-
-                                        // only store groups
-                                        nnmap[gltf_node] = lg.move();
-                                    }
-                                    else
-                                    {
-                                        motor::scene::node_mtr_t child = motor::shared( motor::scene::logic_leaf_t() );
-
-                                        motor::string_t const name = gltf_node->name == nullptr
-                                                                         ? "node " + motor::to_string( ni )
-                                                                         : gltf_scene.name;
-
-                                        motor::scene::name_component_t nc( name );
-
-                                        if( gltf_node->mesh != nullptr )
-                                        {
-                                            // attach mesh
-                                        }
-
-                                        bool_t has_trafo = false;
-                                        motor::math::m3d::trafof_t trafo;
-
-                                        if( gltf_node->has_matrix )
-                                        {
-                                            // colum major
-                                            auto const &glm = gltf_node->matrix;
-
-                                            motor::math::vec4f_t const col0( glm[0], glm[1], glm[2], glm[3] );
-                                            motor::math::vec4f_t const col1( glm[4], glm[5], glm[6], glm[7] );
-                                            motor::math::vec4f_t const col2( glm[8], glm[9], glm[10], glm[11] );
-                                            motor::math::vec4f_t const col3( glm[12], glm[13], glm[14], glm[15] );
-
-                                            motor::math::mat4f_t mat;
-
-                                            mat.set_column( 0, col0 );
-                                            mat.set_column( 1, col1 );
-                                            mat.set_column( 2, col2 );
-                                            mat.set_column( 3, col3 );
-
-                                            has_trafo = true;
-                                        }
-                                        else
-                                        {
-                                            if( gltf_node->has_translation )
-                                            {
-                                                has_trafo = true;
-                                            }
-                                            if( gltf_node->has_rotation )
-                                            {
-                                                has_trafo = true;
-                                            }
-                                            if( gltf_node->has_scale )
-                                            {
-                                                has_trafo = true;
-                                            }
-                                        }
-
-                                        if( has_trafo )
-                                        {
-                                            motor::scene::trafo3d_node_t tn( trafo );
-                                            tn.set_decorated( motor::move( child ) );
-
-                                            child = motor::shared( std::move( tn ) );
-                                        }
-
-                                        // leaf node
-                                        parent->add_child( motor::move( child ) );
-                                    }
-                                }
+                                group_node->add_child( motor::share( nn_vec[idx] ) );
                             }
-
-                            nnmap2 = std::move( nnmap );
+                            else
+                            {
+                                group_node->add_child( motor::share( nt_vec[idx] ) );
+                            }
                         }
                     }
+                }
 
-                    ret.root = motor::shared( std::move( root ), "gltf imported root node" );
+                {
+                    motor::scene::name_component_t nc( "gltf root" );
+                    root.add_component( motor::shared( std::move( nc ) ) );
+                    ret.root = motor::shared( std::move( root ) );
                 }
             }
 
