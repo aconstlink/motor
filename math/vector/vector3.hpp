@@ -52,7 +52,7 @@ namespace motor
                 _elem[0] = x ;
                 _elem[1] = y ;
                 _elem[2] = z ;
-            }
+            }            
 
             //************************************************************************************
             vector3( type_t s )
@@ -547,7 +547,23 @@ namespace motor
             }
 
             //************************************************************************************
+            // @return return a reciprocal of this vector
+            this_t reciprocaled( void ) const 
+            {
+                return this_t( type_t(1)/_elem[0], type_t(1)/_elem[1], type_t(1)/_elem[2] ) ;
+            }
 
+            //************************************************************************************
+            // @return make this vector the reciprocal of ths and return this
+            this_ref_t reciprocal( void )
+            {
+                _elem[0] = type_t(1)/_elem[0] ;
+                _elem[1] = type_t(1)/_elem[1] ;
+                _elem[2] = type_t(1)/_elem[2] ;
+                return *this ;                
+            }
+
+            //************************************************************************************
             type_t length( void ) const
             {
                 return sqrt( length2( ) ) ;
@@ -618,6 +634,23 @@ namespace motor
             static this_t make_z_axis( void_t ) noexcept
             {
                 return this_t(type_t(0),type_t(0), type_t(1)) ;
+            }
+
+        public:
+
+            //************************************************************************************
+            static this_t from_array( type_t const arr[3] ) 
+            {
+                return this_t( arr[0], arr[1], arr[2] ) ;
+            }
+
+            //************************************************************************************
+            this_ref_t take_from_array( type_t const arr[3] ) 
+            {
+                _elem[0] = arr[0] ;
+                _elem[1] = arr[1] ;
+                _elem[2] = arr[2] ;
+                return *this ;
             }
 
         private:

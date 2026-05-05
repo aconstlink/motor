@@ -22,6 +22,8 @@ namespace motor
             // in real-time scenarios primarily. It stores a
             // 4x4 matrix for quick access to the transformation.
             // All computations are also carried out using matrices.
+            // this is thought to be a TRS matrix. No skew or shear is
+            // allowed. Otherwise, the matrix will break.
             template< typename T >
             class transformation
             {
