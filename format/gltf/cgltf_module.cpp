@@ -5,10 +5,13 @@
 
 #include "../future_items.hpp"
 
+#include <motor/gfx/camera/generic_camera.h>
+
 #include <motor/scene/node/logic_leaf.h>
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/node/switch_group.h>
 #include <motor/scene/node/trafo3d_node.h>
+#include <motor/scene/node/camera_node.h>
 
 #include <motor/scene/component/name_component.hpp>
 
@@ -113,7 +116,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     motor::io::database_t::cache_access_t ca = ud->db->load( new_loc );
 
-                    motor::string_t the_data ;
+                    motor::string_t the_data;
                     auto const res =
                         ca.wait_for_operation( [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
                                                { the_data = motor::string_t( data, sib ); } );
@@ -121,13 +124,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     if( !res )
                     {
                         motor::log::global_t::error( "[cgltf] : can not load location " + new_loc.as_string() );
-                        return cgltf_result_file_not_found ;
+                        return cgltf_result_file_not_found;
                     }
 
-                    *size = the_data.size() ;
-                    *data = cgltf_default_alloc( nullptr, *size ) ;
+                    *size = the_data.size();
+                    *data = cgltf_default_alloc( nullptr, *size );
 
-                    std::memcpy( *data, the_data.data(), *size ) ;
+                    std::memcpy( *data, the_data.data(), *size );
 
                     return cgltf_result_success;
                 };
@@ -165,6 +168,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 node_trafo_vec_t nt_vec( data->nodes_count, nullptr );
 
                 // #1 : fill vectors with nodes
+                // no hierarchy is build here. This section just check the nodes and
+                // creates motor node objects.
                 {
                     for( size_t ni = 0; ni < data->nodes_count; ++ni )
                     {
@@ -175,10 +180,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                         // attach name
                         {
-                            motor::string_t const name =
+                            motor::string_t const node_name =
                                 gltf_node.name == nullptr ? "node " + motor::to_string( ni ) : gltf_node.name;
 
-                            motor_node->add_component( motor::shared( motor::scene::name_component_t( name ) ) );
+                            motor_node->add_component( motor::shared( motor::scene::name_component_t( node_name ) ) );
                         }
 
                         // check for children
@@ -262,6 +267,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         // check mesh
                         if( gltf_node.mesh != nullptr )
                         {
+                            auto const * gltf_mesh = gltf_node.mesh;
+
                             // make child mesh node
                             // attach to current group
                             // motor_node->add_child( /*mesh_node*/) ;
@@ -270,24 +277,63 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         }
 
                         // check camera
+                        if( gltf_node.camera != nullptr )
                         {
+                            auto const & gltf_cam = *gltf_node.camera;
+
                             // make child camera node
                             // attach to current group
                             // motor_node->add_child( /*camera_node*/) ;
+
+                            motor::gfx::generic_camera cam;
+
+                            switch( gltf_cam.type )
+                            {
+                            case cgltf_camera_type::cgltf_camera_type_perspective: {
+                                gltf_cam.data.perspective.znear;
+                                gltf_cam.data.perspective.yfov;
+
+                                float_t w = 1000.0f;
+                                float_t h = 1000.0f;
+                                float_t n = 1.0f;
+                                float_t f = 10000.0f;
+                                float_t const fov = gltf_cam.data.perspective.yfov;
+
+                                if( gltf_cam.data.perspective.has_aspect_ratio )
+                                {
+                                    w = w * gltf_cam.data.perspective.aspect_ratio;
+                                }
+
+                                if( gltf_cam.data.perspective.has_zfar )
+                                {
+                                    f = gltf_cam.data.perspective.zfar;
+                                }
+
+                                cam.make_perspective_fov( w, h, fov, n, f );
+
+                                // cam.make_perspective_fov();
+                                break;
+                            }
+                            case cgltf_camera_type::cgltf_camera_type_orthographic: {
+                                // cam.make_orthographic() ;
+                                break;
+                            }
+                            default:
+                                break;
+                            }
+
+                            auto cam_node = motor::scene::camera_node_t( motor::shared( std::move( cam ) ) );
+
+                            // finally, add the root node to the return value.
+                            {
+                                motor::scene::name_component_t nc( gltf_cam.name );
+                                cam_node.add_component( motor::shared( std::move( nc ) ) );
+                            }
+
+                            motor_node->add_child( motor::shared( std::move( cam_node ) ) );
                         }
 
                         nn_vec[ ni ] = motor::move( motor_node );
-                    }
-                }
-
-                // #x : load buffer data
-                {
-
-                    for( size_t i = 0; i < data->buffers_count; ++i )
-                    {
-                        auto const & buffer = data->buffers[ i ];
-
-                        int bp = 0;
                     }
                 }
 
