@@ -57,7 +57,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 {
     return std::async(
         std::launch::async,
-        [=]( void_t ) mutable -> item_mtr_t
+        [ = ]( void_t ) mutable -> item_mtr_t
         {
             using _clock_t = std::chrono::high_resolution_clock;
             _clock_t::time_point tp_begin = _clock_t::now();
@@ -69,7 +69,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             motor::string_t data_buffer;
 
             motor::io::database_t::cache_access_t ca = db->load( loc );
-            auto const res = ca.wait_for_operation( [&]( char_cptr_t data, size_t const sib, motor::io::result const )
+            auto const res = ca.wait_for_operation( [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
                                                     { data_buffer = motor::string_t( data, sib ); } );
 
             if( !res )
@@ -89,7 +89,66 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 return motor::shared( motor::format::status_item_t( "[cgltf] : import failed." ) );
             }
 
-            // cgltf impl here
+            // before starting to create anything, load the buffers data
+            {
+                struct user_data
+                {
+                    motor::io::location_cref_t loc;
+                    motor::io::database_mtr_t db;
+                };
+
+                user_data ud__ = { loc, db };
+
+                using cgltf_read_funk_t = cgltf_result ( * )( const struct cgltf_memory_options * memory_options,
+                                                              const struct cgltf_file_options * file_options,
+                                                              const char * path, cgltf_size * size, void ** data );
+
+                cgltf_read_funk_t read = []( const struct cgltf_memory_options * memory_options,
+                                             const struct cgltf_file_options * file_options, const char * path,
+                                             cgltf_size * size, void ** data )
+                {
+                    user_data * ud = (user_data *)( file_options->user_data );
+
+                    auto const new_loc = ud->loc.sub_location( -2 ) + motor::io::location_t::from_path( path );
+
+                    motor::io::database_t::cache_access_t ca = ud->db->load( new_loc );
+
+                    motor::string_t the_data ;
+                    auto const res =
+                        ca.wait_for_operation( [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+                                               { the_data = motor::string_t( data, sib ); } );
+
+                    if( !res )
+                    {
+                        motor::log::global_t::error( "[cgltf] : can not load location " + new_loc.as_string() );
+                        return cgltf_result_file_not_found ;
+                    }
+
+                    *size = the_data.size() ;
+                    *data = cgltf_default_alloc( nullptr, *size ) ;
+
+                    std::memcpy( *data, the_data.data(), *size ) ;
+
+                    return cgltf_result_success;
+                };
+
+                cgltf_options opts = {};
+                cgltf_file_options fro = {};
+                fro.read = cgltf_read_funk_t( read );
+                fro.user_data = &ud__;
+                opts.file = std::move( fro );
+
+                auto const path = motor::filesystem::absolute( loc.as_path() );
+                auto const lres = cgltf_load_buffers( &opts, data, (const char *)path.c_str() );
+                if( lres != cgltf_result_success )
+                {
+                    cgltf_free( data );
+                    motor::release( mod_reg );
+                    return motor::shared( motor::format::status_item_t( "[cgltf] : import failed." ) );
+                }
+            }
+
+            // going through the scene
             {
                 using node_node_map_t = motor::hash_map< cgltf_node const *, motor::scene::logic_group_ptr_t >;
 
@@ -109,10 +168,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 {
                     for( size_t ni = 0; ni < data->nodes_count; ++ni )
                     {
-                        auto const & gltf_node = data->nodes[ni];
+                        auto const & gltf_node = data->nodes[ ni ];
                         auto motor_node = motor::shared( motor::scene::logic_group_t() );
 
-                        nti_map[&gltf_node] = ni;
+                        nti_map[ &gltf_node ] = ni;
 
                         // attach name
                         {
@@ -141,10 +200,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // colum major
                                 auto const & glm = gltf_node.matrix;
 
-                                motor::math::vec4f_t const col0( glm[0], glm[1], glm[2], glm[3] );
-                                motor::math::vec4f_t const col1( glm[4], glm[5], glm[6], glm[7] );
-                                motor::math::vec4f_t const col2( glm[8], glm[9], glm[10], glm[11] );
-                                motor::math::vec4f_t const col3( glm[12], glm[13], glm[14], glm[15] );
+                                motor::math::vec4f_t const col0( glm[ 0 ], glm[ 1 ], glm[ 2 ], glm[ 3 ] );
+                                motor::math::vec4f_t const col1( glm[ 4 ], glm[ 5 ], glm[ 6 ], glm[ 7 ] );
+                                motor::math::vec4f_t const col2( glm[ 8 ], glm[ 9 ], glm[ 10 ], glm[ 11 ] );
+                                motor::math::vec4f_t const col3( glm[ 12 ], glm[ 13 ], glm[ 14 ], glm[ 15 ] );
 
                                 motor::math::mat4f_t mat;
 
@@ -182,9 +241,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 if( gltf_node.has_rotation )
                                 {
                                     auto const & q__ = gltf_node.rotation;
-                                    motor::math::vec3f_t const axis( q__[0], q__[1], q__[2] );
+                                    motor::math::vec3f_t const axis( q__[ 0 ], q__[ 1 ], q__[ 2 ] );
                                     trafo.rotate_by_axis_fl( motor::math::is_normalized< motor::math::vec3f_t >( axis ),
-                                                             q__[3] );
+                                                             q__[ 3 ] );
                                 }
 
                                 if( gltf_node.has_translation )
@@ -195,16 +254,19 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                             if( attach )
                             {
-                                nt_vec[ni] = motor::shared( motor::scene::trafo3d_node_t( trafo ) );
-                                nt_vec[ni]->set_decorated( motor::share( motor_node ) );
+                                nt_vec[ ni ] = motor::shared( motor::scene::trafo3d_node_t( trafo ) );
+                                nt_vec[ ni ]->set_decorated( motor::share( motor_node ) );
                             }
                         }
 
                         // check mesh
+                        if( gltf_node.mesh != nullptr )
                         {
                             // make child mesh node
                             // attach to current group
                             // motor_node->add_child( /*mesh_node*/) ;
+
+                            int pb = 0;
                         }
 
                         // check camera
@@ -214,74 +276,126 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // motor_node->add_child( /*camera_node*/) ;
                         }
 
-                        nn_vec[ni] = motor::move( motor_node );
+                        nn_vec[ ni ] = motor::move( motor_node );
                     }
                 }
 
-                // #2 : connect nodes
-                motor::scene::switch_group_t root;
-
-                // #2.1 : start with root nodes. need special handling
-                // because those come from the scene data.
-                for( size_t si = 0; si < data->scenes_count; ++si )
+                // #x : load buffer data
                 {
-                    auto const & gltf_scene = data->scenes[si];
 
-                    motor::scene::logic_group_t cur_scene;
-
+                    for( size_t i = 0; i < data->buffers_count; ++i )
                     {
-                        motor::string_t const name =
-                            gltf_scene.name == nullptr ? "scene node " + motor::to_string( si ) : gltf_scene.name;
+                        auto const & buffer = data->buffers[ i ];
 
-                        motor::scene::name_component_t nc( name );
-                        cur_scene.add_component( motor::shared( std::move( nc ) ) );
-                    }
-
-                    for( size_t ni = 0; ni < gltf_scene.nodes_count; ++ni )
-                    {
-                        auto const * gltf_node = gltf_scene.nodes[ni];
-                        size_t const idx = nti_map[gltf_node];
-
-                        if( nt_vec[idx] == nullptr )
-                            cur_scene.add_child( motor::share( nn_vec[idx] ) );
-                        else
-                            cur_scene.add_child( motor::share( nt_vec[idx] ) );
-                    }
-
-                    {
-                        bool_t const active = ( size_t( &gltf_scene ) - size_t( data->scene ) ) == 0;
-                        root.add_child( motor::shared( std::move( cur_scene ) ), active );
+                        int bp = 0;
                     }
                 }
 
-                // #2.2 : continue with connecting the nodes themselfs.
+                // #x : connect nodes
                 {
-                    for( size_t i = 0; i < nn_vec.size(); ++i )
+                    motor::scene::switch_group_t root;
+
+                    // #2.1 : start with root nodes. need special handling
+                    // because those come from the scene data.
+                    for( size_t si = 0; si < data->scenes_count; ++si )
                     {
-                        auto const & gltf_node = data->nodes[i];
+                        auto const & gltf_scene = data->scenes[ si ];
 
-                        auto * group_node = nn_vec[i];
+                        motor::scene::logic_group_t cur_scene;
 
-                        for( size_t ci = 0; ci < gltf_node.children_count; ++ci )
                         {
-                            size_t const idx = nti_map[gltf_node.children[ci]];
+                            motor::string_t const name =
+                                gltf_scene.name == nullptr ? "scene node " + motor::to_string( si ) : gltf_scene.name;
 
-                            if( nt_vec[idx] == nullptr )
-                            {
-                                group_node->add_child( motor::share( nn_vec[idx] ) );
-                            }
+                            motor::scene::name_component_t nc( name );
+                            cur_scene.add_component( motor::shared( std::move( nc ) ) );
+                        }
+
+                        for( size_t ni = 0; ni < gltf_scene.nodes_count; ++ni )
+                        {
+                            auto const * gltf_node = gltf_scene.nodes[ ni ];
+                            size_t const idx = nti_map[ gltf_node ];
+
+                            if( nt_vec[ idx ] == nullptr )
+                                cur_scene.add_child( motor::share( nn_vec[ idx ] ) );
                             else
+                                cur_scene.add_child( motor::share( nt_vec[ idx ] ) );
+                        }
+
+                        {
+                            bool_t const active = ( size_t( &gltf_scene ) - size_t( data->scene ) ) == 0;
+                            root.add_child( motor::shared( std::move( cur_scene ) ), active );
+                        }
+                    }
+
+                    // #2.2 : continue with connecting the nodes themselfs.
+                    // - if the node has a transformation, add the trafo node as a child
+                    // - if the node has no transformation, just add the group node.
+                    {
+                        for( size_t i = 0; i < nn_vec.size(); ++i )
+                        {
+                            auto const & gltf_node = data->nodes[ i ];
+
+                            auto * group_node = nn_vec[ i ];
+
+                            for( size_t ci = 0; ci < gltf_node.children_count; ++ci )
                             {
-                                group_node->add_child( motor::share( nt_vec[idx] ) );
+                                size_t const idx = nti_map[ gltf_node.children[ ci ] ];
+
+                                if( nt_vec[ idx ] == nullptr )
+                                {
+                                    group_node->add_child( motor::share( nn_vec[ idx ] ) );
+                                }
+                                else
+                                {
+                                    group_node->add_child( motor::share( nt_vec[ idx ] ) );
+                                }
                             }
                         }
                     }
+
+                    // finally, add the root node to the return value.
+                    {
+                        motor::scene::name_component_t nc( "gltf root" );
+                        root.add_component( motor::shared( std::move( nc ) ) );
+                        ret.root = motor::shared( std::move( root ) );
+                    }
                 }
 
+                // #3 : handle animaions
                 {
-                    motor::scene::name_component_t nc( "gltf root" );
-                    root.add_component( motor::shared( std::move( nc ) ) );
-                    ret.root = motor::shared( std::move( root ) );
+                    for( size_t i = 0; i < data->animations_count; ++i )
+                    {
+                        auto const & ani = data->animations[ i ];
+
+                        // handle channels. a channel contains the target and
+                        // the sampler
+                        for( size_t c = 0; c < ani.channels_count; ++c )
+                        {
+                            auto const & channel = ani.channels[ c ];
+
+                            cgltf_animation_path_type const path = channel.target_path;
+                            switch( path )
+                            {
+                            case cgltf_animation_path_type::cgltf_animation_path_type_rotation:
+                                break;
+                            case cgltf_animation_path_type::cgltf_animation_path_type_translation:
+                                break;
+                            case cgltf_animation_path_type::cgltf_animation_path_type_scale:
+                                break;
+                            default:
+                                motor::log::global_t::warning( "[gltf_module] : animation path not supported." );
+                                break;
+                            }
+                        }
+
+                        // handle samplers. a sampler contains the keyframe (input) and
+                        // value (output) reference along with the interpolation.
+                        for( size_t s = 0; s < ani.samplers_count; ++s )
+                        {
+                            auto const & sampler = ani.samplers[ s ];
+                        }
+                    }
                 }
             }
 
@@ -306,7 +420,7 @@ motor::format::future_item_t cgltf_module::export_to( motor::io::location_cref_t
                                                       motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async,
-                       [=]( void_t ) mutable -> item_mtr_t
+                       [ = ]( void_t ) mutable -> item_mtr_t
                        {
                            motor::mtr_release_guard< motor::format::item_t > rel( what );
                            motor::mtr_release_guard< motor::format::module_registry_t > mod_reg( mod_reg_ );

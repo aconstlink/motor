@@ -6,6 +6,9 @@ namespace motor
 {
     namespace io
     {
+        // resource location
+        // valid: loc1.loc2.loc3
+        // invalid: loc1.loc.loc3. <- invalid trailing .
         class location
         {
             motor_this_typedefs( location ) ;
@@ -53,6 +56,58 @@ namespace motor
             operator motor::io::path_t( void_t ) noexcept
             {
                 return this_t::as_path() ;
+            }
+
+            // returns the number of separated parts in
+            // the location
+            // e.g. loc1.loc2.loc3 -> 3
+            size_t num_parts( void_t ) const
+            {
+                size_t ret = 0 ;
+
+                size_t off = _loc.find_first_of('.') ;
+                while( off != std::string::npos )
+                {
+                    ++ret ;
+                    off = _loc.find_first_of('.', off + 1) ;
+                }
+
+                return ++ret ;
+            }
+
+            // returns the sub location from the beginning.
+            // if np__ < 0 the sub location will be taken from the end.
+            // @return "loc1.loc2.loc3".sub_location( 2 ) -> "loc1.loc2"
+            // @return "loc1.loc2.loc3".sub_location( -2 ) -> "loc1"
+            this_t sub_location( int_t const np__ ) const 
+            {
+                size_t np = this_t::num_parts() ;
+                if( np__ < 0 && (std::abs(np__)<=np) ) np += np__ ;
+                else
+                {
+                    np = np__ ;
+                    if( this_t::num_parts() <= np ) 
+                        return _loc ;
+                }
+
+                size_t count = 0 ;
+                motor::string_t ret ;
+
+                size_t off = _loc.find_first_of('.') ;
+                size_t p0 = 0 ;
+                while( off != std::string::npos && (count++<np)  )
+                {
+                    ret += _loc.substr( p0, (off+1)-p0 ) ;
+                    p0 = off + 1 ;
+                    off = _loc.find_first_of('.', p0 ) ;
+                }
+                ret = ret.substr( 0, ret.size() - 1 ) ;
+                return ret ;
+            }
+
+            this_t operator + ( this_cref_t loc ) const
+            {
+                return _loc + "." + loc.as_string() ;
             }
             
             motor::io::path_t as_path( void_t ) const noexcept
