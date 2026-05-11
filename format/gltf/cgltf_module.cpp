@@ -323,8 +323,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             }
 
                             auto cam_node = motor::scene::camera_node_t( motor::shared( std::move( cam ) ) );
-
-                            // finally, add the root node to the return value.
+                            
+                            if( gltf_cam.name != nullptr )
                             {
                                 motor::scene::name_component_t nc( gltf_cam.name );
                                 cam_node.add_component( motor::shared( std::move( nc ) ) );
