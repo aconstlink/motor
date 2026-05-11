@@ -30,6 +30,10 @@ namespace motor
         public:
 
             motor::graphics::state_object_mtr_t borrow_state( void_t ) noexcept { return _rs ; }
+
+        public: // interface
+
+            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
         } ;
         motor_typedef( render_settings ) ;
     }

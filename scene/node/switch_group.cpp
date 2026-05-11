@@ -93,7 +93,10 @@ motor::scene::result switch_group::remove_child( node_ptr_t nptr ) noexcept
 motor::scene::result switch_group::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
 {
     auto const r = vptr->visit( this ) ;
-    this_t::traverse_children( vptr, [=]( size_t i ) { return this->_actives[i] ; } ) ;
+    if( r != motor::scene::result::no_descent )
+    {
+        this_t::traverse_children( vptr, [=]( size_t i ) { return this->_actives[i] ; } ) ;
+    }    
     return vptr->post_visit( this, r ) ;
 }
 

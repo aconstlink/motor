@@ -2,6 +2,8 @@
 
 #include "render_settings.h"
 
+#include "../visitor/ivisitor.h"
+
 using namespace motor::scene ;
 
 
@@ -30,4 +32,17 @@ render_settings::render_settings( motor::graphics::state_object_mtr_safe_t rs, n
 render_settings::~render_settings( void_t ) noexcept
 {
     motor::memory::release_ptr( motor::move( _rs ) ) ;
+}
+
+//**********************************************************************************
+motor::scene::result render_settings::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept 
+{
+    motor::scene::result const r = vptr->visit( this ) ;
+
+    if ( motor::scene::success( r ) )
+    {
+        base_t::traverse_decorated( vptr ) ;
+    }
+
+    return vptr->post_visit( this, r ) ;
 }

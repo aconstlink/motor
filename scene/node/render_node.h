@@ -109,6 +109,11 @@ namespace motor
             void_t update_bindings( void_t ) noexcept ;
             void_t update_camera( motor::gfx::generic_camera_ptr_t ) noexcept ;
             void_t prefill_bridge( void_t ) noexcept ;
+
+        public: // interface
+
+            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
+
         } ;
         motor_typedef( render_node ) ;
     }

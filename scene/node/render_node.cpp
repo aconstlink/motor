@@ -1,4 +1,5 @@
 #include "render_node.h"
+#include "../visitor/ivisitor.h"
 
 using namespace motor::scene ;
 
@@ -181,4 +182,16 @@ void_t render_node::prefill_bridge( void_t ) noexcept
     _var_set = _msl->get_varibale_set( _vs ) ;
 
     _brigde.update_bindings( _var_set ) ;
+}
+
+//*************************************************************************
+motor::scene::result render_node::apply( motor::scene::ivisitor_ptr_t vptr ) noexcept
+{
+    auto res = vptr->visit( this ) ;
+    if( motor::scene::no_success( res ) )
+    {
+        motor::log::global_t::warning( "[scene::render_node::apply] : visit" ) ;
+    }
+    
+    return res ;
 }
