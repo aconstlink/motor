@@ -205,6 +205,28 @@ motor::scene::result imgui_node_visitor::post_visit( motor::scene::render_settin
 }
 
 //************************************************************************
+motor::scene::result imgui_node_visitor::visit( motor::scene::trafo3d_node_ptr_t nptr ) noexcept 
+{
+    auto const res = this_t::visit( static_cast< motor::scene::decorator_ptr_t >( nptr ) ) ;
+
+    if( res == motor::scene::result::ok )
+    {
+        
+    }
+
+    
+    return res ;
+}
+
+//************************************************************************
+motor::scene::result imgui_node_visitor::post_visit( motor::scene::trafo3d_node_ptr_t nptr, motor::scene::result const r ) noexcept
+{
+    auto const res = this_t::post_visit( static_cast< motor::scene::decorator_ptr_t >( nptr ), r ) ;
+
+    return res ;
+}
+
+//************************************************************************
 motor::scene::result imgui_node_visitor::visit( motor::scene::render_node_ptr_t nptr ) noexcept
 {
     auto const res = this_t::visit( static_cast< motor::scene::leaf_ptr_t >( nptr ) ) ;

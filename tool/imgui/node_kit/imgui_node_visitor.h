@@ -40,6 +40,9 @@ namespace motor
             virtual motor::scene::result visit( motor::scene::render_settings_ptr_t ) noexcept ;
             virtual motor::scene::result post_visit( motor::scene::render_settings_ptr_t, motor::scene::result const ) noexcept ;
 
+            virtual motor::scene::result visit( motor::scene::trafo3d_node_ptr_t ) noexcept ;
+            virtual motor::scene::result post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept ;
+
             virtual motor::scene::result visit( motor::scene::render_node_ptr_t ) noexcept ;
 
             virtual void_t on_finish( void_t ) noexcept ;

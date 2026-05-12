@@ -266,6 +266,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             {
                                 nt_vec[ ni ] = motor::shared( motor::scene::trafo3d_node_t( trafo ) );
                                 nt_vec[ ni ]->set_decorated( motor::share( motor_node ) );
+
+                                nt_vec[ ni ]->add_component( motor::shared( motor::scene::name_component_t( "[T]" ) ) ) ;
                             }
                         }
 
