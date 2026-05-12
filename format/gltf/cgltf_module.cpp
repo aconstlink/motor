@@ -12,6 +12,7 @@
 #include <motor/scene/node/switch_group.h>
 #include <motor/scene/node/trafo3d_node.h>
 #include <motor/scene/node/camera_node.h>
+#include <motor/scene/node/render_node.h>
 
 #include <motor/scene/component/name_component.hpp>
 
@@ -170,6 +171,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 // #1 : fill vectors with nodes
                 // no hierarchy is build here. This section just check the nodes and
                 // creates motor node objects.
+                // @note leaf nodes are still handeled here. if a node has a camera/mesh/etc. leaf
+                // node attached, a corresponding motor node is created here and is attached as
+                // a leaf node. The next section handles building up groups. At the moment, I couldn't
+                // figure out is a camera tagged gltf node can have children. So the current setup
+                // works, if a camera had children.
                 {
                     for( size_t ni = 0; ni < data->nodes_count; ++ni )
                     {
@@ -186,14 +192,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             motor_node->add_component( motor::shared( motor::scene::name_component_t( node_name ) ) );
                         }
 
-                        // check for children
-                        {
-                            // do we have to do it? we just handle
-                            // every node as a group node.
-                        }
-
                         // check transformation
                         // make parent trafo3d_node decorator
+                        // if a node has a transformation, remember in the
+                        // nt_vec array. When building the group hierarchy,
+                        // we can check the nt_vec array and determine if
+                        // we need to attach the transformation decorator
+                        // of the group node. See next section.
                         {
                             bool_t attach = gltf_node.has_matrix || gltf_node.has_scale || gltf_node.has_rotation ||
                                             gltf_node.has_translation;
@@ -236,7 +241,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // fortunately, the trafo3 class already does all of this!
                                 trafo.set_transformation( mat );
                             }
-                            else
+                            else // has no matrix
                             {
                                 if( gltf_node.has_scale )
                                 {
@@ -273,7 +278,22 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // attach to current group
                             // motor_node->add_child( /*mesh_node*/) ;
 
-                            int pb = 0;
+                            // TESTING
+                            // for now, just add a dummy render node.
+                            {
+                                auto rn = motor::scene::render_node_t( nullptr, size_t( -1 ) );
+
+                                // attach name
+                                {
+                                    motor::string_t const node_name =
+                                        gltf_node.name == nullptr ? "mesh " + motor::to_string( ni ) : gltf_node.name;
+
+                                    rn.add_component(
+                                        motor::shared( motor::scene::name_component_t( node_name ) ) );
+                                }
+
+                                motor_node->add_child( motor::shared( std::move( rn ) ) );
+                            }
                         }
 
                         // check camera
@@ -323,7 +343,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             }
 
                             auto cam_node = motor::scene::camera_node_t( motor::shared( std::move( cam ) ) );
-                            
+
                             if( gltf_cam.name != nullptr )
                             {
                                 motor::scene::name_component_t nc( gltf_cam.name );
@@ -337,7 +357,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     }
                 }
 
-                // #x : connect nodes
+                // #x : connect group and transformation nodes in order to
+                // form a scene graph tree.
                 {
                     motor::scene::switch_group_t root;
 

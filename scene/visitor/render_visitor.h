@@ -35,6 +35,19 @@ namespace motor
 
             virtual void_t on_start( void_t ) noexcept ;
             virtual void_t on_finish( void_t ) noexcept ;
+
+        protected:
+
+            motor::graphics::gen4::frontend_ptr_t borrow_frontend( void_t ) noexcept
+            {
+                return _fe ;
+            }
+
+            motor::gfx::generic_camera_ptr_t borrow_camera( void_t ) noexcept
+            {
+                return _cam ;
+            }
+
         };
         motor_typedef( render_visitor ) ;
     }

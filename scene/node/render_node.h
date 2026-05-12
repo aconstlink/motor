@@ -88,6 +88,7 @@ namespace motor
 
         public:
 
+            size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept ;
             motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept { return _msl ; }
             size_t get_variable_set_idx( void_t ) const noexcept { return _vs ; }
 

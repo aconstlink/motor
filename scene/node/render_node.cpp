@@ -51,6 +51,23 @@ render_node::~render_node( void_t ) noexcept
 }
 
 //*****************************************************************
+size_t render_node::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noexcept 
+{
+    std::memset( reinterpret_cast<void*>( &_cam_vars ), 0, sizeof( _cam_vars ) ) ;
+    if( _msl != nullptr ) motor::release( motor::move( _msl ) ) ;
+
+    _msl = motor::move( msl ) ;
+    _vs = size_t(-1) ;
+    if( _msl != nullptr ) 
+    {
+        _msl->register_listener( motor::share( _comp_lst ) )  ;
+        _vs = _msl->borrow_varibale_sets().size() ;
+        _msl->fill_variable_sets( _vs ) ;
+    }
+    return _vs ;
+}
+
+//*****************************************************************
 void_t render_node::render_update( motor::gfx::generic_camera_ptr_t cam ) noexcept 
 {
     this_t::update_bindings() ;
