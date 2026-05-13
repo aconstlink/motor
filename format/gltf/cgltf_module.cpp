@@ -267,7 +267,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 nt_vec[ ni ] = motor::shared( motor::scene::trafo3d_node_t( trafo ) );
                                 nt_vec[ ni ]->set_decorated( motor::share( motor_node ) );
 
-                                nt_vec[ ni ]->add_component( motor::shared( motor::scene::name_component_t( "[T]" ) ) ) ;
+                                nt_vec[ ni ]->add_component( motor::shared( motor::scene::name_component_t( "[T]" ) ) );
                             }
                         }
 
@@ -290,8 +290,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     motor::string_t const node_name =
                                         gltf_node.name == nullptr ? "mesh " + motor::to_string( ni ) : gltf_node.name;
 
-                                    rn.add_component(
-                                        motor::shared( motor::scene::name_component_t( node_name ) ) );
+                                    rn.add_component( motor::shared( motor::scene::name_component_t( node_name ) ) );
                                 }
 
                                 motor_node->add_child( motor::shared( std::move( rn ) ) );
