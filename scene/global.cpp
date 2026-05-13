@@ -3,7 +3,6 @@
 #include "global.h"
 
 #include "node/group.h"
-#include "node/decorator.h"
 #include "node/trafo3d_node.h"
 #include "node/render_node.h"
 #include "node/render_settings.h"

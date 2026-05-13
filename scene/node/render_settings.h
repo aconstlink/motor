@@ -1,5 +1,6 @@
 #pragma once 
 
+#if 0
 #include "logic_decorator.h"
 
 #include <motor/graphics/object/state_object.h>
@@ -38,3 +39,5 @@ namespace motor
         motor_typedef( render_settings ) ;
     }
 }
+
+#endif

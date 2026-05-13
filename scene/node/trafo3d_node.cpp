@@ -3,6 +3,7 @@
 
 #include "../visitor/ivisitor.h"
 
+#if 0
 using namespace motor::scene ;
 
 //**********************************************************************************
@@ -48,3 +49,5 @@ motor::scene::result trafo3d_node::apply( motor::scene::ivisitor_ptr_t vptr ) no
 
     return vptr->post_visit( this, r ) ;
 }
+
+#endif

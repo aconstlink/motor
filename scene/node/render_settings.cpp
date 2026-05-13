@@ -6,6 +6,7 @@
 
 using namespace motor::scene ;
 
+#if 0
 
 //************************************************************************************************
 render_settings::render_settings( this_rref_t rhv ) noexcept : _rs( motor::move( rhv._rs )  )
@@ -46,3 +47,5 @@ motor::scene::result render_settings::apply( motor::scene::ivisitor_ptr_t vptr )
 
     return vptr->post_visit( this, r ) ;
 }
+
+#endif

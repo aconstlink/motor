@@ -15,6 +15,7 @@
 #include <motor/scene/node/render_node.h>
 
 #include <motor/scene/component/name_component.hpp>
+#include <motor/scene/component/trafo3d_component.h>
 
 #include <motor/geometry/3d/cube.h>
 #include <motor/geometry/mesh/flat_tri_mesh.h>
@@ -166,7 +167,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                 node_to_idx_map_t nti_map;
                 node_node_vec_t nn_vec( data->nodes_count, nullptr );
-                node_trafo_vec_t nt_vec( data->nodes_count, nullptr );
 
                 // #1 : fill vectors with nodes
                 // no hierarchy is build here. This section just check the nodes and
@@ -251,9 +251,17 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 if( gltf_node.has_rotation )
                                 {
                                     auto const & q__ = gltf_node.rotation;
+
+                                    motor::math::quat4f_t const q( -q__[ 3 ], q__[ 0 ], q__[ 1 ], q__[ 2 ] );
+
+                                    trafo.rotate_by_matrix_fl(q.to_matrix()) ;
+
+#if 0
                                     motor::math::vec3f_t const axis( q__[ 0 ], q__[ 1 ], q__[ 2 ] );
-                                    trafo.rotate_by_axis_fl( motor::math::is_normalized< motor::math::vec3f_t >( axis ),
+                                    trafo.rotate_by_axis_fl( 
+                                    motor::math::is_normalized< motor::math::vec3f_t >( axis.normalized() ),
                                                              q__[ 3 ] );
+#endif
                                 }
 
                                 if( gltf_node.has_translation )
@@ -264,10 +272,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                             if( attach )
                             {
-                                nt_vec[ ni ] = motor::shared( motor::scene::trafo3d_node_t( trafo ) );
-                                nt_vec[ ni ]->set_decorated( motor::share( motor_node ) );
-
-                                nt_vec[ ni ]->add_component( motor::shared( motor::scene::name_component_t( "[T]" ) ) );
+                                motor::scene::trafo3d_component_t tc( std::move( trafo ) );
+                                motor_node->add_component( motor::shared( std::move( tc ) ) );
                             }
                         }
 
@@ -383,11 +389,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         {
                             auto const * gltf_node = gltf_scene.nodes[ ni ];
                             size_t const idx = nti_map[ gltf_node ];
-
-                            if( nt_vec[ idx ] == nullptr )
-                                cur_scene.add_child( motor::share( nn_vec[ idx ] ) );
-                            else
-                                cur_scene.add_child( motor::share( nt_vec[ idx ] ) );
+                            cur_scene.add_child( motor::share( nn_vec[ idx ] ) );
                         }
 
                         {
@@ -409,15 +411,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             for( size_t ci = 0; ci < gltf_node.children_count; ++ci )
                             {
                                 size_t const idx = nti_map[ gltf_node.children[ ci ] ];
-
-                                if( nt_vec[ idx ] == nullptr )
-                                {
-                                    group_node->add_child( motor::share( nn_vec[ idx ] ) );
-                                }
-                                else
-                                {
-                                    group_node->add_child( motor::share( nt_vec[ idx ] ) );
-                                }
+                                group_node->add_child( motor::share( nn_vec[ idx ] ) );
                             }
                         }
                     }

@@ -52,6 +52,12 @@ namespace motor
         public: // component 
 
             template< typename T >
+            bool_t has_component( void_t ) const noexcept
+            {
+                return this_t::borrow_component<T>() != nullptr ;
+            }
+
+            template< typename T >
             T * borrow_component( void_t ) const noexcept
             {
                 for ( auto * comp : _components )
@@ -92,7 +98,8 @@ namespace motor
                     return false ;
                 }
 
-                _components.emplace_back( motor::move( comp ) ) ;
+                comp->attached_to( this ) ;
+                _components.emplace_back( motor::move( comp ) ) ;                
 
                 return true ;
             }
@@ -137,7 +144,7 @@ namespace motor
 
         protected:
 
-            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept ;
+            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ) noexcept = 0 ;
 
         public:
 

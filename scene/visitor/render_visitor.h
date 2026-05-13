@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ivisitor.h"
+#include "../node/group.h"
+#include "../node/leaf.h"
+
 #include <motor/gfx/camera/generic_camera.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
@@ -25,13 +28,9 @@ namespace motor
 
         public:
 
-            virtual motor::scene::result visit( motor::scene::render_node_ptr_t ) noexcept  ;
-
-            virtual motor::scene::result visit( motor::scene::render_settings_ptr_t ) noexcept  ;
-            virtual motor::scene::result post_visit( motor::scene::render_settings_ptr_t, motor::scene::result const ) noexcept ;
-            
-            virtual motor::scene::result visit( motor::scene::trafo3d_node_ptr_t ) noexcept  ;
-            virtual motor::scene::result post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept ;            
+            virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept ;
+            virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept ;
+            virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept ;
 
             virtual void_t on_start( void_t ) noexcept ;
             virtual void_t on_finish( void_t ) noexcept ;
@@ -47,6 +46,12 @@ namespace motor
             {
                 return _cam ;
             }
+
+        private:
+
+            void_t handle_visit( motor::scene::node_ptr_t ) noexcept ;
+            void_t handle_post_visit( motor::scene::node_ptr_t ) noexcept ;
+
 
         };
         motor_typedef( render_visitor ) ;

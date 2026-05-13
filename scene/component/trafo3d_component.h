@@ -1,6 +1,9 @@
+
 #pragma once
 
-#if 0
+#include "icomponent.h"
+
+#include <motor/wire/slot/sheet.hpp>
 #include <motor/wire/slot/input_slot.h>
 #include <motor/wire/slot/output_slot.h>
 #include <motor/math/utility/3d/transformation.hpp>
@@ -12,26 +15,25 @@ namespace motor
         // @todo add relative and absolute transformation
         // relative: the transformation is computed throughout the tree traversal
         // absolute: should push transformation on the stack
-        class MOTOR_SCENE_API trafo3d_node : public motor::scene::logic_decorator
+        class MOTOR_SCENE_API trafo3d_component : public icomponent
         {
-            typedef motor::scene::logic_decorator base_t ;
-            motor_this_typedefs( trafo3d_node ) ;
+            motor_this_typedefs( trafo3d_component ) ;
 
         private:
 
             motor_typedefs( motor::wire::input_slot< motor::math::m3d::trafof_t >, in_slot ) ;
             motor_typedefs( motor::wire::output_slot< motor::math::m3d::trafof_t >, out_slot ) ;
 
-            in_slot_mtr_t _trafo = motor::shared( this_t::in_slot_t(), "trafo3d_node:trafo" ) ; // relative or absolute @todo insert enum for that
-            out_slot_mtr_t _computed = motor::shared( this_t::out_slot_t(), "trafo3d_node:computed" ) ; // the one the visitor computes.
+            in_slot_mtr_t _trafo = motor::shared( this_t::in_slot_t(), "trafo3d_component:trafo" ) ; // relative or absolute @todo insert enum for that
+            out_slot_mtr_t _computed = motor::shared( this_t::out_slot_t(), "trafo3d_component:computed" ) ; // the one the visitor computes.
 
         public:
 
-            trafo3d_node( void_t ) noexcept ;
-            trafo3d_node( motor::math::m3d::trafof_cref_t ) noexcept ;
-            trafo3d_node( this_rref_t ) noexcept ;
-            trafo3d_node( this_cref_t ) = delete ;
-            virtual ~trafo3d_node( void_t ) noexcept ;
+            trafo3d_component( void_t ) noexcept ;
+            trafo3d_component( motor::math::m3d::trafof_cref_t ) noexcept ;
+            trafo3d_component( this_rref_t ) noexcept ;
+            trafo3d_component( this_cref_t ) = delete ;
+            virtual ~trafo3d_component( void_t ) noexcept ;
 
         public:
 
@@ -42,15 +44,13 @@ namespace motor
             in_slot_mtr_safe_t get_input_slot( void_t ) noexcept { return motor::share( _trafo ) ; }
             out_slot_mtr_safe_t get_output_slot( void_t ) noexcept { return motor::share( _computed ) ; }
 
-        public:
-
             class visitor_interface
             {
-                trafo3d_node * _owner ;
+                trafo3d_component * _owner ;
 
             public:
 
-                visitor_interface( trafo3d_node * owner ) noexcept : _owner( owner ) {}
+                visitor_interface( trafo3d_component * owner ) noexcept : _owner( owner ) {}
                 void_t set_computed( motor::math::m3d::trafof_cref_t trafo ) noexcept { _owner->set_computed( trafo ) ; }
             };
             motor_typedef( visitor_interface ) ;
@@ -63,9 +63,8 @@ namespace motor
         public:
 
             virtual bool_t inputs( motor::wire::inputs_out_t ) noexcept ;
-            virtual motor::scene::result apply( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
+
         };
-        motor_typedef( trafo3d_node ) ;
+        motor_typedef( trafo3d_component ) ;
     }
 }
-#endif

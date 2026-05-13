@@ -62,12 +62,6 @@ node::~node( void_t ) noexcept
 }
 
 //*******************************************************************
-motor::scene::result node::apply( motor::scene::ivisitor_ptr_t v ) noexcept
-{   
-    return v->visit( this ) ;
-}
-
-//*******************************************************************
 node::this_ptr_t node::borrow_parent( void_t ) noexcept
 {
     return _parent ;

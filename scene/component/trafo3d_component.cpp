@@ -1,0 +1,35 @@
+
+#include "trafo3d_component.h"
+
+using namespace motor::scene;
+
+//********************************************************************************
+trafo3d_component::trafo3d_component( void_t ) noexcept {}
+
+//********************************************************************************
+trafo3d_component::trafo3d_component( motor::math::m3d::trafof_cref_t trafo ) noexcept
+    : _trafo( motor::shared( this_t::in_slot_t( trafo ) ) )
+{
+}
+
+//********************************************************************************
+trafo3d_component::trafo3d_component( this_rref_t rhv ) noexcept
+    : _trafo( motor::move( rhv._trafo ) ), _computed( motor::move( rhv._computed ) )
+{
+}
+
+//********************************************************************************
+trafo3d_component::~trafo3d_component( void_t ) noexcept
+{
+    if( _trafo ) _trafo->disconnect();
+    if( _computed ) _computed->disconnect();
+    motor::release( motor::move( _trafo ) );
+    motor::release( motor::move( _computed ) );
+}
+
+//**********************************************************************************
+bool_t trafo3d_component::inputs( motor::wire::inputs_out_t ins ) noexcept 
+{
+    ins = motor::wire::inputs_t( { { "trafo", motor::share( this_t::_trafo )}  }, false ) ;
+    return true ;
+}
