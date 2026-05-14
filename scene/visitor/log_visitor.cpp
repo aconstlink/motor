@@ -103,31 +103,6 @@ motor::scene::result log_visitor::visit( motor::scene::leaf_ptr_t nptr ) noexcep
     return motor::scene::ok;
 }
 
-#if 0
-//*********************************************************************
-motor::scene::result log_visitor::visit( motor::scene::camera_node_ptr_t nptr ) noexcept
-{
-    this_t::print( "> camera" + this_t::get_name_component( nptr ) );
-    return motor::scene::ok;
-}
-#endif
-#if 0
-//*********************************************************************
-motor::scene::result log_visitor::visit( motor::scene::trafo3d_node_ptr_t nptr ) noexcept
-{
-    this_t::print( "> trafo" + this_t::get_name_component( nptr ) ) ;
-    ++_indent ;
-    return motor::scene::ok ;
-}
-
-//*********************************************************************
-motor::scene::result log_visitor::post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept
-{
-    --_indent ;
-    this_t::print( "< trafo") ;
-    return motor::scene::ok ;
-}
-#endif
 //*********************************************************************
 motor::string_t log_visitor::get_name_component( motor::scene::node_cptr_t nptr ) const
 {

@@ -76,23 +76,6 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
             }
         }
     }
-
-    #if 0
-    if( auto * rptr = dynamic_cast< motor::scene::render_node_ptr_t >( nptr ); rptr != nullptr )
-    {
-        rptr->render_update( _cam );
-
-        auto msl = rptr->borrow_msl();
-
-        {
-            motor::graphics::gen4::backend_t::render_detail_t detail;
-            detail.start = 0;
-            // detail.num_elems = 3 ;
-            detail.varset = rptr->get_variable_set_idx();
-            _fe->render( msl, detail );
-        }
-    }
-    #endif
 }
 
 //*****************************************************************************************
@@ -104,52 +87,6 @@ void_t render_visitor::handle_post_visit( motor::scene::node_ptr_t nptr ) noexce
     _fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
 }
 
-#if 0
-//*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::render_node_ptr_t nptr ) noexcept  
-{
-    nptr->render_update(  _cam ) ;
-
-    auto msl = nptr->borrow_msl() ;
-
-    {
-        motor::graphics::gen4::backend_t::render_detail_t detail ;
-        detail.start = 0 ;
-        //detail.num_elems = 3 ;
-        detail.varset = nptr->get_variable_set_idx() ;
-        _fe->render( msl, detail ) ;
-    }
-
-    return motor::scene::result::ok ;
-}
-
-
-//*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::render_settings_ptr_t nptr ) noexcept
-{
-    _fe->push( nptr->borrow_state() ) ;
-    return motor::scene::result::ok ;
-}
-
-//*****************************************************************************************
-motor::scene::result render_visitor::post_visit( motor::scene::render_settings_ptr_t, motor::scene::result const ) noexcept
-{
-    _fe->pop( motor::graphics::gen4::backend::pop_type::render_state ) ;
-    return motor::scene::result::ok ;
-}
-
-//*****************************************************************************************
-motor::scene::result render_visitor::visit( motor::scene::trafo3d_node_ptr_t ) noexcept
-{
-    return motor::scene::result::ok ;
-}
-
-//*****************************************************************************************
-motor::scene::result render_visitor::post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept
-{
-    return motor::scene::result::ok ;
-}
-#endif
 //*****************************************************************************************
 void_t render_visitor::on_start( void_t ) noexcept {}
 

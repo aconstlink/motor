@@ -86,49 +86,6 @@ void_t trafo_visitor::handle_post_visit( motor::scene::node_ptr_t nptr )
     _trafos.pop();
 }
 
-#if 0
-//******************************************************************************
-motor::scene::result trafo_visitor::visit( motor::scene::render_node_ptr_t nptr ) noexcept 
-{
-    nptr->set_world( _trafos.top() ) ;
-    return motor::scene::result::ok ;
-}
-
-
-//******************************************************************************
-motor::scene::result trafo_visitor::visit( motor::scene::trafo3d_node_ptr_t g ) noexcept
-{
-    auto const local = g->get_trafo() ;
-    auto const trafo = _trafos.top() * local ;
-    motor::scene::trafo3d_node_t::visitor_interface( g ).set_computed( trafo ) ;
-    
-    // push in any case, so the post_visit function 
-    // can just pop the trafo from the stack
-    _trafos.push( trafo ) ;
-
-    return motor::scene::result::ok ;
-}
-
-//******************************************************************************
-motor::scene::result trafo_visitor::post_visit( motor::scene::trafo3d_node_ptr_t, motor::scene::result const ) noexcept
-{
-    // pop transformation
-    _trafos.pop() ;
-
-    return motor::scene::result::ok ;
-}
-
-//******************************************************************************
-motor::scene::result trafo_visitor::visit( motor::scene::camera_node_ptr_t nptr ) noexcept 
-{ 
-    auto * ptr = nptr->borrow_camera() ;
-    if( ptr != nullptr )
-    {
-        ptr->transform_by( _trafos.top() ) ;
-    }
-    return motor::scene::result::ok ; 
-}
-#endif
 //******************************************************************************
 void_t trafo_visitor::on_start( void_t ) noexcept
 {

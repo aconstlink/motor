@@ -258,13 +258,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     motor::math::quat4f_t const q( -q__[ 3 ], q__[ 0 ], q__[ 1 ], -q__[ 2 ] );
 
                                     trafo.rotate_by_matrix_fl( q.to_matrix() );
-
-#if 0
-                                    motor::math::vec3f_t const axis( q__[ 0 ], q__[ 1 ], q__[ 2 ] );
-                                    trafo.rotate_by_axis_fl( 
-                                    motor::math::is_normalized< motor::math::vec3f_t >( axis.normalized() ),
-                                                             q__[ 3 ] );
-#endif
                                 }
 
                                 if( gltf_node.has_translation )
@@ -293,7 +286,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // for now, just add a dummy renderable component.
                             {
                                 auto comp = motor::scene::msl_component_t( nullptr, size_t( -1 ) );
-                                motor_node->add_component( motor::shared( std::move( comp ) ) ) ;                                
+                                motor_node->add_component( motor::shared( std::move( comp ) ) );
                             }
                         }
 
