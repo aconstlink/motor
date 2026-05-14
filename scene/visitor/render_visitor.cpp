@@ -2,8 +2,6 @@
 
 #include "render_visitor.h"
 
-#include "../node/render_node.h"
-#include "../node/render_settings.h"
 #include "../component/msl_component.h"
 #include "../component/render_settings_component.h"
 
@@ -29,22 +27,6 @@ render_visitor::~render_visitor( void_t ) noexcept {}
 motor::scene::result render_visitor::visit( motor::scene::leaf_ptr_t nptr ) noexcept
 {
     this_t::handle_visit( nptr );
-
-    if( auto * rptr = dynamic_cast< motor::scene::render_node_ptr_t >( nptr ); rptr != nullptr )
-    {
-        rptr->render_update( _cam );
-
-        auto msl = rptr->borrow_msl();
-
-        {
-            motor::graphics::gen4::backend_t::render_detail_t detail;
-            detail.start = 0;
-            // detail.num_elems = 3 ;
-            detail.varset = rptr->get_variable_set_idx();
-            _fe->render( msl, detail );
-        }
-    }
-
     this_t::handle_post_visit( nptr );
 
     return motor::scene::result::ok;
@@ -67,10 +49,50 @@ motor::scene::result render_visitor::post_visit( motor::scene::group_ptr_t nptr,
 //*****************************************************************************************
 void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
 {
-    auto * comp = nptr->borrow_component< motor::scene::render_settings_component_t >();
-    if( comp == nullptr ) return;
+    {
+        auto * comp = nptr->borrow_component< motor::scene::render_settings_component_t >();
+        if( comp != nullptr )
+        {
+            _fe->push( comp->borrow_state() );
+        }
+    }
 
-    _fe->push( comp->borrow_state() );
+    // do the primary purpose of this visitor
+    // => handle the renderable msl component.
+    {
+        auto * comp = nptr->borrow_component< motor::scene::msl_component_t >() ;
+        if( comp != nullptr )
+        {
+            comp->render_update( _cam );
+
+            auto msl = comp->borrow_msl();
+
+            {
+                motor::graphics::gen4::backend_t::render_detail_t detail;
+                detail.start = 0;
+                // detail.num_elems = 3 ;
+                detail.varset = comp->get_variable_set_idx();
+                _fe->render( msl, detail );
+            }
+        }
+    }
+
+    #if 0
+    if( auto * rptr = dynamic_cast< motor::scene::render_node_ptr_t >( nptr ); rptr != nullptr )
+    {
+        rptr->render_update( _cam );
+
+        auto msl = rptr->borrow_msl();
+
+        {
+            motor::graphics::gen4::backend_t::render_detail_t detail;
+            detail.start = 0;
+            // detail.num_elems = 3 ;
+            detail.varset = rptr->get_variable_set_idx();
+            _fe->render( msl, detail );
+        }
+    }
+    #endif
 }
 
 //*****************************************************************************************

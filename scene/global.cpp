@@ -3,9 +3,6 @@
 #include "global.h"
 
 #include "node/group.h"
-#include "node/trafo3d_node.h"
-#include "node/render_node.h"
-#include "node/render_settings.h"
 #include "visitor/trafo_visitor.h"
 #include "visitor/log_visitor.h"
 #include "visitor/render_visitor.h"

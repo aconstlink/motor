@@ -10,12 +10,11 @@
 #include <motor/scene/node/logic_leaf.h>
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/node/switch_group.h>
-#include <motor/scene/node/trafo3d_node.h>
-#include <motor/scene/node/camera_node.h>
-#include <motor/scene/node/render_node.h>
 
 #include <motor/scene/component/name_component.hpp>
 #include <motor/scene/component/trafo3d_component.h>
+#include <motor/scene/component/camera_component.h>
+#include <motor/scene/component/msl_component.h>
 
 #include <motor/geometry/3d/cube.h>
 #include <motor/geometry/mesh/flat_tri_mesh.h>
@@ -252,9 +251,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 {
                                     auto const & q__ = gltf_node.rotation;
 
-                                    motor::math::quat4f_t const q( -q__[ 3 ], q__[ 0 ], q__[ 1 ], q__[ 2 ] );
+                                    // #1 in this engine, z is going into the screen.
+                                    //      gltf defines is out of the sceen.
+                                    // #2 I think, the engines' rotation direction is CW.
+                                    //      so we have to negate.
+                                    motor::math::quat4f_t const q( -q__[ 3 ], q__[ 0 ], q__[ 1 ], -q__[ 2 ] );
 
-                                    trafo.rotate_by_matrix_fl(q.to_matrix()) ;
+                                    trafo.rotate_by_matrix_fl( q.to_matrix() );
 
 #if 0
                                     motor::math::vec3f_t const axis( q__[ 0 ], q__[ 1 ], q__[ 2 ] );
@@ -287,19 +290,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // motor_node->add_child( /*mesh_node*/) ;
 
                             // TESTING
-                            // for now, just add a dummy render node.
+                            // for now, just add a dummy renderable component.
                             {
-                                auto rn = motor::scene::render_node_t( nullptr, size_t( -1 ) );
-
-                                // attach name
-                                {
-                                    motor::string_t const node_name =
-                                        gltf_node.name == nullptr ? "mesh " + motor::to_string( ni ) : gltf_node.name;
-
-                                    rn.add_component( motor::shared( motor::scene::name_component_t( node_name ) ) );
-                                }
-
-                                motor_node->add_child( motor::shared( std::move( rn ) ) );
+                                auto comp = motor::scene::msl_component_t( nullptr, size_t( -1 ) );
+                                motor_node->add_component( motor::shared( std::move( comp ) ) ) ;                                
                             }
                         }
 
@@ -349,15 +343,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 break;
                             }
 
-                            auto cam_node = motor::scene::camera_node_t( motor::shared( std::move( cam ) ) );
-
-                            if( gltf_cam.name != nullptr )
+                            // handle camera component
                             {
-                                motor::scene::name_component_t nc( gltf_cam.name );
-                                cam_node.add_component( motor::shared( std::move( nc ) ) );
-                            }
 
-                            motor_node->add_child( motor::shared( std::move( cam_node ) ) );
+                                auto cam_comp = motor::scene::camera_component_t( motor::shared( std::move( cam ) ) );
+                                motor_node->add_component( motor::shared( std::move( cam_comp ) ) );
+                            }
                         }
 
                         nn_vec[ ni ] = motor::move( motor_node );

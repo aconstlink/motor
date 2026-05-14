@@ -1,8 +1,6 @@
 #include "log_visitor.h"
 #include "../node/group.h"
 #include "../node/leaf.h"
-#include "../node/trafo3d_node.h"
-#include "../node/camera_node.h"
 #include "../component/name_component.hpp"
 
 #include <motor/log/global.h>

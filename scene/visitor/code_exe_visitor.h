@@ -1,6 +1,6 @@
 #pragma once
 
-#include "visitor.h"
+#include "ivisitor.h"
 
 namespace motor
 {
