@@ -43,3 +43,6 @@ SpacesInAngles: Always
 SpaceAroundPointerQualifiers: Both
 SpacesInSquareBrackets: true
 PointerAlignment: Middle
+
+AllowShortLambdasOnASingleLine: Inline
+LambdaBodyIndentation: OuterScope

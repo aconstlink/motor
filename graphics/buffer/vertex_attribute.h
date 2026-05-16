@@ -57,6 +57,19 @@ namespace motor
                 size_t( vertex_attribute::texcoord0 ) + i ) ;
         }
 
+        /// convert a number to a color. i must be in [0, max_colors]
+        static motor::graphics::vertex_attribute color_vertex_attribute_by( size_t const i ) noexcept
+        {
+            size_t const num_colors = size_t( vertex_attribute::color5 ) -
+                size_t( vertex_attribute::color0 ) ;
+
+            if( i >= num_colors )
+                return vertex_attribute::undefined ;
+
+            return motor::graphics::vertex_attribute(
+                size_t( vertex_attribute::color0 ) + i ) ;
+        }
+
         static motor::graphics::ctype deduce_from( motor::graphics::vertex_attribute const va ) noexcept
         {
             switch( va ) 
