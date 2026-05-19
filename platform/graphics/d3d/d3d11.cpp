@@ -2465,6 +2465,12 @@ public: // functions
 
                 return true ;
             } ) ;
+
+            if( !access_res )
+            {
+                motor::log::global_t::warning( "[d3d11] : msl failed. msl will not be set." ) ;
+                return access_res ;
+            }
         }
                     
         // true: was msl object. so the id
@@ -3049,11 +3055,13 @@ public: // functions
             {
                 auto const res = this_t::update( rd, obj ) ;
                 motor::log::global_t::error( !res, "[d3d11] : update from construct_render_config" ) ;
+
+                if( !res ) return false ;
             }
 
             return true ;
         } ) ;
-        obj.set_oid( _bid, oid ) ;
+        if( res ) obj.set_oid( _bid, oid ) ;
         return res ;
     }
 
@@ -3160,15 +3168,16 @@ public: // functions
             // used geometry layout (next section) and the shader input
             // attribute order.
             {
-                for ( size_t i = 0; i < vibs.size(); ++i )
+                size_t const num_elem = std::min( elems.size(), vibs.size() ) ;
+                for ( size_t i = 0; i < num_elem; ++i )
                 {
                     size_t j = i ;
 
-                    while ( ( j < vibs.size() ) && ( elems[ i ].va != vibs[ j ].va ) ) ++j ;
+                    while ( ( j < num_elem ) && ( elems[ i ].va != vibs[ j ].va ) ) ++j ;
 
                     if ( j == i ) continue ;
                     // input variable declared in shader not found in geometry, remove ...
-                    else if ( j == vibs.size() )
+                    else if ( j == num_elem )
                     {
                         vibs.erase( vibs.begin() + i ) ;
                         motor::log::global_t::warning( d3d11_backend_log(
