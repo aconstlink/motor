@@ -3234,6 +3234,8 @@ public: // functions
                         d3d11_log_warningv(
                             "CreateInputLayout for shader [%s] and render object[%s]",
                             name.c_str(), rc.name().c_str() ) ;
+                        d3d11_log_warningv("This is probably due to a missmatch of the shader input attributes \
+                                            and the vertex buffer layout. They do not match.") ;
 
                         failed = true ;
                     }
