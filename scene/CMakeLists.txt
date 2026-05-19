@@ -33,6 +33,8 @@ set( sources
     "visitor/trafo_visitor.cpp"
     "visitor/variable_update_visitor.h"
     "visitor/variable_update_visitor.cpp"
+    "visitor/default_visitor.h"
+    "visitor/default_visitor.cpp"
 
     "component/icomponent.h"
     "component/code_component.h"
@@ -48,6 +50,8 @@ set( sources
     "component/camera_component.cpp"
     "component/render_variables_component.hpp"
     "component/variables_component.hpp"
+    "component/config_graphics_component.h"
+    "component/config_graphics_component.cpp"
     )
 
 motor_vs_src_dir( sources )

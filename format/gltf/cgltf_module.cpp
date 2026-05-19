@@ -15,6 +15,7 @@
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/component/camera_component.h>
 #include <motor/scene/component/msl_component.h>
+#include <motor/scene/component/config_graphics_component.h>
 
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
@@ -241,17 +242,32 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             node_to_idx_map_t nti_map;
             node_node_vec_t nn_vec( data->nodes_count, nullptr );
 
+            // using mesh_to_comp_t = motor::hash_map< cgltf_mesh *, motor::scene::msl_component_safe_t >;
+            // mesh_to_comp_t mesh_to_comp;
+
+            using node_to_msls_t =
+                motor::hash_map< cgltf_mesh const *, motor::vector< motor::graphics::msl_object_ptr_t > >;
+            using node_to_geos_t =
+                motor::hash_map< cgltf_mesh const *, motor::vector< motor::graphics::geometry_object_ptr_t > >;
+            using name_to_geo_t = motor::hash_map< motor::string_t, motor::graphics::geometry_object_ptr_t >;
+
+            node_to_msls_t node_to_msls;
+            node_to_geos_t node_to_geos;
+            name_to_geo_t name_to_geo;
+
             // hadle meshes
+            // @note per mesh, there are multiple primitives.
+            // each primitive is associated with a geometry, msl, shader and more
             {
                 for( size_t midx = 0; midx < data->meshes_count; ++midx )
                 {
-                    auto const & m = data->meshes[ midx ];
+                    auto const & cgltf_mesh = data->meshes[ midx ];
 
-                    motor::string_t name = motor::string_t( m.name ) + "_";
+                    motor::string_t name = motor::string_t( cgltf_mesh.name ) + "_";
 
-                    for( size_t pidx = 0; pidx < m.primitives_count; ++pidx )
+                    for( size_t pidx = 0; pidx < cgltf_mesh.primitives_count; ++pidx )
                     {
-                        auto const & p = m.primitives[ pidx ];
+                        auto const & p = cgltf_mesh.primitives[ pidx ];
 
                         auto const lname = name + motor::to_string( pidx );
 
@@ -259,6 +275,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         motor::graphics::index_buffer_t ib;
 
                         auto const pt = cgltf_module_file::to_primitive_type( p.type );
+                        size_t num_verts_render = 0;
 
                         // according to the spec, this must be the same for
                         // every attribute.
@@ -267,6 +284,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         // 2. If indecies are present, this is the
                         // max index value.
                         auto const num_vertices = p.attributes[ 0 ].data->count;
+                        num_verts_render = num_vertices;
 
                         // iterate first time for vertex buffer layout
                         for( size_t aidx = 0; aidx < p.attributes_count; ++aidx )
@@ -355,7 +373,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                         for( size_t i = 0; i < num_vertices; ++i )
                                         {
                                             std::memcpy( wt_buf, rd_buf, sizeof( motor::math::vec3f_t ) );
+
+                                            auto v3 = (motor::math::vec3f_t *)( wt_buf );
+                                            v3->z( -v3->z() );
+
                                             wt_buf += vertex_sib;
+
                                             // cgftf.h says, if bv.stride == 0, it is automatically
                                             // determined by the accessor. So lets use that one.
                                             rd_buf += bv.stride == 0 ? ac.stride : bv.stride;
@@ -410,7 +433,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     auto const & bv = *ac.buffer_view;
                                     auto const & bf = *bv.buffer;
 
-                                    // write normal by normal in the interleaved vb
+                                    // write texcoord by texcoord in the interleaved vb
                                     vb.update< byte_t >( [ & ]( byte_ptr_t wt_buf, size_t const /*ne*/ )
                                     {
                                         size_t const wrt_vertex_sib = vb.get_layout_sib();
@@ -449,15 +472,128 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         }
 
                         // has index buffer
-                        if( p.indices != nullptr )
+                        if( p.indices != nullptr && p.indices->buffer_view != nullptr &&
+                            p.indices->buffer_view->buffer != nullptr )
                         {
+                            auto const & ac = *p.indices;
+                            auto const & bv = *ac.buffer_view;
+                            auto const & bf = *bv.buffer;
+
+                            num_verts_render = ac.count;
+
+                            cgltf_module_file::to_type( ac.component_type );
+
+                            ib.set_layout_element( motor::graphics::type::tuint );
+                            ib.resize( num_verts_render )
+                                .update< uint_t >( [ & ]( uint_ptr_t wt_buf, size_t const /*ne*/ )
+                            {
+                                size_t const wrt_index_sib = ib.get_element_sib();
+
+                                size_t const rd_offset = bv.offset + ac.offset;
+                                byte_t * rd_buf = reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
+
+                                size_t const elem_sib = cgltf_calc_size( ac.type, ac.component_type );
+
+                                for( size_t i = 0; i < num_verts_render; ++i )
+                                {
+                                    // byte_t bytes[ 4 ] = { 0, 0, 0, 0 };
+                                    uint_t bytes = 0;
+                                    std::memcpy( &bytes, rd_buf, elem_sib );
+
+                                    *wt_buf = uint_t( bytes );
+                                    ++wt_buf;
+
+                                    // cgftf.h says, if bv.stride == 0, it is automatically
+                                    // determined by the accessor. So lets use that one.
+                                    rd_buf += bv.stride == 0 ? ac.stride : bv.stride;
+                                }
+                            } );
                         }
 
                         // has material
                         if( p.material != nullptr )
                         {
                         }
-                    }
+
+                        // temporarily make shader
+                        {
+                        }
+
+                        motor::string_t const geo_name =
+                            motor::string_t( cgltf_mesh.name ) + "." + motor::to_string( pidx );
+
+                        {
+                            motor::graphics::geometry_object_t geo( geo_name, pt, std::move( vb ), std::move( ib ) );
+                            // node_to_geos[ &cgltf_mesh ].emplace_back(  );
+                            name_to_geo[ geo_name ] = motor::shared( std::move( geo ) );
+                        }
+
+                        motor::graphics::msl_object_t mslo( geo_name + ".msl" );
+                        mslo.link_geometry( geo_name );
+
+                        {
+                            motor::string_t shd = "config " + geo_name + "_msl";
+                            shd +=
+                                R"(
+                            {
+                                vertex_shader
+                                {
+                                    mat4_t proj : projection ;
+                                    mat4_t view : view ;
+                                    mat4_t world : world ;
+
+                                    in vec3_t pos : position ;
+                                    in vec3_t nrm : normal ;
+                                    in vec2_t tx : texcoord ;
+
+                                    out vec4_t pos : position ;
+                                    out vec2_t tx : texcoord ;
+                                    out vec3_t nrm : normal ;
+
+                                    void main()
+                                    {
+                                        vec3_t pos = in.pos ;
+                                        //pos.xyz = pos.xyz;
+                                        out.tx = in.tx ;
+                                        out.pos = proj * view * world * vec4_t( pos, 1.0 ) ;
+                                        out.nrm = normalize( world * vec4_t( in.nrm, 0.0 ) ).xyz ;
+                                    }
+                                }
+
+                                pixel_shader
+                                {
+                                    tex2d_t tex ;
+                                    vec3_t light_dir ;
+                                    vec4_t color ;
+                                    float_t time ;
+
+                                    in vec2_t tx : texcoord ;
+                                    in vec3_t nrm : normal ;
+                                    out vec4_t color : color0 ;
+                                    //out vec4_t color1 : color1 ;
+                                    //out vec4_t color2 : color2 ;
+
+                                    void main()
+                                    {
+                                        float_t light = dot( normalize( in.nrm ), normalize( light_dir ) ) ;
+                                        out.color = vec4_t( light*time, light, light, 1.0 ) ;
+                                        out.color = vec4_t( in.nrm.x, in.nrm.y, in.nrm.z, 1.0 ) ;
+
+                                        //out.color = color ' texture( tex, in.tx ) ;
+                                        //out.color1 = vec4_t( in.nrm, 1.0 ) ;
+                                        //out.color2 = vec4_t( light, light, light , 1.0 ) ;
+                                    }
+                                }
+                            })";
+
+                            mslo.add( motor::graphics::msl_api_type::msl_4_0, shd );
+
+                            // msl_obj = motor::shared( motor::graphics::msl_object_t( std::move( mslo ) ) );
+                            node_to_msls[ &( data->meshes[ midx ] ) ].emplace_back(
+                                motor::shared( std::move( mslo ) ) );
+                        }
+
+                    } // primitives
                 }
             }
 
@@ -572,15 +708,76 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     {
                         auto const * gltf_mesh = gltf_node.mesh;
 
+#if 0
                         // make child mesh node
                         // attach to current group
                         // motor_node->add_child( /*mesh_node*/) ;
 
-                        // TESTING
-                        // for now, just add a dummy renderable component.
+                        // attach msl_component for rendering
                         {
-                            auto comp = motor::scene::msl_component_t( nullptr, size_t( -1 ) );
-                            motor_node->add_component( motor::shared( std::move( comp ) ) );
+                            auto iter__ = node_to_msls.find( gltf_node.mesh );
+                            if( iter__ != node_to_msls.end() )
+                            {
+                                for( auto * msl : iter__->second )
+                                {
+                                    
+                                    auto comp = motor::scene::msl_component_t( motor::share( msl ), 0 ) ;
+                                    motor_node->add_component( motor::shared( std::move( comp ) ) );
+                                }
+                            }
+                            // TESTING
+                            // for now, just add a dummy renderable component.
+                            else
+                            {
+                                auto comp = motor::scene::msl_component_t( nullptr, size_t( -1 ) );
+                                motor_node->add_component( motor::shared( std::move( comp ) ) );
+                            }
+                        }
+#endif
+
+                        // attach graphics configuration component
+                        {
+                            auto iter = node_to_msls.find( gltf_node.mesh );
+                            if( iter != node_to_msls.end() )
+                            {
+                                for( auto * msl : iter->second )
+                                {
+                                    auto const & geo_name = msl->get_geometry().front();
+
+                                    auto geo_iter = name_to_geo.find( geo_name );
+                                    if( geo_iter != name_to_geo.end() )
+                                    {
+                                        motor::scene::leaf_t render_node;
+
+                                        // add name compoent
+                                        {
+                                            motor::scene::name_component_t nc( geo_name );
+                                            render_node.add_component( motor::shared( std::move( nc ) ) );
+                                        }
+
+                                        // add msl compoent
+                                        {
+                                            auto comp = motor::scene::msl_component_t( motor::share( msl ), 0 );
+                                            render_node.add_component( motor::shared( std::move( comp ) ) );
+                                        }
+
+                                        // add msl configuration comp
+                                        {
+                                            auto comp = motor::scene::config_graphics_component_t();
+                                            comp.set_msl( motor::share( msl ) );
+                                            comp.set_geo( motor::share( geo_iter->second ) );
+                                            render_node.add_component( motor::shared( std::move( comp ) ) );
+                                        }
+
+                                        motor_node->add_child( motor::shared( std::move( render_node ) ) );
+                                    }
+                                    else
+                                    {
+                                        motor::log::global_t::warning(
+                                            "[cgltf_modeul] : referenced geometry but found : " + geo_name );
+                                    }
+                                }
+                            }
                         }
                     }
 

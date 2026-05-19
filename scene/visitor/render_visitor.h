@@ -15,13 +15,14 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
 {
     motor_this_typedefs( render_visitor );
 
+    size_t _wid ;
     motor::graphics::gen4::frontend_ptr_t _fe;
 
     motor::gfx::generic_camera_ptr_t _cam = nullptr;
 
   public:
 
-    render_visitor( motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
+    render_visitor( size_t const wid, motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
     render_visitor( this_rref_t ) noexcept;
     render_visitor( this_cref_t ) = delete;
     virtual ~render_visitor( void_t ) noexcept;
@@ -36,6 +37,11 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
     virtual void_t on_finish( void_t ) noexcept;
 
   protected:
+
+    size_t wid( void_t ) const noexcept
+    {
+        return _wid ;
+    }
 
     motor::graphics::gen4::frontend_ptr_t borrow_frontend( void_t ) noexcept
     {

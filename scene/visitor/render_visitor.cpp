@@ -4,19 +4,20 @@
 
 #include "../component/msl_component.h"
 #include "../component/render_settings_component.h"
+#include "../component/config_graphics_component.h"
 
 using namespace motor::scene;
 
 //*****************************************************************************************
-render_visitor::render_visitor( motor::graphics::gen4::frontend_ptr_t fe,
+render_visitor::render_visitor( size_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
                                 motor::gfx::generic_camera_ptr_t cam ) noexcept
-    : _fe( fe ), _cam( cam )
+    : _wid( wid ), _fe( fe ), _cam( cam )
 {
 }
 
 //*****************************************************************************************
 render_visitor::render_visitor( this_rref_t rhv ) noexcept
-    : _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) )
+    : _wid( rhv._wid ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) )
 {
 }
 
@@ -49,6 +50,24 @@ motor::scene::result render_visitor::post_visit( motor::scene::group_ptr_t nptr,
 //*****************************************************************************************
 void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
 {
+    bool_t can_render = true;
+
+    // configurations
+    {
+        auto * comp = nptr->borrow_component< motor::scene::config_graphics_component_t >();
+        if( comp != nullptr )
+        {
+            can_render = false;
+
+            if( comp->init_and_cleanup( this_t::wid(), _fe ) )
+            {
+                // cleaned up
+                can_render = true;
+            }
+        }
+    }
+
+    // render settings
     {
         auto * comp = nptr->borrow_component< motor::scene::render_settings_component_t >();
         if( comp != nullptr )
@@ -59,8 +78,9 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
 
     // do the primary purpose of this visitor
     // => handle the renderable msl component.
+    if( can_render )
     {
-        auto * comp = nptr->borrow_component< motor::scene::msl_component_t >() ;
+        auto * comp = nptr->borrow_component< motor::scene::msl_component_t >();
         if( comp != nullptr )
         {
             comp->render_update( _cam );
