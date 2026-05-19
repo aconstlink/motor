@@ -708,33 +708,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     {
                         auto const * gltf_mesh = gltf_node.mesh;
 
-#if 0
-                        // make child mesh node
-                        // attach to current group
-                        // motor_node->add_child( /*mesh_node*/) ;
-
-                        // attach msl_component for rendering
-                        {
-                            auto iter__ = node_to_msls.find( gltf_node.mesh );
-                            if( iter__ != node_to_msls.end() )
-                            {
-                                for( auto * msl : iter__->second )
-                                {
-                                    
-                                    auto comp = motor::scene::msl_component_t( motor::share( msl ), 0 ) ;
-                                    motor_node->add_component( motor::shared( std::move( comp ) ) );
-                                }
-                            }
-                            // TESTING
-                            // for now, just add a dummy renderable component.
-                            else
-                            {
-                                auto comp = motor::scene::msl_component_t( nullptr, size_t( -1 ) );
-                                motor_node->add_component( motor::shared( std::move( comp ) ) );
-                            }
-                        }
-#endif
-
                         // attach graphics configuration component
                         {
                             auto iter = node_to_msls.find( gltf_node.mesh );
@@ -774,7 +747,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     else
                                     {
                                         motor::log::global_t::warning(
-                                            "[cgltf_modeul] : referenced geometry but found : " + geo_name );
+                                            "[cgltf_module] : referenced geometry not found : " + geo_name );
                                     }
                                 }
                             }
