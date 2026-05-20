@@ -237,7 +237,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             using node_node_vec_t = motor::vector< motor::scene::logic_group_mtr_t >;
 
             // mats a gltf node idx to a motor scene trafo node if there is one
-            using node_trafo_vec_t = motor::vector< motor::scene::trafo3d_node_mtr_t >;
+            //using node_trafo_vec_t = motor::vector< motor::scene::trafo3d_node_mtr_t >;
 
             node_to_idx_map_t nti_map;
             node_node_vec_t nn_vec( data->nodes_count, nullptr );
@@ -903,6 +903,36 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     {
                         auto const & sampler = ani.samplers[ s ];
                     }
+                }
+            }
+
+            // release all object refs
+            {
+                for( auto i : node_to_msls )
+                {
+                    for( auto i2 : i.second )
+                    {
+                        motor::release( motor::move(i2) ) ;
+                    }
+                    
+                }
+
+                for( auto i : node_to_geos )
+                {
+                    for( auto i2 : i.second )
+                    {
+                        motor::release( motor::move(i2) ) ;
+                    }
+                }
+
+                for( auto i : name_to_geo )
+                {
+                    motor::release( motor::move(i.second) ) ;
+                } 
+
+                for( auto i : nn_vec )
+                {
+                    motor::release( motor::move(i) ) ;
                 }
             }
         }
