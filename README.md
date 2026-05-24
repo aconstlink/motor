@@ -86,7 +86,7 @@ Regularly used targets include:
 
 - Windows 10/11 with Visual Studio 2019 or newer
 - Linux with GCC and OpenGL development packages
-
+  ```libX11 mesa-libGLES mesa-libGL mesa-libEGL alsa-lib```  
 OpenGL ES support exists in the codebase, but is not currently the primary tested path.
 
 ## Status
