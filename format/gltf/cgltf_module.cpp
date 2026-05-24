@@ -708,7 +708,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     {
                         auto const * gltf_mesh = gltf_node.mesh;
 
-                        // attach graphics configuration component
+                        // attach components
                         {
                             auto iter = node_to_msls.find( gltf_node.mesh );
                             if( iter != node_to_msls.end() )
