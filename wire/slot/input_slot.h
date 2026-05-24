@@ -113,6 +113,14 @@ namespace motor
 
         public:
 
+            // 1. exchanges the value from the output slot
+            // 2. returns the new value.
+            T const & pull_data( void_t ) noexcept 
+            {
+                this->exchange() ;
+                return this_t::get_value() ;
+            }
+
             // Returns the value of the slot
             // Does not reset the changed flag.
             // @see get_value_and_reset

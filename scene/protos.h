@@ -13,18 +13,9 @@ namespace motor
         motor_class_proto_typedefs( node ) ;
         motor_class_proto_typedefs( group ) ;
         motor_class_proto_typedefs( leaf ) ;
-        motor_class_proto_typedefs( decorator ) ;
-        motor_class_proto_typedefs( logic_group ) ;
-        motor_class_proto_typedefs( logic_decorator ) ;
-        motor_class_proto_typedefs( trafo3d_node ) ;
-        motor_class_proto_typedefs( camera_node ) ;
-        motor_class_proto_typedefs( render_node ) ;
-        motor_class_proto_typedefs( render_settings ) ;
 
         motor_class_proto_typedefs( ivisitor ) ;
         motor_class_proto_typedefs( icomponent ) ;
 
-        motor_class_proto_typedefs( variables_component ) ;
-        motor_class_proto_typedefs( render_variables_component ) ;
     }
 }

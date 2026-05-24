@@ -116,7 +116,7 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
 
         {
             auto * comp = *iter;
-            comp->detached();
+            comp->detach();
             motor::release( comp ) ;
         }
 

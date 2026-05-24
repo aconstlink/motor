@@ -15,10 +15,10 @@ class MOTOR_SCENE_API default_visitor : public motor::scene::ivisitor
 
     virtual ~default_visitor( void_t ) noexcept ;
 
-  protected:
+  public:
 
-    virtual motor::scene::result visit( motor::scene::node_ptr_t ) noexcept;
-    virtual motor::scene::result post_visit( motor::scene::node_ptr_t nptr, motor::scene::result const res ) noexcept;
+    virtual motor::scene::result visit( motor::scene::node_ptr_t ) noexcept = 0 ;
+    virtual motor::scene::result post_visit( motor::scene::node_ptr_t nptr, motor::scene::result const res ) noexcept = 0 ;
 
   private:
 

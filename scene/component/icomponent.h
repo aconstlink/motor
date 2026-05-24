@@ -29,7 +29,20 @@ class MOTOR_SCENE_API icomponent
     {
     }
 
-    virtual ~icomponent( void_t ) noexcept {}
+    virtual ~icomponent( void_t ) noexcept
+    {
+        for( auto * in : _inputs )
+        {
+            in->disconnect();
+            motor::release( motor::move( in ) );
+        }
+
+        for( auto * out : _outputs )
+        {
+            out->disconnect();
+            motor::release( motor::move( out ) );
+        }
+    }
 
   public: // scene node interface
 
@@ -74,7 +87,12 @@ class MOTOR_SCENE_API icomponent
     template < typename T >
     motor::wire::input_slot< T > * create_input_slot( T const & initial, char const * purpose = "" ) noexcept
     {
-        return nullptr;
+        // here we create a managed pointer
+        auto ret = motor::shared( motor::wire::input_slot< T >( initial ), purpose );
+        // here we simply copy the managed pointer unsafe
+        _inputs.emplace_back( ret );
+        // we know, a managed copy is present, so just return a borrowed pointer
+        return motor::move( ret );
     }
 
     template < typename T >
@@ -92,8 +110,36 @@ class MOTOR_SCENE_API icomponent
     template < typename T >
     motor::wire::output_slot< T > * create_output_slot( T const & initial, char const * purpose = "" ) noexcept
     {
-        return nullptr;
+        auto ret = motor::shared( motor::wire::output_slot< T >( initial ), purpose );
+        _outputs.emplace_back( ret );
+        return motor::move( ret );
     }
+
+  public:
+
+    // this is a temporary class allowing a visitor
+    // to sync the slots to the domain data in
+    // a derived class.
+    class visitor_sync_accessor
+    {
+      public:
+
+        static void_t sync_inputs( motor::scene::icomponent_ptr_t cptr ) noexcept
+        {
+            cptr->sync_inputs();
+        }
+
+        static void_t sync_outputs( motor::scene::icomponent_ptr_t cptr ) noexcept
+        {
+            cptr->sync_outputs();
+        }
+    };
+    friend class visitor_sync_accessor;
+
+  protected:
+
+    virtual void_t sync_inputs( void_t ) noexcept {}
+    virtual void_t sync_outputs( void_t ) noexcept {}
 };
 } // namespace scene
 } // namespace motor
