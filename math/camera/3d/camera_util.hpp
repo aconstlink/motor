@@ -25,7 +25,7 @@ namespace m3d
 //
 // @note
 // motor uses a camera model where it is looking in the
-// positive z direction.
+// negative z direction. Like in OpenGL.
 //
 template < typename T >
 class camera_util

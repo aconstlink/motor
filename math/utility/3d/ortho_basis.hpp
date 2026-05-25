@@ -57,7 +57,7 @@ class orthonormal_basis
     */
     static void create( vec3_t const & dir, mat3_t & matOut ) noexcept
     {
-        if( dir.length2() <= std::numeric_limits< vec3_t::type_t >::min() ) return;
+        if( dir.length2() <= std::numeric_limits< T >::min() ) return;
 
         vec3_t vcX;
         vec3_t vcY;
@@ -75,7 +75,7 @@ class orthonormal_basis
     // @param sub_up a suggested up vector.
     static void create_affine( vec3_t const & pos, vec3_t const sug_up, vec3_t const & dir, mat4_t & mat ) noexcept
     {
-        if( dir.length2() <= std::numeric_limits< vec3_t::type_t >::min() ) return;
+        if( dir.length2() <= std::numeric_limits< T >::min() ) return;
 
         vec3_t x;
         vec3_t y;
