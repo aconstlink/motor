@@ -5,6 +5,8 @@
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
 
+#include <cmath>
+
 namespace motor
 {
     namespace math
