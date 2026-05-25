@@ -2,6 +2,7 @@
 
 #include "../../vector/vector3.hpp"
 #include "../../matrix/matrix3.hpp"
+#include "../../matrix/matrix4.hpp"
 
 #include <limits>
 
@@ -19,14 +20,15 @@ class orthonormal_basis
     using real_t = T;
     using vec3_t = motor::math::vector3< T >;
     using mat3_t = motor::math::matrix3< T >;
+    using mat4_t = motor::math::matrix4< T >;
 
   public:
 
-    static void create( vec3_t const & dir, vec3_t & outX, vec3_t & outY, vec3_t & outZ ) noexcept
+    static void create( vec3_t const & dir, vec3_t const & sug_up, vec3_t & x, vec3_t & y, vec3_t & z ) noexcept
     {
-        outZ = dir;
+        z = dir;
 
-        vec3_t up = vec3_t( 0.0f, 1.0f, 0.0f );
+        vec3_t up = sug_up;
 
         // This check must be done.
         // If the normal and the desired up vector is colinear,
@@ -34,8 +36,13 @@ class orthonormal_basis
         if( T(1) - std::abs( up.dot( dir ) ) <=  std::numeric_limits<T>::min() )
             up = vec3_t( 0.0f, 0.0f, 1.0f );
 
-        outY = ( up - ( dir * ( dir.dot( up ) ) ) ).normalize();
-        outX = outY.crossed( dir );
+        y = ( up - ( dir * ( dir.dot( up ) ) ) ).normalize();
+        x = y.crossed( dir );
+    }
+
+    static void create( vec3_t const & dir, vec3_t & x, vec3_t & y, vec3_t & z ) noexcept
+    {
+        return this_t::create( dir, vec3f_t(0.0f,1.0f,0.0f), x, y, z ) ;
     }
 
     /**
@@ -61,6 +68,34 @@ class orthonormal_basis
         matOut.set_column( 0, vcX );
         matOut.set_column( 1, vcY );
         matOut.set_column( 2, vcZ );
+    }
+
+    // creates an affine matrix with orthonormal frame and position stuffed in 4th 
+    // column vector. in order to make it usefull, mat[15] = 1.0f
+    // @param sub_up a suggested up vector.
+    static void create_affine( vec3_t const & pos, vec3_t const sug_up, vec3_t const & dir, mat4_t & mat ) noexcept
+    {
+        if( dir.length2() <= std::numeric_limits< vec3_t::type_t >::min() ) return;
+
+        vec3_t x;
+        vec3_t y;
+        vec3_t z;
+
+        this_t::create( dir, sug_up, x, y, z );
+
+        mat.set_column( 0, x );
+        mat.set_column( 1, y );
+        mat.set_column( 2, z );
+        mat.set_column( 3, pos );
+
+        mat[15] = 1.0f ;
+    }
+
+    // creates an affine matrix with orthonormal frame and position stuffed in 4th 
+    // column vector. in order to make it usefull, mat[15] = 1.0f
+    static void create_affine( vec3_t const & pos, vec3_t const & dir, mat4_t & mat ) noexcept
+    {
+        return this_t::create_affine( pos, vec3_t(0.0f,1.0f,0.0f), dir, mat ) ;
     }
 };
 

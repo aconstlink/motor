@@ -5,6 +5,8 @@
 #include "../../matrix/matrix3.hpp"
 #include "../../matrix/matrix4.hpp"
 
+#include "../../utility/3d/ortho_basis.hpp"
+
 namespace motor
 {
 namespace math
@@ -12,7 +14,19 @@ namespace math
 namespace m3d
 {
 
-/// the upper 3x3 camera matrix is supposed to be orthonormal.
+//
+// this utility class helps to create the
+// camera and the view matrix.
+// utility for :
+// - create camera matrix
+// - create view matrix
+// - extract camera matrix properties
+// - transform camera matrix
+//
+// @note
+// motor uses a camera model where it is looking in the
+// positive z direction.
+//
 template < typename T >
 class camera_util
 {
@@ -23,7 +37,77 @@ class camera_util
     using mat3_t = motor::math::matrix3< T >;
     using mat4_t = motor::math::matrix4< T >;
 
-  public:
+  public: // look at
+
+    // allows to specify an up vector.
+    // @param pos_ the cameras' position
+    // @param up_ a specific up vector
+    // @param at_ at which point the camera is looking at.
+    static void create_lookat( vec3_t const & pos_, vec3_t const & up_, vec3_t const & at_, mat4_t & inout ) noexcept
+    {
+        motor::math::m3d::orthonormal_basis< real_t >::create_affine( pos_, up_, ( at_ - pos_ ).normalized(), inout );
+    }
+
+    // creates the camera matrix via the looking position.
+    // this engine uses a camera model where it is looking in the
+    // positive z direction.
+    // no up vector can be set in this function. a default up vector is assumed.
+    // usually the default up is (0,1,0)
+    // @param pos_ the cameras' position
+    // @param at_ at which point the camera is looking at.
+    static void create_lookat( vec3_t const & pos_, vec3_t const & at_, mat4_t & inout ) noexcept
+    {
+        motor::math::m3d::orthonormal_basis< real_t >::create_affine( pos_, ( at_ - pos_ ).normalized(), inout );
+    }
+
+    static void create_lookat_from_dir( vec3_t const & pos_, vec3_t const & dir_, mat4_t & inout ) noexcept
+    {
+        motor::math::m3d::orthonormal_basis< real_t >::create_affine( pos_, dir_, inout );
+    }
+
+    static void create_lookat_dir( vec3_t const & pos, vec3_t const & dir, mat4_t & inout ) noexcept
+    {
+        this_t::create_lookat_from_dir( pos, dir, inout );
+    }
+
+  public: // view matrix
+
+    /**
+        This function inverts the camera matrix.
+        The camera matrix is given by T*R.
+        Invert this gives: R^t * T^-1
+        This transforms all points in world space, or relative space
+        to the camera, into the camera space or view space.
+
+
+        @param cm [in] The camera matrix.
+        @param out [out] The viewing matrix.
+
+        @note
+        In OpenGL, this matrix must be loaded transposed.
+        This is because OpenGL stores the matrices in row order.
+        @endnote
+    */
+    static void create_view_matrix( mat4_t const & cm, mat4_t & out ) noexcept
+    {
+        vec3_t t = vec3_t( cm.column( 3 ) );
+        mat3_t cm3 = mat3_t( cm ).transpose();
+        out = mat4_t( cm3 );
+
+        out.set_column( 3, vec3_t( -cm3.row_u( 0 ).dot( t ), -cm3.row_u( 1 ).dot( t ), -cm3.row_u( 2 ).dot( t ) ) );
+
+        out[ 15 ] = 1.0f;
+    }
+
+    static void translate_view_matrix_to( vec3_t const & pos, mat4_t & inout )
+    {
+        inout.set_column(
+            3, vec3_t( -inout.row( 0 ).dot( pos ), -inout.row( 1 ).dot( pos ), -inout.row( 2 ).dot( pos ) ) );
+
+        inout[ 15 ] = 1.0f;
+    }
+
+  public: // general transformation helpers
 
     static void translate_camera_matrix_to( vec3_t const & pos, mat4_t & inout ) noexcept
     {
@@ -98,116 +182,6 @@ class camera_util
     static void get_dir_from_view_matrix( vec3_t & dir, mat4_t const & mat_in ) noexcept
     {
         mat_in.get_row( 2, dir );
-    }
-
-    static void create_lookat( vec3_t const & vcPos, vec3_t const & vcUp, vec3_t const & vcAt, mat4_t & inout ) noexcept
-    {
-        // get the position.
-        vec3_t vcCurPos;
-        vcCurPos = ( vcPos );
-
-        // calculate the current lookat direction vector
-        vec3_t vcLookAt( vcAt - vcCurPos );
-
-        // calculate new the up vector
-        // for this, we need to use the world up vector
-        vec3_t vcWorldUp = vcUp;
-
-        // Normalize the new lookat vector
-        vec3_t vcLookAte = vec3_t( vcLookAt ).normalize();
-
-        // now, we have the projected vector.
-        typename vec3_t::type_t c = vcLookAte.dot( vcWorldUp );
-        vec3_t vcTemp = vcLookAte * c;
-
-        // its time to calculate the new up vector
-        vec3_t vcUpe = vec3_t( vcWorldUp - vcTemp ).normalize();
-
-        // now we have the new up vector.
-        // With it, we can calculate the
-        // new right vector
-        vec3_t vcRighte = vec3_t( vcUpe.crossed( vcLookAte ) ).normalize();
-
-        this_t::create_lookat_from_vec( vcPos, vcLookAte, vcUpe, vcRighte, inout );
-    }
-
-    static void create_lookat( vec3_t const & vcPos, vec3_t const & vcAt, mat4_t & inout ) noexcept
-    {
-        this_t::create_lookat( vcPos, vec3_t( 0.0f, 1.0f, 0.0f ), vcAt, inout );
-    }
-
-    static void create_lookat_from_dir( vec3_t const & vcPos, vec3_t const & vcDir, mat4_t & inout ) noexcept
-    {
-        // get the position.
-        vec3_t vcCurPos;
-        vcCurPos = vcPos;
-
-        // calculate the current lookat direction vector
-        vec3_t vcLookAt( vcDir );
-
-        // calculate new the up vector
-        // for this, we need to use the world up vector
-        vec3_t vcWorldUp( 0.0f, 1.0f, 0.0f );
-
-        // Normalize the new lookat vector
-        vec3_t vcLookAte = vec3_t( vcLookAt ).normalize();
-
-        // now, we have the projected vector.
-        typename vec3_t::type_t c = vcLookAte.dot( vcWorldUp );
-        vec3_t vcTemp = vcLookAte * c;
-
-        // its time to calculate the new up vector
-        vec3_t vcUpe = vec3_t( vcWorldUp - vcTemp ).normalize();
-
-        // now we have the new up vector.
-        // With it, we can calculate the
-        // new right vector
-        vec3_t vcRighte = vec3_t( vcUpe.crossed( vcLookAte ) ).normalize();
-
-        // vcRighte = vec3_t(vcWorldUp).normalize().cross( vcLookAte ) ;
-        // vcUpe = vcLookAte.cross( vcRighte ) ;
-
-        this_t::create_lookat_from_vec( vcCurPos, vcLookAte, vcUpe, vcRighte, inout );
-    }
-
-    static void create_lookat_dir( vec3_t const & pos, vec3_t const & dir, mat4_t & inout ) noexcept
-    {
-        this_t::create_lookat_from_dir( pos, dir, inout );
-    }
-
-    /**
-        This function inverts the camera matrix.
-        The camera matrix is given by T*R.
-        Invert this gives: R^t * T^-1
-        This transforms all points in world space, or relative space
-        to the camera, into the camera space or view space.
-
-
-        @param cm [in] The camera matrix.
-        @param out [out] The viewing matrix.
-
-        @note
-        In OpenGL, this matrix must be loaded transposed.
-        This is because OpenGL stores the matrices in row order.
-        @endnote
-    */
-    static void create_view_matrix( mat4_t const & cm, mat4_t & out ) noexcept
-    {
-        vec3_t t = vec3_t( cm.column( 3 ) );
-        mat3_t cm3 = mat3_t( cm ).transpose();
-        out = mat4_t( cm3 );
-
-        out.set_column( 3, vec3_t( -cm3.row_u( 0 ).dot( t ), -cm3.row_u( 1 ).dot( t ), -cm3.row_u( 2 ).dot( t ) ) );
-
-        out[ 15 ] = 1.0f;
-    }
-
-    static void translate_view_matrix_to( vec3_t const & pos, mat4_t & inout )
-    {
-        inout.set_column(
-            3, vec3_t( -inout.row( 0 ).dot( pos ), -inout.row( 1 ).dot( pos ), -inout.row( 2 ).dot( pos ) ) );
-
-        inout[ 15 ] = 1.0f;
     }
 };
 } // namespace m3d
