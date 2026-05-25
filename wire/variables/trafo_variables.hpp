@@ -98,7 +98,7 @@ namespace motor
                     auto const ax = _axis->get_value_and_reset() ;
                     auto const an = _angle->get_value_and_reset() ;
 
-                    this_t::value_t const trafo( s, motor::math::vector_is_normalized( motor::math::vector4<T>( ax, an ) ), p ) ;
+                    this_t::value_t const trafo( s, motor::math::vector4<T>( ax, an ), p ) ;
 
                     this_t::set_value_and_exchange( trafo ) ;
 
