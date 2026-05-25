@@ -74,16 +74,16 @@ namespace motor
 
                 transformation( vec3f_cref_t scale, motor::math::not_normalized< axis_angle_t > const & axis, vec3f_cref_t translation ) noexcept :
                     transformation( scale, 
-                        motor::math::is_normalized< axis_angle_t >( axis_angle_t( axis.get().xyz().normalized(), axis.get().w() ) ), 
+                        axis_angle_t( axis.get().xyz().normalized(), axis.get().w() ), 
                         translation )
                 {
 
                 }
 
-                transformation( vec3f_cref_t scale, motor::math::is_normalized< axis_angle_t > const & axis, vec3f_cref_t translation ) noexcept
+                transformation( vec3f_cref_t scale, axis_angle_t const & axis, vec3f_cref_t translation ) noexcept
                 {
                     this_t::scale_fl( scale ) ;
-                    this_t::rotate_by_axis_fl( motor::math::vector_is_normalized( axis.get().xyz() ), axis.get().w() ) ;
+                    this_t::rotate_by_axis_fl( axis.xyz(), axis.w() ) ;
                     this_t::translate_fl( translation ) ;
                 }
 
@@ -239,9 +239,9 @@ namespace motor
 
                 /// rotation by axis from left
                 /// => rot(axis, angle) * this
-                this_ref_t rotate_by_axis_fl( motor::math::is_normalized<motor::math::vec3f_t> const & axis, type_t angle ) noexcept
+                this_ref_t rotate_by_axis_fl( motor::math::vec3f_t const & axis, type_t angle ) noexcept
                 {
-                    auto m = mat4_t( quat4_t::rotatate_norm_axis( axis.get(), angle ).to_matrix() ) ;
+                    auto m = mat4_t( quat4_t::rotatate_norm_axis( axis, angle ).to_matrix() ) ;
                     m[ 15 ] = type_t( 1 ) ;
 
                     _trafo = m * _trafo ;

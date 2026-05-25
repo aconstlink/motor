@@ -115,6 +115,7 @@ namespace motor
                     this_t::__create( w, h, n, f, m ) ;
                 }
 
+                #if 0
                 /// by vertical fov
                 static void_t create_by_fovv_aspect( type_t const fov, type_t const aspect,
                     type_t const n, type_t const f, mat4_out_t m )
@@ -124,7 +125,21 @@ namespace motor
 
                     this_t::__create( w, h, n, f, m ) ;
                 }
+                #else
+                /// by vertical fov
+                static void_t create_by_fovv_aspect( type_t const fov, type_t const aspect,
+                    type_t const n, type_t const f, mat4_out_t m )
+                {
+                    auto const t = std::tanf( fov * 0.5f ) ;
 
+
+                    m[0] = 1.0f / (aspect * t) ;
+                    m[5] = 1.0f / t ;
+                    m[10] = -((f+n)/(n-f));
+                    m[11] = ((2.0f*f*n)/(n-f));
+                    m[14] = 1.0f ;
+                }
+                #endif
             public:
 
                 /// @todo this can be optimized by resolving the used functions
