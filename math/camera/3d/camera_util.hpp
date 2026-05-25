@@ -5,8 +5,6 @@
 #include "../../matrix/matrix3.hpp"
 #include "../../matrix/matrix4.hpp"
 
-#include "../../handedness.h"
-
 namespace motor
 {
 namespace math
@@ -14,22 +12,11 @@ namespace math
 namespace m3d
 {
 
-template < typename T, typename handedness_t = motor::math::right_handed >
-class camera_util
-{
-};
-
-template < typename T >
-class camera_util< T, motor::math::left_handed >
-{
-    // not implemented right now
-};
-
 /// the upper 3x3 camera matrix is supposed to be orthonormal.
 template < typename T >
-class camera_util< T, motor::math::right_handed >
+class camera_util
 {
-    using this_t = camera_util< T, motor::math::right_handed >;
+    using this_t = camera_util< T >;
     using real_t = T;
     using vec3_t = motor::math::vector3< T >;
     using vec4_t = motor::math::vector4< T >;

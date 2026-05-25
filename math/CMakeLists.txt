@@ -91,7 +91,6 @@ set( non_arch_sources
 # compound include files
 set( sources 
     typedefs.h
-    handedness.h
 
     ${cpp_sources}
     ${non_arch_sources}	
