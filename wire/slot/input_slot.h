@@ -43,12 +43,14 @@ namespace motor
                 }
             }
 
-            virtual void_t exchange( void_t ) noexcept
+            virtual bool_t exchange( void_t ) noexcept
             {
+                bool_t res = false ;
                 if( _output_slot != nullptr ) 
                 {
-                    _value = _output_slot->get_value() ;
+                    res = _output_slot->get_value( _value ) ;
                 }
+                return res ;
             }
 
             virtual void_t disconnect( bool_t const propagate = true ) noexcept
@@ -119,6 +121,15 @@ namespace motor
             {
                 this->exchange() ;
                 return this_t::get_value() ;
+            }
+
+            // this function will only set out if
+            // an exchange has happened.
+            bool_t pull_data( T & out ) noexcept 
+            {
+                auto res = this->exchange() ;
+                if( res ) out = this_t::get_value() ;
+                return res ;
             }
 
             // Returns the value of the slot

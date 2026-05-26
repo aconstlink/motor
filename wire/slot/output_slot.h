@@ -42,7 +42,7 @@ namespace motor
                 this_t::disconnect() ;
             }
 
-            virtual void_t exchange( void_t ) noexcept 
+            virtual bool_t exchange( void_t ) noexcept 
             {
                 // only push data if a changed happened.
                 if( _has_changed )
@@ -52,7 +52,9 @@ namespace motor
                         slot->set_value( _value ) ;
                     }
                     _has_changed = false ;
+                    return true ;
                 }
+                return false ;
             }
 
             virtual void_t disconnect( bool_t const propagate = true ) noexcept
@@ -107,6 +109,16 @@ namespace motor
             }
 
         public:
+
+            bool_t get_value( T & out ) const noexcept
+            {
+                if( _has_changed )
+                {
+                    out = _value ;
+                    return true ;
+                }
+                return false ;
+            }
 
             T const & get_value( void_t ) const noexcept
             {

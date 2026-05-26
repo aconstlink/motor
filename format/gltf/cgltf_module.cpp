@@ -119,22 +119,26 @@ static motor::graphics::primitive_type to_primitive_type( cgltf_primitive_type c
 // *****************************************************************************************
 void_t cgltf_module_register::register_module( motor::format::module_registry_mtr_t reg )
 {
-    reg->register_import_factory( { "gltf", "glb" }, motor::shared( cgltf_factory_t(), "cgltf_factory" ) );
-    reg->register_export_factory( { "gltf", "glb" }, motor::shared( cgltf_factory_t(), "cgltf_factory" ) );
+    reg->register_import_factory( { "gltf", "glb" },
+                                  motor::shared( cgltf_factory_t(), "cgltf_factory" ) );
+    reg->register_export_factory( { "gltf", "glb" },
+                                  motor::shared( cgltf_factory_t(), "cgltf_factory" ) );
 }
 
 // *****************************************************************************************
-motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
-                                                        motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
+motor::format::future_item_t
+cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
+                           motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
 {
     return cgltf_module::import_from( loc, db, motor::shared( motor::property::property_sheet_t() ),
                                       motor::move( mod_reg ) );
 }
 
 // *****************************************************************************************
-motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
-                                                        motor::property::property_sheet_mtr_safe_t ps,
-                                                        motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
+motor::format::future_item_t
+cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t db,
+                           motor::property::property_sheet_mtr_safe_t ps,
+                           motor::format::module_registry_mtr_safe_t mod_reg ) noexcept
 {
     return std::async( std::launch::async, [ = ]( void_t ) mutable -> item_mtr_t
     {
@@ -148,7 +152,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
         motor::string_t data_buffer;
 
         motor::io::database_t::cache_access_t ca = db->load( loc );
-        auto const res = ca.wait_for_operation( [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+        auto const res = ca.wait_for_operation(
+            [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
         { data_buffer = motor::string_t( data, sib ); } );
 
         if( !res )
@@ -159,7 +164,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
         cgltf_options options = {};
         cgltf_data * data = NULL;
-        cgltf_result result = cgltf_parse( &options, data_buffer.data(), data_buffer.size(), &data );
+        cgltf_result result =
+            cgltf_parse( &options, data_buffer.data(), data_buffer.size(), &data );
 
         if( result != cgltf_result_success )
         {
@@ -169,6 +175,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
         }
 
         // before starting to create anything, load the buffers data
+        // the following section loads the .bin files.
         {
             struct user_data
             {
@@ -178,28 +185,31 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
             user_data ud__ = { loc, db };
 
-            using cgltf_read_funk_t = cgltf_result ( * )( const struct cgltf_memory_options * memory_options,
-                                                          const struct cgltf_file_options * file_options,
-                                                          const char * path, cgltf_size * size, void ** data );
+            using cgltf_read_funk_t =
+                cgltf_result ( * )( const struct cgltf_memory_options * memory_options,
+                                    const struct cgltf_file_options * file_options,
+                                    const char * path, cgltf_size * size, void ** data );
 
             cgltf_read_funk_t read = []( const struct cgltf_memory_options * memory_options,
-                                         const struct cgltf_file_options * file_options, const char * path,
-                                         cgltf_size * size, void ** data )
+                                         const struct cgltf_file_options * file_options,
+                                         const char * path, cgltf_size * size, void ** data )
             {
                 user_data * ud = (user_data *)( file_options->user_data );
 
-                auto const new_loc = ud->loc.sub_location( -2 ) + motor::io::location_t::from_path( path );
+                auto const new_loc =
+                    ud->loc.sub_location( -2 ) + motor::io::location_t::from_path( path );
 
                 motor::io::database_t::cache_access_t ca = ud->db->load( new_loc );
 
                 motor::string_t the_data;
-                auto const res =
-                    ca.wait_for_operation( [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
+                auto const res = ca.wait_for_operation(
+                    [ & ]( char_cptr_t data, size_t const sib, motor::io::result const )
                 { the_data = motor::string_t( data, sib ); } );
 
                 if( !res )
                 {
-                    motor::log::global_t::error( "[cgltf] : can not load location " + new_loc.as_string() );
+                    motor::log::global_t::error( "[cgltf] : can not load location " +
+                                                 new_loc.as_string() );
                     return cgltf_result_file_not_found;
                 }
 
@@ -229,31 +239,16 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
         // going through the file
         {
-            using node_node_map_t = motor::hash_map< cgltf_node const *, motor::scene::logic_group_ptr_t >;
-
             using node_to_idx_map_t = motor::hash_map< cgltf_node const *, size_t >;
+            node_to_idx_map_t nti_map;
 
             // maps a gltf node idx to a motor scene node
             using node_node_vec_t = motor::vector< motor::scene::logic_group_mtr_t >;
-
-            // mats a gltf node idx to a motor scene trafo node if there is one
-            //using node_trafo_vec_t = motor::vector< motor::scene::trafo3d_node_mtr_t >;
-
-            node_to_idx_map_t nti_map;
             node_node_vec_t nn_vec( data->nodes_count, nullptr );
 
-            // using mesh_to_comp_t = motor::hash_map< cgltf_mesh *, motor::scene::msl_component_safe_t >;
-            // mesh_to_comp_t mesh_to_comp;
-
-            using node_to_msls_t =
-                motor::hash_map< cgltf_mesh const *, motor::vector< motor::graphics::msl_object_ptr_t > >;
-            using node_to_geos_t =
-                motor::hash_map< cgltf_mesh const *, motor::vector< motor::graphics::geometry_object_ptr_t > >;
-            using name_to_geo_t = motor::hash_map< motor::string_t, motor::graphics::geometry_object_ptr_t >;
-
-            node_to_msls_t node_to_msls;
-            node_to_geos_t node_to_geos;
-            name_to_geo_t name_to_geo;
+            using geos_t = motor::vector< motor::vector< motor::graphics::geometry_object_mtr_t > >;
+            // geos[cgltf_mesh_id] = vector( primitive geometry )
+            geos_t geos( data->meshes_count );
 
             // hadle meshes
             // @note per mesh, there are multiple primitives.
@@ -263,7 +258,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 {
                     auto const & cgltf_mesh = data->meshes[ midx ];
 
-                    motor::string_t name = motor::string_t( cgltf_mesh.name ) + "_";
+                    motor::string_t name;
+                    if( cgltf_mesh.name != nullptr )
+                        name = motor::string_t( cgltf_mesh.name ) + "_";
+                    else
+                        name = "mesh." + motor::to_string( midx ) + "_";
+
+                    geos[ midx ].resize( data->meshes[ midx ].primitives_count );
 
                     for( size_t pidx = 0; pidx < cgltf_mesh.primitives_count; ++pidx )
                     {
@@ -312,15 +313,17 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             case cgltf_attribute_type::cgltf_attribute_type_tangent:
                                 break;
                             case cgltf_attribute_type::cgltf_attribute_type_texcoord:
-                                vb.add_layout_element( motor::graphics::texcoord_vertex_attribute_by( a.index ),
-                                                       cgltf_module_file::to_type( a.data->component_type ),
-                                                       motor::graphics::type_struct::vec2 );
+                                vb.add_layout_element(
+                                    motor::graphics::texcoord_vertex_attribute_by( a.index ),
+                                    cgltf_module_file::to_type( a.data->component_type ),
+                                    motor::graphics::type_struct::vec2 );
                                 break;
                             case cgltf_attribute_type::cgltf_attribute_type_color:
 
-                                vb.add_layout_element( motor::graphics::color_vertex_attribute_by( a.index ),
-                                                       cgltf_module_file::to_type( a.data->component_type ),
-                                                       cgltf_module_file::to_typestruct( a.data->type ) );
+                                vb.add_layout_element(
+                                    motor::graphics::color_vertex_attribute_by( a.index ),
+                                    cgltf_module_file::to_type( a.data->component_type ),
+                                    cgltf_module_file::to_typestruct( a.data->type ) );
                                 break;
                             case cgltf_attribute_type::cgltf_attribute_type_joints:
                                 break;
@@ -361,26 +364,30 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     auto const & bf = *bv.buffer;
 
                                     // write position by position in the interleaved vb
-                                    vb.update< byte_t >( [ & ]( byte_ptr_t wt_buf, size_t const /*ne*/ )
+                                    vb.update< byte_t >(
+                                        [ & ]( byte_ptr_t wt_buf, size_t const /*ne*/ )
                                     {
                                         size_t const wrt_vertex_sib = vb.get_layout_sib();
 
                                         size_t const rd_offset = bv.offset + ac.offset;
-                                        byte_t * rd_buf = reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
+                                        byte_t * rd_buf =
+                                            reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
 
                                         wt_buf += vb_offset_sib;
 
                                         for( size_t i = 0; i < num_vertices; ++i )
                                         {
-                                            std::memcpy( wt_buf, rd_buf, sizeof( motor::math::vec3f_t ) );
+                                            std::memcpy( wt_buf, rd_buf,
+                                                         sizeof( motor::math::vec3f_t ) );
 
                                             auto v3 = (motor::math::vec3f_t *)( wt_buf );
-                                            v3->z( -v3->z() );
+                                            v3->z( v3->z() );
 
                                             wt_buf += vertex_sib;
 
-                                            // cgftf.h says, if bv.stride == 0, it is automatically
-                                            // determined by the accessor. So lets use that one.
+                                            // cgftf.h says, if bv.stride == 0, it is
+                                            // automatically determined by the accessor.
+                                            // So lets use that one.
                                             rd_buf += bv.stride == 0 ? ac.stride : bv.stride;
                                         }
                                     } );
@@ -399,21 +406,25 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     auto const & bf = *bv.buffer;
 
                                     // write normal by normal in the interleaved vb
-                                    vb.update< byte_t >( [ & ]( byte_ptr_t wt_buf, size_t const /*ne*/ )
+                                    vb.update< byte_t >(
+                                        [ & ]( byte_ptr_t wt_buf, size_t const /*ne*/ )
                                     {
                                         size_t const wrt_vertex_sib = vb.get_layout_sib();
 
                                         size_t const rd_offset = bv.offset + ac.offset;
-                                        byte_t * rd_buf = reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
+                                        byte_t * rd_buf =
+                                            reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
 
                                         wt_buf += vb_offset_sib;
 
                                         for( size_t i = 0; i < num_vertices; ++i )
                                         {
-                                            std::memcpy( wt_buf, rd_buf, sizeof( motor::math::vec3f_t ) );
+                                            std::memcpy( wt_buf, rd_buf,
+                                                         sizeof( motor::math::vec3f_t ) );
                                             wt_buf += vertex_sib;
-                                            // cgftf.h says, if bv.stride == 0, it is automatically
-                                            // determined by the accessor. So lets use that one.
+                                            // cgftf.h says, if bv.stride == 0, it is
+                                            // automatically determined by the accessor.
+                                            // So lets use that one.
                                             rd_buf += bv.stride == 0 ? ac.stride : bv.stride;
                                         }
                                     } );
@@ -434,27 +445,32 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     auto const & bf = *bv.buffer;
 
                                     // write texcoord by texcoord in the interleaved vb
-                                    vb.update< byte_t >( [ & ]( byte_ptr_t wt_buf, size_t const /*ne*/ )
+                                    vb.update< byte_t >(
+                                        [ & ]( byte_ptr_t wt_buf, size_t const /*ne*/ )
                                     {
                                         size_t const wrt_vertex_sib = vb.get_layout_sib();
 
                                         size_t const rd_offset = bv.offset + ac.offset;
-                                        byte_t * rd_buf = reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
+                                        byte_t * rd_buf =
+                                            reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
 
                                         wt_buf += vb_offset_sib;
-                                        size_t const elem_sib = cgltf_calc_size( a.data->type, a.data->component_type );
+                                        size_t const elem_sib =
+                                            cgltf_calc_size( a.data->type, a.data->component_type );
 
                                         for( size_t i = 0; i < num_vertices; ++i )
                                         {
                                             std::memcpy( wt_buf, rd_buf, elem_sib );
                                             wt_buf += vertex_sib;
-                                            // cgftf.h says, if bv.stride == 0, it is automatically
-                                            // determined by the accessor. So lets use that one.
+                                            // cgftf.h says, if bv.stride == 0, it is
+                                            // automatically determined by the accessor.
+                                            // So lets use that one.
                                             rd_buf += bv.stride == 0 ? ac.stride : bv.stride;
                                         }
                                     } );
 
-                                    vb_offset_sib += cgltf_calc_size( a.data->type, a.data->component_type );
+                                    vb_offset_sib +=
+                                        cgltf_calc_size( a.data->type, a.data->component_type );
                                 }
                                 break;
                                 case cgltf_attribute_type::cgltf_attribute_type_color:
@@ -490,9 +506,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 size_t const wrt_index_sib = ib.get_element_sib();
 
                                 size_t const rd_offset = bv.offset + ac.offset;
-                                byte_t * rd_buf = reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
+                                byte_t * rd_buf =
+                                    reinterpret_cast< byte_ptr_t >( bf.data ) + rd_offset;
 
-                                size_t const elem_sib = cgltf_calc_size( ac.type, ac.component_type );
+                                size_t const elem_sib =
+                                    cgltf_calc_size( ac.type, ac.component_type );
 
                                 for( size_t i = 0; i < num_verts_render; ++i )
                                 {
@@ -503,38 +521,52 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     *wt_buf = uint_t( bytes );
                                     ++wt_buf;
 
-                                    // cgftf.h says, if bv.stride == 0, it is automatically
-                                    // determined by the accessor. So lets use that one.
+                                    // cgftf.h says, if bv.stride == 0, it is
+                                    // automatically determined by the accessor. So lets
+                                    // use that one.
                                     rd_buf += bv.stride == 0 ? ac.stride : bv.stride;
                                 }
                             } );
                         }
 
-                        // has material
-                        if( p.material != nullptr )
+                        motor::string_t geo_name;
+                        if( cgltf_mesh.name != nullptr )
+                            geo_name = motor::string_t( cgltf_mesh.name );
+                        else
+                            geo_name = "geo";
+
+                        geo_name += "." + motor::to_string( pidx );
+
                         {
+                            motor::graphics::geometry_object_t geo( geo_name, pt, std::move( vb ),
+                                                                    std::move( ib ) );
+                            geos[ midx ][ pidx ] = ( motor::shared( std::move( geo ) ) );
                         }
 
-                        // temporarily make shader
-                        {
-                        }
+                    } // primitives
+                } // mesh
+            }
 
-                        motor::string_t const geo_name =
-                            motor::string_t( cgltf_mesh.name ) + "." + motor::to_string( pidx );
+            using msls_t = motor::vector< motor::graphics::msl_object_mtr_t >;
 
-                        {
-                            motor::graphics::geometry_object_t geo( geo_name, pt, std::move( vb ), std::move( ib ) );
-                            // node_to_geos[ &cgltf_mesh ].emplace_back(  );
-                            name_to_geo[ geo_name ] = motor::shared( std::move( geo ) );
-                        }
+            // msls[cgltf material id] = msl
+            msls_t msls( data->materials_count, nullptr );
 
-                        motor::graphics::msl_object_t mslo( geo_name + ".msl" );
-                        mslo.link_geometry( geo_name );
+            // make materials
+            {
+                for( size_t midx = 0; midx < data->materials_count; ++midx )
+                {
+                    auto const & cgltf_mat = data->materials[ midx ];
 
-                        {
-                            motor::string_t shd = "config " + geo_name + "_msl";
-                            shd +=
-                                R"(
+                    motor::string_t const mat_name =
+                        motor::string_t( cgltf_mat.name ) + "." + motor::to_string( midx );
+
+                    motor::graphics::msl_object_t mslo( mat_name );
+
+                    {
+                        motor::string_t shd = "config " + mat_name;
+                        shd +=
+                            R"(
                             {
                                 vertex_shader
                                 {
@@ -544,7 +576,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                     in vec3_t pos : position ;
                                     in vec3_t nrm : normal ;
-                                    in vec2_t tx : texcoord ;
+                                    //in vec2_t tx : texcoord ;
 
                                     out vec4_t pos : position ;
                                     out vec2_t tx : texcoord ;
@@ -554,9 +586,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     {
                                         vec3_t pos = in.pos ;
                                         //pos.xyz = pos.xyz;
-                                        out.tx = in.tx ;
+                                        //out.tx = in.tx ;
                                         out.pos = proj * view * world * vec4_t( pos, 1.0 ) ;
-                                        out.nrm = normalize( world * vec4_t( in.nrm, 0.0 ) ).xyz ;
+                                        out.nrm = normalize( vec4_t( in.nrm, 0.0 ) ).xyz ;
                                     }
                                 }
 
@@ -586,25 +618,20 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 }
                             })";
 
-                            mslo.add( motor::graphics::msl_api_type::msl_4_0, shd );
-
-                            // msl_obj = motor::shared( motor::graphics::msl_object_t( std::move( mslo ) ) );
-                            node_to_msls[ &( data->meshes[ midx ] ) ].emplace_back(
-                                motor::shared( std::move( mslo ) ) );
-                        }
-
-                    } // primitives
-                }
+                        mslo.add( motor::graphics::msl_api_type::msl_4_0, shd );
+                        msls[ midx ] = motor::shared( std::move( mslo ) );
+                    }
+                } // for each cglf materials
             }
 
             // #1 : fill vectors with nodes
             // no hierarchy is build here. This section just checks the nodes and
             // creates motor node objects.
-            // @note components are still handeled here. if a node has a camera/mesh/etc. attached,
-            // a corresponding motor component is created here and is attached.
+            // @note components are still handeled here. if a node has a camera/mesh/etc.
+            // attached, a corresponding motor component is created here and is attached.
             // The next section handles building up groups. At the moment, I couldn't
-            // figure out is a camera tagged gltf node can have children. So the current setup
-            // works, if a camera had children.
+            // figure out is a camera tagged gltf node can have children. So the current
+            // setup works, if a camera had children.
             {
                 for( size_t ni = 0; ni < data->nodes_count; ++ni )
                 {
@@ -615,10 +642,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     // attach name
                     {
-                        motor::string_t const node_name =
-                            gltf_node.name == nullptr ? "node " + motor::to_string( ni ) : gltf_node.name;
+                        motor::string_t const node_name = gltf_node.name == nullptr
+                                                              ? "node " + motor::to_string( ni )
+                                                              : gltf_node.name;
 
-                        motor_node->add_component( motor::shared( motor::scene::name_component_t( node_name ) ) );
+                        motor_node->add_component(
+                            motor::shared( motor::scene::name_component_t( node_name ) ) );
                     }
 
                     // check transformation
@@ -629,8 +658,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     // we need to attach the transformation decorator
                     // of the group node. See next section.
                     {
-                        bool_t attach = gltf_node.has_matrix || gltf_node.has_scale || gltf_node.has_rotation ||
-                                        gltf_node.has_translation;
+                        bool_t attach = gltf_node.has_matrix || gltf_node.has_scale ||
+                                        gltf_node.has_rotation || gltf_node.has_translation;
 
                         motor::math::m3d::trafof_t trafo;
 
@@ -639,10 +668,14 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // colum major
                             auto const & glm = gltf_node.matrix;
 
-                            motor::math::vec4f_t const col0( glm[ 0 ], glm[ 1 ], glm[ 2 ], glm[ 3 ] );
-                            motor::math::vec4f_t const col1( glm[ 4 ], glm[ 5 ], glm[ 6 ], glm[ 7 ] );
-                            motor::math::vec4f_t const col2( glm[ 8 ], glm[ 9 ], glm[ 10 ], glm[ 11 ] );
-                            motor::math::vec4f_t const col3( glm[ 12 ], glm[ 13 ], glm[ 14 ], glm[ 15 ] );
+                            motor::math::vec4f_t const col0( glm[ 0 ], glm[ 1 ], glm[ 2 ],
+                                                             glm[ 3 ] );
+                            motor::math::vec4f_t const col1( glm[ 4 ], glm[ 5 ], glm[ 6 ],
+                                                             glm[ 7 ] );
+                            motor::math::vec4f_t const col2( glm[ 8 ], glm[ 9 ], glm[ 10 ],
+                                                             glm[ 11 ] );
+                            motor::math::vec4f_t const col3( glm[ 12 ], glm[ 13 ], glm[ 14 ],
+                                                             glm[ 15 ] );
 
                             motor::math::mat4f_t mat;
 
@@ -660,10 +693,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // csx   c
                             // so computing the length of the [ac]^T column vector should
                             // result in the sx scaling value.
-                            // so to be the rotation matrix R, we need to divide the column
-                            // vectors by the length.
-                            // I would like to store not the matrix, but the particular
-                            // parameters for translation, scaling and roation(quaternion)
+                            // so to be the rotation matrix R, we need to divide the
+                            // column vectors by the length. I would like to store not the
+                            // matrix, but the particular parameters for translation,
+                            // scaling and roation(quaternion)
 
                             // has [sx, sy, sz]^T
 
@@ -674,7 +707,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         {
                             if( gltf_node.has_scale )
                             {
-                                trafo.set_scale( motor::math::vec3f_t::from_array( gltf_node.scale ) );
+                                trafo.set_scale(
+                                    motor::math::vec3f_t::from_array( gltf_node.scale ) );
                             }
 
                             if( gltf_node.has_rotation )
@@ -685,14 +719,16 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 //      gltf defines is out of the sceen.
                                 // #2 I think, the engines' rotation direction is CW.
                                 //      so we have to negate.
-                                motor::math::quat4f_t const q( -q__[ 3 ], q__[ 0 ], q__[ 1 ], -q__[ 2 ] );
+                                motor::math::quat4f_t const q( q__[ 3 ], q__[ 0 ], q__[ 1 ],
+                                                               q__[ 2 ] );
 
                                 trafo.rotate_by_matrix_fl( q.to_matrix() );
                             }
 
                             if( gltf_node.has_translation )
                             {
-                                trafo.set_translation( motor::math::vec3f_t::from_array( gltf_node.translation ) );
+                                trafo.set_translation(
+                                    motor::math::vec3f_t::from_array( gltf_node.translation ) );
                             }
                         }
 
@@ -701,56 +737,48 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             motor::scene::trafo3d_component_t tc( std::move( trafo ) );
                             motor_node->add_component( motor::shared( std::move( tc ) ) );
                         }
-                    }
+                    } // transformation
 
-                    // check mesh
+                    // attach meshes to this node.
                     if( gltf_node.mesh != nullptr )
                     {
                         auto const * gltf_mesh = gltf_node.mesh;
 
-                        // attach components
+                        for( size_t pidx = 0; pidx < gltf_mesh->primitives_count; ++pidx )
                         {
-                            auto iter = node_to_msls.find( gltf_node.mesh );
-                            if( iter != node_to_msls.end() )
+                            cgltf_primitive & prim = gltf_mesh->primitives[ pidx ];
+                            size_t const mid = cgltf_material_index( data, prim.material );
+
+                            motor::graphics::geometry_object_mtr_t geo =
+                                geos[ cgltf_mesh_index( data, gltf_mesh ) ][ pidx ];
+                            motor::graphics::msl_object_mtr_t msl = msls[ mid ];
+
+                            size_t const num_geo_links = msl->link_geometry( geo->name() );
+
+                            motor::scene::leaf_t render_node;
+
+                            // add name compoent
                             {
-                                for( auto * msl : iter->second )
-                                {
-                                    auto const & geo_name = msl->get_geometry().front();
-
-                                    auto geo_iter = name_to_geo.find( geo_name );
-                                    if( geo_iter != name_to_geo.end() )
-                                    {
-                                        motor::scene::leaf_t render_node;
-
-                                        // add name compoent
-                                        {
-                                            motor::scene::name_component_t nc( geo_name );
-                                            render_node.add_component( motor::shared( std::move( nc ) ) );
-                                        }
-
-                                        // add msl compoent
-                                        {
-                                            auto comp = motor::scene::msl_component_t( motor::share( msl ), 0 );
-                                            render_node.add_component( motor::shared( std::move( comp ) ) );
-                                        }
-
-                                        // add msl configuration comp
-                                        {
-                                            auto comp = motor::scene::config_graphics_component_t();
-                                            comp.set_msl( motor::share( msl ) );
-                                            comp.set_geo( motor::share( geo_iter->second ) );
-                                            render_node.add_component( motor::shared( std::move( comp ) ) );
-                                        }
-
-                                        motor_node->add_child( motor::shared( std::move( render_node ) ) );
-                                    }
-                                    else
-                                    {
-                                        motor::log::global_t::warning(
-                                            "[cgltf_module] : referenced geometry not found : " + geo_name );
-                                    }
-                                }
+                                motor::scene::name_component_t nc( geo->name() );
+                                render_node.add_component( motor::shared( std::move( nc ) ) );
                             }
+
+                            // add msl compoent
+                            {
+                                auto comp = motor::scene::msl_component_t( motor::share( msl ),
+                                                                           num_geo_links - 1 );
+                                render_node.add_component( motor::shared( std::move( comp ) ) );
+                            }
+
+                            // add msl configuration comp
+                            {
+                                auto comp = motor::scene::config_graphics_component_t();
+                                comp.set_msl( motor::share( msl ) );
+                                comp.set_geo( motor::share( geo ) );
+                                render_node.add_component( motor::shared( std::move( comp ) ) );
+                            }
+
+                            motor_node->add_child( motor::shared( std::move( render_node ) ) );
                         }
                     }
 
@@ -802,7 +830,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                         // handle camera component
                         {
-                            auto cam_comp = motor::scene::camera_component_t( motor::shared( std::move( cam ) ) );
+                            auto cam_comp = motor::scene::camera_component_t(
+                                motor::shared( std::move( cam ) ) );
                             motor_node->add_component( motor::shared( std::move( cam_comp ) ) );
                         }
                     }
@@ -824,8 +853,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     motor::scene::logic_group_t cur_scene;
 
                     {
-                        motor::string_t const name =
-                            gltf_scene.name == nullptr ? "scene node " + motor::to_string( si ) : gltf_scene.name;
+                        motor::string_t const name = gltf_scene.name == nullptr
+                                                         ? "scene node " + motor::to_string( si )
+                                                         : gltf_scene.name;
 
                         motor::scene::name_component_t nc( name );
                         cur_scene.add_component( motor::shared( std::move( nc ) ) );
@@ -839,7 +869,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     }
 
                     {
-                        bool_t const active = ( size_t( &gltf_scene ) - size_t( data->scene ) ) == 0;
+                        bool_t const active =
+                            ( size_t( &gltf_scene ) - size_t( data->scene ) ) == 0;
                         root.add_child( motor::shared( std::move( cur_scene ) ), active );
                     }
                 }
@@ -892,7 +923,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         case cgltf_animation_path_type::cgltf_animation_path_type_scale:
                             break;
                         default:
-                            motor::log::global_t::warning( "[gltf_module] : animation path not supported." );
+                            motor::log::global_t::warning(
+                                "[gltf_module] : animation path not supported." );
                             break;
                         }
                     }
@@ -908,38 +940,30 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
             // release all object refs
             {
-                for( auto i : node_to_msls )
+                for( auto * msl : msls )
                 {
-                    for( auto i2 : i.second )
-                    {
-                        motor::release( motor::move(i2) ) ;
-                    }
-                    
+                    motor::release( motor::move( msl ) );
                 }
 
-                for( auto i : node_to_geos )
+                for( auto & mat : geos )
                 {
-                    for( auto i2 : i.second )
+                    for( auto * geo : mat )
                     {
-                        motor::release( motor::move(i2) ) ;
+                        motor::release( motor::move( geo ) );
                     }
                 }
-
-                for( auto i : name_to_geo )
-                {
-                    motor::release( motor::move(i.second) ) ;
-                } 
 
                 for( auto i : nn_vec )
                 {
-                    motor::release( motor::move(i) ) ;
+                    motor::release( motor::move( i ) );
                 }
             }
         }
 
         {
-            size_t const milli =
-                std::chrono::duration_cast< std::chrono::milliseconds >( _clock_t::now() - tp_begin ).count();
+            size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >(
+                                     _clock_t::now() - tp_begin )
+                                     .count();
 
             motor::log::global_t::status( "[cgltf] : loading file " + loc.as_string() + " took " +
                                           motor::to_string( milli ) + " ms." );
@@ -953,9 +977,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 }
 
 // ***************************************************************************
-motor::format::future_item_t cgltf_module::export_to( motor::io::location_cref_t loc, motor::io::database_mtr_t,
-                                                      motor::format::item_mtr_safe_t what,
-                                                      motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
+motor::format::future_item_t
+cgltf_module::export_to( motor::io::location_cref_t loc, motor::io::database_mtr_t,
+                         motor::format::item_mtr_safe_t what,
+                         motor::format::module_registry_mtr_safe_t mod_reg_ ) noexcept
 {
     return std::async( std::launch::async, [ = ]( void_t ) mutable -> item_mtr_t
     {

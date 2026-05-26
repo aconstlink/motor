@@ -72,7 +72,7 @@ namespace motor
             typedef std::function< void_t ( motor::string_in_t ) > foreach_funk_t ;
             void_t for_each_msl( motor::graphics::msl_api_type const t, foreach_funk_t funk ) const noexcept ;
 
-            this_ref_t link_geometry( motor::string_cref_t name ) noexcept ;
+            size_t link_geometry( motor::string_cref_t name ) noexcept ;
             this_ref_t link_geometry( std::initializer_list< motor::string_t > const & names ) noexcept ;
 
             // link to stream out object so geometry can be fed from there.

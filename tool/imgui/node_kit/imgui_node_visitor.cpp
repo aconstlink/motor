@@ -10,6 +10,7 @@
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/component/render_settings_component.h>
 #include <motor/scene/component/camera_component.h>
+#include <motor/scene/component/msl_component.h>
 
 #include <motor/std/string>
 #include <imgui.h>
@@ -135,6 +136,14 @@ motor::string_t imgui_node_visitor::check_for_name( motor::string_rref_t sin, mo
         if ( nptr->has_component<motor::scene::render_settings_component_t>() )
         {
             name += " [RS]" ;
+        }
+    }
+
+    // check renderable component
+    {
+        if ( nptr->has_component<motor::scene::msl_component_t>() )
+        {
+            name += " [R]" ;
         }
     }
 

@@ -26,7 +26,7 @@ namespace motor
 
         public:
 
-            virtual void_t exchange( void_t ) noexcept = 0 ;
+            virtual bool_t exchange( void_t ) noexcept = 0 ;
             virtual void_t disconnect( bool_t const propagate = true ) noexcept = 0 ;
 
         };
@@ -41,7 +41,7 @@ namespace motor
 
         public:
 
-            virtual void_t exchange( void_t ) noexcept = 0 ;
+            virtual bool_t exchange( void_t ) noexcept = 0 ;
             virtual void_t disconnect( bool_t const propagate = true ) noexcept = 0 ;
             virtual void_t disconnect( motor::wire::iinput_slot_ptr_t, bool_t const propagate = true ) noexcept = 0 ;
             virtual bool_t connect( motor::wire::iinput_slot_mtr_safe_t, bool_t const propagate = true ) noexcept = 0 ;
@@ -58,7 +58,7 @@ namespace motor
 
         public:
 
-            virtual void_t exchange( void_t ) noexcept = 0 ;
+            virtual bool_t exchange( void_t ) noexcept = 0 ;
             virtual void_t disconnect( bool_t const propagate = true ) noexcept = 0 ;
             virtual void_t disconnect( motor::wire::ioutput_slot_ptr_t, bool_t const propagate = true  ) noexcept = 0 ;
             virtual bool_t connect( motor::wire::ioutput_slot_mtr_safe_t, bool_t const propagate = true ) noexcept = 0 ;

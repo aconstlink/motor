@@ -173,10 +173,10 @@ void_t msl_object::for_each_msl( motor::graphics::msl_api_type const t, foreach_
 }
 
 //****************************************************************************
-msl_object::this_ref_t msl_object::link_geometry( motor::string_cref_t name ) noexcept
+size_t msl_object::link_geometry( motor::string_cref_t name ) noexcept
 {
     _geo.emplace_back( name ) ;
-    return *this ;
+    return _geo.size() ;
 }
 
 //****************************************************************************
