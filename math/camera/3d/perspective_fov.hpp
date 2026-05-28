@@ -132,7 +132,7 @@ namespace motor
                 static void_t create_by_fovv_aspect( type_t const fov, type_t const aspect,
                     type_t const n, type_t const f, mat4_out_t m )
                 {
-                    auto const t = std::tanf( fov * 0.5f ) ;
+                    auto const t = tanf( fov * 0.5f ) ;
 
 
                     m[0] = 1.0f / (aspect * t) ;
