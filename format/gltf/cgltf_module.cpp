@@ -114,6 +114,13 @@ static motor::graphics::primitive_type to_primitive_type( cgltf_primitive_type c
     }
     return motor::graphics::primitive_type::undefined;
 }
+
+static size_t compute_msl_index( cgltf_data const * data, cgltf_material const * object ) noexcept
+{
+    if( object == nullptr ) return 0;
+    return cgltf_material_index( data, object ) + 1;
+}
+
 } // namespace cgltf_module_file
 
 // *****************************************************************************************
@@ -549,11 +556,78 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
             using msls_t = motor::vector< motor::graphics::msl_object_mtr_t >;
 
-            // msls[cgltf material id] = msl
-            msls_t msls( data->materials_count, nullptr );
+            // msls[0] = default msl
+            // msls[cgltf material id + 1] = msl
+            msls_t msls( data->materials_count + 1, nullptr );
 
             // make materials
             {
+                // start with a default material
+                // we store it at position
+                {
+                    motor::string_t const mat_name = "default material";
+                    motor::graphics::msl_object_t mslo( mat_name );
+
+                    {
+                        motor::string_t shd = "config " + mat_name;
+                        shd +=
+                            R"(
+                            {
+                                vertex_shader
+                                {
+                                    mat4_t proj : projection ;
+                                    mat4_t view : view ;
+                                    mat4_t world : world ;
+
+                                    in vec3_t pos : position ;
+                                    in vec3_t nrm : normal ;
+                                    //in vec2_t tx : texcoord ;
+
+                                    out vec4_t pos : position ;
+                                    out vec2_t tx : texcoord ;
+                                    out vec3_t nrm : normal ;
+
+                                    void main()
+                                    {
+                                        vec3_t pos = in.pos ;
+                                        //pos.xyz = pos.xyz;
+                                        //out.tx = in.tx ;
+                                        out.pos = proj * view * world * vec4_t( pos, 1.0 ) ;
+                                        out.nrm = normalize( vec4_t( in.nrm, 0.0 ) ).xyz ;
+                                    }
+                                }
+
+                                pixel_shader
+                                {
+                                    tex2d_t tex ;
+                                    vec3_t light_dir ;
+                                    vec4_t color ;
+                                    float_t time ;
+
+                                    in vec2_t tx : texcoord ;
+                                    in vec3_t nrm : normal ;
+                                    out vec4_t color : color0 ;
+                                    //out vec4_t color1 : color1 ;
+                                    //out vec4_t color2 : color2 ;
+
+                                    void main()
+                                    {
+                                        float_t light = dot( normalize( in.nrm ), normalize( light_dir ) ) ;
+                                        out.color = vec4_t( light*time, light, light, 1.0 ) ;
+                                        out.color = vec4_t( in.nrm.x, in.nrm.y, in.nrm.z, 1.0 ) ;
+
+                                        //out.color = color ' texture( tex, in.tx ) ;
+                                        //out.color1 = vec4_t( in.nrm, 1.0 ) ;
+                                        //out.color2 = vec4_t( light, light, light , 1.0 ) ;
+                                    }
+                                }
+                            })";
+
+                        mslo.add( motor::graphics::msl_api_type::msl_4_0, shd );
+                        msls[ 0 ] = motor::shared( std::move( mslo ) );
+                    }
+                }
+
                 for( size_t midx = 0; midx < data->materials_count; ++midx )
                 {
                     auto const & cgltf_mat = data->materials[ midx ];
@@ -619,7 +693,7 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                             })";
 
                         mslo.add( motor::graphics::msl_api_type::msl_4_0, shd );
-                        msls[ midx ] = motor::shared( std::move( mslo ) );
+                        msls[ midx + 1] = motor::shared( std::move( mslo ) );
                     }
                 } // for each cglf materials
             }
@@ -747,7 +821,8 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                         for( size_t pidx = 0; pidx < gltf_mesh->primitives_count; ++pidx )
                         {
                             cgltf_primitive & prim = gltf_mesh->primitives[ pidx ];
-                            size_t const mid = cgltf_material_index( data, prim.material );
+                            size_t const mid =
+                                cgltf_module_file::compute_msl_index( data, prim.material );
 
                             motor::graphics::geometry_object_mtr_t geo =
                                 geos[ cgltf_mesh_index( data, gltf_mesh ) ][ pidx ];
