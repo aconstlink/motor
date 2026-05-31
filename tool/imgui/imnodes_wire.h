@@ -43,7 +43,7 @@ namespace motor
 
         private:
 
-            motor::wire::node::tier_builder_t::build_result_t _tb_results ;
+            motor::wire::inode::tier_builder_t::build_result_t _tb_results ;
             motor::vector< node > _nodes ;
             motor::vector< link > _links ;
 

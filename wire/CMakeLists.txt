@@ -11,6 +11,7 @@ set( SOURCES ${SOURCES}
     "node/node.h"
     "node/node.cpp"
     "node/node_disconnector.hpp"
+    "node/slot_sheet_policies.hpp"
 
     "slot/islot.h"
     "slot/islot.cpp"

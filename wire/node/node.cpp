@@ -201,8 +201,3 @@ motor::concurrent::task_t::task_funk_t inode::make_task_funk( void_t ) noexcept
     } ;
 }
 
-//*****************************************************
-void_t node::execute( void_t ) noexcept 
-{
-    _funk( this ) ;
-}

@@ -41,7 +41,7 @@ void_t imnodes_wire::end( bool_t const force_mini_map ) noexcept
 void_t imnodes_wire::build( motor::wire::inode_mtr_t start ) noexcept 
 {
     {
-        motor::wire::node::tier_builder_t tb ;
+        motor::wire::inode::tier_builder_t tb ;
 
         tb.build( start, _tb_results ) ;
 
@@ -91,7 +91,7 @@ void_t imnodes_wire::build( motor::wire::inode_mtr_t start ) noexcept
             // link all tasks
             {
                 int_t link_id = 0 ;
-                motor::wire::node::tier_builder_t::output_slot_walk( _tb_results,
+                motor::wire::inode::tier_builder_t::output_slot_walk( _tb_results,
                     [&] ( motor::wire::inode_mtr_t n_in, motor::wire::inode::nodes_in_t outputs )
                 {
                     int_t const tid = nodes_to_ids[ n_in ] ;
