@@ -15,7 +15,7 @@ namespace motor
 
             motor_typedefs( T, type ) ;
             motor_typedefs( T, value ) ;
-            motor_typedefs( size_t, time_stamp ) ;
+            motor_typedefs( time_ms_t, time_stamp ) ;
         
         private:
 

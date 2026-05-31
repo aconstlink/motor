@@ -9,5 +9,7 @@ namespace motor
     namespace math
     {
         using namespace motor::core::types ;
+
+        using time_ms_t = uint64_t ;
     }
 }

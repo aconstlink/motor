@@ -24,7 +24,7 @@ namespace motor
             motor_typedefs( typename T::value_t, value ) ;
             motor_typedefs( keyframe<value_t>, keyframe ) ;
             motor_typedefs( motor::vector_pod< keyframe_t >, keyframes ) ;
-            motor_typedefs( motor::vector_pod< size_t >, time_stamps ) ;
+            motor_typedefs( motor::vector_pod< time_ms_t >, time_stamps ) ;
 
             motor_typedefs( typename keyframe_t::time_stamp_t, time_stamp ) ;
 

@@ -91,7 +91,7 @@ set( non_arch_sources
 # compound include files
 set( sources 
     typedefs.h
-
+    types.hpp
     ${cpp_sources}
     ${non_arch_sources}	
 )
