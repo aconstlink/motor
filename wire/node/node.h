@@ -35,18 +35,30 @@ class MOTOR_WIRE_API inode
 
     motor::string_t _name;
 
+#if 0
   private: // slots
 
     motor::wire::inputs_t _inputs;
     motor::wire::outputs_t _outputs;
+#endif
 
   public:
 
-    inode( void_t ) noexcept;
-    inode( motor::string_in_t ) noexcept;
+    virtual ~inode( void_t ) noexcept;
+
+  protected:
+
+    inode( motor::string_in_t, motor::concurrent::task_mtr_t t ) noexcept;
     inode( this_rref_t ) noexcept;
     inode( this_cref_t ) = delete;
-    virtual ~inode( void_t ) noexcept;
+    inode( motor::concurrent::task_mtr_t t ) noexcept;
+
+    motor::concurrent::task_mtr_t borrow_task( void_t ) noexcept
+    {
+        return _task;
+    }
+
+  public:
 
     this_mtr_t then( this_mtr_safe_t ) noexcept;
 
@@ -55,12 +67,6 @@ class MOTOR_WIRE_API inode
     void_t disconnect( void_t ) noexcept;
 
     motor::string_cref_t name( void_t ) const noexcept;
-
-    // allows to interact with input slots
-    motor::wire::inputs_ref_t inputs( void_t ) noexcept;
-
-    // allows to interact with output slots
-    motor::wire::outputs_ref_t outputs( void_t ) noexcept;
 
   public:
 
@@ -80,9 +86,7 @@ class MOTOR_WIRE_API inode
 
     void_t remove_incoming( this_ptr_t other ) noexcept;
 
-    motor::concurrent::task_ptr_t task( void_t ) noexcept;
-
-    motor::concurrent::task_t::task_funk_t make_task_funk( void_t ) noexcept;
+    motor::concurrent::task_ptr_t task( void_t ) noexcept;    
 
   public:
 
@@ -232,12 +236,50 @@ class node : public inode, private slot_policy
 
   public:
 
-    node( void_t ) noexcept {}
-    node( motor::string_cref_t name ) noexcept : base_t( name ) {}
-    node( this_cref_t ) = delete ;
-    node( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) ) {}
+    node( void_t ) noexcept
+        : base_t( motor::shared( motor::concurrent::task_t( this_t::make_task_funk() ),
+                                 "wire node task" ) )
+    {
+    }
+    node( motor::string_cref_t name ) noexcept
+        : base_t( name, motor::shared( motor::concurrent::task_t( this_t::make_task_funk() ),
+                                       "wire node task" ) )
+    {
+    }
+    node( this_cref_t ) = delete;
+    node( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) ), slot_policy( std::move( rhv ) )
+    {
+        this_t::borrow_task()->set_funk( this_t::make_task_funk() );
+    }
     virtual ~node( void_t ) noexcept {}
+
+    typename slot_policy::inputs_ref_t inputs( void_t ) noexcept
+    {
+        return slot_policy::inputs();
+    }
+
+    typename slot_policy::outputs_ref_t outputs( void_t ) noexcept
+    {
+        return slot_policy::outputs();
+    }
+
+  private:
+
+    virtual motor::concurrent::task_t::task_funk_t make_task_funk( void_t ) noexcept
+    {
+        return [ = ]( motor::concurrent::task_t::task_funk_param_in_t )
+        {
+            // exchange all inputs... (pull)
+            // this->inputs().exchange() ;
+            this->execute();
+            // or exchange all outputs (push)
+            this->outputs().exchange();
+        };
+    }
 };
+
+motor_typedefs( node< motor::wire::named_slot_sheet_policy >, named_slots_node ) ;
+motor_typedefs( node< motor::wire::unnamed_slot_sheet_policy >, unnamed_slots_node ) ;
 
 //*********************************************************************
 template < typename slot_policy >

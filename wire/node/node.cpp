@@ -7,26 +7,17 @@
 using namespace motor::wire ;
 
 //*****************************************************
-inode::inode( void_t ) noexcept
+inode::inode( motor::string_in_t n, motor::concurrent::task_mtr_t t ) noexcept : _name( n ) , _task( motor::move(t) )
 {
-    _task = motor::shared( motor::concurrent::task_t( this_t::make_task_funk() ),
-        "wire node task" ) ;
-}
-
-//*****************************************************
-inode::inode( motor::string_in_t n) noexcept : _name( n ) 
-{
-    _task = motor::shared( motor::concurrent::task_t( this_t::make_task_funk() ),
-        "wire node task" ) ;
-}
+ }
 
 //*****************************************************
 inode::inode( this_rref_t rhv ) noexcept : _incoming( std::move( rhv._incoming ) ), 
     _outgoing( std::move( rhv._outgoing ) ), _task( motor::move( rhv._task ) ), 
-    _name( std::move(rhv._name) ), _inputs( std::move( rhv._inputs) ), 
-    _outputs( std::move( rhv._outputs ) )
+    _name( std::move(rhv._name) )
+    
 {
-    _task->set_funk( this_t::make_task_funk() ) ;
+    
 }
 
 //*****************************************************
@@ -55,6 +46,11 @@ inode::~inode( void_t ) noexcept
     motor::memory::release_ptr( _task ) ;
     for ( auto ptr : _incoming ) motor::memory::release_ptr( ptr ) ;
     for ( auto ptr : _outgoing ) motor::memory::release_ptr( ptr ) ;
+}
+
+//*****************************************************
+inode::inode( motor::concurrent::task_mtr_t t ) noexcept : _task( motor::move( t ) )
+{
 }
 
 //*****************************************************
@@ -117,18 +113,6 @@ motor::string_cref_t inode::name( void_t ) const noexcept
 }
 
 //*****************************************************
-motor::wire::inputs_ref_t inode::inputs( void_t ) noexcept 
-{
-    return _inputs ;
-}
-
-//*****************************************************
-motor::wire::outputs_ref_t inode::outputs( void_t ) noexcept 
-{
-    return _outputs ;
-}
-
-//*****************************************************
 void_t inode::add_incoming( this_ptr_t other ) noexcept
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _mtx_in ) ;
@@ -187,17 +171,3 @@ motor::concurrent::task_ptr_t inode::task( void_t ) noexcept
 {
     return _task ;
 }
-
-//*****************************************************
-motor::concurrent::task_t::task_funk_t inode::make_task_funk( void_t ) noexcept
-{
-    return [=] ( motor::concurrent::task_t::task_funk_param_in_t ) 
-    {
-        // exchange all inputs... (pull)
-        //this->inputs().exchange() ;
-        this->execute() ;
-        // or exchange all outputs (push)
-        this->outputs().exchange() ;
-    } ;
-}
-
