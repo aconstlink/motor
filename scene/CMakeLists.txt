@@ -37,6 +37,7 @@ set( sources
     "visitor/default_visitor.cpp"
 
     "component/icomponent.h"
+    "component/icontroller.h"
     "component/code_component.h"
     "component/code_component.cpp"
     "component/name_component.hpp"
@@ -52,6 +53,12 @@ set( sources
     "component/variables_component.hpp"
     "component/config_graphics_component.h"
     "component/config_graphics_component.cpp"
+
+    "component/animation/animation_component.h"
+    "component/animation/animation_component.cpp"
+    "component/animation/animation_controller.h"
+    "component/animation/animation_controller.cpp"
+    "component/animation/animation_track.hpp"
     )
 
 motor_vs_src_dir( sources )
