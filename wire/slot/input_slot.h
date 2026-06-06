@@ -77,7 +77,7 @@ namespace motor
                 if( _output_slot == s ) 
                 {
                     motor::release( motor::move( s ) ) ;
-                    return true ;
+                    return s == nullptr ? false : true ;
                 }
 
                 if ( auto * v = dynamic_cast<motor::wire::output_slot<T> *>( s.mtr() ); v != nullptr )

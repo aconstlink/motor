@@ -272,6 +272,20 @@ namespace motor
                 return true ;
             }
 
+            // borrow slot by id
+            t_ptr_t borrow( size_t const idx ) const noexcept 
+            {
+                if( _ts.size() <= idx ) return nullptr ;
+                return _ts[idx] ;
+            }
+
+            // get a shared reference to the signal.
+            motor::core::mtr_safe< T > get( size_t const idx ) const noexcept 
+            {
+                if( _ts.size() <= idx ) return nullptr ;
+                return motor::share( _ts[idx] ) ;
+            }
+
             #if 0
             motor::core::mtr_safe< T > get_or_add( motor::string_in_t name, motor::core::mtr_safe< T > && other ) noexcept
             {

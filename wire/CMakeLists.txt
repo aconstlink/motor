@@ -25,6 +25,8 @@ set( SOURCES ${SOURCES}
     "variables/variable_set.hpp"
     "variables/vector_variables.hpp"
     "variables/trafo_variables.hpp"
+
+    "adapter/trafo3_composer.hpp"
     )
 
 motor_vs_src_dir( SOURCES )
