@@ -6,6 +6,7 @@
 #include <motor/wire/slot/sheet.hpp>
 #include <motor/wire/slot/input_slot.h>
 #include <motor/wire/slot/output_slot.h>
+#include <motor/wire/adapter/trafo3_composer.hpp>
 #include <motor/math/utility/3d/transformation.hpp>
 
 namespace motor
@@ -23,12 +24,19 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 
     motor_typedefs( motor::wire::input_slot< motor::math::m3d::trafof_t >, in_slot );
     motor_typedefs( motor::wire::output_slot< motor::math::m3d::trafof_t >, out_slot );
+    motor_typedefs( motor::wire::trafo3f_composer_t, trafo_composer ) ;
 
     // borrowed slot pointer for local transformation.
     in_slot_ptr_t _trafo_is = nullptr;
 
     // borrowed slot pointer for computed transformation.
     out_slot_ptr_t _computed_os = nullptr;
+
+    // we can have multiple composers per trafo.
+    // all composers could be attached to a mixer
+    motor::vector< this_t::trafo_composer_mtr_t > _composer ;
+
+    // @todo mixer
 
   private: // domain data
 
@@ -71,6 +79,13 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
         return motor::share( _computed );
     }
 #endif
+
+public:
+
+    trafo_composer_mtr_safe_t create_composer( void_t ) noexcept ;
+    bool_t attach_composer( trafo_composer_mtr_safe_t ) noexcept ;
+
+public:
 
     // allows a transformation visitor to update
     // the computed transformation.

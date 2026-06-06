@@ -49,7 +49,11 @@ class animation_track : public animation_controller
         node->set_funk( [ & ]( motor::wire::funk_node_ptr_t /*self*/ ) { this->evaluate(); } );
     }
 
-    virtual ~animation_track( void_t ) noexcept {}
+    virtual ~animation_track( void_t ) noexcept
+    {
+        motor::release( motor::move( _is ) );
+        motor::release( motor::move( _os ) );
+    }
 
   public:
 

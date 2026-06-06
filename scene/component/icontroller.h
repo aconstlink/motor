@@ -16,9 +16,8 @@ class MOTOR_SCENE_API icontroller
     motor_this_typedefs( icontroller );
 
   public:
-    
+
     virtual ~icontroller( void_t ) noexcept {}
-  
 };
 motor_typedef( icontroller );
 
@@ -29,7 +28,7 @@ class MOTOR_SCENE_API single_controller : public icontroller
 
   private:
 
-    motor::wire::inode_mtr_t _node = nullptr ;
+    motor::wire::inode_mtr_t _node = nullptr;
 
   public:
 
@@ -38,13 +37,16 @@ class MOTOR_SCENE_API single_controller : public icontroller
     single_controller( this_rref_t rhv ) noexcept : _node( motor::move( rhv._node ) ) {}
     virtual ~single_controller( void_t ) noexcept
     {
+        // the owner needs to disconnect, otherwise
+        // there will be some dangling node pointers.
+        if( _node ) _node->disconnect() ;
         motor::release( motor::move( _node ) );
     }
 
     void_t set_node( motor::wire::inode_mtr_safe_t mtr ) noexcept
     {
-        motor::release( motor::move( _node ) ) ;
-        _node = motor::move( mtr ) ;
+        motor::release( motor::move( _node ) );
+        _node = motor::move( mtr );
     }
 
     motor::wire::inode_mtr_safe_t get_node( void_t ) noexcept
@@ -65,7 +67,8 @@ class MOTOR_SCENE_API multi_controller : public icontroller
     motor_this_typedefs( multi_controller );
 
   private:
-  #if 0
+
+#if 0
     motor::vector< motor::wire::node_ptr_t > _nodes;
 
   public:
@@ -95,7 +98,7 @@ class MOTOR_SCENE_API multi_controller : public icontroller
             f( ptr );
         }
     }
-    #endif
+#endif
 };
 motor_typedef( multi_controller );
 

@@ -29,6 +29,7 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
     os_mtr_t _os = nullptr;
 
     is_vec3_mtr_t _is_pos = nullptr;
+    is_vec3_mtr_t _is_scl = nullptr;
 
   public:
 
@@ -36,7 +37,7 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
     trafo3_composer( this_cref_t ) = delete;
     trafo3_composer( this_rref_t rhv ) noexcept
         : base_t( std::move( rhv ) ), _os( motor::move( rhv._os ) ),
-          _is_pos( motor::move( rhv._is_pos ) )
+          _is_pos( motor::move( rhv._is_pos ) ), _is_scl( motor::move( rhv._is_scl ) )
     {
         this_t::make_and_set_composer_funk();
     }
@@ -45,9 +46,10 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
     {
         motor::release( motor::move( _os ) );
         motor::release( motor::move( _is_pos ) );
+        motor::release( motor::move( _is_scl ) );
     }
 
-  public:
+  public: // position
 
     is_vec3_ptr_t ensure_and_borrow_position_is( void_t ) noexcept
     {
@@ -64,6 +66,26 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
         return motor::share( _is_pos );
     }
+
+  public: // scaling
+
+    is_vec3_ptr_t ensure_and_borrow_scaling_is( void_t ) noexcept
+    {
+        if( _is_scl == nullptr ) _is_scl = motor::shared( is_vec3_t() );
+        if( _os == nullptr ) _os = motor::shared( os_t() );
+
+        return _is_scl;
+    }
+
+    is_vec3_mtr_safe_t ensure_and_get_scaling_is( void_t ) noexcept
+    {
+        if( _is_scl == nullptr ) _is_scl = motor::shared( is_vec3_t() );
+        if( _os == nullptr ) _os = motor::shared( os_t() );
+
+        return motor::share( _is_scl );
+    }
+
+  public: // os
 
     this_t::os_mtr_safe_t ensure_and_get_os( void_t ) noexcept
     {
@@ -83,6 +105,11 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
             if( _is_pos != nullptr )
             {
                 t.set_translation( _is_pos->get_value() );
+            }
+
+            if( _is_scl != nullptr )
+            {
+                t.set_scale( _is_scl->get_value() ) ;
             }
 
             _os->set_and_exchange( t );
