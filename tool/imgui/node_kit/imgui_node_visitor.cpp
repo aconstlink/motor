@@ -11,6 +11,7 @@
 #include <motor/scene/component/render_settings_component.h>
 #include <motor/scene/component/camera_component.h>
 #include <motor/scene/component/msl_component.h>
+#include <motor/scene/component/animation/animation_component.h>
 
 #include <motor/std/string>
 #include <imgui.h>
@@ -135,7 +136,7 @@ motor::string_t imgui_node_visitor::check_for_name( motor::string_rref_t sin, mo
     {
         if ( nptr->has_component<motor::scene::render_settings_component_t>() )
         {
-            name += " [RS]" ;
+            name += "[RS]" ;
         }
     }
 
@@ -143,7 +144,7 @@ motor::string_t imgui_node_visitor::check_for_name( motor::string_rref_t sin, mo
     {
         if ( nptr->has_component<motor::scene::msl_component_t>() )
         {
-            name += " [R]" ;
+            name += "[R]" ;
         }
     }
 
@@ -151,7 +152,7 @@ motor::string_t imgui_node_visitor::check_for_name( motor::string_rref_t sin, mo
     {
         if ( nptr->has_component<motor::scene::trafo3d_component_t>() )
         {
-            name += " [T]" ;
+            name += "[T]" ;
         }
     }
 
@@ -159,7 +160,15 @@ motor::string_t imgui_node_visitor::check_for_name( motor::string_rref_t sin, mo
     {
         if ( nptr->has_component<motor::scene::camera_component_t>() )
         {
-            name += " [C]" ;
+            name += "[C]" ;
+        }
+    }
+
+    // check animation component
+    {
+        if ( nptr->has_component<motor::scene::animation_component_t>() )
+        {
+            name += "[A]" ;
         }
     }
 
