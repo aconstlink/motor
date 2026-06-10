@@ -309,6 +309,26 @@ namespace motor
                 return ret ;
             }
 
+            //************************************************************************************
+            this_cref_t normalize( void_t ) noexcept
+            {
+                auto const len = this_t::length() ;
+
+                _elem[0] = _elem[0]/len ;
+                _elem[1] = _elem[1]/len ;
+                _elem[2] = _elem[2]/len ;
+                _elem[3] = _elem[3]/len ;                
+
+                return *this ;
+            }
+
+            //************************************************************************************
+            this_t normalized( void_t ) const noexcept
+            {
+                auto const len = this_t::length() ;
+                return this_t( _elem[0]/len, _elem[1]/len, _elem[2]/len, _elem[3]/len ) ;
+            }
+
         private: // variables
 
             // [0] = real

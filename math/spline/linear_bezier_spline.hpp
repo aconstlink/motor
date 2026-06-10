@@ -3,6 +3,7 @@
 #include "../typedefs.h"
 
 #include "../interpolation/interpolate.hpp"
+#include "../interpolation/slerp.hpp"
 #include <motor/std/vector>
 
 #include <algorithm>
