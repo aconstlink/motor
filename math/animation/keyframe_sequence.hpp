@@ -31,7 +31,7 @@ namespace motor
             motor_typedefs( motor::vector_pod< float_t >, scalings ) ;
 
             typedef std::function< float_t( float_t ) > time_funk_t ;
-            motor_typedefs( motor::vector_pod<time_funk_t>, time_funks ) ;
+            motor_typedefs( motor::vector<time_funk_t>, time_funks ) ;
 
         private:
 
@@ -135,7 +135,7 @@ namespace motor
                 {
                     // num_segments
                     size_t const ns = _keyframes.size()-1 ;
-                    _time_funks.resize_and_init( ns ) ;
+                    _time_funks.resize( ns ) ;
 
                     for( size_t i = 1; i < _keyframes.size(); ++i )
                     {
