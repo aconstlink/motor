@@ -34,6 +34,7 @@ set( non_arch_sources
     vector/normalization.hpp
 
     interpolation/interpolate.hpp
+    interpolation/slerp.hpp
 
     matrix/protos.hpp
     matrix/matrix2.hpp
