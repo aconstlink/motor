@@ -124,7 +124,10 @@ namespace motor
 
             void_t wait_until_executed( void_t ) const noexcept
             {
-                _so.wait() ;
+                // at the moment, _so is just a mechanism for signaling
+                // internally because _is_executing is a plain boolean
+                // which can not be signaled.
+                _so.wait( _is_executing ) ;
             }
 
         private:

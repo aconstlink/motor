@@ -86,6 +86,14 @@ namespace motor
                 while( !_condition ) _cond.wait( lk ) ;
             }
 
+            /// wait until condition == true but only 
+            /// if b == true 
+            void_t wait( bool_t const b ) noexcept
+            {
+                lock_t lk( _mtx ) ;
+                while( !_condition && b ) _cond.wait( lk ) ;
+            }
+
             /// yield ("busy wait") until condition == true
             void_t yield( void_t ) noexcept
             {
