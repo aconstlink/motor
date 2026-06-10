@@ -39,14 +39,8 @@ class MOTOR_SCENE_API single_controller : public icontroller
     {
         // the owner needs to disconnect, otherwise
         // there will be some dangling node pointers.
-        if( _node ) _node->disconnect() ;
+        if( _node ) _node->disconnect();
         motor::release( motor::move( _node ) );
-    }
-
-    void_t set_node( motor::wire::inode_mtr_safe_t mtr ) noexcept
-    {
-        motor::release( motor::move( _node ) );
-        _node = motor::move( mtr );
     }
 
     motor::wire::inode_mtr_safe_t get_node( void_t ) noexcept
@@ -57,6 +51,19 @@ class MOTOR_SCENE_API single_controller : public icontroller
     motor::wire::inode_ptr_t borrow_node( void_t ) noexcept
     {
         return _node;
+    }
+
+    motor::wire::inode_ptr_t then( motor::wire::inode_mtr_safe_t n ) noexcept
+    {
+        return _node->then( motor::move( n ) ) ;
+    }
+
+  protected:
+
+    void_t set_node( motor::wire::inode_mtr_safe_t mtr ) noexcept
+    {
+        motor::release( motor::move( _node ) );
+        _node = motor::move( mtr );
     }
 };
 motor_typedef( single_controller );

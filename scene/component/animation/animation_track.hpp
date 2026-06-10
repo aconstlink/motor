@@ -12,6 +12,10 @@ namespace motor
 {
 namespace scene
 {
+
+// T : must be a spline type
+// in slot  : time_ms_t
+// out slot : what T is animating
 template < typename T >
 class animation_track : public animation_controller
 {
@@ -19,8 +23,8 @@ class animation_track : public animation_controller
     motor_this_typedefs( animation_track< T > );
     motor_typedefs( motor::math::keyframe_sequence< T >, kfs );
 
-    using is_t = motor::wire::input_slot< typename kfs_t::time_stamp_t >;
-    using os_t = motor::wire::output_slot< typename kfs_t::value_t >;
+    motor_typedefs( motor::wire::input_slot< typename kfs_t::time_stamp_t >, is );
+    motor_typedefs( motor::wire::output_slot< typename kfs_t::value_t >, os );
 
   private:
 
@@ -57,12 +61,22 @@ class animation_track : public animation_controller
 
   public:
 
-    is_t * borrow_is( void_t ) noexcept
+    is_mtr_safe_t get_is( void_t ) noexcept
+    {
+        return motor::share( _is ) ; 
+    }
+    
+    is_mtr_t borrow_is( void_t ) noexcept
     {
         return _is;
     }
 
-    os_t * borrow_os( void_t ) noexcept
+    os_mtr_safe_t get_os( void_t ) noexcept
+    {
+        return motor::share( _os ) ;
+    }
+
+    os_mtr_t borrow_os( void_t ) noexcept
     {
         return _os;
     }
@@ -85,7 +99,7 @@ class animation_track : public animation_controller
     void_t evaluate( void_t ) noexcept
     {
         auto const ts = _is->pull_data();
-        _os->set_value( _kfs( ts ) );
+        _os->set_and_exchange( _kfs( ts ) );
     }
 };
 

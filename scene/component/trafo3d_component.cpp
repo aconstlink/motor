@@ -51,6 +51,15 @@ trafo3d_component::trafo_composer_mtr_safe_t trafo3d_component::create_composer(
 }
 
 //********************************************************************************
+trafo3d_component::trafo_composer_mtr_t
+trafo3d_component::create_composer_and_borrow( void_t ) noexcept
+{
+    auto ret = motor::shared( this_t::trafo_composer_t() );
+    _composer.emplace_back( motor::move( ret ) );
+    return _composer.back() ;
+}
+
+//********************************************************************************
 bool_t trafo3d_component::attach_composer( trafo_composer_mtr_safe_t mtr ) noexcept
 {
     auto iter = std::find( _composer.begin(), _composer.end(), mtr.mtr() );
@@ -62,6 +71,13 @@ bool_t trafo3d_component::attach_composer( trafo_composer_mtr_safe_t mtr ) noexc
 
     _composer.emplace_back( motor::move( mtr ) );
     return true;
+}
+
+//********************************************************************************
+bool_t trafo3d_component::has_composer( trafo_composer_mtr_t ptr ) const noexcept
+{
+    auto iter = std::find( _composer.begin(), _composer.end(), ptr );
+    return iter != _composer.end() ? true : false;
 }
 
 //**********************************************************************************

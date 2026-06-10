@@ -3,6 +3,8 @@
 #include "future_item.hpp"
 
 #include <motor/scene/node/node.h>
+#include <motor/wire/kit/time_node.hpp>
+
 #include <motor/geometry/mesh/polygon_mesh.h>
 #include <motor/audio/object/buffer_object.hpp>
 #include <motor/graphics/texture/image.hpp>
@@ -87,7 +89,13 @@ namespace motor
         // used when im/exporting scenes with assets
         struct scene_item : public item
         {
-            motor::scene::node_mtr_t root ;
+            motor::scene::node_mtr_t root = nullptr ;
+
+            // can be used to start all animations
+            motor::wire::time_node_mtr_t start_node = nullptr ;
+
+            // can be used as notification of animation end
+            motor::wire::funk_node_mtr_t merger_node = nullptr ;
 
             // @todo add asset maps here
         } ;

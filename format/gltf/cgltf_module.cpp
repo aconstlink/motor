@@ -10,12 +10,16 @@
 #include <motor/scene/node/logic_leaf.h>
 #include <motor/scene/node/logic_group.h>
 #include <motor/scene/node/switch_group.h>
-
 #include <motor/scene/component/name_component.hpp>
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/component/camera_component.h>
 #include <motor/scene/component/msl_component.h>
 #include <motor/scene/component/config_graphics_component.h>
+#include <motor/scene/component/animation/animation_track.hpp>
+#include <motor/scene/component/animation/animation_component.h>
+
+#include <motor/wire/kit/trafo3_composer.hpp>
+#include <motor/wire/kit/time_node.hpp>
 
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
@@ -32,6 +36,7 @@
 #include <motor/math/matrix/matrix4.hpp>
 #include <motor/math/matrix/matrix3.hpp>
 #include <motor/math/quaternion/quaternion4.hpp>
+#include <motor/math/animation/keyframe_sequence.hpp>
 
 #include <motor/core/document.hpp>
 
@@ -120,6 +125,33 @@ static size_t compute_msl_index( cgltf_data const * data, cgltf_material const *
     if( object == nullptr ) return 0;
     return cgltf_material_index( data, object ) + 1;
 }
+
+template < typename T >
+struct converter
+{
+    using time_converter_funk_t = std::function< float_t( byte_ptr_t ) >;
+    using value_converter_funk_t = std::function< T( byte_ptr_t ) >;
+};
+
+template < typename T >
+struct animation_track_creator
+{
+};
+
+template <>
+struct animation_track_creator< motor::math::linear_bezier_spline< motor::math::quat4f_t > >
+{
+    motor_typedefs( motor::math::linear_bezier_spline< motor::math::quat4f_t >, spline );
+    motor_typedefs( motor::math::keyframe_sequence< spline_t >, kfs );
+    motor_typedefs( motor::scene::animation_track< spline_t >, animation_track );
+
+    static animation_track_mtr_safe_t create( kfs_rref_t kfs ) noexcept
+    {
+        animation_track_t ani_track( std::move( kfs ) );
+
+        return motor::shared( std::move( ani_track ) );
+    }
+};
 
 } // namespace cgltf_module_file
 
@@ -244,15 +276,8 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
             }
         }
 
-        // going through the file
+        // going through the files' data
         {
-            using node_to_idx_map_t = motor::hash_map< cgltf_node const *, size_t >;
-            node_to_idx_map_t nti_map;
-
-            // maps a gltf node idx to a motor scene node
-            using node_node_vec_t = motor::vector< motor::scene::logic_group_mtr_t >;
-            node_node_vec_t nn_vec( data->nodes_count, nullptr );
-
             using geos_t = motor::vector< motor::vector< motor::graphics::geometry_object_mtr_t > >;
             // geos[cgltf_mesh_id] = vector( primitive geometry )
             geos_t geos( data->meshes_count );
@@ -693,12 +718,19 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                             })";
 
                         mslo.add( motor::graphics::msl_api_type::msl_4_0, shd );
-                        msls[ midx + 1] = motor::shared( std::move( mslo ) );
+                        msls[ midx + 1 ] = motor::shared( std::move( mslo ) );
                     }
                 } // for each cglf materials
             }
 
-            // #1 : fill vectors with nodes
+            using node_to_idx_map_t = motor::hash_map< cgltf_node const *, size_t >;
+            node_to_idx_map_t nti_map;
+
+            // maps a gltf node idx to a motor scene node
+            using node_node_vec_t = motor::vector< motor::scene::logic_group_mtr_t >;
+            node_node_vec_t nn_vec( data->nodes_count, nullptr );
+
+            // # : fill vectors with nodes
             // no hierarchy is build here. This section just checks the nodes and
             // creates motor node objects.
             // @note components are still handeled here. if a node has a camera/mesh/etc.
@@ -914,6 +946,378 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                 }
             }
 
+            // handle animaions
+            {
+                auto start_node = motor::shared( motor::wire::time_node_t() );
+                auto merger_node = motor::shared(
+                    motor::wire::funk_node_t( [ = ]( motor::wire::funk_node_ptr_t ) {} ) );
+
+                for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
+                {
+                    auto const & ani = data->animations[ ani_idx ];
+
+                    using time_converter_funk_t = std::function< float_t( byte_ptr_t ) >;
+
+                    time_converter_funk_t time_conv_funk = [ = ]( byte_ptr_t data )
+                    {
+                        return *float_ptr_t( data );
+                    };
+
+                    using component_to_composer_t =
+                        motor::hash_map< motor::scene::trafo3d_component_mtr_t,
+                                         motor::wire::trafo3f_composer_mtr_t >;
+
+                    // a single animation can target multiple nodes => multiple transformation
+                    // components. so this node remembers the composer, because for a single node
+                    // and a single animation, we use a single composer.
+                    // @note This is PER ANIMATION!
+                    component_to_composer_t ctoc;
+
+                    // compose the single animation paths
+                    // cache the composer, because every channel of this animation
+                    // need to be put into the composer.
+                    // auto trafo_composer = motor::shared( motor::wire::trafo3f_composer_t() );
+
+                    // handle channels. a channel contains the target and
+                    // the sampler
+                    for( size_t c = 0; c < ani.channels_count; ++c )
+                    {
+                        auto const & channel = ani.channels[ c ];
+
+                        // handle samplers. a sampler contains the keyframe (input) and
+                        // value (output) reference along with the interpolation.
+                        auto const & sampler = *channel.sampler;
+
+#if 0
+                        cgltf_animation_path_type const path = channel.target_path;
+                        switch( path )
+                        {
+                        case cgltf_animation_path_type::cgltf_animation_path_type_rotation:
+                            break;
+                        case cgltf_animation_path_type::cgltf_animation_path_type_translation:
+                            break;
+                        case cgltf_animation_path_type::cgltf_animation_path_type_scale:
+                            break;
+                        default:
+                            motor::log::global_t::warning(
+                                "[gltf_module] : animation path not supported." );
+                            break;
+                        }
+#endif
+
+                        // the target node
+                        auto * node = nn_vec[ cgltf_node_index( data, channel.target_node ) ];
+
+                        // the transformation we need to animate
+                        auto * trafo_component =
+                            node->borrow_component< motor::scene::trafo3d_component_t >();
+
+                        if( trafo_component == nullptr )
+                        {
+                            node->add_component(
+                                motor::shared( motor::scene::trafo3d_component_t() ) );
+
+                            trafo_component =
+                                node->borrow_component< motor::scene::trafo3d_component_t >();
+                        }
+
+                        // the animation_comp we need to add more tracks
+                        auto * ani_comp =
+                            node->borrow_component< motor::scene::animation_component_t >();
+
+                        if( ani_comp == nullptr )
+                        {
+                            node->add_component(
+                                motor::shared( motor::scene::animation_component_t() ) );
+
+                            ani_comp =
+                                node->borrow_component< motor::scene::animation_component_t >();
+                        }
+
+                        // search the trafo composer for the trafo component.
+                        // then attach the next channel to it. This must be PER animation!
+                        motor::wire::trafo3f_composer_mtr_t trafo_composer = nullptr;
+                        {
+                            auto iter = ctoc.find( trafo_component );
+                            if( iter == ctoc.end() )
+                            {
+                                trafo_composer = trafo_component->create_composer_and_borrow();
+                                ctoc[ trafo_component ] = trafo_composer ;
+                            }
+                            else
+                            {
+                                trafo_composer = iter->second;
+                            }
+                        }
+
+                        auto * in_ac = sampler.input;
+                        auto * in_bv = in_ac->buffer_view;
+                        auto * in_bf = in_bv->buffer;
+
+                        auto * os_ac = sampler.output;
+                        auto * os_bv = os_ac->buffer_view;
+                        auto * os_bf = os_bv->buffer;
+
+                        if( in_ac->count != os_ac->count )
+                        {
+                            motor::log::global_t::warning(
+                                "[gltf_module] : animatoin sampler input/output count mismatch" );
+                            continue;
+                        }
+
+                        if( in_ac->component_type != cgltf_component_type_r_32f )
+                        {
+                            motor::log::global_t::warning(
+                                "[gltf_module] : animation comp_type for sampler input can only be "
+                                "cgltf_component_type_r_32f." );
+                            continue;
+                        }
+
+                        size_t const num_elems = in_ac->count;
+
+                        // for input (time keyframes):
+                        // according to documentation
+                        // in_ac->type == cgltf_type_scalar
+                        // in_ac->component_type == cgltf_component_type_r_32f
+
+                        // should always be 4 byte for float
+                        size_t const in_stride = in_ac->stride == 0 ? 4 : in_ac->stride;
+
+                        size_t const in_offset = in_ac->offset + in_bv->offset;
+                        size_t const os_offset = os_ac->offset + os_bv->offset;
+
+                        byte_ptr_t in_dptr =
+                            reinterpret_cast< byte_ptr_t >( in_bf->data ) + in_offset;
+
+                        byte_ptr_t os_dptr =
+                            reinterpret_cast< byte_ptr_t >( os_bf->data ) + os_offset;
+
+                        size_t out_stride = 0;
+
+                        {
+
+                            // cgltf_calc_size( os_ac->type, os_ac->component_type );
+                            size_t const os_stride = os_ac->stride;
+
+                            using converter_t =
+                                cgltf_module_file::converter< motor::math::vec4f_t >;
+
+                            motor::scene::animation_controller_mtr_t ani_ctrl = nullptr;
+
+                            if( channel.target_path ==
+                                cgltf_animation_path_type::cgltf_animation_path_type_rotation )
+                            {
+                                using value_converter_funk_t = cgltf_module_file::converter<
+                                    motor::math::vec4f_t >::value_converter_funk_t;
+
+                                value_converter_funk_t value_conv_funk = [ = ]( byte_ptr_t bptr )
+                                {
+                                    return *( (motor::math::vec4f_t *)bptr );
+                                };
+
+                                using value_t = motor::math::quat4f_t;
+                                using spline_t = motor::math::linear_bezier_spline< value_t >;
+                                using kfs_t = motor::math::keyframe_sequence< spline_t >;
+                                kfs_t kfs;
+
+                                // #1 create keyframes
+
+                                for( size_t e = 0; e < num_elems; ++e )
+                                {
+                                    float_t const time_stamp = time_conv_funk( in_dptr );
+                                    in_dptr += in_stride;
+
+                                    value_t const value = value_conv_funk( os_dptr );
+                                    os_dptr += os_stride;
+
+                                    kfs.insert( { motor::math::time_ms_t( time_stamp * 1000.0f ),
+                                                  motor::math::quat4f_t( value ) } );
+                                }
+
+                                // #2 create animation track
+
+                                auto ani_track = motor::shared(
+                                    motor::scene::animation_track< spline_t >( std::move( kfs ) ) );
+
+                                // #3 do data slot connections
+
+                                start_node->borrow_ms_os()->connect( ani_track->get_is() ) ;
+
+                                ani_track->borrow_os()->connect(
+                                    trafo_composer->ensure_and_get_rotation_is() );
+
+                                motor::wire::inputs_t inputs;
+                                if( trafo_component->inputs( inputs ) )
+                                {
+                                    inputs.borrow( "trafo" )->connect(
+                                        trafo_composer->ensure_and_get_os() );
+                                }
+
+                                // #4 pass out
+
+                                ani_ctrl = motor::move( ani_track );
+                            }
+                            else if( channel.target_path ==
+                                     cgltf_animation_path_type::cgltf_animation_path_type_scale )
+                            {
+                                using value_converter_funk_t = cgltf_module_file::converter<
+                                    motor::math::vec3f_t >::value_converter_funk_t;
+
+                                value_converter_funk_t value_conv_funk = [ = ]( byte_ptr_t bptr )
+                                {
+                                    return *( (motor::math::vec3f_t *)bptr );
+                                };
+
+                                using value_t = motor::math::vec3f_t;
+                                using spline_t = motor::math::linear_bezier_spline< value_t >;
+                                using kfs_t = motor::math::keyframe_sequence< spline_t >;
+                                kfs_t kfs;
+
+                                // #1 create keyframes
+
+                                for( size_t e = 0; e < num_elems; ++e )
+                                {
+                                    float_t const time_stamp = time_conv_funk( in_dptr );
+                                    in_dptr += in_stride;
+
+                                    value_t const value = value_conv_funk( os_dptr );
+                                    os_dptr += os_stride;
+
+                                    kfs.insert(
+                                        { motor::math::time_ms_t( time_stamp * 1000.0f ), value } );
+                                }
+
+                                // #2 create animation track
+
+                                auto ani_track = motor::shared(
+                                    motor::scene::animation_track< spline_t >( std::move( kfs ) ) );
+
+                                // #3 do data slot connections
+
+                                start_node->borrow_ms_os()->connect( ani_track->get_is() ) ;
+
+                                ani_track->borrow_os()->connect(
+                                    trafo_composer->ensure_and_get_scaling_is() );
+
+                                motor::wire::inputs_t inputs;
+                                if( trafo_component->inputs( inputs ) )
+                                {
+                                    inputs.borrow( "trafo" )->connect(
+                                        trafo_composer->ensure_and_get_os() );
+                                }
+
+                                // #4 pass out
+
+                                ani_ctrl = motor::move( ani_track );
+                            }
+                            else if( channel.target_path ==
+                                     cgltf_animation_path_type::
+                                         cgltf_animation_path_type_translation )
+                            {
+                                using value_converter_funk_t = cgltf_module_file::converter<
+                                    motor::math::vec3f_t >::value_converter_funk_t;
+
+                                value_converter_funk_t value_conv_funk = [ = ]( byte_ptr_t bptr )
+                                {
+                                    return *( (motor::math::vec3f_t *)bptr );
+                                };
+
+                                using value_t = motor::math::vec3f_t;
+                                using spline_t = motor::math::linear_bezier_spline< value_t >;
+                                using kfs_t = motor::math::keyframe_sequence< spline_t >;
+                                kfs_t kfs;
+
+                                // #1 create keyframes
+
+                                for( size_t e = 0; e < num_elems; ++e )
+                                {
+                                    float_t const time_stamp = time_conv_funk( in_dptr );
+                                    in_dptr += in_stride;
+
+                                    value_t const value = value_conv_funk( os_dptr );
+                                    os_dptr += os_stride;
+
+                                    kfs.insert(
+                                        { motor::math::time_ms_t( time_stamp * 1000.0f ), value } );
+                                }
+
+                                // #2 create animation track
+
+                                auto ani_track = motor::shared(
+                                    motor::scene::animation_track< spline_t >( std::move( kfs ) ) );
+
+                                // #3 do data slot connections
+
+                                start_node->borrow_ms_os()->connect( ani_track->get_is() ) ;
+
+                                ani_track->borrow_os()->connect(
+                                    trafo_composer->ensure_and_get_position_is() );
+
+                                motor::wire::inputs_t inputs;
+                                if( trafo_component->inputs( inputs ) )
+                                {
+                                    inputs.borrow( "trafo" )->connect(
+                                        trafo_composer->ensure_and_get_os() );
+                                }
+
+                                // #4 pass out
+
+                                ani_ctrl = motor::move( ani_track );
+                            }
+
+                            // #XX finally do execution slot connections
+
+                            start_node->then( ani_ctrl->get_node() );
+                            ani_ctrl->then( motor::share( trafo_composer ) );
+                            trafo_composer->then( motor::share( merger_node ) );
+
+                            ani_comp->attach_controller( motor::move( ani_ctrl ) );
+                        }
+#if 0
+                        switch( in_ac->component_type )
+                        {
+                        case cgltf_component_type_r_8:
+                            break; /* BYTE */
+                        case cgltf_component_type_r_8u:
+                            break; /* UNSIGNED_BYTE */
+                        case cgltf_component_type_r_16:
+                            break; /* SHORT */
+                        case cgltf_component_type_r_16u:
+                            break; /* UNSIGNED_SHORT */
+                        case cgltf_component_type_r_32u:
+                            break; /* UNSIGNED_INT */
+                        case cgltf_component_type_r_32f:
+                            break;
+                        default:
+                            break;
+                        }
+#endif
+                        out_stride = os_bv->stride != 0 ? os_bv->stride : out_stride;
+
+#if 0
+                        size_t in_offset = in_ac->offset + in_bv->offset;
+
+                        byte_ptr_t in_dptr =
+                            reinterpret_cast< byte_ptr_t >( in_bf->data ) + in_offset;
+
+                        for( size_t e = 0; e < num_elems; ++e )
+                        {
+                            float_t const time_stamp = time_conv_funk( in_dptr );
+                            in_dptr += in_stride;
+                            time_stamps[ e ] = time_stamp;
+                        }
+
+                        for( size_t b = 0; b < in_bv->size; ++b )
+                        {
+                        }
+#endif
+                    }
+                } // animations
+
+                ret.start_node = motor::move( start_node ) ;
+                ret.merger_node = motor::move( merger_node ) ;
+            }
+
             // #x : connect group and transformation nodes in order to
             // form a scene graph tree.
             {
@@ -973,43 +1377,6 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                     motor::scene::name_component_t nc( "gltf root" );
                     root.add_component( motor::shared( std::move( nc ) ) );
                     ret.root = motor::shared( std::move( root ) );
-                }
-            }
-
-            // #3 : handle animaions
-            {
-                for( size_t i = 0; i < data->animations_count; ++i )
-                {
-                    auto const & ani = data->animations[ i ];
-
-                    // handle channels. a channel contains the target and
-                    // the sampler
-                    for( size_t c = 0; c < ani.channels_count; ++c )
-                    {
-                        auto const & channel = ani.channels[ c ];
-
-                        cgltf_animation_path_type const path = channel.target_path;
-                        switch( path )
-                        {
-                        case cgltf_animation_path_type::cgltf_animation_path_type_rotation:
-                            break;
-                        case cgltf_animation_path_type::cgltf_animation_path_type_translation:
-                            break;
-                        case cgltf_animation_path_type::cgltf_animation_path_type_scale:
-                            break;
-                        default:
-                            motor::log::global_t::warning(
-                                "[gltf_module] : animation path not supported." );
-                            break;
-                        }
-                    }
-
-                    // handle samplers. a sampler contains the keyframe (input) and
-                    // value (output) reference along with the interpolation.
-                    for( size_t s = 0; s < ani.samplers_count; ++s )
-                    {
-                        auto const & sampler = ani.samplers[ s ];
-                    }
                 }
             }
 

@@ -54,20 +54,16 @@ namespace motor
                 _trf( trf )
             {}
 
-            keyframe_sequence( this_cref_t rhv ) noexcept
-            {
-                _keyframes = rhv._keyframes ;
-                _value_spline = rhv._value_spline ;
-                _time_funks = rhv._time_funks ;
-                _trf = rhv._trf ;
+            keyframe_sequence( this_cref_t rhv ) noexcept : _keyframes( ( rhv._keyframes ) ),
+            _value_spline( ( rhv._value_spline) ), _time_funks( ( rhv._time_funks)),
+            _trf( ( rhv._trf) ) 
+            {                
             }
 
-            keyframe_sequence( this_rref_t rhv ) noexcept
+            keyframe_sequence( this_rref_t rhv ) noexcept: _keyframes( std::move( rhv._keyframes ) ),
+            _value_spline( std::move( rhv._value_spline) ), _time_funks( std::move( rhv._time_funks)),
+            _trf( std::move( rhv._trf) ) 
             {
-                _keyframes = std::move( rhv._keyframes ) ;
-                _value_spline = std::move( rhv._value_spline ) ;
-                _time_funks = std::move( rhv._time_funks ) ;
-                _trf = std::move( rhv._trf ) ;
             }
 
             ~keyframe_sequence( void_t ) noexcept

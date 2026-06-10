@@ -6,7 +6,7 @@
 #include <motor/wire/slot/sheet.hpp>
 #include <motor/wire/slot/input_slot.h>
 #include <motor/wire/slot/output_slot.h>
-#include <motor/wire/adapter/trafo3_composer.hpp>
+#include <motor/wire/kit/trafo3_composer.hpp>
 #include <motor/math/utility/3d/transformation.hpp>
 
 namespace motor
@@ -83,7 +83,9 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 public:
 
     trafo_composer_mtr_safe_t create_composer( void_t ) noexcept ;
+    trafo_composer_mtr_t create_composer_and_borrow( void_t ) noexcept ;
     bool_t attach_composer( trafo_composer_mtr_safe_t ) noexcept ;
+    bool_t has_composer( trafo_composer_mtr_t ) const noexcept ;
 
 public:
 
