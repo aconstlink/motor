@@ -86,7 +86,7 @@ class MOTOR_WIRE_API inode
 
     void_t remove_incoming( this_ptr_t other ) noexcept;
 
-    motor::concurrent::task_ptr_t task( void_t ) noexcept;    
+    motor::concurrent::task_ptr_t task( void_t ) noexcept;
 
   public:
 
@@ -236,6 +236,10 @@ class node : public inode, private slot_policy
 
   public:
 
+    using slot_policy_t = slot_policy ;
+
+  public:
+
     node( void_t ) noexcept
         : base_t( motor::shared( motor::concurrent::task_t( this_t::make_task_funk() ),
                                  "wire node task" ) )
@@ -278,8 +282,8 @@ class node : public inode, private slot_policy
     }
 };
 
-motor_typedefs( node< motor::wire::named_slot_sheet_policy >, named_slots_node ) ;
-motor_typedefs( node< motor::wire::unnamed_slot_sheet_policy >, unnamed_slots_node ) ;
+motor_typedefs( node< motor::wire::named_slot_sheet_policy >, named_slots_node );
+motor_typedefs( node< motor::wire::unnamed_slot_sheet_policy >, unnamed_slots_node );
 
 //*********************************************************************
 template < typename slot_policy >

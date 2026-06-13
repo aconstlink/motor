@@ -171,6 +171,18 @@ namespace motor
                 _value = v ;
                 _has_changed = true ;
             }
+
+            static void_t release( core::mtr_safe< this_t > & s ) noexcept
+            {
+                if( s != nullptr ) s->disconnect() ;
+                motor::release( motor::move( s ) ) ;
+            }
+
+            static void_t release( core::mtr_safe< this_t > && s ) noexcept
+            {
+                if( s != nullptr ) s->disconnect() ;
+                motor::release( motor::move( s ) ) ;
+            }
         };
     }
 }
