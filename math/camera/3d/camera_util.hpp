@@ -45,8 +45,7 @@ class camera_util
     // @param at_ at which point the camera is looking at.
     static void create_lookat( vec3_t const & pos_, vec3_t const & up_, vec3_t const & at_, mat4_t & inout ) noexcept
     {
-        motor::math::m3d::orthonormal_basis< real_t >::create_affine( pos_, up_, ( pos_ - at_ ).normalized(), inout );
-        inout.set_column( 2, inout.column3( 2 ).negated() );
+        motor::math::m3d::orthonormal_basis< real_t >::create_affine( pos_, up_, ( pos_ - at_ ).normalized(), inout );        
     }
 
     // creates the camera matrix via the looking position.
@@ -63,8 +62,7 @@ class camera_util
 
     static void create_lookat_from_dir( vec3_t const & pos_, vec3_t const & dir_, mat4_t & inout ) noexcept
     {
-        motor::math::m3d::orthonormal_basis< real_t >::create_affine( pos_, dir_, inout );
-        inout.set_column( 2, inout.column3( 2 ).negated() );
+        motor::math::m3d::orthonormal_basis< real_t >::create_affine( pos_, dir_, inout );        
     }
 
     static void create_lookat_dir( vec3_t const & pos, vec3_t const & dir, mat4_t & inout ) noexcept

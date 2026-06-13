@@ -137,9 +137,9 @@ namespace motor
 
                     m[0] = 1.0f / (aspect * t) ;
                     m[5] = 1.0f / t ;
-                    m[10] = -((f+n)/(n-f));
-                    m[11] = ((2.0f*f*n)/(n-f));
-                    m[14] = 1.0f ;
+                    m[10] = -((f+n)/(f-n));
+                    m[11] = -((2.0f*f*n)/(f-n));
+                    m[14] = -1.0f ;
                 }
                 #endif
             public:

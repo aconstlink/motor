@@ -299,6 +299,13 @@ namespace motor
                     return this_t::rotate_by_matrix_fr( rot.to_matrix() ) ;
                 }
 
+                /// rotate by a quaternion from right
+                /// => this * quaternion (* vector)
+                this_t rotate_by_quaternion_fr( quat4_cref_t rot ) const noexcept 
+                {
+                    return this_t( *this ).rotate_by_quaternion_fr( rot ) ;
+                }
+
                 mat3_t get_rotation_matrix( void_t ) const noexcept
                 {
                     return mat3_t( _trafo ) ;

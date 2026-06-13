@@ -172,7 +172,7 @@ bool_t generic_camera::is_orthographic( void_t ) const noexcept
 void_t generic_camera::update_view_matrix( motor::math::mat4f_cref_t frame ) noexcept
 {
     _cam_matrix = frame;
-    motor::math::m3d::camera_util< float_t >::create_view_matrix( frame, _view_matrix );
+    motor::math::m3d::camera_util< float_t >::create_view_matrix( _cam_matrix, _view_matrix );
     this_t::reconstruct_frustum_planes();
 }
 
