@@ -924,7 +924,7 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                             // add msl compoent
                             {
                                 auto comp = motor::scene::msl_component_t( motor::share( msl ),
-                                                                           num_geo_links - 1 );
+                                                                           num_geo_links - 1, num_geo_links - 1 );
                                 render_node.add_component( motor::shared( std::move( comp ) ) );
                             }
 

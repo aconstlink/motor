@@ -19,12 +19,18 @@ class MOTOR_SCENE_API msl_component : public icomponent
 {
     motor_this_typedefs( msl_component );
 
+  public:
+
+    using geo_idx_t = size_t ;
+    using vs_idx_t = size_t ;
+
   private:
 
     motor::graphics::compilation_listener_mtr_t _comp_lst =
         motor::shared( motor::graphics::compilation_listener(), "render_node comp listener" );
 
-    size_t _vs = 0;
+    vs_idx_t _vs = 0;
+    geo_idx_t _geo_id = 0 ;
     motor::graphics::msl_object_mtr_t _msl = nullptr;
     motor::graphics::variable_set_mtr_t _var_set = nullptr;
 
@@ -82,7 +88,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
     msl_component( this_rref_t ) noexcept;
     msl_component( this_cref_t ) = delete;
     msl_component( motor::graphics::msl_object_mtr_safe_t ) noexcept;
-    msl_component( motor::graphics::msl_object_mtr_safe_t, size_t const ) noexcept;
+    msl_component( motor::graphics::msl_object_mtr_safe_t, vs_idx_t const, geo_idx_t const = geo_idx_t(-1) ) noexcept;
 
     virtual ~msl_component( void_t ) noexcept;
 
@@ -93,9 +99,14 @@ class MOTOR_SCENE_API msl_component : public icomponent
     {
         return _msl;
     }
-    size_t get_variable_set_idx( void_t ) const noexcept
+    vs_idx_t get_variable_set_idx( void_t ) const noexcept
     {
         return _vs;
+    }
+
+    geo_idx_t get_geo_idx( void_t ) const noexcept
+    {
+        return _geo_id ;
     }
 
   public: // render interface
