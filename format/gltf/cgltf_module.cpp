@@ -197,8 +197,7 @@ struct keyframe_creator
             value_t const value = cgltf_module_file::converter< value_t >::value( out_ptr );
             out_ptr += out_stride;
 
-            ret.insert( { motor::math::time_ms_t( time_stamp * 1000.0f ),
-                          value_t( value ) } );
+            ret.insert( { motor::math::time_ms_t( time_stamp * 1000.0f ), value_t( value ) } );
         }
 
         return ret;
@@ -960,13 +959,14 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                             float_t w = 1000.0f;
                             float_t h = 1000.0f;
-                            float_t n = 1.0f;
-                            float_t f = 10000.0f;
+                            float_t f = 1000.0f;
+
+                            float_t const n = gltf_cam.data.perspective.znear;
                             float_t const fov = gltf_cam.data.perspective.yfov;
 
                             if( gltf_cam.data.perspective.has_aspect_ratio )
                             {
-                                w = w * gltf_cam.data.perspective.aspect_ratio;
+                                w = h * gltf_cam.data.perspective.aspect_ratio;
                             }
 
                             if( gltf_cam.data.perspective.has_zfar )
