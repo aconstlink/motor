@@ -53,9 +53,12 @@ class time_node : public motor::wire::funk_node< motor::wire::unnamed_slot_sheet
 
     virtual ~time_node( void_t ) noexcept
     {
-        motor::release( motor::move( _time_is ) );
-        motor::release( motor::move( _sec_os ) );
-        motor::release( motor::move( _ms_os ) );
+    // manged by the base slot policy
+#if 0
+        motor::wire::release( motor::move( _time_is ) );
+        motor::wire::release( motor::move( _sec_os ) );
+        motor::wire::release( motor::move( _ms_os ) );
+#endif
     }
 
   public:
@@ -111,6 +114,10 @@ class time_node : public motor::wire::funk_node< motor::wire::unnamed_slot_sheet
         _time_is = motor::shared( float_is_t() );
         _sec_os = motor::shared( float_os_t() );
         _ms_os = motor::shared( ms_os_t() );
+
+        base_t::inputs().add( motor::share_unsafe( _time_is ) );
+        base_t::outputs().add( motor::share_unsafe( _sec_os ) );
+        base_t::outputs().add( motor::share_unsafe( _ms_os ) );
     }
 };
 motor_typedef( time_node );

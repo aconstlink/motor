@@ -49,26 +49,45 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
     virtual ~trafo3_composer( void_t ) noexcept
     {
-        motor::release( motor::move( _os ) );
-        motor::release( motor::move( _is_pos ) );
-        motor::release( motor::move( _is_scl ) );
-        motor::release( motor::move( _is_rot ) );
+// managed by the base
+#if 0
+        motor::wire::release( motor::move( _os ) );
+        motor::wire::release( motor::move( _is_pos ) );
+        motor::wire::release( motor::move( _is_scl ) );
+        motor::wire::release( motor::move( _is_rot ) );
+#endif
     }
 
   public: // position
 
     is_vec3_ptr_t ensure_and_borrow_position_is( void_t ) noexcept
     {
-        if( _is_pos == nullptr ) _is_pos = motor::shared( is_vec3_t() );
-        if( _os == nullptr ) _os = motor::shared( os_t() );
+        if( _is_pos == nullptr )
+        {
+            _is_pos = motor::shared( is_vec3_t() );
+            base_t::inputs().add( motor::share_unsafe( _is_pos ) );
+        }
+        if( _os == nullptr )
+        {
+            _os = motor::shared( os_t() );
+            base_t::outputs().add( motor::share_unsafe( _os ) );
+        }
 
         return _is_pos;
     }
 
     is_vec3_mtr_safe_t ensure_and_get_position_is( void_t ) noexcept
     {
-        if( _is_pos == nullptr ) _is_pos = motor::shared( is_vec3_t() );
-        if( _os == nullptr ) _os = motor::shared( os_t() );
+        if( _is_pos == nullptr )
+        {
+            _is_pos = motor::shared( is_vec3_t() );
+            base_t::inputs().add( motor::share_unsafe( _is_pos ) );
+        }
+        if( _os == nullptr )
+        {
+            _os = motor::shared( os_t() );
+            base_t::outputs().add( motor::share_unsafe( _os ) );
+        }
 
         return motor::share( _is_pos );
     }
@@ -77,16 +96,32 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
     is_vec3_ptr_t ensure_and_borrow_scaling_is( void_t ) noexcept
     {
-        if( _is_scl == nullptr ) _is_scl = motor::shared( is_vec3_t() );
-        if( _os == nullptr ) _os = motor::shared( os_t() );
+        if( _is_scl == nullptr )
+        {
+            _is_scl = motor::shared( is_vec3_t() );
+            base_t::inputs().add( motor::share_unsafe( _is_scl ) );
+        }
+        if( _os == nullptr )
+        {
+            _os = motor::shared( os_t() );
+            base_t::outputs().add( motor::share_unsafe( _os ) );
+        }
 
         return _is_scl;
     }
 
     is_vec3_mtr_safe_t ensure_and_get_scaling_is( void_t ) noexcept
     {
-        if( _is_scl == nullptr ) _is_scl = motor::shared( is_vec3_t() );
-        if( _os == nullptr ) _os = motor::shared( os_t() );
+        if( _is_scl == nullptr )
+        {
+            _is_scl = motor::shared( is_vec3_t() );
+            base_t::inputs().add( motor::share_unsafe( _is_scl ) );
+        }
+        if( _os == nullptr )
+        {
+            _os = motor::shared( os_t() );
+            base_t::outputs().add( motor::share_unsafe( _os ) );
+        }
 
         return motor::share( _is_scl );
     }
@@ -95,16 +130,32 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
     is_quat4_mtr_t ensure_and_borrow_rotation_is( void_t ) noexcept
     {
-        if( _is_rot == nullptr ) _is_rot = motor::shared( is_quat4_t() );
-        if( _os == nullptr ) _os = motor::shared( os_t() );
+        if( _is_rot == nullptr )
+        {
+            _is_rot = motor::shared( is_quat4_t() );
+            base_t::inputs().add( motor::share_unsafe( _is_rot ) );
+        }
+        if( _os == nullptr )
+        {
+            _os = motor::shared( os_t() );
+            base_t::outputs().add( motor::share_unsafe( _os ) );
+        }
 
         return _is_rot;
     }
 
     is_quat4_mtr_safe_t ensure_and_get_rotation_is( void_t ) noexcept
     {
-        if( _is_rot == nullptr ) _is_rot = motor::shared( is_quat4_t() );
-        if( _os == nullptr ) _os = motor::shared( os_t() );
+        if( _is_rot == nullptr )
+        {
+            _is_rot = motor::shared( is_quat4_t() );
+            base_t::inputs().add( motor::share_unsafe( _is_rot ) );
+        }
+        if( _os == nullptr )
+        {
+            _os = motor::shared( os_t() );
+            base_t::outputs().add( motor::share_unsafe( _os ) );
+        }
 
         return motor::share( _is_rot );
     }
@@ -113,7 +164,11 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
     this_t::os_mtr_safe_t ensure_and_get_os( void_t ) noexcept
     {
-        if( _os == nullptr ) _os = motor::shared( os_t() );
+        if( _os == nullptr )
+        {
+            _os = motor::shared( os_t() );
+            base_t::outputs().add( motor::share_unsafe( _os ) );
+        }
         return motor::share( _os );
     }
 
@@ -140,7 +195,7 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
             if( _is_pos != nullptr )
             {
                 t.set_translation( _is_pos->get_value() );
-            }            
+            }
 
             _os->set_and_exchange( t );
         };
