@@ -69,6 +69,11 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
         _trafo = t;
     }
 
+    in_slot_mtr_t borrow_trafo_is( void_t ) noexcept
+    {
+        return _trafo_is ;
+    }
+
 #if 0
     in_slot_mtr_safe_t get_input_slot( void_t ) noexcept
     {

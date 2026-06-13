@@ -58,6 +58,13 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
     }
 
     template < typename T >
+    bool_t has_component_and_borrow( T *& ptr ) const noexcept
+    {
+        ptr = this_t::borrow_component< T >();
+        return ptr != nullptr;
+    }
+
+    template < typename T >
     T * borrow_component( void_t ) const noexcept
     {
         for( auto * comp : _components )
@@ -86,8 +93,8 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
     template < typename T >
     bool_t add_component( motor::core::mtr_safe< T > comp ) noexcept
     {
-        auto iter =
-            std::find_if( _components.begin(), _components.end(), [ & ]( motor::scene::icomponent_ptr_t comp_in )
+        auto iter = std::find_if( _components.begin(), _components.end(),
+                                  [ & ]( motor::scene::icomponent_ptr_t comp_in )
         { return comp_in == comp || ( dynamic_cast< T * >( comp_in ) != nullptr ); } );
 
         if( iter != _components.end() )
@@ -105,8 +112,8 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
     template < typename T >
     bool_t remove_component( void_t ) noexcept
     {
-        auto iter =
-            std::find_if( _components.begin(), _components.end(), [ & ]( motor::scene::icomponent_ptr_t comp_in )
+        auto iter = std::find_if( _components.begin(), _components.end(),
+                                  [ & ]( motor::scene::icomponent_ptr_t comp_in )
         { return ( dynamic_cast< T * >( comp_in ) != nullptr ); } );
 
         if( iter == _components.end() )
@@ -117,7 +124,7 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
         {
             auto * comp = *iter;
             comp->detach();
-            motor::release( comp ) ;
+            motor::release( comp );
         }
 
         _components.erase( iter );

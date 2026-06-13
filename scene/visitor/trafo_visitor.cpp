@@ -6,6 +6,9 @@
 #include "../component/camera_component.h"
 #include "../component/msl_component.h"
 
+#include <motor/math/quaternion/quaternion4.hpp>
+#include <motor/math/utility/angle.hpp>
+
 using namespace motor::scene;
 
 //******************************************************************************
@@ -30,7 +33,8 @@ motor::scene::result trafo_visitor::visit( motor::scene::group_ptr_t nptr ) noex
 }
 
 //******************************************************************************
-motor::scene::result trafo_visitor::post_visit( motor::scene::group_ptr_t nptr, motor::scene::result const ) noexcept
+motor::scene::result trafo_visitor::post_visit( motor::scene::group_ptr_t nptr,
+                                                motor::scene::result const ) noexcept
 {
     this_t::handle_post_visit( nptr );
     return motor::scene::result::ok;
@@ -61,7 +65,7 @@ void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
         {
             if( auto * ptr = comp->borrow_camera(); ptr != nullptr )
             {
-                ptr->transform_by( _trafos.top() );
+                ptr->set_transformation( _trafos.top() );
             }
         }
     }

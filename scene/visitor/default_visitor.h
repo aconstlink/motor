@@ -7,6 +7,10 @@ namespace motor
 {
 namespace scene
 {
+// the default visitor directs all node classes to the
+// base class callback function. So only the 
+// visit and post_visitor for motor::scene::node need to be
+// implemented.
 class MOTOR_SCENE_API default_visitor : public motor::scene::ivisitor
 {
     motor_this_typedefs( default_visitor );
