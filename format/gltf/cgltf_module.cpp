@@ -126,13 +126,7 @@ static size_t compute_msl_index( cgltf_data const * data, cgltf_material const *
     return cgltf_material_index( data, object ) + 1;
 }
 
-template < typename T >
-struct converter
-{
-    using time_converter_funk_t = std::function< float_t( byte_ptr_t ) >;
-    using value_converter_funk_t = std::function< T( byte_ptr_t ) >;
-};
-
+#if maybe_obsolete
 template < typename T >
 struct animation_track_creator
 {
@@ -150,6 +144,64 @@ struct animation_track_creator< motor::math::linear_bezier_spline< motor::math::
         animation_track_t ani_track( std::move( kfs ) );
 
         return motor::shared( std::move( ani_track ) );
+    }
+};
+#endif
+
+template < typename T >
+struct converter
+{
+    static float_t time( byte_ptr_t dptr ) noexcept
+    {
+        return *float_ptr_t( dptr );
+    }
+
+    static T value( byte_ptr_t dptr ) noexcept
+    {
+        return *( (T *)dptr );
+    }
+};
+
+template <>
+struct converter< motor::math::quat4f_t >
+{
+    static float_t time( byte_ptr_t dptr ) noexcept
+    {
+        return *float_ptr_t( dptr );
+    }
+
+    static motor::math::quat4f_t value( byte_ptr_t dptr ) noexcept
+    {
+        auto const v = *( (motor::math::vec4f_t *)dptr );
+        return motor::math::quat4f_t( v );
+    }
+};
+
+// at least save some lines of code
+template < typename T >
+struct keyframe_creator
+{
+    using kfs_t = T;
+    using value_t = typename kfs_t::value_t;
+
+    static kfs_t fill_kfs( size_t const num_elems, byte_ptr_t in_ptr, byte_ptr_t out_ptr,
+                           size_t const in_stride, size_t const out_stride )
+    {
+        kfs_t ret;
+
+        for( size_t e = 0; e < num_elems; ++e )
+        {
+            float_t const time_stamp = cgltf_module_file::converter< value_t >::time( in_ptr );
+            in_ptr += in_stride;
+
+            value_t const value = cgltf_module_file::converter< value_t >::value( out_ptr );
+            out_ptr += out_stride;
+
+            ret.insert( { motor::math::time_ms_t( time_stamp * 1000.0f ),
+                          value_t( value ) } );
+        }
+
+        return ret;
     }
 };
 
@@ -956,13 +1008,6 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                 {
                     auto const & ani = data->animations[ ani_idx ];
 
-                    using time_converter_funk_t = std::function< float_t( byte_ptr_t ) >;
-
-                    time_converter_funk_t time_conv_funk = [ = ]( byte_ptr_t data )
-                    {
-                        return *float_ptr_t( data );
-                    };
-
                     using component_to_composer_t =
                         motor::hash_map< motor::scene::trafo3d_component_mtr_t,
                                          motor::wire::trafo3f_composer_mtr_t >;
@@ -987,23 +1032,6 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                         // handle samplers. a sampler contains the keyframe (input) and
                         // value (output) reference along with the interpolation.
                         auto const & sampler = *channel.sampler;
-
-#if 0
-                        cgltf_animation_path_type const path = channel.target_path;
-                        switch( path )
-                        {
-                        case cgltf_animation_path_type::cgltf_animation_path_type_rotation:
-                            break;
-                        case cgltf_animation_path_type::cgltf_animation_path_type_translation:
-                            break;
-                        case cgltf_animation_path_type::cgltf_animation_path_type_scale:
-                            break;
-                        default:
-                            motor::log::global_t::warning(
-                                "[gltf_module] : animation path not supported." );
-                            break;
-                        }
-#endif
 
                         // the target node
                         auto * node = nn_vec[ cgltf_node_index( data, channel.target_node ) ];
@@ -1042,7 +1070,7 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                             if( iter == ctoc.end() )
                             {
                                 trafo_composer = trafo_component->create_composer_and_borrow();
-                                ctoc[ trafo_component ] = trafo_composer ;
+                                ctoc[ trafo_component ] = trafo_composer;
                             }
                             else
                             {
@@ -1095,26 +1123,14 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                         size_t out_stride = 0;
 
                         {
-
                             // cgltf_calc_size( os_ac->type, os_ac->component_type );
                             size_t const os_stride = os_ac->stride;
-
-                            using converter_t =
-                                cgltf_module_file::converter< motor::math::vec4f_t >;
 
                             motor::scene::animation_controller_mtr_t ani_ctrl = nullptr;
 
                             if( channel.target_path ==
                                 cgltf_animation_path_type::cgltf_animation_path_type_rotation )
                             {
-                                using value_converter_funk_t = cgltf_module_file::converter<
-                                    motor::math::vec4f_t >::value_converter_funk_t;
-
-                                value_converter_funk_t value_conv_funk = [ = ]( byte_ptr_t bptr )
-                                {
-                                    return *( (motor::math::vec4f_t *)bptr );
-                                };
-
                                 using value_t = motor::math::quat4f_t;
                                 using spline_t = motor::math::linear_bezier_spline< value_t >;
                                 using kfs_t = motor::math::keyframe_sequence< spline_t >;
@@ -1122,17 +1138,8 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                                 // #1 create keyframes
 
-                                for( size_t e = 0; e < num_elems; ++e )
-                                {
-                                    float_t const time_stamp = time_conv_funk( in_dptr );
-                                    in_dptr += in_stride;
-
-                                    value_t const value = value_conv_funk( os_dptr );
-                                    os_dptr += os_stride;
-
-                                    kfs.insert( { motor::math::time_ms_t( time_stamp * 1000.0f ),
-                                                  motor::math::quat4f_t( value ) } );
-                                }
+                                kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
+                                    num_elems, in_dptr, os_dptr, in_stride, os_stride );
 
                                 // #2 create animation track
 
@@ -1141,17 +1148,13 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                                 // #3 do data slot connections
 
-                                start_node->borrow_ms_os()->connect( ani_track->get_is() ) ;
+                                start_node->borrow_ms_os()->connect( ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_rotation_is() );
 
-                                motor::wire::inputs_t inputs;
-                                if( trafo_component->inputs( inputs ) )
-                                {
-                                    inputs.borrow( "trafo" )->connect(
-                                        trafo_composer->ensure_and_get_os() );
-                                }
+                                trafo_component->borrow_trafo_is()->connect(
+                                    trafo_composer->ensure_and_get_os() );
 
                                 // #4 pass out
 
@@ -1160,14 +1163,6 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                             else if( channel.target_path ==
                                      cgltf_animation_path_type::cgltf_animation_path_type_scale )
                             {
-                                using value_converter_funk_t = cgltf_module_file::converter<
-                                    motor::math::vec3f_t >::value_converter_funk_t;
-
-                                value_converter_funk_t value_conv_funk = [ = ]( byte_ptr_t bptr )
-                                {
-                                    return *( (motor::math::vec3f_t *)bptr );
-                                };
-
                                 using value_t = motor::math::vec3f_t;
                                 using spline_t = motor::math::linear_bezier_spline< value_t >;
                                 using kfs_t = motor::math::keyframe_sequence< spline_t >;
@@ -1175,17 +1170,8 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                                 // #1 create keyframes
 
-                                for( size_t e = 0; e < num_elems; ++e )
-                                {
-                                    float_t const time_stamp = time_conv_funk( in_dptr );
-                                    in_dptr += in_stride;
-
-                                    value_t const value = value_conv_funk( os_dptr );
-                                    os_dptr += os_stride;
-
-                                    kfs.insert(
-                                        { motor::math::time_ms_t( time_stamp * 1000.0f ), value } );
-                                }
+                                kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
+                                    num_elems, in_dptr, os_dptr, in_stride, os_stride );
 
                                 // #2 create animation track
 
@@ -1194,17 +1180,13 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                                 // #3 do data slot connections
 
-                                start_node->borrow_ms_os()->connect( ani_track->get_is() ) ;
+                                start_node->borrow_ms_os()->connect( ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_scaling_is() );
 
-                                motor::wire::inputs_t inputs;
-                                if( trafo_component->inputs( inputs ) )
-                                {
-                                    inputs.borrow( "trafo" )->connect(
-                                        trafo_composer->ensure_and_get_os() );
-                                }
+                                trafo_component->borrow_trafo_is()->connect(
+                                    trafo_composer->ensure_and_get_os() );
 
                                 // #4 pass out
 
@@ -1214,14 +1196,6 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                                      cgltf_animation_path_type::
                                          cgltf_animation_path_type_translation )
                             {
-                                using value_converter_funk_t = cgltf_module_file::converter<
-                                    motor::math::vec3f_t >::value_converter_funk_t;
-
-                                value_converter_funk_t value_conv_funk = [ = ]( byte_ptr_t bptr )
-                                {
-                                    return *( (motor::math::vec3f_t *)bptr );
-                                };
-
                                 using value_t = motor::math::vec3f_t;
                                 using spline_t = motor::math::linear_bezier_spline< value_t >;
                                 using kfs_t = motor::math::keyframe_sequence< spline_t >;
@@ -1229,17 +1203,8 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                                 // #1 create keyframes
 
-                                for( size_t e = 0; e < num_elems; ++e )
-                                {
-                                    float_t const time_stamp = time_conv_funk( in_dptr );
-                                    in_dptr += in_stride;
-
-                                    value_t const value = value_conv_funk( os_dptr );
-                                    os_dptr += os_stride;
-
-                                    kfs.insert(
-                                        { motor::math::time_ms_t( time_stamp * 1000.0f ), value } );
-                                }
+                                kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
+                                    num_elems, in_dptr, os_dptr, in_stride, os_stride );
 
                                 // #2 create animation track
 
@@ -1248,17 +1213,13 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                                 // #3 do data slot connections
 
-                                start_node->borrow_ms_os()->connect( ani_track->get_is() ) ;
+                                start_node->borrow_ms_os()->connect( ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_position_is() );
 
-                                motor::wire::inputs_t inputs;
-                                if( trafo_component->inputs( inputs ) )
-                                {
-                                    inputs.borrow( "trafo" )->connect(
-                                        trafo_composer->ensure_and_get_os() );
-                                }
+                                trafo_component->borrow_trafo_is()->connect(
+                                    trafo_composer->ensure_and_get_os() );
 
                                 // #4 pass out
 
@@ -1314,8 +1275,8 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                     }
                 } // animations
 
-                ret.start_node = motor::move( start_node ) ;
-                ret.merger_node = motor::move( merger_node ) ;
+                ret.start_node = motor::move( start_node );
+                ret.merger_node = motor::move( merger_node );
             }
 
             // #x : connect group and transformation nodes in order to
