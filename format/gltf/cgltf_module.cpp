@@ -204,6 +204,24 @@ struct keyframe_creator
     }
 };
 
+// @todo : this is for later, maybe a prototype for a
+// msl shader generator.
+struct material_creator
+{
+    motor_this_typedefs( material_creator );
+
+    struct params
+    {
+    };
+
+    static motor::string_t create_msl_shader( params const & p ) noexcept
+    {
+        motor::string_t ret;
+
+        return ret;
+    }
+};
+
 } // namespace cgltf_module_file
 
 // *****************************************************************************************
@@ -704,6 +722,13 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
                     }
                 }
 
+                // use this for shader generation
+                {
+                    cgltf_module_file::material_creator::params p;
+                    // fill p
+                    auto shader = cgltf_module_file::material_creator::create_msl_shader( p );
+                }
+
                 for( size_t midx = 0; midx < data->materials_count; ++midx )
                 {
                     auto const & cgltf_mat = data->materials[ midx ];
@@ -923,8 +948,8 @@ cgltf_module::import_from( motor::io::location_cref_t loc, motor::io::database_m
 
                             // add msl compoent
                             {
-                                auto comp = motor::scene::msl_component_t( motor::share( msl ),
-                                                                           num_geo_links - 1, num_geo_links - 1 );
+                                auto comp = motor::scene::msl_component_t(
+                                    motor::share( msl ), num_geo_links - 1, num_geo_links - 1 );
                                 render_node.add_component( motor::shared( std::move( comp ) ) );
                             }
 
