@@ -22,7 +22,7 @@ namespace motor
 
         public:
 
-            static size_t to_milli( size_t const min, size_t const sec, size_t const milli ) noexcept
+            static motor::math::time_ms_t to_milli( size_t const min, size_t const sec, size_t const milli ) noexcept
             {
                 size_t const min_to_sec = min * 60 ;
                 size_t const sec_to_milli = (min_to_sec + sec) * 1000 ;
@@ -30,7 +30,7 @@ namespace motor
                 return sec_to_milli + milli ;
             }
 
-            static void_t milli_to( size_t const milli, time_info & ret ) noexcept
+            static void_t milli_to( motor::math::time_ms_t const milli, time_info & ret ) noexcept
             {
                 size_t const sec = milli / 1000 ;
                 size_t const min = sec / 60 ;
