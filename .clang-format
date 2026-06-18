@@ -36,6 +36,7 @@ BraceWrapping:
   SplitEmptyNamespace: true
   
 
+AlignAfterOpenBracket: DontAlign
 
 SpaceBeforeParens: Never
 SpacesInParentheses: true

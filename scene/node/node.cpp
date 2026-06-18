@@ -11,6 +11,8 @@ node::traverser::traverser( node_ptr_t begin ) noexcept : _traverse( begin ) {}
 //*******************************************************************
 void_t node::traverser::apply( motor::scene::ivisitor_ptr_t v ) noexcept
 {
+    if( _traverse == nullptr ) return ;
+
     v->on_start();
     _traverse->apply( v );
     v->on_finish();
