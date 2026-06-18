@@ -107,6 +107,7 @@ namespace motor
 
             this_t operator + ( this_cref_t loc ) const
             {
+                if( _loc.empty() ) return loc.as_string() ;
                 return _loc + "." + loc.as_string() ;
             }
             
