@@ -113,7 +113,7 @@ void_t imgui_node_visitor::on_finish( void_t ) noexcept
 }
 
 //************************************************************************
-motor::scene::node_mtr_safe_t imgui_node_visitor::get_selected( void_t ) noexcept
+motor::scene::node_mtr_safe_t imgui_node_visitor::move_selected( void_t ) noexcept
 {
     return motor::move( _selected_node ) ;
 }

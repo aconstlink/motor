@@ -36,7 +36,7 @@ class MOTOR_TOOL_API imgui_node_visitor : public motor::scene::ivisitor
 
   public:
 
-    motor::scene::node_mtr_safe_t get_selected( void_t ) noexcept;
+    motor::scene::node_mtr_safe_t move_selected( void_t ) noexcept;
 
   private:
 
