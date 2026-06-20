@@ -258,7 +258,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
         motor::string_t base_name = "";
         {
             auto * prop = psr->borrow_property< motor::string_t >( "base_name" );
-            if( prop != nullptr ) base_name = prop->get();
+            if( prop != nullptr )
+            {
+                base_name = prop->get();
+                std::replace( base_name.begin(), base_name.end(), ' ', '_' );
+            }
         }
 
         motor::string_t data_buffer;
@@ -362,20 +366,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 for( size_t midx = 0; midx < data->meshes_count; ++midx )
                 {
                     auto const & cgltf_mesh = data->meshes[ midx ];
-
-                    motor::string_t name;
-                    if( cgltf_mesh.name != nullptr )
-                        name = motor::string_t( cgltf_mesh.name ) + "_";
-                    else
-                        name = "mesh." + motor::to_string( midx ) + "_";
-
                     geos[ midx ].resize( data->meshes[ midx ].primitives_count );
 
                     for( size_t pidx = 0; pidx < cgltf_mesh.primitives_count; ++pidx )
                     {
                         auto const & p = cgltf_mesh.primitives[ pidx ];
-
-                        auto const lname = name + motor::to_string( pidx );
 
                         motor::graphics::vertex_buffer_t vb;
                         motor::graphics::index_buffer_t ib;
@@ -634,11 +629,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             } );
                         }
 
-                        motor::string_t geo_name;
+                        motor::string_t geo_name = base_name + ".";
                         if( cgltf_mesh.name != nullptr )
-                            geo_name = motor::string_t( cgltf_mesh.name );
+                            geo_name += motor::string_t( cgltf_mesh.name );
                         else
-                            geo_name = "geo";
+                            geo_name += "geo";
 
                         geo_name += "." + motor::to_string( pidx );
 
@@ -663,7 +658,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 // start with a default material
                 // we store it at position
                 {
-                    motor::string_t const mat_name = "default material";
+                    motor::string_t const mat_name = base_name + ".default.material";
                     motor::graphics::msl_object_t mslo( mat_name );
 
                     {
@@ -737,8 +732,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 {
                     auto const & cgltf_mat = data->materials[ midx ];
 
-                    motor::string_t const mat_name =
-                        motor::string_t( cgltf_mat.name ) + "." + motor::to_string( midx );
+                    motor::string_t const mat_name = base_name + "." +
+                                                     motor::string_t( cgltf_mat.name ) + "." +
+                                                     motor::to_string( midx );
 
                     motor::graphics::msl_object_t mslo( mat_name );
 
