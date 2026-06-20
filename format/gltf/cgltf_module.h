@@ -26,7 +26,7 @@ class MOTOR_FORMAT_API cgltf_module : public imodule
                                                       motor::format::module_registry_mtr_safe_t ) noexcept;
 
     // properties:
-    // normalize_coordinate : normalize coordinates so that they only are in [-1;1]
+    // base_name : provide a base name for all assets loaded. it will be pretended to all the asset names.
     virtual motor::format::future_item_t import_from( motor::io::location_cref_t loc, motor::io::database_mtr_t,
                                                       motor::property::property_sheet_mtr_safe_t,
                                                       motor::format::module_registry_mtr_safe_t ) noexcept;
