@@ -91,7 +91,7 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
                 motor::graphics::gen4::backend_t::render_detail_t detail;
                 detail.start = 0;
                 // detail.num_elems = 3 ;
-                detail.geo = comp->get_geo_idx() ;
+                detail.geo = comp->get_geo_idx() == size_t(-1)?0: comp->get_geo_idx();
                 detail.varset = comp->get_variable_set_idx();
                 _fe->render( msl, detail );
             }

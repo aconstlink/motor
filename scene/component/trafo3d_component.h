@@ -40,8 +40,13 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 
   private: // domain data
 
-    // relative or absolute @todo insert enum for that. Really?
+    // computed local transformation, after the sync with any composer.
     motor::math::m3d::trafof_t _trafo;
+
+    // this is a local coord frame. if kept untransformed,
+    // any transformation is absolute. if transformed, any trans
+    // formation is relative.
+    motor::math::m3d::trafof_t _trafo_local;
 
     // the one the visitor computes.
     motor::math::m3d::trafof_t _computed;
@@ -64,9 +69,40 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
     {
         return _trafo;
     }
+    motor::math::m3d::trafof_cref_t get_local_trafo( void_t ) const noexcept
+    {
+        return _trafo_local;
+    }
+
+    
     void_t set_trafo( motor::math::m3d::trafof_in_t t ) noexcept
     {
         _trafo = t;
+    }
+
+    void_t set_trafo_local( motor::math::m3d::trafof_in_t t ) noexcept
+    {
+        _trafo_local = t;
+    }
+
+    void_t reset_trafo_local_position( void_t ) noexcept
+    {
+        _trafo_local.set_translation( motor::math::vec3f_t() ) ;
+    }
+
+    void_t reset_trafo_local_scale( void_t ) noexcept
+    {
+        auto const t = _trafo_local.get_translation() ;
+        auto const o = _trafo_local.get_orientation() ;
+        _trafo_local = motor::math::m3d::trafof_t( motor::math::vec3f_t(1.0f), o, t ) ;
+    }
+
+    void_t reset_trafo_local_rotation( void_t ) noexcept
+    {
+        auto const s = _trafo_local.get_scale() ;
+        auto const t = _trafo_local.get_translation() ;
+
+        _trafo_local = motor::math::m3d::trafof_t( s, motor::math::vec3f_t(), t ) ;
     }
 
     in_slot_mtr_t borrow_trafo_is( void_t ) noexcept

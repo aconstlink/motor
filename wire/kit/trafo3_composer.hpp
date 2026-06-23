@@ -189,7 +189,7 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
             if( _is_rot != nullptr )
             {
-                t.rotate_by_quaternion_fr( _is_rot->get_value() );
+                t.rotate_by_quaternion_fl( _is_rot->get_value() );
             }
 
             if( _is_pos != nullptr )

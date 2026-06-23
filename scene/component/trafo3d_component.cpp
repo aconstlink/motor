@@ -10,18 +10,20 @@ trafo3d_component::trafo3d_component( void_t ) noexcept
 }
 
 //********************************************************************************
-trafo3d_component::trafo3d_component( motor::math::m3d::trafof_cref_t trafo ) noexcept
-    : _trafo( trafo )
+trafo3d_component::trafo3d_component( motor::math::m3d::trafof_cref_t trafo_local ) noexcept
+    : _trafo_local( trafo_local )
 {
     this_t::init_slots();
-    _trafo_is->set_value( trafo );
+    // no local coord frame change!
+    //_trafo_is->set_value();
 }
 
 //********************************************************************************
 trafo3d_component::trafo3d_component( this_rref_t rhv ) noexcept
     : icomponent( std::move( rhv ) ), _trafo( std::move( rhv._trafo ) ),
-      _computed( std::move( rhv._computed ) ), _trafo_is( motor::move( rhv._trafo_is ) ),
-      _computed_os( motor::move( rhv._computed_os ) ), _composer( std::move( rhv._composer ) )
+      _trafo_local( std::move( rhv._trafo_local ) ), _computed( std::move( rhv._computed ) ),
+      _trafo_is( motor::move( rhv._trafo_is ) ), _computed_os( motor::move( rhv._computed_os ) ),
+      _composer( std::move( rhv._composer ) )
 {
 }
 
@@ -51,12 +53,12 @@ trafo3d_component::trafo_composer_mtr_safe_t trafo3d_component::create_composer(
 }
 
 //********************************************************************************
-trafo3d_component::trafo_composer_mtr_t
-trafo3d_component::create_composer_and_borrow( void_t ) noexcept
+trafo3d_component::trafo_composer_mtr_t trafo3d_component::create_composer_and_borrow(
+    void_t ) noexcept
 {
     auto ret = motor::shared( this_t::trafo_composer_t() );
     _composer.emplace_back( motor::move( ret ) );
-    return _composer.back() ;
+    return _composer.back();
 }
 
 //********************************************************************************
@@ -101,7 +103,10 @@ void_t trafo3d_component::init_slots( void_t ) noexcept
 //**********************************************************************************
 void_t trafo3d_component::sync_inputs( void_t ) noexcept
 {
-    _trafo = _trafo_is->pull_data();
+    if( _trafo_is->has_changed() )
+        _trafo = _trafo_local * _trafo_is->pull_data();
+    else
+        _trafo = _trafo_local;
 }
 
 //**********************************************************************************
