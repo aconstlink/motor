@@ -42,6 +42,12 @@ class MOTOR_TOOL_API timeline
     // used for moving the timeline
     ImVec2 _old_mouse_pos;
 
+  private: // cycle region
+
+      bool_t _capture_cycle_region = false ;
+      size_t _start_cycle_region = 0 ;
+      size_t _end_cycle_region = 0 ;
+
   public:
 
     timeline( motor::string_in_t ) noexcept;

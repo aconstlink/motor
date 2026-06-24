@@ -221,6 +221,49 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
         _hover = size_t( -1 );
     }
 
+    // determine what happens at mouse clicks.
+    {
+        size_t cur_milli = ti.cur_milli;
+        if( !ImGui::IsKeyDown( ImGuiKey::ImGuiKey_LeftCtrl ) )
+        {
+            if( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && mouse_in_cr )
+            {
+                cur_milli = _hover;
+            }
+            ti.cur_milli = cur_milli;
+        }
+
+        // if left ctrl is down, set playback region, so the
+        // time is cycling through that time region
+        if( ImGui::IsKeyDown( ImGuiKey::ImGuiKey_LeftCtrl ) )
+        {
+            if( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && mouse_in_cr )
+            {
+                // if not captuing, start capturing
+                if( !_capture_cycle_region )
+                {
+                    _start_cycle_region = _hover;
+                    _capture_cycle_region = true;
+                }
+                _end_cycle_region = _hover+1;
+            }
+        }
+
+        if( ( !ImGui::IsKeyDown( ImGuiKey::ImGuiKey_LeftCtrl ) ||
+                !ImGui::IsMouseDown( ImGuiMouseButton_Left ) || !mouse_in_cr ) &&
+            _capture_cycle_region )
+        {
+            _end_cycle_region = _hover;
+            _capture_cycle_region = false;
+        }
+
+        if( _start_cycle_region == _end_cycle_region )
+        {
+            _start_cycle_region = 0;
+            _end_cycle_region = 0;
+        }
+    }
+
     ImGui::SetCursorScreenPos( capture_pos );
 
     // current position marker
@@ -228,11 +271,6 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
         ImVec2 const pos = ImGui::GetCursorScreenPos() + ImVec2( 0.0f, top_line_height );
 
         size_t cur_milli = ti.cur_milli;
-
-        if( ImGui::IsMouseDown( ImGuiMouseButton_Left ) && mouse_in_cr )
-        {
-            cur_milli = _hover;
-        }
 
         size_t const milli_pos = cur_milli;
         size_t const marker_pos = this_t::milli_to_pixel( milli_pos );
@@ -249,6 +287,41 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
         }
 
         _play = cur_milli;
+    }
+
+    ImGui::SetCursorScreenPos( capture_pos );
+
+    // draw cycle region
+    if( _start_cycle_region != _end_cycle_region )
+    {
+        ImVec2 const pos = ImGui::GetCursorScreenPos() + ImVec2( 0.0f, top_line_height - 1);
+
+        size_t const start_milli = _start_cycle_region;
+        size_t const end_milli = _end_cycle_region;
+
+        size_t start_pos = this_t::milli_to_pixel( start_milli );
+        size_t end_pos = this_t::milli_to_pixel( end_milli );
+
+        ImVec2 const avail = ImGui::GetContentRegionAvail();
+
+        start_pos = std::max( start_pos, size_t( scroll_x ) );
+        end_pos = std::min( end_pos, size_t( scroll_x + avail.x ) );
+
+        ImVec2 const p0 = pos + ImVec2( start_pos, 0.0f );
+        ImVec2 const p1 = pos + ImVec2( end_pos, 0.0f );
+
+        draw_list->AddLine( p0, p1, IM_COL32( 255, 0, 0, 255 ), 1.0f );
+    }
+
+    // keep time in cycle region
+    if( _start_cycle_region != _end_cycle_region )
+    {
+        size_t cur_milli = ti.cur_milli;
+
+
+        if( cur_milli > _end_cycle_region ) cur_milli = _start_cycle_region ;
+        if( cur_milli < _start_cycle_region ) cur_milli = _start_cycle_region ;
+
         ti.cur_milli = cur_milli;
     }
 
@@ -354,7 +427,6 @@ bool_t timeline::place_marker(
     this_t::marker_position const mpos_, size_t const milli, ImColor const & color )
 {
     if( !_begin ) return false;
-
 
     float_t const height = ImGui::GetContentRegionAvail().y;
     size_t const big_line_height = height * 0.5f;
