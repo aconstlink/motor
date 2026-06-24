@@ -36,10 +36,7 @@ timeline::timeline( motor::string_in_t label ) noexcept
 }
 
 //***************************************************************
-timeline::timeline( this_rref_t rhv ) noexcept
-{
-    _label = std::move( rhv._label );
-}
+timeline::timeline( this_rref_t rhv ) noexcept : _label( std::move( rhv._label ) ) {}
 
 //***************************************************************
 timeline::~timeline( void_t ) noexcept {}
@@ -350,6 +347,40 @@ void_t timeline::end( void_t ) noexcept
     }
 
     _begin = false;
+}
+
+//***************************************************************
+bool_t timeline::place_marker(
+    this_t::marker_position const mpos_, size_t const milli, ImColor const & color )
+{
+    if( !_begin ) return false;
+
+
+    float_t const height = ImGui::GetContentRegionAvail().y;
+    size_t const big_line_height = height * 0.5f;
+
+    auto draw_list = ImGui::GetWindowDrawList();
+    float_t const top_line_height = 10.0f;
+    ImVec2 const pos = ImGui::GetCursorScreenPos() + ImVec2( 0.0f, top_line_height );
+
+    float_t const scroll_x = ImGui::GetScrollX();
+
+    size_t const marker_pos = this_t::milli_to_pixel( milli );
+    ImVec2 const avail = ImGui::GetContentRegionAvail();
+    if( marker_pos > scroll_x && marker_pos < scroll_x + avail.x )
+    {
+        ImVec2 const p0 = pos + ImVec2( marker_pos, 0.0f );
+        ImVec2 const p1 = pos + ImVec2( marker_pos, big_line_height + ImGui::GetTextLineHeight() );
+
+        // tri_down( p0, top_line_height*0.5f, IM_COL32(0, 255, 0, 255), draw_list ) ;
+        draw_list->AddLine( p0, p1, color, 1.0f );
+        if( mpos_ == this_t::marker_position::bottom )
+            tri_up( p1, top_line_height, color, draw_list );
+        else if( mpos_ == this_t::marker_position::top )
+            tri_down( p0, top_line_height, color, draw_list );
+    }
+
+    return true;
 }
 
 //***************************************************************
