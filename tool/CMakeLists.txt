@@ -5,6 +5,7 @@ set( sources
     "protos.h"
     "typedefs.h"
     "structs.h"
+    "util.hpp"
 
     "imgui/imgui.h"
     "imgui/imgui.cpp"
