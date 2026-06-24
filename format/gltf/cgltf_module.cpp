@@ -905,13 +905,16 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     q__[ 3 ], q__[ 0 ], q__[ 1 ], q__[ 2 ] );
 
                                 // trafo.rotate_by_matrix_fl( q.to_matrix() );
-                                trafo.rotate_by_quaternion_fr( q );
+                                trafo.rotate_by_quaternion_fl( q );
                             }
 
                             if( gltf_node.has_translation )
                             {
-                                trafo.set_translation(
+                                motor::math::m3d::trafof_t t;
+                                t.set_translation(
                                     motor::math::vec3f_t::from_array( gltf_node.translation ) );
+
+                                trafo = t * trafo;
                             }
                         }
 
@@ -1186,7 +1189,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 ani_ctrl = motor::move( ani_track );
 
-                                trafo_component->reset_trafo_local_rotation() ;
+                                trafo_component->reset_trafo_local_rotation();
                             }
                             else if( channel.target_path ==
                                      cgltf_animation_path_type::cgltf_animation_path_type_scale )
@@ -1219,8 +1222,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #4 pass out
 
                                 ani_ctrl = motor::move( ani_track );
-                                
-                                trafo_component->reset_trafo_local_scale() ;
+
+                                trafo_component->reset_trafo_local_scale();
                             }
                             else if( channel.target_path ==
                                      cgltf_animation_path_type::
@@ -1255,7 +1258,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 ani_ctrl = motor::move( ani_track );
 
-                                trafo_component->reset_trafo_local_position() ;
+                                trafo_component->reset_trafo_local_rotation();
+                                trafo_component->reset_trafo_local_position();
                             }
 
                             // #XX finally do execution slot connections
