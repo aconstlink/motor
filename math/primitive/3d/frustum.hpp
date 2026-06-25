@@ -60,6 +60,8 @@ namespace motor
                     return _planes[ i % size_t(frustum_plane::num_planes) ] ;
                 }
             };
+
+            motor_typedefs( frustum< float_t >, frustumf ) ;
         }
     }
 }

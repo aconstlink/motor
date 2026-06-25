@@ -76,6 +76,103 @@ void_t primitive_render_3d::draw_circle( motor::math::mat3f_cref_t o, motor::mat
 }
 
 //*****************************************************************
+void_t primitive_render_3d::draw_spline(
+    motor::math::linear_bezier_spline< motor::math::vec3f_t > const & spline,
+    motor::math::vec4f_cref_t color ) noexcept
+{
+    if( spline.num_control_points() <= 1 ) return;
+
+    size_t const num_steps = spline.num_control_points() - 1;
+    this_t::draw_lines( num_steps, [ & ]( size_t const i )
+    {
+        auto const v0 = spline.control_points()[ i + 0 ];
+        auto const v1 = spline.control_points()[ i + 1 ];
+
+        return motor::gfx::line_render_3d::draw_line_data{ v0, v1, color };
+    } );
+}
+
+//*****************************************************************
+void_t primitive_render_3d::draw_spline( size_t const num_samples,
+    motor::math::cubic_hermit_spline< motor::math::vec3f_t > const & spline,
+    motor::math::vec4f_cref_t color ) noexcept
+{
+    if( spline.ncp() <= 1 ) return;
+
+    size_t const num_steps = num_samples;
+    this_t::draw_lines( num_steps, [ & ]( size_t const i )
+    {
+        float_t const t0 = float_t( i + 0 ) / float_t( num_steps - 1 );
+        float_t const t1 = float_t( i + 1 ) / float_t( num_steps - 1 );
+
+        auto const v0 = spline( t0 );
+        auto const v1 = spline( t1 );
+
+        return motor::gfx::line_render_3d::draw_line_data{ v0, v1, color };
+    } );
+}
+
+//*****************************************************************
+void_t primitive_render_3d::draw_frustum(
+    motor::gfx::generic_camera_cref_t cam, motor::math::vec4f_cref_t color )
+{
+    // 0-3 : front plane
+    // 4-7 : back plane
+    motor::math::vec3f_t points[ 8 ];
+
+    // auto const nf = cam->get_near_far() ;
+    auto const nf = motor::math::vec2f_t( 50.0f, 1000.0f );
+
+    auto const cs = cam.near_far_plane_half_dims( nf );
+    {
+        motor::math::vec3f_t const scale( cs.x(), cs.y(), nf.x() );
+        points[ 0 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale;
+        points[ 1 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale;
+        points[ 2 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale;
+        points[ 3 ] = motor::math::vec3f_t( +1.0f, -1.0f, 1.0f ) * scale;
+    }
+
+    {
+        motor::math::vec3f_t const scale( cs.z(), cs.w(), nf.y() );
+        points[ 4 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale;
+        points[ 5 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale;
+        points[ 6 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale;
+        points[ 7 ] = motor::math::vec3f_t( +1.0f, -1.0f, 1.0f ) * scale;
+    }
+
+    for( size_t i = 0; i < 8; ++i )
+    {
+        points[ i ] = ( cam.get_transformation().get_transformation() *
+                        motor::math::vec4f_t( points[ i ], 1.0f ) )
+                          .xyz();
+    }
+
+    // front
+    for( size_t i = 0; i < 4; ++i )
+    {
+        size_t const i0 = i + 0;
+        size_t const i1 = ( i + 1 ) % 4;
+        this_t::draw_line( points[ i0 ], points[ i1 ], color );
+    }
+
+    // back
+    for( size_t i = 0; i < 4; ++i )
+    {
+        size_t const i0 = ( i + 0 ) + 4;
+        size_t const i1 = ( ( i + 1 ) % 4 ) + 4;
+        this_t::draw_line( points[ i0 ], points[ i1 ], color );
+    }
+
+    // sides
+    for( size_t i = 0; i < 4; ++i )
+    {
+        size_t const i0 = ( i + 0 );
+        size_t const i1 = ( i + 4 ) % 8;
+        this_t::draw_line( points[ i0 ], points[ i1 ], color );
+    }
+}
+
+//*****************************************************************
 void_t primitive_render_3d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 {
     _lr.configure( fe );

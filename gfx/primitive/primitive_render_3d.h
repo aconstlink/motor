@@ -6,10 +6,14 @@
 #include "line_render_3d.h"
 #include "tri_render_3d.h"
 
+#include <motor/gfx/camera/generic_camera.h>
+
 #include <motor/graphics/frontend/gen4/frontend.hpp>
+
 #include <motor/math/spline/linear_bezier_spline.hpp>
 #include <motor/math/spline/cubic_bezier_spline.hpp>
 #include <motor/math/spline/cubic_hermit_spline.hpp>
+#include <motor/math/primitive/3d/frustum.hpp>
 
 namespace motor
 {
@@ -58,8 +62,34 @@ class MOTOR_GFX_API primitive_render_3d
 
     void_t set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) noexcept;
 
-    void_t draw_spline(
-        motor::math::linear_bezier_spline< motor::math::vec3f_t > const & ) noexcept;
+  public: // splines
+
+    // draws from control point to control point.
+    void_t draw_spline( motor::math::linear_bezier_spline< motor::math::vec3f_t > const &,
+        motor::math::vec4f_cref_t spline_color ) noexcept;
+
+    // draws the spline as lines.
+    // @param num_samples how many times to sample the spline for line creation.
+    void_t draw_spline( size_t const num_samples,
+        motor::math::cubic_hermit_spline< motor::math::vec3f_t > const &,
+        motor::math::vec4f_cref_t color ) noexcept;
+
+    template < typename spline_t >
+    void_t draw_control_points( spline_t const & spline, float_t const radius,
+        size_t const num_segments, motor::math::vec4f_cref_t control_point_color )
+    {
+        auto const points = spline.control_points();
+        for( size_t i = 0; i < points.size(); ++i )
+        {
+            auto const pos = points[ i ];
+            this_t::draw_circle( motor::math::mat3f_t::make_identity(), pos, radius,
+                control_point_color, control_point_color, num_segments );
+        }
+    }
+
+  public: // frustum
+
+      void_t draw_frustum( motor::gfx::generic_camera_cref_t cam, motor::math::vec4f_cref_t color ) ;
 
   public:
 
