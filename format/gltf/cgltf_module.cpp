@@ -946,7 +946,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                             // add name compoent
                             {
-                                motor::scene::name_component_t nc( geo->name() );
+                                motor::string_t const name = gltf_mesh->name != nullptr
+                                                           ? motor::string_t( gltf_mesh->name )
+                                                           : "";
+
+                                motor::scene::name_component_t nc( name );
                                 render_node.add_component( motor::shared( std::move( nc ) ) );
                             }
 
