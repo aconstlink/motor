@@ -8,20 +8,6 @@ using namespace motor::scene;
 
 default_visitor::~default_visitor( void_t ) noexcept {}
 
-#if 0
-//**********************************************************************************
-motor::scene::result default_visitor::visit( motor::scene::node_ptr_t ) noexcept
-{
-    return motor::scene::result::ok;
-}
-
-//**********************************************************************************
-motor::scene::result default_visitor::post_visit( motor::scene::node_ptr_t nptr,
-                                                  motor::scene::result const res ) noexcept
-{
-    return motor::scene::result::ok;
-}
-#endif
 //**********************************************************************************
 motor::scene::result default_visitor::visit( motor::scene::group_ptr_t nptr ) noexcept
 {

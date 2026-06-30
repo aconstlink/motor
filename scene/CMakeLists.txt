@@ -35,6 +35,7 @@ set( sources
     "visitor/variable_update_visitor.cpp"
     "visitor/default_visitor.h"
     "visitor/default_visitor.cpp"
+    "visitor/search_by_name_visitor.hpp"
 
     "component/icomponent.h"
     "component/icontroller.h"
@@ -53,6 +54,8 @@ set( sources
     "component/variables_component.hpp"
     "component/config_graphics_component.h"
     "component/config_graphics_component.cpp"
+    "component/shader_change_observer_component.h"
+    "component/shader_change_observer_component.cpp"
 
     "component/animation/animation_component.h"
     "component/animation/animation_component.cpp"

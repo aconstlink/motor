@@ -34,10 +34,10 @@ namespace motor
             /// allows to traverse all child nodes. the predicate
             /// function allows to fine grain traversal for certain 
             /// derived class behavior.
-            void_t traverse_children( motor::scene::ivisitor_ptr_t ptr,
+            motor::scene::result traverse_children( motor::scene::ivisitor_ptr_t ptr,
                 traverse_predicate_t func ) noexcept ;
 
-            void_t traverse_children( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
+            motor::scene::result traverse_children( motor::scene::ivisitor_ptr_t ptr ) noexcept ;
 
         protected:
 

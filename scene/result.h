@@ -12,6 +12,7 @@ namespace motor
 
             repeat,
             no_descent,
+            break_traversal,
             not_implemented
         };
 
