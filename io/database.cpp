@@ -200,6 +200,10 @@ struct database::file_record
     ~file_record( void_t ) 
     {
         motor::memory::release_ptr( motor::move( cache ) ) ;
+        for( auto * m : monitors )
+        {
+            motor::release( motor::move( m ) ) ;
+        }
     }
 
     file_record & operator = ( file_record const& rhv ) noexcept

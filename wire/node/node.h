@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "../release.hpp"
+
 #include "slot_sheet_policies.hpp"
 
 #include "../slot/input_slot.h"
@@ -226,6 +228,7 @@ class MOTOR_WIRE_API inode
     }
 };
 motor_typedef( inode );
+
 
 //*********************************************************************
 template < typename slot_policy >

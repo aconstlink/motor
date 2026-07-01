@@ -3,6 +3,7 @@
 set( SOURCES ${SOURCES}
     "api.h"
     "typedefs.h"
+    "release.hpp"
     "global.h"
     "global.cpp"
     "manager.h"
