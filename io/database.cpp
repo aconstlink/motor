@@ -213,7 +213,16 @@ struct database::file_record
         sib = rhv.sib ;
         rel = rhv.rel ;
         stamp = rhv.stamp ;
-        monitors = rhv.monitors ;
+        
+        {
+            size_t i=0;
+            monitors.resize( rhv.monitors.size() ) ;
+            for( auto * m : rhv.monitors )
+            {
+                monitors[i++] = motor::share( m ) ;
+            }
+        }
+
         cache = motor::memory::copy_ptr(rhv.cache) ;
         return *this ;
     }
