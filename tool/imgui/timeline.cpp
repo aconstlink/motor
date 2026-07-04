@@ -255,6 +255,13 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
         {
             _end_cycle_region = _hover;
             _capture_cycle_region = false;
+
+            // sort start/end time
+            {
+                auto tmp = std::min( _end_cycle_region, _start_cycle_region ) ;
+                _end_cycle_region = std::max( _start_cycle_region, _end_cycle_region ) ;
+                _start_cycle_region = tmp ;
+            }
         }
 
         if( _start_cycle_region == _end_cycle_region )

@@ -39,8 +39,13 @@ struct orthographic
     static void __create(
         type_t const width, type_t const height, type_t const n, type_t const f, mat4_out_t m )
     {
-        typedef motor::math::vector4< type_t > vec4_t;
-
+#if 1
+        m[ 0 ] = 2.0f / width;
+        m[ 5 ] = 2.0f / height;
+        m[ 10 ] = type_t( 2.0 ) / ( n - f );
+        m[ 11 ] = ( ( f + n ) / ( n - f ) );
+        m[ 15 ] = 1.0f;
+#else
         // make column vectors
         // but they are the row vectors of
         // the dx projection matrix.
@@ -53,6 +58,8 @@ struct orthographic
         m.set_row( 1, vcY );
         m.set_row( 2, vcZ );
         m.set_row( 3, vcW );
+
+#endif
     }
 
   public:

@@ -1019,16 +1019,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         }
                         case cgltf_camera_type::cgltf_camera_type_orthographic: //
                         {
-                            float_t w = 1000.0f;
-                            float_t h = 1000.0f;
-                            float_t f = 1000.0f;
-
+                            float_t const w = gltf_cam.data.orthographic.xmag *2.0f;
+                            float_t const h = gltf_cam.data.orthographic.ymag *2.0f;
                             float_t const n = gltf_cam.data.orthographic.znear;
                             float_t const f = gltf_cam.data.orthographic.zfar;
 
-                            gltf_cam.data.orthographic.xmag ;
-                            gltf_cam.data.orthographic.ymag;
-                            // cam.make_orthographic() ;
+                            cam.make_orthographic( w, h, n, f ) ;
                             break;
                         }
                         default:
