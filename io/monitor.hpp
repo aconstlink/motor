@@ -84,6 +84,8 @@ namespace motor
             typedef std::function< void_t ( motor::io::location_cref_t, this_t::notify const ) > foreach_funk_t ;
             void_t for_each_and_swap( foreach_funk_t funk ) noexcept 
             {
+                if( _changed.size() == 0 )  return ;
+
                 motor::vector< this_t::data_t > & tmp = _tmp_data ;
                 {
                     motor::concurrent::lock_guard_t lk( _mtx ) ;
