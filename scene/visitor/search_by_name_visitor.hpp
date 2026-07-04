@@ -13,12 +13,12 @@ namespace scene
 {
 // search a node by a name component. It will break the traversal
 // if the first occurance is found.
-class MOTOR_SCENE_API search_by_name_visitor : public default_visitor
+class search_by_name_visitor : public default_visitor
 {
     motor_this_typedefs( search_by_name_visitor );
 
     motor::string_t _name;
-    motor::scene::node_mtr_t _found_node; // managed
+    motor::scene::node_mtr_t _found_node = nullptr; // managed
 
   public:
 

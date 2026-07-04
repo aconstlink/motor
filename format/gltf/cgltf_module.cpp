@@ -13,8 +13,9 @@
 #include <motor/scene/component/name_component.hpp>
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/component/camera_component.h>
-#include <motor/scene/component/msl_component.h>
-#include <motor/scene/component/config_graphics_component.h>
+#include <motor/scene/component/graphics/msl_component.h>
+#include <motor/scene/component/graphics/msl_set_component.hpp>
+#include <motor/scene/component/graphics/config_graphics_component.h>
 #include <motor/scene/component/animation/animation_track.hpp>
 #include <motor/scene/component/animation/animation_component.h>
 
@@ -946,9 +947,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                             // add name compoent
                             {
-                                motor::string_t const name = gltf_mesh->name != nullptr
-                                                           ? motor::string_t( gltf_mesh->name )
-                                                           : "";
+                                motor::string_t const name =
+                                    gltf_mesh->name != nullptr ? motor::string_t( gltf_mesh->name )
+                                                               : "";
 
                                 motor::scene::name_component_t nc( name );
                                 render_node.add_component( motor::shared( std::move( nc ) ) );
@@ -958,13 +959,17 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             {
                                 auto comp = motor::scene::msl_component_t(
                                     motor::share( msl ), num_geo_links - 1, num_geo_links - 1 );
-                                render_node.add_component( motor::shared( std::move( comp ) ) );
+
+                                auto set_comp = motor::scene::msl_set_component_t(
+                                    0, motor::shared( std::move( comp ) ) );
+
+                                render_node.add_component( motor::shared( std::move( set_comp ) ) );
                             }
 
                             // add msl configuration comp
                             {
                                 auto comp = motor::scene::config_graphics_component_t();
-                                comp.set_msl( motor::share( msl ) );
+                                //comp.set_msl( motor::share( msl ) );
                                 comp.set_geo( motor::share( geo ) );
                                 render_node.add_component( motor::shared( std::move( comp ) ) );
                             }

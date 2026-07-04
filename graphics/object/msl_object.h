@@ -82,6 +82,8 @@ namespace motor
             motor::vector< motor::string_t > const & get_geometry( void_t ) const noexcept ;
             motor::vector< motor::string_t > const & get_streamout( void_t ) const noexcept ;
 
+            this_t light_clone( motor::string_in_t name ) const noexcept ;
+
         public: // variable sets
 
             this_ref_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept ;

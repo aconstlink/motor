@@ -4,7 +4,8 @@
 
 #include "../component/trafo3d_component.h"
 #include "../component/camera_component.h"
-#include "../component/msl_component.h"
+#include "../component/graphics/msl_component.h"
+#include "../component/graphics/msl_set_component.hpp"
 
 #include <motor/math/quaternion/quaternion4.hpp>
 #include <motor/math/utility/angle.hpp>
@@ -33,8 +34,8 @@ motor::scene::result trafo_visitor::visit( motor::scene::group_ptr_t nptr ) noex
 }
 
 //******************************************************************************
-motor::scene::result trafo_visitor::post_visit( motor::scene::group_ptr_t nptr,
-                                                motor::scene::result const ) noexcept
+motor::scene::result trafo_visitor::post_visit(
+    motor::scene::group_ptr_t nptr, motor::scene::result const ) noexcept
 {
     this_t::handle_post_visit( nptr );
     return motor::scene::result::ok;
@@ -76,6 +77,16 @@ void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
         if( comp != nullptr )
         {
             comp->set_world( _trafos.top() );
+        }
+    }
+
+    //
+    {
+        auto * comp = nptr->borrow_component< motor::scene::msl_set_component_t >();
+        if( comp != nullptr )
+        {
+            comp->for_each_msl( [ & ]( motor::scene::msl_component_mtr_t msl_comp )
+            { msl_comp->set_world( _trafos.top() ); } );
         }
     }
 }

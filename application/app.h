@@ -39,7 +39,7 @@ namespace motor
 
         public:
 
-            using window_id_t = size_t ;
+            using window_id_t = motor::application::window_id_t ;
             using client_id_t = size_t ;
 
         private:

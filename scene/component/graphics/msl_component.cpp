@@ -5,10 +5,11 @@ using namespace motor::scene;
 
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
-    : _vs( rhv._vs ), _geo_id(rhv._geo_id), _brigde( std::move( rhv._brigde ) ), _trafo_vars( std::move( rhv._trafo_vars ) )
+    : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _brigde( std::move( rhv._brigde ) ),
+      _trafo_vars( std::move( rhv._trafo_vars ) ), _init_map( std::move( rhv._init_map ) )
 {
-    std::memcpy( reinterpret_cast< void * >( &_cam_vars ), reinterpret_cast< void * >( &rhv._cam_vars ),
-                 sizeof( _cam_vars ) );
+    std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
+        reinterpret_cast< void * >( &rhv._cam_vars ), sizeof( _cam_vars ) );
 
     motor::release( motor::move( _msl ) );
     _msl = motor::move( rhv._msl );
@@ -21,15 +22,17 @@ msl_component::msl_component( this_rref_t rhv ) noexcept
 }
 
 //*****************************************************************
-msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl ) noexcept : _msl( motor::move( msl ) )
+msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl ) noexcept
+    : _msl( motor::move( msl ) )
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
     if( _msl != nullptr ) _msl->register_listener( motor::share( _comp_lst ) );
 }
 
 //*****************************************************************
-msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl, vs_idx_t const vs, geo_idx_t const geo_id ) noexcept
-    : _msl( motor::move( msl ) ), _vs( vs ), _geo_id(geo_id)
+msl_component::msl_component(
+    motor::graphics::msl_object_mtr_safe_t msl, vs_idx_t const vs, geo_idx_t const geo_id ) noexcept
+    : _msl( motor::move( msl ) ), _vs( vs ), _geo_id( geo_id )
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
     if( _msl != nullptr )
@@ -65,6 +68,37 @@ size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noex
 }
 
 //*****************************************************************
+msl_component::this_t msl_component::light_clone( motor::string_in_t name ) const noexcept
+{
+    return this_t( motor::shared( _msl->light_clone( name ) ), _vs, _geo_id );
+}
+
+//*****************************************************************
+bool_t msl_component::render_init( motor::application::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
+{
+    auto iter = _init_map.find( wid ) ;
+    if( iter == _init_map.end() )
+    {
+        _init_map[wid] = { this_t::graphcis_status::raw } ;
+        iter = _init_map.find( wid ) ;
+    }
+
+    if( iter->second.init == this_t::graphcis_status::ok ) return true ;
+    if( iter->second.init == this_t::graphcis_status::failed ) return false ;
+    if( iter->second.init == this_t::graphcis_status::in_transit ) return false ; 
+
+    iter->second.init = this_t::graphcis_status::in_transit ;
+
+    fe->configure< motor::graphics::msl_object_t>( _msl ) ;
+    fe->fence([=]( void_t )
+    {
+        _init_map[wid].init = this_t::graphcis_status::ok ;
+    }) ;
+
+    return false ;
+}
+
+//*****************************************************************
 void_t msl_component::render_update( motor::gfx::generic_camera_ptr_t cam ) noexcept
 {
     this_t::update_bindings();
@@ -90,7 +124,8 @@ void_t msl_component::update_bindings( void_t ) noexcept
             {
                 motor::string_t name;
                 {
-                    if( sb.has_variable_binding( motor::graphics::binding_point::projection_matrix, name ) )
+                    if( sb.has_variable_binding(
+                            motor::graphics::binding_point::projection_matrix, name ) )
                     {
                         auto * var = _var_set->data_variable< motor::math::mat4f_t >( name );
                         if( var != nullptr )
@@ -99,7 +134,8 @@ void_t msl_component::update_bindings( void_t ) noexcept
                         }
                     }
 
-                    if( sb.has_variable_binding( motor::graphics::binding_point::camera_matrix, name ) )
+                    if( sb.has_variable_binding(
+                            motor::graphics::binding_point::camera_matrix, name ) )
                     {
                         auto * var = _var_set->data_variable< motor::math::mat4f_t >( name );
                         if( var != nullptr )
@@ -108,7 +144,8 @@ void_t msl_component::update_bindings( void_t ) noexcept
                         }
                     }
 
-                    if( sb.has_variable_binding( motor::graphics::binding_point::view_matrix, name ) )
+                    if( sb.has_variable_binding(
+                            motor::graphics::binding_point::view_matrix, name ) )
                     {
                         auto * var = _var_set->data_variable< motor::math::mat4f_t >( name );
                         if( var != nullptr )
@@ -117,7 +154,8 @@ void_t msl_component::update_bindings( void_t ) noexcept
                         }
                     }
 
-                    if( sb.has_variable_binding( motor::graphics::binding_point::camera_position, name ) )
+                    if( sb.has_variable_binding(
+                            motor::graphics::binding_point::camera_position, name ) )
                     {
                         auto * var = _var_set->data_variable< motor::math::vec3f_t >( name );
                         if( var != nullptr )
@@ -126,10 +164,13 @@ void_t msl_component::update_bindings( void_t ) noexcept
                         }
                     }
 
-                    if( sb.has_variable_binding( motor::graphics::binding_point::world_matrix, name ) )
+                    if( sb.has_variable_binding(
+                            motor::graphics::binding_point::world_matrix, name ) )
                     {
-                        _trafo_vars.world->connect( motor::share( _brigde.borrow_inputs()->borrow_or_add(
-                            name, motor::shared( motor::wire::input_slot< motor::math::mat4f_t >() ) ) ) );
+                        _trafo_vars.world->connect(
+                            motor::share( _brigde.borrow_inputs()->borrow_or_add(
+                                name, motor::shared(
+                                          motor::wire::input_slot< motor::math::mat4f_t >() ) ) ) );
                     }
                 }
             }
