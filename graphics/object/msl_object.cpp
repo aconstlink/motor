@@ -207,6 +207,19 @@ motor::vector< motor::string_t > const & msl_object::get_streamout( void_t ) con
 }
 
 //****************************************************************************
+msl_object::this_t msl_object::light_clone( motor::string_in_t name ) const noexcept 
+{
+    this_t ret ;
+
+    ret._name = name ;
+    ret._geo = this_t::_geo ;
+    ret._soo = this_t::_soo ;
+    ret._datas = this_t::_datas ;
+
+    return std::move( ret ) ;
+}
+
+//****************************************************************************
 msl_object::this_ref_t msl_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
 {
     _vars.emplace_back( vs ) ;

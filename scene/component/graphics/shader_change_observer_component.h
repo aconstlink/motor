@@ -1,9 +1,9 @@
 
 #pragma once
 
-#include "icomponent.h"
+#include "../icomponent.h"
 
-#include "icontroller.h"
+#include "../icontroller.h"
 
 #include <motor/io/database.h>
 #include <motor/io/monitor.hpp>

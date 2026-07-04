@@ -3,7 +3,9 @@
 #include "ivisitor.h"
 #include "../node/group.h"
 #include "../node/leaf.h"
+#include "../component/graphics/msl_set_component.hpp"
 
+#include <motor/application/typedefs.h>
 #include <motor/gfx/camera/generic_camera.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
@@ -15,32 +17,46 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
 {
     motor_this_typedefs( render_visitor );
 
-    size_t _wid ;
+    motor::application::window_id_t _wid;
+
+    motor::scene::msl_set_component_t::id_t _msl_set_id =
+        motor::scene::msl_set_component_t::invalid_id();
+
     motor::graphics::gen4::frontend_ptr_t _fe;
 
     motor::gfx::generic_camera_ptr_t _cam = nullptr;
 
   public:
 
-    render_visitor( size_t const wid, motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
+    render_visitor( size_t const wid, motor::scene::msl_set_component_t::id_t const id,
+        motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
+
+    render_visitor( size_t const wid, motor::graphics::gen4::frontend_ptr_t,
+        motor::gfx::generic_camera_ptr_t cam ) noexcept;
     render_visitor( this_rref_t ) noexcept;
     render_visitor( this_cref_t ) = delete;
     virtual ~render_visitor( void_t ) noexcept;
 
   public:
-    
-    virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept; 
+
+    virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept;
     virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept;
-    virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept;
+    virtual motor::scene::result post_visit(
+        motor::scene::group_ptr_t, motor::scene::result const ) noexcept;
 
     virtual void_t on_start( void_t ) noexcept;
     virtual void_t on_finish( void_t ) noexcept;
 
   protected:
 
-    size_t wid( void_t ) const noexcept
+    motor::application::window_id_t wid( void_t ) const noexcept
     {
-        return _wid ;
+        return _wid;
+    }
+
+    motor::scene::msl_set_component_t::id_t set_id( void_t ) const noexcept
+    {
+        return _msl_set_id;
     }
 
     motor::graphics::gen4::frontend_ptr_t borrow_frontend( void_t ) noexcept

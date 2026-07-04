@@ -17,5 +17,7 @@ namespace motor
             udp,
             tcp
         };
+
+        using window_id_t = size_t ;
     }
 }
