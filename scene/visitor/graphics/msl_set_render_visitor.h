@@ -1,10 +1,10 @@
 #pragma once
 
-#include "ivisitor.h"
-#include "../node/group.h"
-#include "../node/leaf.h"
+#include "../ivisitor.h"
+#include "../../node/group.h"
+#include "../../node/leaf.h"
 
-#include "../component/graphics/msl_set_component.hpp"
+#include "../../component/graphics/msl_set_component.hpp"
 
 #include <motor/gfx/camera/generic_camera.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>

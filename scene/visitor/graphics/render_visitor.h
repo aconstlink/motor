@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ivisitor.h"
-#include "../node/group.h"
-#include "../node/leaf.h"
-#include "../component/graphics/msl_set_component.hpp"
+#include "../ivisitor.h"
+#include "../../node/group.h"
+#include "../../node/leaf.h"
+#include "../../component/graphics/msl_set_component.hpp"
 
 #include <motor/application/typedefs.h>
 #include <motor/gfx/camera/generic_camera.h>

@@ -62,6 +62,7 @@ bool_t config_graphics_component::init_and_cleanup( size_t const wid,
     if( iter->second == this_t::status::released ) return true;
     if( iter->second == this_t::status::ready )
     {
+        #if 0
         // cleanup
         motor::release( motor::move( _msl ) );
         motor::release( motor::move( _geo ) );
@@ -70,6 +71,7 @@ bool_t config_graphics_component::init_and_cleanup( size_t const wid,
             motor::release( motor::move( img ) );
         }
         iter->second = this_t::status::released;
+        #endif
         return true;
     }
 

@@ -27,10 +27,7 @@ set( sources
     "visitor/log_visitor.cpp"
     "visitor/code_exe_visitor.h"
     "visitor/code_exe_visitor.cpp"
-    "visitor/render_visitor.h"
-    "visitor/render_visitor.cpp"
-    "visitor/msl_set_render_visitor.h"
-    "visitor/msl_set_render_visitor.cpp"
+    
     "visitor/trafo_visitor.h"
     "visitor/trafo_visitor.cpp"
     "visitor/variable_update_visitor.h"
@@ -38,6 +35,15 @@ set( sources
     "visitor/default_visitor.h"
     "visitor/default_visitor.cpp"
     "visitor/search_by_name_visitor.hpp"
+    
+    "visitor/graphics/render_visitor.h"
+    "visitor/graphics/render_visitor.cpp"
+    "visitor/graphics/msl_set_render_visitor.h"
+    "visitor/graphics/msl_set_render_visitor.cpp"
+    "visitor/graphics/init_graphics_visitor.hpp"
+    "visitor/graphics/release_graphics_visitor.hpp"
+    
+
 
     "component/icomponent.h"
     "component/icontroller.h"
