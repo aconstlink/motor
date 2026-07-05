@@ -8,16 +8,21 @@
 
 namespace motor
 {
-    namespace application
-    {
-        using namespace motor::core::types ;
+namespace application
+{
+using namespace motor::core::types;
 
-        enum class network_client_type
-        {
-            udp,
-            tcp
-        };
+enum class network_client_type
+{
+    udp,
+    tcp
+};
 
-        using window_id_t = size_t ;
-    }
+using window_id_t = size_t;
+
+static window_id_t invalid_window_id( void_t ) noexcept
+{
+    return window_id_t( -1 );
 }
+} // namespace application
+} // namespace motor

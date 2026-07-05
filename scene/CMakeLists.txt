@@ -40,8 +40,9 @@ set( sources
     "visitor/graphics/render_visitor.cpp"
     "visitor/graphics/msl_set_render_visitor.h"
     "visitor/graphics/msl_set_render_visitor.cpp"
-    "visitor/graphics/init_graphics_visitor.hpp"
-    "visitor/graphics/release_graphics_visitor.hpp"
+    "visitor/graphics/init_msl_visitor.hpp"
+    "visitor/graphics/release_msl_visitor.hpp"
+    "visitor/graphics/add_shader_to_set_visitor.hpp"
     
 
 

@@ -6,7 +6,7 @@ using namespace motor::scene;
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
     : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _brigde( std::move( rhv._brigde ) ),
-      _trafo_vars( std::move( rhv._trafo_vars ) ), _init_map( std::move( rhv._init_map ) )
+      _trafo_vars( std::move( rhv._trafo_vars ) ), _graphics_status_map( std::move( rhv._graphics_status_map ) )
 {
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
         reinterpret_cast< void * >( &rhv._cam_vars ), sizeof( _cam_vars ) );
@@ -76,11 +76,11 @@ msl_component::this_t msl_component::light_clone( motor::string_in_t name ) cons
 //*****************************************************************
 bool_t msl_component::render_init( motor::application::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
 {
-    auto iter = _init_map.find( wid ) ;
-    if( iter == _init_map.end() )
+    auto iter = _graphics_status_map.find( wid ) ;
+    if( iter == _graphics_status_map.end() )
     {
-        _init_map[wid] = { this_t::graphcis_status::raw } ;
-        iter = _init_map.find( wid ) ;
+        _graphics_status_map[wid] = { this_t::graphcis_status::raw } ;
+        iter = _graphics_status_map.find( wid ) ;
     }
 
     if( iter->second.init == this_t::graphcis_status::ok ) return true ;
@@ -92,7 +92,32 @@ bool_t msl_component::render_init( motor::application::window_id_t const wid, mo
     fe->configure< motor::graphics::msl_object_t>( _msl ) ;
     fe->fence([=]( void_t )
     {
-        _init_map[wid].init = this_t::graphcis_status::ok ;
+        _graphics_status_map[wid].init = this_t::graphcis_status::ok ;
+    }) ;
+
+    return false ;
+}
+
+//*****************************************************************
+bool_t msl_component::render_release( motor::application::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
+{
+    auto iter = _graphics_status_map.find( wid ) ;
+    if( iter == _graphics_status_map.end() )
+    {
+        // nothing to do
+        return true ;
+    }
+
+    if( iter->second.init == this_t::graphcis_status::raw ) return true ;
+    if( iter->second.init == this_t::graphcis_status::failed ) return false ;
+    if( iter->second.init == this_t::graphcis_status::in_transit ) return false ; 
+
+    iter->second.init = this_t::graphcis_status::in_transit ;
+
+    fe->release< motor::graphics::msl_object_t>( _msl ) ;
+    fe->fence([=]( void_t )
+    {
+        _graphics_status_map[wid].init = this_t::graphcis_status::raw ;
     }) ;
 
     return false ;
