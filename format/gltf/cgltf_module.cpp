@@ -1063,7 +1063,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         if( type_iter != extras.end() && *type_iter == "camera_shot" )
                         {
                             motor::format::scene_item::camera_sequence_item csi;
-                            std::memset( (void *)&csi, 0, sizeof( csi ) );
 
                             size_t order = 0;
 
@@ -1099,7 +1098,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ret.camera_sequence.resize( order + 1 );
                             }
 
-                            ret.camera_sequence[ order ] = csi;
+                            ret.camera_sequence[ order ] = std::move( csi );
                         }
                     }
 

@@ -122,10 +122,10 @@ struct scene_item : public item
 
     struct camera_sequence_item
     {
-        motor::math::time_ms_t start;
-        motor::math::time_ms_t end;
+        motor::math::time_ms_t start = 0 ;
+        motor::math::time_ms_t end = 0;
         motor::string_t node_name;
-        motor::gfx::generic_camera_mtr_t cam;
+        motor::gfx::generic_camera_mtr_t cam = nullptr ;
     };
 
     // import a camera sequence.
