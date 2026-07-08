@@ -41,6 +41,8 @@
 
 #include <motor/core/document.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <cstdlib>
 
 #define CGLTF_IMPLEMENTATION
@@ -969,7 +971,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // add msl configuration comp
                             {
                                 auto comp = motor::scene::config_graphics_component_t();
-                                //comp.set_msl( motor::share( msl ) );
+                                // comp.set_msl( motor::share( msl ) );
                                 comp.set_geo( motor::share( geo ) );
                                 render_node.add_component( motor::shared( std::move( comp ) ) );
                             }
@@ -993,7 +995,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         {
                         case cgltf_camera_type::cgltf_camera_type_perspective: //
                         {
-                            
 
                             float_t w = 1000.0f;
                             float_t h = 1000.0f;
@@ -1019,12 +1020,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         }
                         case cgltf_camera_type::cgltf_camera_type_orthographic: //
                         {
-                            float_t const w = gltf_cam.data.orthographic.xmag *2.0f;
-                            float_t const h = gltf_cam.data.orthographic.ymag *2.0f;
+                            float_t const w = gltf_cam.data.orthographic.xmag * 2.0f;
+                            float_t const h = gltf_cam.data.orthographic.ymag * 2.0f;
                             float_t const n = gltf_cam.data.orthographic.znear;
                             float_t const f = gltf_cam.data.orthographic.zfar;
 
-                            cam.make_orthographic( w, h, n, f ) ;
+                            cam.make_orthographic( w, h, n, f );
                             break;
                         }
                         default:
@@ -1037,8 +1038,100 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 motor::shared( std::move( cam ) ) );
                             motor_node->add_component( motor::shared( std::move( cam_comp ) ) );
                         }
+
+                        // add node and camera to cameras
+                        {
+                            motor::format::scene_item::camera_item ci;
+                            ci.camera_name =
+                                motor::string_t( gltf_cam.name != nullptr ? gltf_cam.name : "" );
+
+                            ci.node = motor::share( motor_node );
+                            ci.cam =
+                                motor_node->borrow_component< motor::scene::camera_component_t >()
+                                    ->get_camera();
+                            ret.cameras.emplace_back( std::move( ci ) );
+                        }
                     }
+
+                    // handle motor gltf export extras
+                    if( gltf_node.extras.data != nullptr )
+                    {
+                        using json = nlohmann::json;
+
+                        json extras = json::parse( gltf_node.extras.data );
+                        auto const type_iter = extras.find( "motor.type" );
+                        if( type_iter != extras.end() && *type_iter == "camera_shot" )
+                        {
+                            motor::format::scene_item::camera_sequence_item csi;
+                            std::memset( (void *)&csi, 0, sizeof( csi ) );
+
+                            size_t order = 0;
+
+                            // seq order
+                            {
+                                auto const iter = extras.find( "motor.seq_order" );
+                                if( iter != extras.end() ) order = size_t( *iter );
+                            }
+
+                            // seq start
+                            {
+                                auto const iter = extras.find( "motor.seq_start" );
+                                if( iter != extras.end() )
+                                    csi.start =
+                                        motor::math::time_ms_t( float_t( *iter ) * 1000.0f );
+                            }
+
+                            // seq end
+                            {
+                                auto const iter = extras.find( "motor.seq_end" );
+                                if( iter != extras.end() )
+                                    csi.end = motor::math::time_ms_t( float_t( *iter ) * 1000.0f );
+                            }
+
+                            // name of the node the camera is attached to
+                            {
+                                auto const iter = extras.find( "motor.camera" );
+                                if( iter != extras.end() ) csi.node_name = motor::string_t( *iter );
+                            }
+
+                            if( ret.camera_sequence.size() <= order )
+                            {
+                                ret.camera_sequence.resize( order + 1 );
+                            }
+
+                            ret.camera_sequence[ order ] = csi;
+                        }
+                    }
+
                     nn_vec[ ni ] = motor::move( motor_node );
+                }
+            }
+
+            // post process camera sequence
+            // and lookup the cameras
+            {
+                for( auto & csi : ret.camera_sequence )
+                {
+                    for( auto * n : nn_vec )
+                    {
+                        auto * comp = n->borrow_component< motor::scene::name_component_t >();
+                        if( comp != nullptr && comp->get_name() == csi.node_name )
+                        {
+                            auto * cam_comp =
+                                n->borrow_component< motor::scene::camera_component_t >();
+
+                            if( cam_comp != nullptr )
+                            {
+                                csi.cam = cam_comp->get_camera();
+                            }
+                            else
+                            {
+                                motor::log::global_t::error(
+                                    "[gltf_module] : node has no camera component" );
+                            }
+                            break ;
+                        }
+                    }
                 }
             }
 
