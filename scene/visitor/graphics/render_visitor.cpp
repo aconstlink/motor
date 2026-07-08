@@ -82,10 +82,10 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
 
     {
         auto * set_comp = nptr->borrow_component< motor::scene::msl_set_component_t >();
-        if( set_comp != nullptr && set_comp->init_msl( this_t::wid(), this_t::set_id(), _fe ) )
+        if( set_comp != nullptr && set_comp->init_msl( this_t::wid(), this_t::msl_set_id(), _fe ) )
         {
             motor::scene::msl_component_mtr_t comp;
-            if( set_comp->borrow_msl_component( this_t::set_id(), comp ) )
+            if( set_comp->borrow_msl_component( this_t::msl_set_id(), comp ) )
             {
                 comp->render_update( _cam );
 

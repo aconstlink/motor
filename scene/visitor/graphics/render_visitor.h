@@ -54,7 +54,7 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
         return _wid;
     }
 
-    motor::scene::msl_set_component_t::id_t set_id( void_t ) const noexcept
+    motor::scene::msl_set_component_t::id_t msl_set_id( void_t ) const noexcept
     {
         return _msl_set_id;
     }

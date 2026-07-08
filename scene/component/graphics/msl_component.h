@@ -43,7 +43,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
         graphcis_status init ;
     };
     using init_map_t = motor::hash_map< motor::application::window_id_t, per_window_data >; 
-    init_map_t _init_map;
+    init_map_t _graphics_status_map;
 
     vs_idx_t _vs = 0;
     geo_idx_t _geo_id = 0 ;
@@ -112,8 +112,8 @@ class MOTOR_SCENE_API msl_component : public icomponent
     
     bool_t is_init( motor::application::window_id_t const wid ) const noexcept 
     {
-        auto iter = _init_map.find( wid ) ;
-        if( iter == _init_map.end() ) return false ;
+        auto iter = _graphics_status_map.find( wid ) ;
+        if( iter == _graphics_status_map.end() ) return false ;
 
         return iter->second.init == this_t::graphcis_status::ok ;
     }
@@ -122,6 +122,10 @@ class MOTOR_SCENE_API msl_component : public icomponent
     motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept
     {
         return _msl;
+    }
+    motor::graphics::msl_object_mtr_t get_msl( void_t ) noexcept
+    {
+        return motor::share( _msl ) ;
     }
     vs_idx_t get_variable_set_idx( void_t ) const noexcept
     {
@@ -142,6 +146,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
   public: // render interface
 
     bool_t render_init( motor::application::window_id_t const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+    bool_t render_release( motor::application::window_id_t const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
     void_t render_update( motor::gfx::generic_camera_ptr_t ) noexcept;
     
 

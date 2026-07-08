@@ -78,6 +78,9 @@ namespace motor
                 motor::tool::imgui_mtr_t imgui ;
 
                 bool_t first_frame = true ;
+                
+                bool_t last_frame = false ;
+                bool_t window_closed = false ;
 
                 bool_t is_mouse_over = false ;
             };
@@ -156,6 +159,7 @@ namespace motor
                 size_t milli_dt ;
 
                 bool_t first_frame ;
+                bool_t last_frame ;
             };
             motor_typedef( render_data ) ;
 

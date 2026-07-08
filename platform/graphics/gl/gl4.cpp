@@ -2468,6 +2468,17 @@ public:
                             vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
                         }
                     }
+                    else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec4f_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< motor::math::vec4f_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        for ( auto & vs : obj.borrow_varibale_sets() )
+                        {
+                            // for @overwrite specifier
+                            //if( vs->has_data_variable( var_.name ) ) continue ;
+                            vs->data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
+                        }
+                    }
                     else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::texture_dv_ptr_t ;

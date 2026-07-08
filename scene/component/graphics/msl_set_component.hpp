@@ -88,12 +88,36 @@ class msl_set_component : public motor::scene::icomponent
         return iter->second.msl->render_init( wid, fe );
     }
 
+    bool_t release_msl( motor::application::window_id_t const wid, id_t const id,
+        motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    {
+        auto iter = _components.find( id );
+        if( iter == _components.end() )
+        {
+            // component does not exist for id.
+            // must be added first
+            return false;
+        }
+
+        return iter->second.msl->render_init( wid, fe );
+    }
+
     bool_t borrow_msl_component( id_t const id, motor::scene::msl_component_mtr_t & ptr ) noexcept
     {
         auto iter = _components.find( id );
         if( iter == _components.end() ) return false;
 
         ptr = iter->second.msl;
+
+        return true;
+    }
+
+    bool_t get_msl_component( id_t const id, motor::scene::msl_component_mtr_safe_t & ptr ) noexcept
+    {
+        auto iter = _components.find( id );
+        if( iter == _components.end() ) return false;
+
+        ptr = motor::share( iter->second.msl );
 
         return true;
     }

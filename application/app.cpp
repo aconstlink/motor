@@ -233,6 +233,15 @@ bool_t app::carrier_update( void_t ) noexcept
         {
             auto & d = *iter ;
 
+            // the destruction is defered to this place
+            // from sv.close_changed
+            if( d.window_closed && d.last_frame )
+            {
+                _destruction_queue.emplace_back( *iter ) ;
+                iter = _windows.erase( iter ) ;
+                continue ;
+            }
+
             motor::application::window_message_listener_t::state_vector_t sv ;
             if( d.lst->swap_and_reset( sv ) )
             {
@@ -245,10 +254,13 @@ bool_t app::carrier_update( void_t ) noexcept
                 
                 if( sv.close_changed )
                 {
-                    _destruction_queue.emplace_back( *iter ) ;
-                    iter = _windows.erase( iter ) ;
-
-                    continue ;
+                    // defer window close by one frame
+                    // so the app is can react to the 
+                    // closing window in the render loop.
+                    iter->window_closed = true ;
+                    //_destruction_queue.emplace_back( *iter ) ;
+                    //iter = _windows.erase( iter ) ;
+                    //continue ;
                 }
 
                 if( sv.resize_changed )
@@ -269,6 +281,7 @@ bool_t app::carrier_update( void_t ) noexcept
                     }
                 }
             }
+
             ++iter ;
         }
     }
@@ -367,7 +380,15 @@ bool_t app::carrier_update( void_t ) noexcept
             
             for( auto & d : _windows )
             {
+                // if window is closed and the last frame was
+                // called, do not enter rendering loop.
+                if( d.window_closed && d.last_frame ) continue ;
+
+                if( d.window_closed ) 
+                    d.last_frame = true ;
+
                 dat.first_frame = d.first_frame ;
+                dat.last_frame = d.last_frame ;
                 d.first_frame = false ;
 
                 auto * re = d.fe->borrow_render_engine() ;
