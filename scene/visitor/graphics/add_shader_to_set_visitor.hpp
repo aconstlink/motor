@@ -74,7 +74,7 @@ class add_shader_to_set_visitor : public default_visitor
                         msl_comp->borrow_msl()->clear_shaders().add(
                             motor::graphics::msl_api_type::msl_4_0, _shader );
 
-                        // because msls can be used multiple times, 
+                        // because msls can be used multiple times,
                         // we have to remember and only clone once.
                         _name_to_msl[ name ] = msl_comp->get_msl();
                     }
@@ -102,6 +102,11 @@ class add_shader_to_set_visitor : public default_visitor
 
     virtual void_t on_start( void_t ) noexcept {}
     virtual void_t on_finish( void_t ) noexcept {}
+
+    map_t move_msl_map( void_t ) noexcept
+    {
+        return std::move( _name_to_msl );
+    }
 };
 motor_typedef( add_shader_to_set_visitor );
 } // namespace scene

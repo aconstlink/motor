@@ -112,6 +112,16 @@ class msl_set_component : public motor::scene::icomponent
         return true;
     }
 
+    bool_t get_msl_component( id_t const id, motor::scene::msl_component_mtr_safe_t & ptr ) noexcept
+    {
+        auto iter = _components.find( id );
+        if( iter == _components.end() ) return false;
+
+        ptr = motor::share( iter->second.msl );
+
+        return true;
+    }
+
     using for_each_msl_funk_t = std::function< void_t( motor::scene::msl_component_mtr_t ) >;
     void_t for_each_msl( for_each_msl_funk_t f ) noexcept
     {
