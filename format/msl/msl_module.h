@@ -45,6 +45,8 @@ namespace motor
             msl_item( motor::msl::post_parse::document_t g ) : doc( g ){}
 
             motor::msl::post_parse::document_t doc ;
+
+            virtual void_t release( void_t ) noexcept{}
         };
         motor_typedef( msl_item ) ;
     }

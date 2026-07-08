@@ -42,6 +42,8 @@ namespace motor
             motor_item( motor::format::motor_document_rref_t g ) : doc( std::move( g ) ){}
 
             motor::format::motor_document_t doc ;
+
+            virtual void_t release( void_t ) noexcept {}
         };
         motor_typedef( motor_item ) ;
     }

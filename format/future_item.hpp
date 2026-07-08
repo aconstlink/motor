@@ -12,6 +12,7 @@ namespace motor
         struct item
         {
             virtual ~item( void_t ) {}
+            virtual void_t release( void_t ) noexcept = 0 ;
         };
         motor_typedef( item ) ;
         typedef std::future< item_mtr_t > future_item_t ;
@@ -21,6 +22,8 @@ namespace motor
             motor::string_t msg ;
 
             status_item( motor::string_cref_t msg_ ) : msg( msg_ ) {}
+
+            virtual void_t release( void_t ) noexcept {}
         };
         motor_typedef( status_item ) ;
         typedef std::future< status_item_mtr_t > future_status_t ;

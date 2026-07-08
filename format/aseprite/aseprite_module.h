@@ -44,6 +44,8 @@ namespace motor
             aseprite_json_item( motor::format::aseprite::json_document_rref_t g ) : doc( std::move( g ) ) {}
 
             motor::format::aseprite::json_document_t doc ;
+
+            virtual void_t release( void_t ) noexcept{}
         };
         motor_typedef( aseprite_json_item ) ;
     }
