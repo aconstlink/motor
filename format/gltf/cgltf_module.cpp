@@ -1128,7 +1128,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 motor::log::global_t::error(
                                     "[gltf_module] : node has no camera component" );
                             }
-                            break ;
+                            break;
                         }
                     }
                 }
