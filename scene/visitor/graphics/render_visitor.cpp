@@ -4,7 +4,7 @@
 
 #include "../../component/graphics/msl_component.h"
 #include "../../component/graphics/msl_set_component.hpp"
-#include "../../component/graphics/render_settings_component.h"
+#include "../../component/graphics/render_settings_component.hpp"
 #include "../../component/graphics/config_graphics_component.h"
 
 using namespace motor::scene;
@@ -76,7 +76,20 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
         auto * comp = nptr->borrow_component< motor::scene::render_settings_component_t >();
         if( comp != nullptr )
         {
-            _fe->push( comp->borrow_state() );
+            // only called if render state for id exists.            
+            comp->borrow_state( 0, [ & ]( motor::graphics::command_status_mtr_t status,
+                                           motor::graphics::state_object_mtr_t state ) //
+            {
+                motor::graphics::command_status::status const s = _fe->decode( *status );
+                if( s != motor::graphics::command_status::status::configured )
+                {
+                    _fe->configure< motor::graphics::state_object_t >( state, status );
+                }
+                else if( s == motor::graphics::command_status::status::configured )
+                {
+                    _fe->push( state );
+                }
+            } );
         }
     }
 
@@ -110,7 +123,15 @@ void_t render_visitor::handle_post_visit( motor::scene::node_ptr_t nptr ) noexce
     auto * comp = nptr->borrow_component< motor::scene::render_settings_component_t >();
     if( comp == nullptr ) return;
 
-    _fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+    auto const res = comp->borrow_state( 0, [ & ]( motor::graphics::command_status_mtr_t status,
+                                                motor::graphics::state_object_mtr_t state ) //
+    {
+        motor::graphics::command_status::status s;
+        if( _fe->decode( *status, s ) && s == motor::graphics::command_status::status::configured )
+        {
+            _fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+        }
+    } );
 }
 
 //*****************************************************************************************

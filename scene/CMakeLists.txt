@@ -38,8 +38,6 @@ set( sources
     
     "visitor/graphics/render_visitor.h"
     "visitor/graphics/render_visitor.cpp"
-    "visitor/graphics/msl_set_render_visitor.h"
-    "visitor/graphics/msl_set_render_visitor.cpp"
     "visitor/graphics/init_msl_visitor.hpp"
     "visitor/graphics/release_msl_visitor.hpp"
     "visitor/graphics/add_shader_to_set_visitor.hpp"
@@ -53,8 +51,7 @@ set( sources
     "component/name_component.hpp"
     "component/graphics/msl_component.h"
     "component/graphics/msl_component.cpp"
-    "component/graphics/render_settings_component.h"
-    "component/graphics/render_settings_component.cpp"
+    "component/graphics/render_settings_component.hpp"
     "component/trafo3d_component.h"
     "component/trafo3d_component.cpp"
     "component/camera_component.h"
