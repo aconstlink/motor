@@ -18,23 +18,20 @@ class MOTOR_SCENE_API config_graphics_component : public icomponent
 {
     motor_this_typedefs( config_graphics_component );
 
-  public:
-
-    enum class status
-    {
-        uninitilized,
-        in_transit,
-        ready,
-        released
-    };
-
   private:
 
     motor::graphics::msl_object_mtr_t _msl = nullptr;
+    motor::graphics::command_status_mtr_t _msl_status = nullptr ;
     motor::graphics::geometry_object_mtr_t _geo = nullptr;
-    motor::vector< motor::graphics::image_object_mtr_t > _imgs;
+    motor::graphics::command_status_mtr_t _geo_status = nullptr ;
 
-    motor::hash_map< size_t, status > _stats ;
+    struct image_data
+    {   
+        motor::graphics::image_object_mtr_t img = nullptr ;
+        motor::graphics::command_status_mtr_t status = nullptr ;
+    };
+    motor::vector< image_data > _imgs;
+    
 
   public:
 
@@ -54,12 +51,8 @@ class MOTOR_SCENE_API config_graphics_component : public icomponent
     // after this function, this object can be released/destroyed. all
     // internal items are freed/released.
     // @return true if items are properly initialized and cleaned up.
-    bool_t init_and_cleanup( size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept;
+    bool_t init_and_cleanup( motor::graphics::gen4::frontend_ptr_t ) noexcept;
 
-  private:
-
-    // sends graphics items to graphics for initialization via the frontend.
-    status do_init( size_t const wid, motor::graphics::gen4::frontend_ptr_t ) noexcept;
 };
 motor_typedef( config_graphics_component );
 

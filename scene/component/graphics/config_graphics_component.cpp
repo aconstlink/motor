@@ -8,26 +8,26 @@ config_graphics_component::config_graphics_component( void_t ) noexcept {}
 
 //*************************************************************
 config_graphics_component::config_graphics_component( this_rref_t rhv ) noexcept
-    : _stats( std::move( rhv._stats ) ), _msl( motor::move( rhv._msl ) ), _geo( motor::move( rhv._geo ) ),
-      _imgs( std::move( rhv._imgs ) )
+    : _msl( motor::move( rhv._msl ) ),
+      _geo( motor::move( rhv._geo ) ), _imgs( std::move( rhv._imgs ) )
 {
+    _msl_status = motor::shared( motor::graphics::command_status_t() ) ;
+    _geo_status = motor::shared( motor::graphics::command_status_t() ) ;
 }
 
 //*************************************************************
 config_graphics_component::~config_graphics_component( void_t ) noexcept
 {
-    for( auto iter : _stats )
+    for( auto & img : _imgs )
     {
-        assert( iter.second != this_t::status::in_transit );
-    }
-
-    for( auto * img : _imgs )
-    {
-        motor::release( motor::move( img ) );
+        motor::release( motor::move( img.img ) );
+        motor::release( motor::move( img.status ) );
     }
 
     motor::release( motor::move( _msl ) );
+    motor::release( motor::move( _msl_status ) );
     motor::release( motor::move( _geo ) );
+    motor::release( motor::move( _geo_status ) );
 }
 
 //*************************************************************
@@ -49,72 +49,33 @@ void_t config_graphics_component::add_img( motor::graphics::image_object_safe_t 
 }
 
 //*************************************************************
-bool_t config_graphics_component::init_and_cleanup( size_t const wid,
-                                                    motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+bool_t config_graphics_component::init_and_cleanup( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    auto iter = _stats.find( wid ) ;
-    if( iter == _stats.end() )
+    // init msl
     {
-        _stats[wid] = this_t::status::uninitilized ;
-        iter = _stats.find( wid ) ;
-    }
+        auto const s = fe->decode( *_msl_status ) ;
+        bool_t const a = s == motor::graphics::command_status::status::configured ;
+        bool_t const b = s == motor::graphics::command_status::status::in_transit ;
 
-    if( iter->second == this_t::status::released ) return true;
-    if( iter->second == this_t::status::ready )
-    {
-        #if 0
-        // cleanup
-        motor::release( motor::move( _msl ) );
-        motor::release( motor::move( _geo ) );
-        for( auto * img : _imgs )
+        if( !a && !b )
         {
-            motor::release( motor::move( img ) );
+            fe->configure< motor::graphics::msl_object_t >( _msl, _msl_status );
         }
-        iter->second = this_t::status::released;
-        #endif
-        return true;
     }
 
-    this_t::do_init( wid, fe );
-
-    return false;
-}
-
-//*************************************************************
-config_graphics_component::status
-config_graphics_component::do_init( size_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
-{
-    // this should not happen. Handle status before.
-    auto iter = _stats.find( wid ) ;
-    if( iter == _stats.end() )
+    // init geo
     {
-        return this_t::status::uninitilized ;
+        auto const s = fe->decode( *_geo_status ) ;
+        bool_t const a = s == motor::graphics::command_status::status::configured ;
+        bool_t const b = s == motor::graphics::command_status::status::in_transit ;
+
+        if( !a && !b )
+        {
+            fe->configure< motor::graphics::geometry_object_t >( _geo, _geo_status );
+        }
     }
 
-    if( iter->second != this_t::status::uninitilized ) return iter->second;
-    iter->second = this_t::status::in_transit;
-
-    for( auto * img : _imgs )
-    {
-        fe->configure< motor::graphics::image_object_t >( img );
-    }
-
-    if( _geo != nullptr )
-    {
-        fe->configure< motor::graphics::geometry_object_t >( _geo );
-    }
-
-    if( _msl != nullptr )
-    {
-        fe->configure< motor::graphics::msl_object_t >( _msl );
-    }
-
-    fe->fence( [ &, wid ]( void_t ) 
-    { 
-    this->_stats[wid] = this_t::status::ready; 
-    } );
-
-    return iter->second;
+    return true;
 }
 
 //*************************************************************

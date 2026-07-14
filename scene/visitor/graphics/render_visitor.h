@@ -5,7 +5,6 @@
 #include "../../node/leaf.h"
 #include "../../component/graphics/msl_set_component.hpp"
 
-#include <motor/application/typedefs.h>
 #include <motor/gfx/camera/generic_camera.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
@@ -17,8 +16,6 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
 {
     motor_this_typedefs( render_visitor );
 
-    motor::application::window_id_t _wid;
-
     motor::scene::msl_set_component_t::id_t _msl_set_id =
         motor::scene::msl_set_component_t::invalid_id();
 
@@ -28,11 +25,11 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
 
   public:
 
-    render_visitor( size_t const wid, motor::scene::msl_set_component_t::id_t const id,
+    render_visitor( motor::scene::msl_set_component_t::id_t const id,
         motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
 
-    render_visitor( size_t const wid, motor::graphics::gen4::frontend_ptr_t,
-        motor::gfx::generic_camera_ptr_t cam ) noexcept;
+    render_visitor(
+        motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
     render_visitor( this_rref_t ) noexcept;
     render_visitor( this_cref_t ) = delete;
     virtual ~render_visitor( void_t ) noexcept;
@@ -48,11 +45,6 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
     virtual void_t on_finish( void_t ) noexcept;
 
   protected:
-
-    motor::application::window_id_t wid( void_t ) const noexcept
-    {
-        return _wid;
-    }
 
     motor::scene::msl_set_component_t::id_t msl_set_id( void_t ) const noexcept
     {

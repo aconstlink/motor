@@ -10,22 +10,22 @@
 using namespace motor::scene;
 
 //*****************************************************************************************
-render_visitor::render_visitor( size_t const wid, motor::scene::msl_set_component_t::id_t const id,
+render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id,
     motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
-    : _wid( wid ), _msl_set_id( id ), _fe( fe ), _cam( cam )
+    : _msl_set_id( id ), _fe( fe ), _cam( cam )
 {
 }
 
 //*****************************************************************************************
-render_visitor::render_visitor( size_t const wid, motor::graphics::gen4::frontend_ptr_t fe,
+render_visitor::render_visitor( motor::graphics::gen4::frontend_ptr_t fe,
     motor::gfx::generic_camera_ptr_t cam ) noexcept
-    : _wid( wid ), _msl_set_id( 0 ), _fe( fe ), _cam( cam )
+    : _msl_set_id( 0 ), _fe( fe ), _cam( cam )
 {
 }
 
 //*****************************************************************************************
 render_visitor::render_visitor( this_rref_t rhv ) noexcept
-    : _wid( rhv._wid ), _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ),
+    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ),
       _cam( motor::move( rhv._cam ) )
 {
 }
@@ -65,7 +65,7 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
         auto * comp = nptr->borrow_component< motor::scene::config_graphics_component_t >();
         if( comp != nullptr )
         {
-            if( comp->init_and_cleanup( this_t::wid(), _fe ) )
+            if( comp->init_and_cleanup( _fe ) )
             {
             }
         }
