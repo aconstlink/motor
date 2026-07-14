@@ -71,7 +71,7 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
         return true;
     }
 
-    bool_t add_state( id_t const id, motor::graphics::state_object_mtr_t rs ) noexcept
+    bool_t add_state( id_t const id, motor::graphics::state_object_mtr_safe_t rs ) noexcept
     {
         auto iter = _rs.find( id );
         if( iter != _rs.end() ) return false;

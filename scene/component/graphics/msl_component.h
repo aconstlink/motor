@@ -3,8 +3,6 @@
 
 #include "../icomponent.h"
 
-#include <motor/application/typedefs.h>
-
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/variable/wire_variable_bridge.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
@@ -23,30 +21,18 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
   public:
 
-    using geo_idx_t = size_t ;
-    using vs_idx_t = size_t ;
+    using geo_idx_t = size_t;
+    using vs_idx_t = size_t;
 
   private:
-
-  enum class graphcis_status
-  {
-    raw,
-    ok,
-    failed,
-    in_transit
-  };
+   
     motor::graphics::compilation_listener_mtr_t _comp_lst =
-        motor::shared( motor::graphics::compilation_listener(), "render_node comp listener" );
-
-    struct per_window_data
-    {
-        graphcis_status init ;
-    };
-    using init_map_t = motor::hash_map< motor::application::window_id_t, per_window_data >; 
-    init_map_t _graphics_status_map;
+        motor::shared( motor::graphics::compilation_listener(), "render_node comp listener" );    
 
     vs_idx_t _vs = 0;
-    geo_idx_t _geo_id = 0 ;
+    geo_idx_t _geo_id = 0;
+
+    motor::graphics::command_status_mtr_t _status = nullptr ;
     motor::graphics::msl_object_mtr_t _msl = nullptr;
     motor::graphics::variable_set_mtr_t _var_set = nullptr;
 
@@ -104,19 +90,12 @@ class MOTOR_SCENE_API msl_component : public icomponent
     msl_component( this_rref_t ) noexcept;
     msl_component( this_cref_t ) = delete;
     msl_component( motor::graphics::msl_object_mtr_safe_t ) noexcept;
-    msl_component( motor::graphics::msl_object_mtr_safe_t, vs_idx_t const, geo_idx_t const = geo_idx_t(-1) ) noexcept;
+    msl_component( motor::graphics::msl_object_mtr_safe_t, vs_idx_t const,
+        geo_idx_t const = geo_idx_t( -1 ) ) noexcept;
 
     virtual ~msl_component( void_t ) noexcept;
 
   public:
-    
-    bool_t is_init( motor::application::window_id_t const wid ) const noexcept 
-    {
-        auto iter = _graphics_status_map.find( wid ) ;
-        if( iter == _graphics_status_map.end() ) return false ;
-
-        return iter->second.init == this_t::graphcis_status::ok ;
-    }
 
     size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept;
     motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept
@@ -125,7 +104,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
     }
     motor::graphics::msl_object_mtr_t get_msl( void_t ) noexcept
     {
-        return motor::share( _msl ) ;
+        return motor::share( _msl );
     }
     vs_idx_t get_variable_set_idx( void_t ) const noexcept
     {
@@ -134,21 +113,20 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
     geo_idx_t get_geo_idx( void_t ) const noexcept
     {
-        return _geo_id ;
+        return _geo_id;
     }
 
     // allows to clone without shader variables. Those are determined by
     // the render_update function AFTER the msl is compiled.
-    // Mainly used to populate a msl_set_component if only a msl_component 
+    // Mainly used to populate a msl_set_component if only a msl_component
     // is present in the node.
-    this_t light_clone( motor::string_in_t name ) const noexcept ;
+    this_t light_clone( motor::string_in_t name ) const noexcept;
 
   public: // render interface
 
-    bool_t render_init( motor::application::window_id_t const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
-    bool_t render_release( motor::application::window_id_t const, motor::graphics::gen4::frontend_ptr_t ) noexcept ;
+    bool_t render_init( motor::graphics::gen4::frontend_ptr_t ) noexcept;
+    bool_t render_release( motor::graphics::gen4::frontend_ptr_t ) noexcept;
     void_t render_update( motor::gfx::generic_camera_ptr_t ) noexcept;
-    
 
   public: // transformation interface
 

@@ -6,7 +6,7 @@ using namespace motor::scene;
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
     : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _brigde( std::move( rhv._brigde ) ),
-      _trafo_vars( std::move( rhv._trafo_vars ) ), _graphics_status_map( std::move( rhv._graphics_status_map ) )
+      _trafo_vars( std::move( rhv._trafo_vars ) ), _status( motor::move( rhv._status ) )
 {
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
         reinterpret_cast< void * >( &rhv._cam_vars ), sizeof( _cam_vars ) );
@@ -27,6 +27,7 @@ msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl ) noexc
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
     if( _msl != nullptr ) _msl->register_listener( motor::share( _comp_lst ) );
+    _status = motor::shared( motor::graphics::command_status_t() );
 }
 
 //*****************************************************************
@@ -40,6 +41,7 @@ msl_component::msl_component(
         _msl->register_listener( motor::share( _comp_lst ) );
         _msl->fill_variable_sets( vs );
     }
+    _status = motor::shared( motor::graphics::command_status_t() );
 }
 
 //*****************************************************************
@@ -48,6 +50,7 @@ msl_component::~msl_component( void_t ) noexcept
     motor::release( motor::move( _msl ) );
     motor::release( motor::move( _var_set ) );
     motor::release( motor::move( _comp_lst ) );
+    motor::release( motor::move( _status ) );
 }
 
 //*****************************************************************
@@ -64,6 +67,9 @@ size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noex
         _vs = _msl->borrow_varibale_sets().size();
         _msl->fill_variable_sets( _vs );
     }
+    motor::release( motor::move( _status ) );
+    _status = motor::shared( motor::graphics::command_status_t() );
+
     return _vs;
 }
 
@@ -74,53 +80,33 @@ msl_component::this_t msl_component::light_clone( motor::string_in_t name ) cons
 }
 
 //*****************************************************************
-bool_t msl_component::render_init( motor::application::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
+bool_t msl_component::render_init( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    auto iter = _graphics_status_map.find( wid ) ;
-    if( iter == _graphics_status_map.end() )
     {
-        _graphics_status_map[wid] = { this_t::graphcis_status::raw } ;
-        iter = _graphics_status_map.find( wid ) ;
+        auto const s = fe->decode( *_status );
+        if( s == motor::graphics::command_status::status::configured ) return true;
+        if( s == motor::graphics::command_status::status::in_transit ) return false;
     }
 
-    if( iter->second.init == this_t::graphcis_status::ok ) return true ;
-    if( iter->second.init == this_t::graphcis_status::failed ) return false ;
-    if( iter->second.init == this_t::graphcis_status::in_transit ) return false ; 
+    fe->configure< motor::graphics::msl_object_t >( _msl, _status );
 
-    iter->second.init = this_t::graphcis_status::in_transit ;
-
-    fe->configure< motor::graphics::msl_object_t>( _msl ) ;
-    fe->fence([=]( void_t )
-    {
-        _graphics_status_map[wid].init = this_t::graphcis_status::ok ;
-    }) ;
-
-    return false ;
+    return false;
 }
 
 //*****************************************************************
-bool_t msl_component::render_release( motor::application::window_id_t const wid, motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
+bool_t msl_component::render_release( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    auto iter = _graphics_status_map.find( wid ) ;
-    if( iter == _graphics_status_map.end() )
     {
-        // nothing to do
-        return true ;
+        auto const s = fe->decode( *_status );
+        if( s == motor::graphics::command_status::status::released ) return true;
+        if( s == motor::graphics::command_status::status::raw ) return true;
+        if( s == motor::graphics::command_status::status::invalid ) return true;
+        if( s == motor::graphics::command_status::status::in_transit ) return false;
     }
 
-    if( iter->second.init == this_t::graphcis_status::raw ) return true ;
-    if( iter->second.init == this_t::graphcis_status::failed ) return false ;
-    if( iter->second.init == this_t::graphcis_status::in_transit ) return false ; 
+    fe->release< motor::graphics::msl_object_t >( _msl, _status );
 
-    iter->second.init = this_t::graphcis_status::in_transit ;
-
-    fe->release< motor::graphics::msl_object_t>( _msl ) ;
-    fe->fence([=]( void_t )
-    {
-        _graphics_status_map[wid].init = this_t::graphcis_status::raw ;
-    }) ;
-
-    return false ;
+    return false;
 }
 
 //*****************************************************************

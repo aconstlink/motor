@@ -3,8 +3,6 @@
 #include "../icomponent.h"
 #include "msl_component.h"
 
-#include <motor/application/typedefs.h>
-
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
@@ -28,8 +26,6 @@ class msl_set_component : public motor::scene::icomponent
     }
 
   private:
-
-    using init_map_t = motor::hash_map< motor::application::window_id_t, bool_t >;
 
     struct entry_data
     {
@@ -74,7 +70,7 @@ class msl_set_component : public motor::scene::icomponent
         _components[ id ] = { motor::move( msl ) };
     }
 
-    bool_t init_msl( motor::application::window_id_t const wid, id_t const id,
+    bool_t init_msl( id_t const id,
         motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
         auto iter = _components.find( id );
@@ -85,10 +81,10 @@ class msl_set_component : public motor::scene::icomponent
             return false;
         }
 
-        return iter->second.msl->render_init( wid, fe );
+        return iter->second.msl->render_init( fe );
     }
 
-    bool_t release_msl( motor::application::window_id_t const wid, id_t const id,
+    bool_t release_msl( id_t const id,
         motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
         auto iter = _components.find( id );
@@ -99,7 +95,7 @@ class msl_set_component : public motor::scene::icomponent
             return false;
         }
 
-        return iter->second.msl->render_init( wid, fe );
+        return iter->second.msl->render_init( fe );
     }
 
     bool_t borrow_msl_component( id_t const id, motor::scene::msl_component_mtr_t & ptr ) noexcept

@@ -76,9 +76,9 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
         auto * comp = nptr->borrow_component< motor::scene::render_settings_component_t >();
         if( comp != nullptr )
         {
-            // only called if render state for id exists.            
+            // only called if render state for id exists.
             comp->borrow_state( 0, [ & ]( motor::graphics::command_status_mtr_t status,
-                                           motor::graphics::state_object_mtr_t state ) //
+                                       motor::graphics::state_object_mtr_t state ) //
             {
                 motor::graphics::command_status::status const s = _fe->decode( *status );
                 if( s != motor::graphics::command_status::status::configured )
@@ -93,9 +93,10 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
         }
     }
 
+    // msl stuff
     {
         auto * set_comp = nptr->borrow_component< motor::scene::msl_set_component_t >();
-        if( set_comp != nullptr && set_comp->init_msl( this_t::wid(), this_t::msl_set_id(), _fe ) )
+        if( set_comp != nullptr && set_comp->init_msl( this_t::msl_set_id(), _fe ) )
         {
             motor::scene::msl_component_mtr_t comp;
             if( set_comp->borrow_msl_component( this_t::msl_set_id(), comp ) )
