@@ -147,5 +147,7 @@ class MOTOR_GRAPHICS_API object
         return false;
     }
 };
+motor_typedef( object );
+
 } // namespace graphics
 } // namespace motor

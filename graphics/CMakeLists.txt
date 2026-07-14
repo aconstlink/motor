@@ -20,6 +20,7 @@ set( sources
     "backend/gen4/null.h"
     "backend/gen4/null.cpp"
 
+    "frontend/command_status.hpp"
     "frontend/ifrontend.h"
     "frontend/gen4/frontend.hpp"
 
