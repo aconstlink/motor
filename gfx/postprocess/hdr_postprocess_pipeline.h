@@ -2,12 +2,17 @@
 
 #include "../api.h"
 #include "../typedefs.h"
+#include "tone_map_stage.hpp"
 
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/object/state_object.h>
 #include <motor/graphics/object/geometry_object.h>
 #include <motor/graphics/object/framebuffer_object.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
+
+#include <motor/property/property_sheet.hpp>
+
+#include <motor/std/hash_map>
 
 namespace motor
 {
@@ -36,6 +41,10 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     bool_t _size_changed = false;
     motor::math::vec2ui_t _dims;
 
+private:
+
+    motor::gfx::tone_map_stage_mtr_t _tone_map = nullptr ;
+
   public:
 
     hdr_postprocess_pipeline( void_t ) noexcept;
@@ -57,6 +66,14 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     void_t release_render( motor::graphics::gen4::frontend_ptr_t ) noexcept;
 
     void_t render( motor::graphics::gen4::frontend_ptr_t ) noexcept;
+
+    public:
+
+    using inputs_map_t = motor::hash_map< motor::string_t, motor::wire::inputs_mtr_t > ;
+    inputs_map_t inputs( void_t ) noexcept ;
+
+    using property_sheets_t = motor::hash_map< motor::string_t, motor::property::property_sheet_mtr_t > ;
+    property_sheets_t property_sheets( void_t ) noexcept ;
 };
 motor_typedef( hdr_postprocess_pipeline );
 } // namespace gfx

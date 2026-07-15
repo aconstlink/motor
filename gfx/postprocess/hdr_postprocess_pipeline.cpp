@@ -28,9 +28,9 @@ motor::graphics::framebuffer_object_mtr_t hdr_postprocess_pipeline::borrow_hdr_f
 }
 
 //***************************************************
-motor::graphics::state_object_mtr_t hdr_postprocess_pipeline::borrow_hdr_states( void_t ) noexcept 
+motor::graphics::state_object_mtr_t hdr_postprocess_pipeline::borrow_hdr_states( void_t ) noexcept
 {
-    return _hdr_so ;
+    return _hdr_so;
 }
 
 //***************************************************
@@ -86,22 +86,22 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         {
             motor::graphics::render_state_sets_t rss;
-            rss.depth_s.do_change = true;
+            rss.depth_s.do_change = false;
             rss.depth_s.ss.do_activate = false;
             rss.depth_s.ss.do_depth_write = false;
-            rss.polygon_s.do_change = true;
+            rss.polygon_s.do_change = false;
             rss.polygon_s.ss.do_activate = true;
             rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
             rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise;
             rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
-            rss.clear_s.do_change = true;
+            rss.clear_s.do_change = false;
             rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
-            rss.clear_s.ss.do_activate = true;
+            rss.clear_s.ss.do_activate = false;
             rss.clear_s.ss.do_color_clear = true;
             rss.clear_s.ss.do_depth_clear = true;
             rss.view_s.do_change = true;
             rss.view_s.ss.do_activate = true;
-            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 500, 500 );
+            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000, 1000 );
             so.add_render_state_set( rss );
         }
 
@@ -193,7 +193,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             {
                 auto * var = vars.texture_variable( "tx_map" );
                 // var->set( "gfx.postprocess.framebuffer.0" );
-                var->set( "gfx.postprocess.hdr.framebuffer.0.0" );
+                var->set( "gfx.postprocess.framebuffer.0" );
             }
 
             _msl->add_variable_set(
@@ -246,12 +246,19 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             motor::string_t const n = motor::to_string( i );
             auto fb =
                 motor::graphics::framebuffer_object_t( "gfx.postprocess.hdr.framebuffer." + n );
-            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 4 )
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 4 )
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
                 .resize( size_t( 1000 ), size_t( 1000 ) );
 
             _hdr_fbs[ i ] = motor::shared( std::move( fb ) );
         }
+    }
+
+    // init tone mapping
+    {
+
+        _tone_map = motor::shared( motor::gfx::tone_map_stage() );
+        _tone_map->init( "gfx.postprocess.hdr.framebuffer.0.1" );
     }
 }
 
@@ -266,6 +273,9 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
     motor::release( motor::move( _hdr_so ) );
     motor::release( motor::move( _mts_so ) );
     motor::release( motor::move( _msl ) );
+
+    _tone_map->release();
+    motor::release( motor::move( _tone_map ) );
 }
 
 //***************************************************
@@ -279,11 +289,15 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
     fe->configure< motor::graphics::state_object_t >( _mts_so );
     fe->configure< motor::graphics::state_object_t >( _hdr_so );
     fe->configure< motor::graphics::framebuffer_object_t >( _post_fb );
+
+    _tone_map->init_graphics( fe );
 }
 
 //***************************************************
 void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
+    _tone_map->release_graphics( fe );
+
     fe->release< motor::graphics::geometry_object_t >( _post_quad );
     fe->release< motor::graphics::msl_object_t >( _msl );
     fe->release< motor::graphics::state_object_t >( _post_so );
@@ -331,9 +345,11 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
 
         fe->use( _post_fb );
         fe->push( _post_so );
-        // motor::gfx::generic_camera_mtr_t cam = _sun_cam;
-        // motor::scene::render_visitor_t vis( 2, fe, cam );
-        // motor::scene::node_t::traverser( _root ).apply( &vis );
+
+        {
+            _tone_map->render( fe );
+        }
+
         fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
     }
@@ -348,3 +364,23 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
 }
 
 //***************************************************
+motor::hash_map< motor::string_t, motor::wire::inputs_mtr_t > hdr_postprocess_pipeline::inputs(
+    void_t ) noexcept
+{
+    inputs_map_t ret;
+    ret[ "tone_map" ] = _tone_map->borrow_inputs();
+
+    return ret;
+}
+
+//***************************************************
+hdr_postprocess_pipeline::property_sheets_t hdr_postprocess_pipeline::property_sheets(
+    void_t ) noexcept
+{
+    this_t::property_sheets_t ret ;
+
+    {
+        ret["tone_map"] = _tone_map->borrow_properties() ;
+    }
+    return ret ;
+}
