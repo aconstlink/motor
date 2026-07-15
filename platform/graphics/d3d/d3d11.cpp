@@ -2345,7 +2345,18 @@ public: // functions
                     if ( var_.def_val == size_t( -1 ) ) continue ;
 
                     auto * df = res.config.def_values[ var_.def_val ] ;
-                    if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
+                    if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< float_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        for ( auto & vs : obj.borrow_varibale_sets() )
+                        {
+                            // for @overwrite specifier
+                            //if( vs->has_data_variable( var_.name ) ) continue ;
+                            vs->data_variable<float_t>( var_.name )->set( gdv->get() ) ;
+                        }
+                    }
+                    else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
