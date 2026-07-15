@@ -31,6 +31,11 @@ set( sources
 
     "postprocess/downsample.h"
     "postprocess/downsample.cpp"
+    "postprocess/hdr_postprocess_pipeline.h"
+    "postprocess/hdr_postprocess_pipeline.cpp"
+    "postprocess/bloom_stage.hpp"
+    "postprocess/to_screen_stage.hpp"
+    "postprocess/tone_map_stage.hpp"
     )
 
 motor_vs_src_dir( sources )
