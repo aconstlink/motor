@@ -36,6 +36,7 @@ set( sources
     "postprocess/bloom_stage.hpp"
     "postprocess/to_screen_stage.hpp"
     "postprocess/tone_map_stage.hpp"
+    "postprocess/bright_pass_stage.hpp"
     )
 
 motor_vs_src_dir( sources )

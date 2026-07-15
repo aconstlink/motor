@@ -11,9 +11,9 @@ namespace motor
 {
 namespace gfx
 {
-class tone_map_stage
+class bright_pass_stage
 {
-    motor_this_typedefs( tone_map_stage );
+    motor_this_typedefs( bright_pass_stage );
 
   private:
 
@@ -24,10 +24,10 @@ class tone_map_stage
 
   public:
 
-    tone_map_stage( void_t ) noexcept {}
+    bright_pass_stage( void_t ) noexcept {}
 
-    tone_map_stage( this_cref_t ) = delete;
-    tone_map_stage( this_rref_t rhv ) noexcept
+    bright_pass_stage( this_cref_t ) = delete;
+    bright_pass_stage( this_rref_t rhv ) noexcept
         : _msl( motor::move( rhv._msl ) ), _brg( motor::move( _brg ) )
     {
     }
@@ -163,7 +163,7 @@ class tone_map_stage
         return _prop_sheet;
     }
 };
-motor_typedef( tone_map_stage );
+motor_typedef( bright_pass_stage );
 
 } // namespace gfx
 } // namespace motor

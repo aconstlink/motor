@@ -258,7 +258,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     {
 
         _tone_map = motor::shared( motor::gfx::tone_map_stage() );
-        _tone_map->init( "gfx.postprocess.hdr.framebuffer.0.1" );
+        _tone_map->init( "gfx.postprocess.hdr.framebuffer.0.0" );
     }
 }
 
@@ -347,6 +347,9 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
         fe->push( _post_so );
 
         {
+            
+        // bright pass
+        // bloom:wastebasket:
             _tone_map->render( fe );
         }
 
