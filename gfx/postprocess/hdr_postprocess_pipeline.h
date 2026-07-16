@@ -2,7 +2,9 @@
 
 #include "../api.h"
 #include "../typedefs.h"
+
 #include "tone_map_stage.hpp"
+#include "bright_pass_stage.hpp"
 
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/object/state_object.h>
@@ -44,7 +46,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
 
     // the resolution we use for the
     // post processing framebuffers
-    motor::math::vec2ui_t _post_fb_dims = motor::math::vec2ui_t( 1920, 1080 ) ;
+    motor::math::vec2ui_t _post_fb_dims = motor::math::vec2ui_t( 1920, 1080 );
 
   private: // map to screen
 
@@ -59,10 +61,11 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
   private:
 
     motor::gfx::tone_map_stage_mtr_t _tone_map = nullptr;
+    motor::gfx::bright_pass_stage_mtr_t _brightpass = nullptr;
 
   public:
 
-    hdr_postprocess_pipeline( uint_t const w=1920, uint_t const h=1080 ) noexcept;
+    hdr_postprocess_pipeline( uint_t const w = 1920, uint_t const h = 1080 ) noexcept;
     hdr_postprocess_pipeline( this_cref_t ) = delete;
     hdr_postprocess_pipeline( this_rref_t ) noexcept;
     ~hdr_postprocess_pipeline( void_t ) noexcept;

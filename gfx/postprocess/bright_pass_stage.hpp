@@ -41,11 +41,11 @@ class bright_pass_stage
         {
             // post quad object
             {
-                motor::graphics::msl_object_t mslo( "gfx.postprocess.stage.tone_map" );
+                motor::graphics::msl_object_t mslo( "gfx.postprocess.stage.bright_pass" );
 
                 mslo.add( motor::graphics::msl_api_type::msl_4_0, R"(
             
-                config gfx.postprocess.stage.tone_map.reinhardt
+                config gfx.postprocess.stage.bright_pass
                 {
                     vertex_shader
                     {
@@ -66,21 +66,22 @@ class bright_pass_stage
                         in vec2_t tx : texcoord0 ;
                         out vec4_t color : color ;
 
-                        vec3_t reinhard_offset ;
+                        float_t brightness_threshold(10.0) ;
+                        float_t brightness_knee_percent(0.3) ;
 
                         tex2d_t tx_map ;
 
                         void main()
                         {
-                            vec4_t col = rt_texture( tx_map, in.tx ) ;
-                            vec3_t tone_mapped =  col.xyz / ( col.xyz + reinhard_offset ) ; 
-                            tone_mapped = pow( tone_mapped, 1.0/2.2) ;
-                            out.color = vec4_t( tone_mapped, 1.0 ) ;
+                            float_t knee = min( brightness_threshold * brightness_knee_percent, 5.0 ) ;
 
-                            //out.color = vec4_t( col.r, col.r, col.r ,1.0) ;
-                            //out.color = vec4_t( in.tx, 0.0, 1.0) ;
-                            //if( in.tx.x > 0.5 )
-                              //  out.color = vec4_t( 0.0,0.0, 0.0, 1.0) ;
+                            vec4_t hdr_color = rt_texture( tx_map, in.tx ) ;
+                            float_t brightness = max(max(hdr_color.r, hdr_color.g), hdr_color.b);
+                            float bloom_mask = smoothstep( brightness_threshold-knee, brightness_threshold+knee, brightness ) ;
+
+                            vec3_t bright = hdr_color * bloom_mask ;
+                            out.color = vec4_t(bright, 1.0 ) ;
+
                         }
                     }
                 } )" );
@@ -100,8 +101,13 @@ class bright_pass_stage
                 }
 
                 {
-                    auto * var = vars.data_variable< motor::math::vec3f_t >( "reinhard_offset" );
-                    var->set( motor::math::vec3f_t( 6.0f, 3.0f, 6.0f ) );
+                    auto * var = vars.data_variable< float_t >( "brightness_threshold" );
+                    var->set( 10.0f );
+                }
+
+                {
+                    auto * var = vars.data_variable< float_t >( "brightness_knee_percent" );
+                    var->set( 0.3f );
                 }
 
                 auto vs_ptr = motor::shared( std::move( vars ), "a variable set" );
@@ -114,15 +120,30 @@ class bright_pass_stage
                 {
                     motor::property::property_sheet_t ps;
 
-                    using is_vec3f_t = motor::wire::input_slot< motor::math::vec3f_t >;
-                    motor::property::add_is_property< motor::math::vec3f_t >( "reinhard_offset",
-                        _brg->borrow_inputs()->borrow( "reinhard_offset" ), ps );
+                    using is_float_t = motor::wire::input_slot< float_t >;
 
                     {
-                        auto * prop = ps.borrow_property< is_vec3f_t >( "reinhard_offset" );
-                        prop->set_min_max( motor::property::min_max< motor::math::vec3f_t >(
-                            motor::math::vec3f_t( 0.1f ), motor::math::vec3f_t( 20.0f ) ) );
+                        motor::property::add_is_property< float_t >( "brightness_threshold",
+                            _brg->borrow_inputs()->borrow( "brightness_threshold" ), ps );
+
+                        {
+                            auto * prop =
+                                ps.borrow_property< is_float_t >( "brightness_threshold" );
+                            prop->set_min_max( motor::property::min_max< float_t >( 1.0f, 20.0f ) );
+                        }
                     }
+
+                    {
+                        motor::property::add_is_property< float_t >( "brightness_knee_percent",
+                            _brg->borrow_inputs()->borrow( "brightness_knee_percent" ), ps );
+
+                        {
+                            auto * prop =
+                                ps.borrow_property< is_float_t >( "brightness_knee_percent" );
+                            prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 0.7f ) );
+                        }
+                    }
+
                     _prop_sheet = motor::shared( std::move( ps ) );
                 }
             }
@@ -133,7 +154,7 @@ class bright_pass_stage
     {
         motor::release( motor::move( _msl ) );
         motor::release( motor::move( _brg ) );
-        motor::release( motor::move( _prop_sheet ) ) ;
+        motor::release( motor::move( _prop_sheet ) );
     }
 
     void_t init_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept

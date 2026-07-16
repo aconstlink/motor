@@ -196,7 +196,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             {
                 auto * var = vars.texture_variable( "tx_map" );
                 // var->set( "gfx.postprocess.framebuffer.0" );
-                var->set( "gfx.postprocess.fb.0.0" );
+                var->set( "gfx.postprocess.fb.1.0" );
             }
 
             _msl->add_variable_set(
@@ -207,14 +207,13 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     // init framebuffer
     // the framebuffers we do the post processing in.
     {
-        size_t const w = _post_fb_dims.x() ;
-        size_t const h = _post_fb_dims.y() ;
+        size_t const w = _post_fb_dims.x();
+        size_t const h = _post_fb_dims.y();
 
         // full hdr framebuffer
         {
             auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.0" );
-            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
-                .resize( w, h );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 ).resize( w, h );
 
             _post_fbs[ size_t( framebuffer_type::full_hdr_0 ) ] = motor::shared( std::move( fb ) );
         }
@@ -222,8 +221,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         // full hdr framebuffer
         {
             auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.1" );
-            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
-                .resize( w, h );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 ).resize( w, h );
 
             _post_fbs[ size_t( framebuffer_type::full_hdr_1 ) ] = motor::shared( std::move( fb ) );
         }
@@ -232,7 +230,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         {
             auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.2" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
-                .resize( w>>1, h>>1 );
+                .resize( w >> 1, h >> 1 );
 
             _post_fbs[ size_t( framebuffer_type::half_hdr ) ] = motor::shared( std::move( fb ) );
         }
@@ -241,7 +239,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         {
             auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.3" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
-                .resize( w>>2, h>>2 );
+                .resize( w >> 2, h >> 2 );
 
             _post_fbs[ size_t( framebuffer_type::quater_hdr ) ] = motor::shared( std::move( fb ) );
         }
@@ -249,8 +247,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         // full ldr framebuffer
         {
             auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.4" );
-            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
-                .resize( w, h );
+            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 ).resize( w, h );
 
             _post_fbs[ size_t( framebuffer_type::full_ldr ) ] = motor::shared( std::move( fb ) );
         }
@@ -289,8 +286,8 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     // the framebuffers we can render the scene to.
     // the content of those framebuffers are used in post processing
     {
-        size_t const w = _post_fb_dims.x() ;
-        size_t const h = _post_fb_dims.y() ;
+        size_t const w = _post_fb_dims.x();
+        size_t const h = _post_fb_dims.y();
 
         for( size_t i = 0; i < 2; ++i )
         {
@@ -309,6 +306,12 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     {
         _tone_map = motor::shared( motor::gfx::tone_map_stage() );
         _tone_map->init( "gfx.postprocess.hdr.framebuffer.0.0" );
+    }
+
+    // init brightpass
+    {
+        _brightpass = motor::shared( motor::gfx::bright_pass_stage() );
+        _brightpass->init( "gfx.postprocess.hdr.framebuffer.0.0" );
     }
 }
 
@@ -330,6 +333,9 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
 
     _tone_map->release();
     motor::release( motor::move( _tone_map ) );
+
+    _brightpass->release();
+    motor::release( motor::move( _brightpass ) );
 }
 
 //***************************************************
@@ -349,12 +355,14 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
     fe->configure< motor::graphics::state_object_t >( _hdr_so );
 
     _tone_map->init_graphics( fe );
+    _brightpass->init_graphics( fe );
 }
 
 //***************************************************
 void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
     _tone_map->release_graphics( fe );
+    _brightpass->release_graphics( fe );
 
     for( size_t i = 0; i < _post_fbs.size(); ++i )
     {
@@ -408,18 +416,21 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
     // stages
     {
 
-        fe->use( _post_fbs[0] );
-        fe->push( _post_so );
-
         {
-
-            // bright pass
-            // bloom:wastebasket:
+            fe->use( _post_fbs[ 0 ] );
+            fe->push( _post_so );
             _tone_map->render( fe );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
 
-        fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
-        fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        {
+            fe->use( _post_fbs[ 1 ] );
+            fe->push( _post_so );
+            _brightpass->render( fe );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        }
     }
 
     // map to screen
@@ -449,6 +460,7 @@ hdr_postprocess_pipeline::property_sheets_t hdr_postprocess_pipeline::property_s
 
     {
         ret[ "tone_map" ] = _tone_map->borrow_properties();
+        ret[ "brightpass" ] = _brightpass->borrow_properties();
     }
     return ret;
 }
