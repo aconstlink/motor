@@ -29,7 +29,22 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
 
     motor::graphics::state_object_mtr_t _post_so = nullptr;
     motor::graphics::geometry_object_mtr_t _post_quad = nullptr;
-    motor::graphics::framebuffer_object_mtr_t _post_fb = nullptr;
+
+    enum class framebuffer_type
+    {
+        full_hdr_0,
+        full_hdr_1,
+        half_hdr,
+        quater_hdr,
+        full_ldr,
+        num_types
+    };
+    std::array< motor::graphics::framebuffer_object_mtr_t, size_t( framebuffer_type::num_types ) >
+        _post_fbs;
+
+    // the resolution we use for the
+    // post processing framebuffers
+    motor::math::vec2ui_t _post_fb_dims = motor::math::vec2ui_t( 1920, 1080 ) ;
 
   private: // map to screen
 
@@ -41,13 +56,13 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     bool_t _size_changed = false;
     motor::math::vec2ui_t _dims;
 
-private:
+  private:
 
-    motor::gfx::tone_map_stage_mtr_t _tone_map = nullptr ;
+    motor::gfx::tone_map_stage_mtr_t _tone_map = nullptr;
 
   public:
 
-    hdr_postprocess_pipeline( void_t ) noexcept;
+    hdr_postprocess_pipeline( uint_t const w=1920, uint_t const h=1080 ) noexcept;
     hdr_postprocess_pipeline( this_cref_t ) = delete;
     hdr_postprocess_pipeline( this_rref_t ) noexcept;
     ~hdr_postprocess_pipeline( void_t ) noexcept;
@@ -55,7 +70,7 @@ private:
   public:
 
     motor::graphics::framebuffer_object_mtr_t borrow_hdr_fb( size_t const idx ) noexcept;
-    motor::graphics::state_object_mtr_t borrow_hdr_states( void_t ) noexcept ;
+    motor::graphics::state_object_mtr_t borrow_hdr_states( void_t ) noexcept;
 
   public:
 
@@ -67,13 +82,19 @@ private:
 
     void_t render( motor::graphics::gen4::frontend_ptr_t ) noexcept;
 
-    public:
+  public:
 
-    using inputs_map_t = motor::hash_map< motor::string_t, motor::wire::inputs_mtr_t > ;
-    inputs_map_t inputs( void_t ) noexcept ;
+    using inputs_map_t = motor::hash_map< motor::string_t, motor::wire::inputs_mtr_t >;
+    inputs_map_t inputs( void_t ) noexcept;
 
-    using property_sheets_t = motor::hash_map< motor::string_t, motor::property::property_sheet_mtr_t > ;
-    property_sheets_t property_sheets( void_t ) noexcept ;
+    using property_sheets_t =
+        motor::hash_map< motor::string_t, motor::property::property_sheet_mtr_t >;
+    property_sheets_t property_sheets( void_t ) noexcept;
+
+  private:
+
+    motor::graphics::framebuffer_object_mtr_t borrow_post_framebuffer(
+        this_t::framebuffer_type const ) noexcept;
 };
 motor_typedef( hdr_postprocess_pipeline );
 } // namespace gfx

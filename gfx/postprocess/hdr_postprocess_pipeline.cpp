@@ -4,12 +4,15 @@
 using namespace motor::gfx;
 
 //***************************************************
-hdr_postprocess_pipeline::hdr_postprocess_pipeline( void_t ) noexcept {}
+hdr_postprocess_pipeline::hdr_postprocess_pipeline( uint_t const w, uint_t const h ) noexcept
+    : _post_fb_dims( w, h )
+{
+}
 
 //***************************************************
 hdr_postprocess_pipeline::hdr_postprocess_pipeline( this_rref_t rhv ) noexcept
     : _post_so( motor::move( rhv._post_so ) ), _post_quad( motor::move( rhv._post_quad ) ),
-      _post_fb( motor::move( rhv._post_fb ) ), _mts_so( motor::move( rhv._mts_so ) ),
+      _post_fbs( std::move( rhv._post_fbs ) ), _mts_so( motor::move( rhv._mts_so ) ),
       _hdr_so( motor::move( rhv._hdr_so ) ), _msl( motor::move( rhv._msl ) )
 {
     _hdr_fbs[ 0 ] = motor::move( rhv._hdr_fbs[ 0 ] );
@@ -101,7 +104,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             rss.clear_s.ss.do_depth_clear = true;
             rss.view_s.do_change = true;
             rss.view_s.ss.do_activate = true;
-            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000, 1000 );
+            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, _post_fb_dims.x(), _post_fb_dims.y() );
             so.add_render_state_set( rss );
         }
 
@@ -128,7 +131,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             rss.clear_s.ss.do_activate = true;
             rss.clear_s.ss.do_color_clear = true;
             rss.clear_s.ss.do_depth_clear = true;
-            rss.view_s.do_change = true;
+            rss.view_s.do_change = false;
             rss.view_s.ss.do_activate = false;
             rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 50, 50 );
             so.add_render_state_set( rss );
@@ -193,7 +196,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             {
                 auto * var = vars.texture_variable( "tx_map" );
                 // var->set( "gfx.postprocess.framebuffer.0" );
-                var->set( "gfx.postprocess.framebuffer.0" );
+                var->set( "gfx.postprocess.fb.0.0" );
             }
 
             _msl->add_variable_set(
@@ -202,12 +205,55 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     }
 
     // init framebuffer
+    // the framebuffers we do the post processing in.
     {
-        auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.framebuffer" );
-        fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
-            .resize( size_t( 1000 ), size_t( 1000 ) );
+        size_t const w = _post_fb_dims.x() ;
+        size_t const h = _post_fb_dims.y() ;
 
-        _post_fb = motor::shared( std::move( fb ) );
+        // full hdr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.0" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
+                .resize( w, h );
+
+            _post_fbs[ size_t( framebuffer_type::full_hdr_0 ) ] = motor::shared( std::move( fb ) );
+        }
+
+        // full hdr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.1" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
+                .resize( w, h );
+
+            _post_fbs[ size_t( framebuffer_type::full_hdr_1 ) ] = motor::shared( std::move( fb ) );
+        }
+
+        // half hdr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.2" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
+                .resize( w>>1, h>>1 );
+
+            _post_fbs[ size_t( framebuffer_type::half_hdr ) ] = motor::shared( std::move( fb ) );
+        }
+
+        // quater hdr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.3" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
+                .resize( w>>2, h>>2 );
+
+            _post_fbs[ size_t( framebuffer_type::quater_hdr ) ] = motor::shared( std::move( fb ) );
+        }
+
+        // full ldr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.4" );
+            fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 )
+                .resize( w, h );
+
+            _post_fbs[ size_t( framebuffer_type::full_ldr ) ] = motor::shared( std::move( fb ) );
+        }
     }
 
     // hdr render states
@@ -232,7 +278,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             rss.clear_s.ss.do_depth_clear = true;
             rss.view_s.do_change = true;
             rss.view_s.ss.do_activate = true;
-            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 1000, 1000 );
+            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, _post_fb_dims.x(), _post_fb_dims.y() );
             so.add_render_state_set( rss );
         }
 
@@ -240,7 +286,12 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     }
 
     // init framebuffer
+    // the framebuffers we can render the scene to.
+    // the content of those framebuffers are used in post processing
     {
+        size_t const w = _post_fb_dims.x() ;
+        size_t const h = _post_fb_dims.y() ;
+
         for( size_t i = 0; i < 2; ++i )
         {
             motor::string_t const n = motor::to_string( i );
@@ -248,7 +299,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
                 motor::graphics::framebuffer_object_t( "gfx.postprocess.hdr.framebuffer." + n );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 4 )
                 .set_target( motor::graphics::depth_stencil_target_type::depth32 )
-                .resize( size_t( 1000 ), size_t( 1000 ) );
+                .resize( w, h );
 
             _hdr_fbs[ i ] = motor::shared( std::move( fb ) );
         }
@@ -256,7 +307,6 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
     // init tone mapping
     {
-
         _tone_map = motor::shared( motor::gfx::tone_map_stage() );
         _tone_map->init( "gfx.postprocess.hdr.framebuffer.0.0" );
     }
@@ -267,12 +317,16 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
 {
     motor::release( motor::move( _post_quad ) );
     motor::release( motor::move( _post_so ) );
-    motor::release( motor::move( _post_fb ) );
     motor::release( motor::move( _hdr_fbs[ 0 ] ) );
     motor::release( motor::move( _hdr_fbs[ 1 ] ) );
     motor::release( motor::move( _hdr_so ) );
     motor::release( motor::move( _mts_so ) );
     motor::release( motor::move( _msl ) );
+
+    for( size_t i = 0; i < _post_fbs.size(); ++i )
+    {
+        motor::release( motor::move( _post_fbs[ i ] ) );
+    }
 
     _tone_map->release();
     motor::release( motor::move( _tone_map ) );
@@ -281,6 +335,11 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
 //***************************************************
 void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
+    for( size_t i = 0; i < _post_fbs.size(); ++i )
+    {
+        fe->configure< motor::graphics::framebuffer_object_t >( _post_fbs[ i ] );
+    }
+
     fe->configure< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 0 ] );
     fe->configure< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 1 ] );
     fe->configure< motor::graphics::geometry_object_t >( _post_quad );
@@ -288,7 +347,6 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
     fe->configure< motor::graphics::state_object_t >( _post_so );
     fe->configure< motor::graphics::state_object_t >( _mts_so );
     fe->configure< motor::graphics::state_object_t >( _hdr_so );
-    fe->configure< motor::graphics::framebuffer_object_t >( _post_fb );
 
     _tone_map->init_graphics( fe );
 }
@@ -298,12 +356,16 @@ void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend
 {
     _tone_map->release_graphics( fe );
 
+    for( size_t i = 0; i < _post_fbs.size(); ++i )
+    {
+        fe->release< motor::graphics::framebuffer_object_t >( _post_fbs[ i ] );
+    }
+
     fe->release< motor::graphics::geometry_object_t >( _post_quad );
     fe->release< motor::graphics::msl_object_t >( _msl );
     fe->release< motor::graphics::state_object_t >( _post_so );
     fe->release< motor::graphics::state_object_t >( _mts_so );
     fe->release< motor::graphics::state_object_t >( _hdr_so );
-    fe->release< motor::graphics::framebuffer_object_t >( _post_fb );
     fe->release< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 0 ] );
     fe->release< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 1 ] );
 }
@@ -328,13 +390,16 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
         }
 
         {
-            _post_fb->resize( w, h );
+            for( size_t i = 0; i < _post_fbs.size(); ++i )
+            {
+                _post_fbs[ i ]->resize( w, h );
+            }
+
             _hdr_fbs[ 0 ]->resize( w, h );
             _hdr_fbs[ 1 ]->resize( w, h );
         }
 
         fe->configure< motor::graphics::state_object_t >( _post_so );
-        fe->configure< motor::graphics::framebuffer_object_t >( _post_fb );
         fe->configure< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 0 ] );
         fe->configure< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 1 ] );
         _size_changed = false;
@@ -343,13 +408,13 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
     // stages
     {
 
-        fe->use( _post_fb );
+        fe->use( _post_fbs[0] );
         fe->push( _post_so );
 
         {
-            
-        // bright pass
-        // bloom:wastebasket:
+
+            // bright pass
+            // bloom:wastebasket:
             _tone_map->render( fe );
         }
 
@@ -380,10 +445,17 @@ motor::hash_map< motor::string_t, motor::wire::inputs_mtr_t > hdr_postprocess_pi
 hdr_postprocess_pipeline::property_sheets_t hdr_postprocess_pipeline::property_sheets(
     void_t ) noexcept
 {
-    this_t::property_sheets_t ret ;
+    this_t::property_sheets_t ret;
 
     {
-        ret["tone_map"] = _tone_map->borrow_properties() ;
+        ret[ "tone_map" ] = _tone_map->borrow_properties();
     }
-    return ret ;
+    return ret;
+}
+
+//***************************************************
+motor::graphics::framebuffer_object_mtr_t hdr_postprocess_pipeline::borrow_post_framebuffer(
+    this_t::framebuffer_type const t ) noexcept
+{
+    return _post_fbs[ size_t( t ) ];
 }
