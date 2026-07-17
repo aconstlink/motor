@@ -145,7 +145,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     {
         // post quad object
         {
-            motor::graphics::msl_object_t mslo( "gfx.postprocess.post_quad" );
+            motor::graphics::msl_object_t mslo( "gfx.postprocess.color_to_screen" );
 
             mslo.add( motor::graphics::msl_api_type::msl_4_0, R"(
             
@@ -196,7 +196,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             {
                 auto * var = vars.texture_variable( "tx_map" );
                 // var->set( "gfx.postprocess.framebuffer.0" );
-                var->set( "gfx.postprocess.fb.1.0" );
+                var->set( "gfx.postprocess.fb.4.0" );
             }
 
             _msl->add_variable_set(
@@ -244,9 +244,28 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             _post_fbs[ size_t( framebuffer_type::quater_hdr ) ] = motor::shared( std::move( fb ) );
         }
 
-        // full ldr framebuffer
+        // eigth hdr framebuffer
         {
             auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.4" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
+                .resize( w >> 3, h >> 3 );
+
+            _post_fbs[ size_t( framebuffer_type::eigth_hdr ) ] = motor::shared( std::move( fb ) );
+        }
+
+        // sixteenth hdr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.5" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
+                .resize( w >> 4, h >> 4 );
+
+            _post_fbs[ size_t( framebuffer_type::sixteenth_hdr ) ] =
+                motor::shared( std::move( fb ) );
+        }
+
+        // full ldr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.6" );
             fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 ).resize( w, h );
 
             _post_fbs[ size_t( framebuffer_type::full_ldr ) ] = motor::shared( std::move( fb ) );
@@ -313,6 +332,15 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         _brightpass = motor::shared( motor::gfx::bright_pass_stage() );
         _brightpass->init( "gfx.postprocess.hdr.framebuffer.0.0" );
     }
+
+    // init bloom
+    {
+        uint_t const w = _post_fb_dims.x();
+        uint_t const h = _post_fb_dims.y();
+
+        _bloom = motor::shared( motor::gfx::bloom_stage() );
+        _bloom->init( "gfx.postprocess.fb.1.0", w, h );
+    }
 }
 
 //***************************************************
@@ -336,6 +364,9 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
 
     _brightpass->release();
     motor::release( motor::move( _brightpass ) );
+
+    _bloom->release();
+    motor::release( motor::move( _bloom ) );
 }
 
 //***************************************************
@@ -356,6 +387,7 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
 
     _tone_map->init_graphics( fe );
     _brightpass->init_graphics( fe );
+    _bloom->init_graphics( fe );
 }
 
 //***************************************************
@@ -363,6 +395,7 @@ void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend
 {
     _tone_map->release_graphics( fe );
     _brightpass->release_graphics( fe );
+    _bloom->release_graphics( fe );
 
     for( size_t i = 0; i < _post_fbs.size(); ++i )
     {
@@ -431,6 +464,29 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
             fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
             fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
+
+        fe->push( _post_so );
+        {
+            // level 1
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::half_hdr ) ] );
+                _bloom->render( motor::gfx::bloom_stage_t::level_type::level_1, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+            // level 2
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::quater_hdr ) ] );
+                _bloom->render( motor::gfx::bloom_stage_t::level_type::level_2, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+            // level 3
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::eigth_hdr ) ] );
+                _bloom->render( motor::gfx::bloom_stage_t::level_type::level_3, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+        }
+        fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
     }
 
     // map to screen

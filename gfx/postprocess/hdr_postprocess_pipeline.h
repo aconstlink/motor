@@ -5,6 +5,7 @@
 
 #include "tone_map_stage.hpp"
 #include "bright_pass_stage.hpp"
+#include "bloom_stage.h"
 
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/object/state_object.h>
@@ -38,11 +39,18 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
         full_hdr_1,
         half_hdr,
         quater_hdr,
+        eigth_hdr,
+        sixteenth_hdr,
         full_ldr,
         num_types
     };
     std::array< motor::graphics::framebuffer_object_mtr_t, size_t( framebuffer_type::num_types ) >
         _post_fbs;
+    
+    static size_t to_idx( framebuffer_type const fbt ) noexcept
+    {
+        return size_t( fbt ) ;
+    }
 
     // the resolution we use for the
     // post processing framebuffers
@@ -62,6 +70,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
 
     motor::gfx::tone_map_stage_mtr_t _tone_map = nullptr;
     motor::gfx::bright_pass_stage_mtr_t _brightpass = nullptr;
+    motor::gfx::bloom_stage_mtr_t _bloom = nullptr;
 
   public:
 
