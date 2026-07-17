@@ -196,7 +196,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             {
                 auto * var = vars.texture_variable( "tx_map" );
                 // var->set( "gfx.postprocess.framebuffer.0" );
-                var->set( "gfx.postprocess.fb.4.0" );
+                var->set( "gfx.postprocess.fb.full.hdr.2.0" );
             }
 
             _msl->add_variable_set(
@@ -212,7 +212,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         // full hdr framebuffer
         {
-            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.0" );
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.full.hdr.0" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 ).resize( w, h );
 
             _post_fbs[ size_t( framebuffer_type::full_hdr_0 ) ] = motor::shared( std::move( fb ) );
@@ -220,15 +220,31 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         // full hdr framebuffer
         {
-            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.1" );
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.full.hdr.1" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 ).resize( w, h );
 
             _post_fbs[ size_t( framebuffer_type::full_hdr_1 ) ] = motor::shared( std::move( fb ) );
         }
 
+        // full hdr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.full.hdr.2" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 ).resize( w, h );
+
+            _post_fbs[ size_t( framebuffer_type::full_hdr_2 ) ] = motor::shared( std::move( fb ) );
+        }
+
+        // full hdr framebuffer
+        {
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.full.hdr.3" );
+            fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 ).resize( w, h );
+
+            _post_fbs[ size_t( framebuffer_type::full_hdr_3 ) ] = motor::shared( std::move( fb ) );
+        }
+
         // half hdr framebuffer
         {
-            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.2" );
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.half.hdr.0" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
                 .resize( w >> 1, h >> 1 );
 
@@ -237,7 +253,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         // quater hdr framebuffer
         {
-            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.3" );
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.quater.hdr.0" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
                 .resize( w >> 2, h >> 2 );
 
@@ -246,7 +262,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         // eigth hdr framebuffer
         {
-            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.4" );
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.eigth.hdr.0" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
                 .resize( w >> 3, h >> 3 );
 
@@ -255,7 +271,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         // sixteenth hdr framebuffer
         {
-            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.5" );
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.sixteenth.hdr.0" );
             fb.set_target( motor::graphics::color_target_type::rgba_float_32, 1 )
                 .resize( w >> 4, h >> 4 );
 
@@ -265,7 +281,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         // full ldr framebuffer
         {
-            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.6" );
+            auto fb = motor::graphics::framebuffer_object_t( "gfx.postprocess.fb.full.ldr.0" );
             fb.set_target( motor::graphics::color_target_type::rgba_uint_8, 1 ).resize( w, h );
 
             _post_fbs[ size_t( framebuffer_type::full_ldr ) ] = motor::shared( std::move( fb ) );
@@ -339,7 +355,31 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         uint_t const h = _post_fb_dims.y();
 
         _bloom = motor::shared( motor::gfx::bloom_stage() );
-        _bloom->init( "gfx.postprocess.fb.1.0", w, h );
+        _bloom->init( w, h );
+
+        // level 1 downsample should read the render target the bright pass wrote into
+        _bloom->set_read_render_target_for_down(
+            motor::gfx::bloom_stage_t::level_type::level_1, "gfx.postprocess.fb.full.hdr.1.0" );
+        _bloom->set_read_render_target_for_down(
+            motor::gfx::bloom_stage_t::level_type::level_2, "gfx.postprocess.fb.half.hdr.0.0" );
+        _bloom->set_read_render_target_for_down(
+            motor::gfx::bloom_stage_t::level_type::level_3, "gfx.postprocess.fb.quater.hdr.0.0" );
+        _bloom->set_read_render_target_for_down(
+            motor::gfx::bloom_stage_t::level_type::level_4, "gfx.postprocess.fb.eigth.hdr.0.0" );
+        _bloom->set_read_render_target_for_down( motor::gfx::bloom_stage_t::level_type::level_5,
+            "gfx.postprocess.fb.sixteenth.hdr.0.0" );
+
+        // upsampling working the other way around.
+        _bloom->set_read_render_target_for_up(
+            motor::gfx::bloom_stage_t::level_type::level_1, "gfx.postprocess.fb.half.hdr.0.0" );
+        _bloom->set_read_render_target_for_up(
+            motor::gfx::bloom_stage_t::level_type::level_2, "gfx.postprocess.fb.quater.hdr.0.0" );
+        _bloom->set_read_render_target_for_up(
+            motor::gfx::bloom_stage_t::level_type::level_3, "gfx.postprocess.fb.eigth.hdr.0.0" );
+        _bloom->set_read_render_target_for_up( motor::gfx::bloom_stage_t::level_type::level_4,
+            "gfx.postprocess.fb.sixteenth.hdr.0.0" );
+        _bloom->set_read_render_target_for_up(
+            motor::gfx::bloom_stage_t::level_type::level_5, "gfx.postprocess.fb.5.0" ); // not used.
     }
 }
 
@@ -466,26 +506,70 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
         }
 
         fe->push( _post_so );
+
+        // downsample
         {
             // level 1
             {
                 fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::half_hdr ) ] );
-                _bloom->render( motor::gfx::bloom_stage_t::level_type::level_1, fe );
+                _bloom->render_down( motor::gfx::bloom_stage_t::level_type::level_1, fe );
                 fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
             }
             // level 2
             {
                 fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::quater_hdr ) ] );
-                _bloom->render( motor::gfx::bloom_stage_t::level_type::level_2, fe );
+                _bloom->render_down( motor::gfx::bloom_stage_t::level_type::level_2, fe );
                 fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
             }
             // level 3
             {
                 fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::eigth_hdr ) ] );
-                _bloom->render( motor::gfx::bloom_stage_t::level_type::level_3, fe );
+                _bloom->render_down( motor::gfx::bloom_stage_t::level_type::level_3, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+            // level 4
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::sixteenth_hdr ) ] );
+                _bloom->render_down( motor::gfx::bloom_stage_t::level_type::level_4, fe );
                 fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
             }
         }
+
+        // upsample
+        {
+            // level 4
+            // bind eigth but read from sixteenth
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::eigth_hdr ) ] );
+                _bloom->render_up( motor::gfx::bloom_stage_t::level_type::level_4, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+
+            // level 3
+            // bind quater but read from eigth
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::quater_hdr ) ] );
+                _bloom->render_up( motor::gfx::bloom_stage_t::level_type::level_3, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+
+            // level 2
+            // bind half but read from quater
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::half_hdr ) ] );
+                _bloom->render_up( motor::gfx::bloom_stage_t::level_type::level_2, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+
+            // level 1
+            // bind full but read from half
+            {
+                fe->use( _post_fbs[ this_t::to_idx( this_t::framebuffer_type::full_hdr_2 ) ] );
+                _bloom->render_up( motor::gfx::bloom_stage_t::level_type::level_1, fe );
+                fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+            }
+        }
+
         fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
     }
 

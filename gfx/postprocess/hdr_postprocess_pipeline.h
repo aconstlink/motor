@@ -37,6 +37,8 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     {
         full_hdr_0,
         full_hdr_1,
+        full_hdr_2,
+        full_hdr_3,
         half_hdr,
         quater_hdr,
         eigth_hdr,

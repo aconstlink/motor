@@ -29,8 +29,6 @@ set( sources
     "util/quad.h"
     "util/quad.cpp"
 
-    "postprocess/downsample.h"
-    "postprocess/downsample.cpp"
     "postprocess/hdr_postprocess_pipeline.h"
     "postprocess/hdr_postprocess_pipeline.cpp"
     "postprocess/bloom_stage.h"
@@ -38,6 +36,7 @@ set( sources
     "postprocess/to_screen_stage.hpp"
     "postprocess/tone_map_stage.hpp"
     "postprocess/bright_pass_stage.hpp"
+    "postprocess/merge_stage.hpp"
     )
 
 motor_vs_src_dir( sources )

@@ -36,15 +36,20 @@ class bloom_stage
         num_level
     };
 
+    static size_t to_idx( this_t::level_type const lt ) noexcept
+    {
+        return size_t( lt ) ;
+    }
+
   private:
 
     struct per_level_data
     {
-        motor::math::vec2ui_t dims;
-        motor::graphics::state_object_mtr_t so = nullptr;
+        motor::graphics::variable_set_mtr_t vs = nullptr ;
+        motor::graphics::state_object_mtr_t so_down = nullptr;
+        motor::graphics::state_object_mtr_t so_up = nullptr;
     };
     std::array< per_level_data, size_t( level_type::num_level ) > _per_level;
-    bool_t _res_changed = false;
 
   public:
 
@@ -57,7 +62,7 @@ class bloom_stage
 
     void_t change_resolution( uint_t const w, uint_t const h ) noexcept;
 
-    void_t init( motor::string_cref_t rt_name, uint_t const w, uint_t const h ) noexcept;
+    void_t init( uint_t const w, uint_t const h ) noexcept;
 
     void_t release( void_t ) noexcept;
 
@@ -65,7 +70,11 @@ class bloom_stage
 
     void_t release_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
 
-    void_t render( this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
+    void_t set_read_render_target_for_down( this_t::level_type const lt, motor::string_in_t name ) noexcept ;
+    void_t set_read_render_target_for_up( this_t::level_type const lt, motor::string_in_t name ) noexcept ;
+
+    void_t render_down( this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
+    void_t render_up( this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
 
     motor::wire::inputs_mtr_t borrow_inputs( void_t ) noexcept;
 
