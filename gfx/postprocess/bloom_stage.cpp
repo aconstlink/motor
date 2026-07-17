@@ -196,7 +196,7 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
                         {
                             vec2_t texel = vec2_t(1.0,1.0) / texture_dims( tx_for_upsample ) ;
                             vec2_t uv = in.tx ;
-                            float_t r = 2.0 ;
+                            float_t r = 3.0 ;
 
                             vec3_t c = vec3_t(0.0,0.0,0.0);
 

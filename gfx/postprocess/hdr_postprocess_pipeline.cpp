@@ -196,7 +196,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             {
                 auto * var = vars.texture_variable( "tx_map" );
                 // var->set( "gfx.postprocess.framebuffer.0" );
-                var->set( "gfx.postprocess.fb.full.hdr.2.0" );
+                var->set( "gfx.postprocess.fb.full.hdr.0.0" );
             }
 
             _msl->add_variable_set(
@@ -340,7 +340,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
     // init tone mapping
     {
         _tone_map = motor::shared( motor::gfx::tone_map_stage() );
-        _tone_map->init( "gfx.postprocess.hdr.framebuffer.0.0" );
+        _tone_map->init( "gfx.postprocess.fb.full.hdr.1.0" );
     }
 
     // init brightpass
@@ -381,6 +381,13 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         _bloom->set_read_render_target_for_up(
             motor::gfx::bloom_stage_t::level_type::level_5, "gfx.postprocess.fb.5.0" ); // not used.
     }
+
+    // init merge
+    {
+        _merge = motor::shared( motor::gfx::merge_stage() );
+        // merge hdr scene and bloom
+        _merge->init( "gfx.postprocess.hdr.framebuffer.0.0", "gfx.postprocess.fb.full.hdr.2.0" );
+    }
 }
 
 //***************************************************
@@ -407,6 +414,9 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
 
     _bloom->release();
     motor::release( motor::move( _bloom ) );
+
+    _merge->release();
+    motor::release( motor::move( _merge ) );
 }
 
 //***************************************************
@@ -428,6 +438,7 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
     _tone_map->init_graphics( fe );
     _brightpass->init_graphics( fe );
     _bloom->init_graphics( fe );
+    _merge->init_graphics( fe );
 }
 
 //***************************************************
@@ -436,6 +447,7 @@ void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend
     _tone_map->release_graphics( fe );
     _brightpass->release_graphics( fe );
     _bloom->release_graphics( fe );
+    _merge->release_graphics( fe );
 
     for( size_t i = 0; i < _post_fbs.size(); ++i )
     {
@@ -488,15 +500,6 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
 
     // stages
     {
-
-        {
-            fe->use( _post_fbs[ 0 ] );
-            fe->push( _post_so );
-            _tone_map->render( fe );
-            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
-            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
-        }
-
         {
             fe->use( _post_fbs[ 1 ] );
             fe->push( _post_so );
@@ -571,6 +574,22 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
         }
 
         fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+
+        {
+            fe->use( _post_fbs[ 1 ] );
+            fe->push( _post_so );
+            _merge->render( fe );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        }
+
+        {
+            fe->use( _post_fbs[ 0 ] );
+            fe->push( _post_so );
+            _tone_map->render( fe );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        }
     }
 
     // map to screen
@@ -601,6 +620,7 @@ hdr_postprocess_pipeline::property_sheets_t hdr_postprocess_pipeline::property_s
     {
         ret[ "tone_map" ] = _tone_map->borrow_properties();
         ret[ "brightpass" ] = _brightpass->borrow_properties();
+        ret[ "merge" ] = _merge->borrow_properties();
     }
     return ret;
 }

@@ -79,7 +79,7 @@ class bright_pass_stage
                             float_t brightness = max(max(hdr_color.r, hdr_color.g), hdr_color.b);
                             float bloom_mask = smoothstep( brightness_threshold-knee, brightness_threshold+knee, brightness ) ;
 
-                            vec3_t bright = hdr_color * bloom_mask ;
+                            vec3_t bright = hdr_color.xyz * bloom_mask ;
                             out.color = vec4_t(bright, 1.0 ) ;
 
                         }

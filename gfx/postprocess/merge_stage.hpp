@@ -11,9 +11,9 @@ namespace motor
 {
 namespace gfx
 {
-class bright_pass_stage
+class merge_stage
 {
-    motor_this_typedefs( bright_pass_stage );
+    motor_this_typedefs( merge_stage );
 
   private:
 
@@ -24,28 +24,28 @@ class bright_pass_stage
 
   public:
 
-    bright_pass_stage( void_t ) noexcept {}
+    merge_stage( void_t ) noexcept {}
 
-    bright_pass_stage( this_cref_t ) = delete;
-    bright_pass_stage( this_rref_t rhv ) noexcept
+    merge_stage( this_cref_t ) = delete;
+    merge_stage( this_rref_t rhv ) noexcept
         : _msl( motor::move( rhv._msl ) ), _brg( motor::move( _brg ) )
     {
     }
 
   public:
 
-    void_t init( motor::string_cref_t rt_name ) noexcept
+    void_t init( motor::string_cref_t rt_name_a, motor::string_cref_t rt_name_b  ) noexcept
     {
         // init msl
         // shaders for post process
         {
             // post quad object
             {
-                motor::graphics::msl_object_t mslo( "gfx.postprocess.stage.bright_pass" );
+                motor::graphics::msl_object_t mslo( "gfx.postprocess.stage.hdr.merge" );
 
                 mslo.add( motor::graphics::msl_api_type::msl_4_0, R"(
             
-                config gfx.postprocess.stage.bright_pass
+                config gfx.postprocess.stage.hdr.merge
                 {
                     vertex_shader
                     {
@@ -66,21 +66,19 @@ class bright_pass_stage
                         in vec2_t tx : texcoord0 ;
                         out vec4_t color : color ;
 
-                        float_t brightness_threshold(10.0) ;
-                        float_t brightness_knee_percent(0.3) ;
+                        tex2d_t tx_a ;
+                        tex2d_t tx_b ;
 
-                        tex2d_t tx_map ;
+                        float_t strength_a(1.0) ;
+                        float_t strength_b(0.8) ;
 
                         void main()
                         {
-                            float_t knee = min( brightness_threshold * brightness_knee_percent, 5.0 ) ;
 
-                            vec4_t hdr_color = rt_texture( tx_map, in.tx ) ;
-                            float_t brightness = max(max(hdr_color.r, hdr_color.g), hdr_color.b);
-                            float bloom_mask = smoothstep( brightness_threshold-knee, brightness_threshold+knee, brightness ) ;
-
-                            vec3_t bright = hdr_color * bloom_mask ;
-                            out.color = vec4_t(bright, 1.0 ) ;
+                            vec4_t color_a = rt_texture( tx_a, in.tx ) * strength_a ;
+                            vec4_t color_b = rt_texture( tx_b, in.tx ) * strength_b ;
+                            
+                            out.color = vec4_t( color_a.xyz + color_b.xyz, 1.0 ) ;
 
                         }
                     }
@@ -96,18 +94,23 @@ class bright_pass_stage
                 motor::graphics::variable_set_t vars;
 
                 {
-                    auto * var = vars.texture_variable( "tx_map" );
-                    var->set( rt_name );
+                    auto * var = vars.texture_variable( "tx_a" );
+                    var->set( rt_name_a );
                 }
 
                 {
-                    auto * var = vars.data_variable< float_t >( "brightness_threshold" );
-                    var->set( 10.0f );
+                    auto * var = vars.texture_variable( "tx_b" );
+                    var->set( rt_name_b );
                 }
 
                 {
-                    auto * var = vars.data_variable< float_t >( "brightness_knee_percent" );
-                    var->set( 0.3f );
+                    auto * var = vars.data_variable< float_t >( "strength_a" );
+                    var->set( 1.0f );
+                }
+
+                {
+                    auto * var = vars.data_variable< float_t >( "strength_b" );
+                    var->set( 0.8f );
                 }
 
                 auto vs_ptr = motor::shared( std::move( vars ), "a variable set" );
@@ -123,24 +126,24 @@ class bright_pass_stage
                     using is_float_t = motor::wire::input_slot< float_t >;
 
                     {
-                        motor::property::add_is_property< float_t >( "brightness_threshold",
-                            _brg->borrow_inputs()->borrow( "brightness_threshold" ), ps );
+                        motor::property::add_is_property< float_t >( "strength_a",
+                            _brg->borrow_inputs()->borrow( "strength_a" ), ps );
 
                         {
                             auto * prop =
-                                ps.borrow_property< is_float_t >( "brightness_threshold" );
-                            prop->set_min_max( motor::property::min_max< float_t >( 1.0f, 20.0f ) );
+                                ps.borrow_property< is_float_t >( "strength_a" );
+                            prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 1.0f ) );
                         }
                     }
 
                     {
-                        motor::property::add_is_property< float_t >( "brightness_knee_percent",
-                            _brg->borrow_inputs()->borrow( "brightness_knee_percent" ), ps );
+                        motor::property::add_is_property< float_t >( "strength_b",
+                            _brg->borrow_inputs()->borrow( "strength_b" ), ps );
 
                         {
                             auto * prop =
-                                ps.borrow_property< is_float_t >( "brightness_knee_percent" );
-                            prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 0.7f ) );
+                                ps.borrow_property< is_float_t >( "strength_b" );
+                            prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 1.0f ) );
                         }
                     }
 
@@ -184,7 +187,7 @@ class bright_pass_stage
         return _prop_sheet;
     }
 };
-motor_typedef( bright_pass_stage );
+motor_typedef( merge_stage );
 
 } // namespace gfx
 } // namespace motor

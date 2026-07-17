@@ -6,6 +6,7 @@
 #include "tone_map_stage.hpp"
 #include "bright_pass_stage.hpp"
 #include "bloom_stage.h"
+#include "merge_stage.hpp"
 
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/object/state_object.h>
@@ -73,6 +74,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     motor::gfx::tone_map_stage_mtr_t _tone_map = nullptr;
     motor::gfx::bright_pass_stage_mtr_t _brightpass = nullptr;
     motor::gfx::bloom_stage_mtr_t _bloom = nullptr;
+    motor::gfx::merge_stage_mtr_t _merge = nullptr;
 
   public:
 
