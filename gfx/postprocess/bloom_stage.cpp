@@ -97,7 +97,6 @@ void_t bloom_stage::change_resolution( uint_t const w, uint_t const h ) noexcept
         {
         }
 
-
         if( _per_level[ i ].vs_up == nullptr )
         {
             motor::graphics::variable_set_t vs;
@@ -108,7 +107,7 @@ void_t bloom_stage::change_resolution( uint_t const w, uint_t const h ) noexcept
             }
 
             {
-                auto * var = vs.data_variable<float_t>( "upsample_radius" );
+                auto * var = vs.data_variable< float_t >( "upsample_radius" );
                 var->set( 1.0f );
             }
 
@@ -430,9 +429,10 @@ void_t bloom_stage::render_down(
         if( _cl_down->reset_and_successful( sb ) )
         {
             auto vs = _msl_down->get_varibale_set( 0 );
-            
+
             //
-            {}
+            {
+            }
         }
     }
 
@@ -458,20 +458,20 @@ void_t bloom_stage::render_up(
         motor::graphics::shader_bindings_t sb;
         if( _cl_up->reset_and_successful( sb ) )
         {
-            auto vs = _msl_up->get_varibale_set( 0 );            
+            auto vs = _msl_up->get_varibale_set( 0 );
 
             // because we have multiple variable set(i.e. one per level)
             // we just get the default values we need from the
             // first varible set.
             // unfortunately, there is no easier way at the moment.
             {
-                auto var = vs->data_variable<float_t>( "upsample_radius" ) ;
+                auto var = vs->data_variable< float_t >( "upsample_radius" );
                 if( var )
                 {
-                    auto * prop = _prop_sheet->borrow_property<float_t>( "upsample_radius" ) ;
+                    auto * prop = _prop_sheet->borrow_property< float_t >( "upsample_radius" );
                     if( prop )
                     {
-                        prop->set( var->get() ) ;
+                        prop->set( var->get() );
                     }
                 }
             }
