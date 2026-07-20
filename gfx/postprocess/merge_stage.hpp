@@ -22,19 +22,28 @@ class merge_stage
 
     motor::property::property_sheet_mtr_t _prop_sheet = nullptr;
 
+    motor::graphics::compilation_listener_mtr_t _comp_list =
+        motor::shared( motor::graphics::compilation_listener_t() );
+
   public:
 
     merge_stage( void_t ) noexcept {}
 
     merge_stage( this_cref_t ) = delete;
     merge_stage( this_rref_t rhv ) noexcept
-        : _msl( motor::move( rhv._msl ) ), _brg( motor::move( _brg ) )
+        : _msl( motor::move( rhv._msl ) ), _brg( motor::move( rhv._brg ) ),
+          _prop_sheet( motor::move( rhv._prop_sheet ) ), _comp_list( motor::move( rhv._comp_list ) )
     {
+    }
+
+    ~merge_stage( void_t ) noexcept 
+    {
+        this_t::release() ;
     }
 
   public:
 
-    void_t init( motor::string_cref_t rt_name_a, motor::string_cref_t rt_name_b  ) noexcept
+    void_t init( motor::string_cref_t rt_name_a, motor::string_cref_t rt_name_b ) noexcept
     {
         // init msl
         // shaders for post process
@@ -79,7 +88,6 @@ class merge_stage
                             vec4_t color_b = rt_texture( tx_b, in.tx ) * strength_b ;
                             
                             out.color = vec4_t( color_a.xyz + color_b.xyz, 1.0 ) ;
-
                         }
                     }
                 } )" );
@@ -87,6 +95,7 @@ class merge_stage
                 mslo.link_geometry( "gfx.postprocess.quad" );
 
                 _msl = motor::shared( std::move( mslo ) );
+                _msl->register_listener( motor::share( _comp_list ) );
             }
 
             // variable sets
@@ -102,7 +111,7 @@ class merge_stage
                     auto * var = vars.texture_variable( "tx_b" );
                     var->set( rt_name_b );
                 }
-
+#if 0
                 {
                     auto * var = vars.data_variable< float_t >( "strength_a" );
                     var->set( 1.0f );
@@ -112,43 +121,47 @@ class merge_stage
                     auto * var = vars.data_variable< float_t >( "strength_b" );
                     var->set( 0.8f );
                 }
-
+#endif
                 auto vs_ptr = motor::shared( std::move( vars ), "a variable set" );
-                _msl->add_variable_set( motor::share( vs_ptr ) );
+                _msl->add_variable_set( motor::move( vs_ptr ) );
 
-                _brg = motor::shared(
-                    motor::graphics::wire_variable_bridge_t( motor::move( vs_ptr ) ) );
-                _brg->update_bindings();
+                {
+                    _brg = motor::shared( motor::graphics::wire_variable_bridge_t() );
+                }
 
+#if 0
                 {
                     motor::property::property_sheet_t ps;
 
                     using is_float_t = motor::wire::input_slot< float_t >;
 
                     {
-                        motor::property::add_is_property< float_t >( "strength_a",
-                            _brg->borrow_inputs()->borrow( "strength_a" ), ps );
+                        motor::property::add_is_property< float_t >(
+                            "strength_a", _brg->borrow_inputs()->borrow( "strength_a" ), ps );
 
                         {
-                            auto * prop =
-                                ps.borrow_property< is_float_t >( "strength_a" );
+                            auto * prop = ps.borrow_property< is_float_t >( "strength_a" );
                             prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 1.0f ) );
                         }
                     }
 
                     {
-                        motor::property::add_is_property< float_t >( "strength_b",
-                            _brg->borrow_inputs()->borrow( "strength_b" ), ps );
+                        motor::property::add_is_property< float_t >(
+                            "strength_b", _brg->borrow_inputs()->borrow( "strength_b" ), ps );
 
                         {
-                            auto * prop =
-                                ps.borrow_property< is_float_t >( "strength_b" );
+                            auto * prop = ps.borrow_property< is_float_t >( "strength_b" );
                             prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 1.0f ) );
                         }
                     }
 
                     _prop_sheet = motor::shared( std::move( ps ) );
                 }
+#else
+                {
+                    _prop_sheet = motor::shared( motor::property::property_sheet_t() );
+                }
+#endif
             }
         }
     }
@@ -158,6 +171,7 @@ class merge_stage
         motor::release( motor::move( _msl ) );
         motor::release( motor::move( _brg ) );
         motor::release( motor::move( _prop_sheet ) );
+        motor::release( motor::move( _comp_list ) );
     }
 
     void_t init_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
@@ -172,7 +186,51 @@ class merge_stage
 
     void_t render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
-        _brg->update_bindings();
+        // the point of doing it here in the render function is
+        // so that the shader variable default values can be used.
+        if( _comp_list->has_changed() )
+        {
+            motor::graphics::shader_bindings_t sb;
+            if( _comp_list->reset_and_successful( sb ) )
+            {
+                auto vs = _msl->get_varibale_set( 0 );
+
+                // update wire slot to shader variable bridge
+                {
+                    _brg->update_bindings( motor::move( vs ) );
+                }
+
+                {
+                    _prop_sheet->clear();
+
+                    {
+                        motor::string_t const name = "strength_a";
+                        using is_t = motor::wire::input_slot< float_t >;
+                        auto * is = _brg->borrow_inputs()->borrow( name );
+                        motor::property::add_is_property< is_t::value_t >( name, is, *_prop_sheet );
+                        {
+                            auto * prop = _prop_sheet->borrow_property< is_t >( name );
+                            prop->set_min_max( motor::property::min_max< is_t::value_t >(
+                                is_t::value_t( 0.1f ), is_t::value_t( 1.0f ) ) );
+                        }
+                    }
+
+                    {
+                        motor::string_t const name = "strength_b";
+                        using is_t = motor::wire::input_slot< float_t >;
+                        auto * is = _brg->borrow_inputs()->borrow( name );
+                        motor::property::add_is_property< is_t::value_t >( name, is, *_prop_sheet );
+                        {
+                            auto * prop = _prop_sheet->borrow_property< is_t >( name );
+                            prop->set_min_max( motor::property::min_max< is_t::value_t >(
+                                is_t::value_t( 0.1f ), is_t::value_t( 1.0f ) ) );
+                        }
+                    }
+                }
+            }
+        }
+
+        _brg->pull_data();
         motor::graphics::gen4::backend::render_detail det;
         fe->render( _msl, det );
     }

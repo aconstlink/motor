@@ -9,8 +9,15 @@ bloom_stage::bloom_stage( void_t ) noexcept {}
 //********************************************************
 bloom_stage::bloom_stage( this_rref_t rhv ) noexcept
     : _msl_down( motor::move( rhv._msl_down ) ), _msl_up( motor::move( rhv._msl_up ) ),
-      _brg( motor::move( rhv._brg ) )
+      _brg_down( motor::move( rhv._brg_down ) ), _brg_up( motor::move( rhv._brg_up ) ),
+      _cl_down( motor::move( rhv._cl_down ) ), _cl_up( motor::move( rhv._cl_up ) )
 {
+}
+
+//********************************************************
+bloom_stage::~bloom_stage( void_t ) noexcept
+{
+    this_t::release();
 }
 
 //********************************************************
@@ -72,7 +79,7 @@ void_t bloom_stage::change_resolution( uint_t const w, uint_t const h ) noexcept
             } );
         }
 
-        if( _per_level[ i ].vs == nullptr )
+        if( _per_level[ i ].vs_down == nullptr )
         {
             motor::graphics::variable_set_t vs;
 
@@ -81,16 +88,34 @@ void_t bloom_stage::change_resolution( uint_t const w, uint_t const h ) noexcept
                 var->set( "" );
             }
 
+            auto vs_ptr = motor::shared( std::move( vs ), "a variable set in bloom stage" );
+            _msl_down->add_variable_set( motor::share( vs_ptr ) );
+
+            _per_level[ i ].vs_down = motor::move( vs_ptr );
+        }
+        else
+        {
+        }
+
+
+        if( _per_level[ i ].vs_up == nullptr )
+        {
+            motor::graphics::variable_set_t vs;
+
             {
                 auto * var = vs.texture_variable( "tx_for_upsample" );
                 var->set( "" );
             }
 
+            {
+                auto * var = vs.data_variable<float_t>( "upsample_radius" );
+                var->set( 1.0f );
+            }
+
             auto vs_ptr = motor::shared( std::move( vs ), "a variable set in bloom stage" );
-            _msl_down->add_variable_set( motor::share( vs_ptr ) );
             _msl_up->add_variable_set( motor::share( vs_ptr ) );
 
-            _per_level[ i ].vs = motor::move( vs_ptr );
+            _per_level[ i ].vs_up = motor::move( vs_ptr );
         }
         else
         {
@@ -161,6 +186,7 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
         mslo.link_geometry( "gfx.postprocess.quad" );
 
         _msl_down = motor::shared( std::move( mslo ) );
+        _msl_down->register_listener( motor::share( _cl_down ) );
     }
 
     // post quad object
@@ -192,11 +218,13 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
 
                         tex2d_t tx_for_upsample ;
 
+                        float_t upsample_radius(4.0) ;
+
                         void main()
                         {
                             vec2_t texel = vec2_t(1.0,1.0) / texture_dims( tx_for_upsample ) ;
                             vec2_t uv = in.tx ;
-                            float_t r = 3.0 ;
+                            float_t r = upsample_radius ;
 
                             vec3_t c = vec3_t(0.0,0.0,0.0);
 
@@ -226,8 +254,6 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
                             c *= 1.0/16.0;
 
                             out.color = vec4_t( c, 1.0 ) ;
-                            //out.color = rt_texture(tx_for_downsample, in.tx ) ;
-                            //out.color = vec4_t( in.tx, 0.0, 1.0) ;
                         }
                     }
                 } )" );
@@ -235,9 +261,41 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
         mslo.link_geometry( "gfx.postprocess.quad" );
 
         _msl_up = motor::shared( std::move( mslo ) );
+        _msl_up->register_listener( motor::share( _cl_up ) );
     }
 
     this_t::change_resolution( w, h );
+
+    // init empty
+    // will be filled, when the shader is compiled.
+    // @see render()
+    {
+        {
+            //_msl_down->add_variable_set( motor::shared( motor::graphics::variable_set_t() ) );
+            //_msl_up->add_variable_set( motor::shared( motor::graphics::variable_set_t() ) );
+        }
+
+        {
+            motor::property::property_sheet_t ps;
+
+            {
+                motor::string_t const name = "upsample_radius";
+                motor::property::generic_property< float_t > prop( 0.0f );
+                if( ps.add_property< float_t >( name, std::move( prop ) ) )
+                {
+                    auto * prop_ = ps.borrow_property< float_t >( name );
+                    prop_->set_min_max( motor::property::min_max< float_t >( 1.0f, 10.0f ) );
+                }
+            }
+
+            _prop_sheet = motor::shared( std::move( ps ) );
+        }
+
+        {
+            _brg_down = motor::shared( motor::graphics::wire_variable_bridge_t() );
+            _brg_up = motor::shared( motor::graphics::wire_variable_bridge_t() );
+        }
+    }
 
 #if 0
     // variable sets
@@ -301,14 +359,18 @@ void_t bloom_stage::release( void_t ) noexcept
 {
     motor::release( motor::move( _msl_down ) );
     motor::release( motor::move( _msl_up ) );
-    motor::release( motor::move( _brg ) );
+    motor::release( motor::move( _brg_down ) );
+    motor::release( motor::move( _brg_up ) );
     motor::release( motor::move( _prop_sheet ) );
+    motor::release( motor::move( _cl_down ) );
+    motor::release( motor::move( _cl_up ) );
 
     for( auto & pld : _per_level )
     {
         motor::release( motor::move( pld.so_down ) );
         motor::release( motor::move( pld.so_up ) );
-        motor::release( motor::move( pld.vs ) ) ;
+        motor::release( motor::move( pld.vs_down ) );
+        motor::release( motor::move( pld.vs_up ) );
     }
 }
 
@@ -343,7 +405,7 @@ void_t bloom_stage::set_read_render_target_for_down(
     this_t::level_type const lt, motor::string_in_t name ) noexcept
 {
     size_t const idx = this_t::to_idx( lt );
-    auto * var = _per_level[ idx ].vs->texture_variable( "tx_for_downsample" );
+    auto * var = _per_level[ idx ].vs_down->texture_variable( "tx_for_downsample" );
     var->set( name );
 }
 
@@ -352,7 +414,7 @@ void_t bloom_stage::set_read_render_target_for_up(
     this_t::level_type const lt, motor::string_in_t name ) noexcept
 {
     size_t const idx = this_t::to_idx( lt );
-    auto * var = _per_level[ idx ].vs->texture_variable( "tx_for_upsample" );
+    auto * var = _per_level[ idx ].vs_up->texture_variable( "tx_for_upsample" );
     var->set( name );
 }
 
@@ -360,7 +422,21 @@ void_t bloom_stage::set_read_render_target_for_up(
 void_t bloom_stage::render_down(
     this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    //_brg->update_bindings();
+    // the point of doing it here in the render function is
+    // so that the shader variable default values can be used.
+    if( _cl_down->has_changed() )
+    {
+        motor::graphics::shader_bindings_t sb;
+        if( _cl_down->reset_and_successful( sb ) )
+        {
+            auto vs = _msl_down->get_varibale_set( 0 );
+            
+            //
+            {}
+        }
+    }
+
+    //_brg_down->pull_data();
 
     auto & pld = _per_level[ size_t( lt ) ];
 
@@ -375,7 +451,34 @@ void_t bloom_stage::render_down(
 void_t bloom_stage::render_up(
     this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    //_brg->update_bindings();
+    // the point of doing it here in the render function is
+    // so that the shader variable default values can be used.
+    if( _cl_up->has_changed() )
+    {
+        motor::graphics::shader_bindings_t sb;
+        if( _cl_up->reset_and_successful( sb ) )
+        {
+            auto vs = _msl_up->get_varibale_set( 0 );            
+
+            // because we have multiple variable set(i.e. one per level)
+            // we just get the default values we need from the
+            // first varible set.
+            // unfortunately, there is no easier way at the moment.
+            {
+                auto var = vs->data_variable<float_t>( "upsample_radius" ) ;
+                if( var )
+                {
+                    auto * prop = _prop_sheet->borrow_property<float_t>( "upsample_radius" ) ;
+                    if( prop )
+                    {
+                        prop->set( var->get() ) ;
+                    }
+                }
+            }
+        }
+    }
+
+    //
 
     auto & pld = _per_level[ size_t( lt ) ];
 
@@ -389,11 +492,32 @@ void_t bloom_stage::render_up(
 //********************************************************
 motor::wire::inputs_mtr_t bloom_stage::borrow_inputs( void_t ) noexcept
 {
-    return _brg->borrow_inputs();
+    return _brg_down->borrow_inputs();
 }
 
 //********************************************************
 motor::property::property_sheet_mtr_t bloom_stage::borrow_properties( void_t ) noexcept
 {
     return _prop_sheet;
+}
+
+//********************************************************
+void_t bloom_stage::update_properties( void_t ) noexcept
+{
+    auto * prop = _prop_sheet->borrow_property< float_t >( "upsample_radius" );
+
+    {
+        float_t value;
+        if( prop && prop->get_if_changed_and_reset( value ) )
+        {
+            for( auto & pld : _per_level )
+            {
+                auto * var = pld.vs_up->data_variable< float_t >( "upsample_radius" );
+                if( var )
+                {
+                    var->set( value );
+                }
+            }
+        }
+    }
 }

@@ -19,10 +19,18 @@ class bloom_stage
 
     motor::graphics::msl_object_mtr_t _msl_down = nullptr;
     motor::graphics::msl_object_mtr_t _msl_up = nullptr;
-    motor::graphics::wire_variable_bridge_mtr_t _brg = nullptr;
+
+    motor::graphics::wire_variable_bridge_mtr_t _brg_down = nullptr;
+    motor::graphics::wire_variable_bridge_mtr_t _brg_up = nullptr;
 
     motor::property::property_sheet_mtr_t _prop_sheet = nullptr;
 
+    motor::graphics::compilation_listener_mtr_t _cl_down =
+        motor::shared( motor::graphics::compilation_listener_t() );
+
+    motor::graphics::compilation_listener_mtr_t _cl_up =
+        motor::shared( motor::graphics::compilation_listener_t() );
+    
   public:
 
     enum class level_type
@@ -38,14 +46,16 @@ class bloom_stage
 
     static size_t to_idx( this_t::level_type const lt ) noexcept
     {
-        return size_t( lt ) ;
+        return size_t( lt );
     }
 
   private:
 
     struct per_level_data
     {
-        motor::graphics::variable_set_mtr_t vs = nullptr ;
+        motor::graphics::variable_set_mtr_t vs_down = nullptr;
+        motor::graphics::variable_set_mtr_t vs_up = nullptr;
+
         motor::graphics::state_object_mtr_t so_down = nullptr;
         motor::graphics::state_object_mtr_t so_up = nullptr;
     };
@@ -57,6 +67,7 @@ class bloom_stage
 
     bloom_stage( this_cref_t ) = delete;
     bloom_stage( this_rref_t rhv ) noexcept;
+    ~bloom_stage( void_t ) noexcept;
 
   public:
 
@@ -70,15 +81,20 @@ class bloom_stage
 
     void_t release_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
 
-    void_t set_read_render_target_for_down( this_t::level_type const lt, motor::string_in_t name ) noexcept ;
-    void_t set_read_render_target_for_up( this_t::level_type const lt, motor::string_in_t name ) noexcept ;
+    void_t set_read_render_target_for_down(
+        this_t::level_type const lt, motor::string_in_t name ) noexcept;
+    void_t set_read_render_target_for_up(
+        this_t::level_type const lt, motor::string_in_t name ) noexcept;
 
-    void_t render_down( this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
-    void_t render_up( this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
+    void_t render_down(
+        this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
+    void_t render_up(
+        this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
 
     motor::wire::inputs_mtr_t borrow_inputs( void_t ) noexcept;
 
     motor::property::property_sheet_mtr_t borrow_properties( void_t ) noexcept;
+    void_t update_properties( void_t ) noexcept ;
 };
 motor_typedef( bloom_stage );
 

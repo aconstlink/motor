@@ -620,9 +620,16 @@ hdr_postprocess_pipeline::property_sheets_t hdr_postprocess_pipeline::property_s
     {
         ret[ "tone_map" ] = _tone_map->borrow_properties();
         ret[ "brightpass" ] = _brightpass->borrow_properties();
-        ret[ "merge" ] = _merge->borrow_properties();
+        ret[ "bloom" ] = _bloom->borrow_properties();
+        ret[ "merge" ] = _merge->borrow_properties();        
     }
     return ret;
+}
+
+//***************************************************
+void_t hdr_postprocess_pipeline::update_properies( void_t ) noexcept 
+{
+    _bloom->update_properties() ;
 }
 
 //***************************************************

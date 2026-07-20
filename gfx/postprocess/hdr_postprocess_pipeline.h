@@ -107,6 +107,11 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
         motor::hash_map< motor::string_t, motor::property::property_sheet_mtr_t >;
     property_sheets_t property_sheets( void_t ) noexcept;
 
+    // for properties which are not easily mapped to 
+    // inputs slots. e.g. shader variables used in multiple passes.
+    // this is usually used in ui.
+    void_t update_properies( void_t ) noexcept ;
+
   private:
 
     motor::graphics::framebuffer_object_mtr_t borrow_post_framebuffer(
