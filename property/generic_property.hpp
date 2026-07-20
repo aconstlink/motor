@@ -111,6 +111,7 @@ namespace motor
 
         private:
 
+            bool_t _changed = false ;
             value_t _data = motor::property::default_value<T>() ;
 
         public:
@@ -138,7 +139,7 @@ namespace motor
             generic_property( T const & v, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
                 _data( v ), base_t( h, mm ){}
 
-            generic_property( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) ), _data( rhv._data ) {}
+            generic_property( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) ), _data( rhv._data ), _changed( rhv._changed ) {}
 
             virtual ~generic_property( void_t ) noexcept {}
 
@@ -146,12 +147,29 @@ namespace motor
 
             virtual void_t set( value_cref_t data ) noexcept final
             {
+                _changed = true ;
                 _data = data ;
             }
 
             virtual value_cref_t get( void_t ) const noexcept final
             {
                 return _data ;
+            }
+
+            bool_t has_changed( void_t ) const noexcept
+            {
+                return _changed ;
+            }
+
+            bool_t get_if_changed_and_reset( T & out ) noexcept
+            {
+                if( _changed )
+                {
+                    out = _data ;
+                    _changed = false ;
+                    return true ;
+                }
+                return false ;
             }
         };
         motor_typedefs( generic_property< byte_t >, byte_property ) ;

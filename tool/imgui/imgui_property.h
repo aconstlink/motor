@@ -17,7 +17,7 @@ namespace motor
         {
         public:
 
-            static void_t handle( motor::string_in_t name, motor::property::property_sheet_inout_t ) noexcept ;
+            static bool_t handle( motor::string_in_t name, motor::property::property_sheet_inout_t ) noexcept ;
         };
     }
 }

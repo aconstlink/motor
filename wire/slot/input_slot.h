@@ -10,11 +10,15 @@ namespace motor
     {
         template< typename T >
         class input_slot : public iinput_slot
-        {
+        {            
             motor_this_typedefs( input_slot<T> ) ;
+
+        public:
+
+            motor_typedefs( T, value ) ;
             motor_typedefs( output_slot<T>, this_output_slot ) ;
             motor_typedefs( output_slot<T>, os ) ;
-
+            
         private:
 
             bool_t _has_changed = false ;

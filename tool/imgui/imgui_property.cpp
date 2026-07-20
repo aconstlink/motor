@@ -7,8 +7,10 @@
 using namespace motor::tool ;
 
 //*************************************************************************
-void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::property_sheet_inout_t props ) noexcept 
+bool_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::property_sheet_inout_t props ) noexcept 
 {
+    bool_t ret = false ;
+
     ImGui::BeginGroup() ;
     {
         ImGui::SeparatorText( sheet_name.c_str() );
@@ -29,8 +31,12 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                     case motor::property::editor_hint::slider:
                         {
                             int_t v = ptr->get() ;
-                            ImGui::SliderInt( label.c_str(), &v, mm.get_min(), mm.get_max() ) ;
-                            ptr->set( v ) ;
+                            if( ImGui::SliderInt( label.c_str(), &v, mm.get_min(), mm.get_max() ) )
+                            {
+                                ptr->set( v ) ;
+                                ret = true ;
+                            }
+                            
                         }
                         break ;
                     default: break ;
@@ -50,8 +56,12 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                     case motor::property::editor_hint::slider:
                         {
                             float_t v = ptr->get() ;
-                            ImGui::SliderFloat( label.c_str(), &v, mm.get_min(), mm.get_max() ) ;
-                            ptr->set( v ) ;
+                            if( ImGui::SliderFloat( label.c_str(), &v, mm.get_min(), mm.get_max() ) )
+                            {
+                                ptr->set( v ) ;
+                                ret = true ;
+                            }
+                            
                         }
                         break ;
                     default: break ;
@@ -84,14 +94,20 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                                 {
                                     float_t x = max_.x() ;
                                     motor::string_t const label_ = "x ##" + label__ ;
-                                    ImGui::SliderFloat( label_.c_str(), &x, 0.0f, 100.0f ) ;
-                                    max_.x( x ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &x, 0.0f, 100.0f ) )
+                                    {
+                                        max_.x( x ) ;
+                                    }
+                                    
                                 }
                                 {
                                     float_t y = max_.y() ;
                                     motor::string_t label_ = "y ##" + label__ ;
-                                    ImGui::SliderFloat( label_.c_str(), &y, 0.0f, 100.0f ) ;
-                                    max_.y( y ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &y, 0.0f, 100.0f ) )
+                                    {
+                                        max_.y( y ) ;
+                                    }
+                                    
                                 }
                             }
                             mm = motor::property::vec2f_traits_t::min_max_t( min_, max_ ) ;
@@ -113,14 +129,20 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                                 {
                                     float_t x = v.x() ;
                                     motor::string_t label_ = "x##" + label ;
-                                    ImGui::SliderFloat( label_.c_str(), &x, mm.get_min().x(), mm.get_max().x() ) ;
-                                    v.x( x ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &x, mm.get_min().x(), mm.get_max().x() ) )
+                                    {
+                                        v.x( x ) ;
+                                        ret = true ;
+                                    }
                                 }
                                 {
                                     float_t y = v.y() ;
                                     motor::string_t label_ = "y ##" + label ;
-                                    ImGui::SliderFloat( label_.c_str(), &y, mm.get_min().y(), mm.get_max().y() ) ;
-                                    v.y( y ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &y, mm.get_min().y(), mm.get_max().y() ) )
+                                    {
+                                        v.y( y ) ;
+                                        ret = true ;
+                                    }
                                 }
 
                                 ptr->set( v ) ;
@@ -153,20 +175,29 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                         {
                             float_t x = v.x() ;
                             motor::string_t label_ = "x##" + label ;
-                            ImGui::SliderFloat( label_.c_str(), &x, mm.get_min().x(), mm.get_max().x() ) ;
-                            v.x( x ) ;
+                            if( ImGui::SliderFloat( label_.c_str(), &x, mm.get_min().x(), mm.get_max().x() ) )
+                            {
+                                v.x( x ) ;
+                                ret = true ;
+                            }
                         }
                         {
                             float_t y = v.y() ;
                             motor::string_t label_ = "y ##" + label ;
-                            ImGui::SliderFloat( label_.c_str(), &y, mm.get_min().y(), mm.get_max().y() ) ;
-                            v.y( y ) ;
+                            if( ImGui::SliderFloat( label_.c_str(), &y, mm.get_min().y(), mm.get_max().y() ) )
+                            {
+                                v.y( y ) ;
+                                ret = true ;
+                            }
                         }
                         {
                             float_t z = v.z() ;
                             motor::string_t label_ = "z ##" + label ;
-                            ImGui::SliderFloat( label_.c_str(), &z, mm.get_min().z(), mm.get_max().z() ) ;
-                            v.z( z ) ;
+                            if( ImGui::SliderFloat( label_.c_str(), &z, mm.get_min().z(), mm.get_max().z() ) )
+                            {
+                                v.z( z ) ;
+                                ret = true ;
+                            }
                         }
                         ImGui::EndGroup() ;
                         ptr->set( v ) ;
@@ -241,26 +272,38 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                                 {
                                     float_t x = v.x() ;
                                     motor::string_t label_ = "x ##" + label ;
-                                    ImGui::SliderFloat( label_.c_str(), &x, mm.get_min().x(), mm.get_max().x() ) ;
-                                    v.x( x ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &x, mm.get_min().x(), mm.get_max().x() ) )
+                                    {
+                                        v.x( x ) ;
+                                        ret = true ;
+                                    }
                                 }
                                 {
                                     float_t y = v.y() ;
                                     motor::string_t label_ = "y ##" + label ;
-                                    ImGui::SliderFloat( label_.c_str(), &y, mm.get_min().y(), mm.get_max().y() ) ;
-                                    v.y( y ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &y, mm.get_min().y(), mm.get_max().y() ) )
+                                    {
+                                        v.y( y ) ;
+                                        ret = true ;
+                                    }
                                 }
                                 {
                                     float_t z = v.z() ;
                                     motor::string_t label_ = "z ##" + label ;
-                                    ImGui::SliderFloat( label_.c_str(), &z, mm.get_min().z(), mm.get_max().z() ) ;
-                                    v.z( z ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &z, mm.get_min().z(), mm.get_max().z() ) )
+                                    {
+                                        v.z( z ) ;
+                                        ret = true ;
+                                    }
                                 }
                                 {
                                     float_t w = v.w() ;
                                     motor::string_t label_ = "w ##" + label ;
-                                    ImGui::SliderFloat( label_.c_str(), &w, mm.get_min().w(), mm.get_max().w() ) ;
-                                    v.w( w ) ;
+                                    if( ImGui::SliderFloat( label_.c_str(), &w, mm.get_min().w(), mm.get_max().w() ) )
+                                    {
+                                        v.w( w ) ;
+                                        ret = true ;
+                                    }
                                 }
                                 ptr->set( v ) ;
                             }
@@ -337,6 +380,7 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                             }
                             ImGui::EndCombo() ;
                             ptr->set_by_index( sel ) ;
+                            ret = true ;
                         }
                     }
                     break ;
@@ -348,4 +392,6 @@ void_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
         } ) ;
     }
     ImGui::EndGroup() ;
+
+    return ret ;
 }
