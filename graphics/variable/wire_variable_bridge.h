@@ -87,7 +87,8 @@ namespace motor
                             auto * s_local = reinterpret_cast<slot_t *>( v.slot ) ;
                             auto * v_local = reinterpret_cast<var_t *>( v.gvar ) ;
 
-                            v_local->set( s_local->get_value() ) ;
+                            if( s_local->has_changed() )
+                                v_local->set( s_local->get_value() ) ;
                         }
                     } ) ;
                     return true ;
@@ -118,7 +119,8 @@ namespace motor
                             auto * s_local = reinterpret_cast<slot_t *>( v.slot ) ;
                             auto * v_local = reinterpret_cast<var_t *>( v.gvar ) ;
 
-                            v_local->set( s_local->get_value() ) ;
+                            if( s_local->has_changed() )
+                                v_local->set( s_local->get_value() ) ;
                         }
                     } ) ;
 
