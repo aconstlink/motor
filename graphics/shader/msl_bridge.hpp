@@ -317,6 +317,10 @@ namespace motor
                                 {
                                     bp = motor::graphics::binding_point::camera_position ;
                                 }
+                                else if( v.binding == motor::msl::binding::light_direction )
+                                {
+                                    bp = motor::graphics::binding_point::light_direction ;
+                                }
                                 else if( v.binding == motor::msl::binding::viewport )
                                 {
                                     bp = motor::graphics::binding_point::viewport_dimension ;

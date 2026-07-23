@@ -25,14 +25,14 @@ class MOTOR_SCENE_API msl_component : public icomponent
     using vs_idx_t = size_t;
 
   private:
-   
+
     motor::graphics::compilation_listener_mtr_t _comp_lst =
-        motor::shared( motor::graphics::compilation_listener(), "render_node comp listener" );    
+        motor::shared( motor::graphics::compilation_listener(), "render_node comp listener" );
 
     vs_idx_t _vs = 0;
     geo_idx_t _geo_id = 0;
 
-    motor::graphics::command_status_mtr_t _status = nullptr ;
+    motor::graphics::command_status_mtr_t _status = nullptr;
     motor::graphics::msl_object_mtr_t _msl = nullptr;
     motor::graphics::variable_set_mtr_t _var_set = nullptr;
 
@@ -55,6 +55,18 @@ class MOTOR_SCENE_API msl_component : public icomponent
     };
 
     camera_variables _cam_vars;
+
+    struct light_variables
+    {
+        motor::graphics::data_variable< motor::math::vec3f_t > * light_dir;
+
+        void_t clear( void_t ) noexcept
+        {
+            light_dir = nullptr;
+        }
+    };
+
+    light_variables _light_vars;
 
   private: // trafo variables
 
@@ -132,6 +144,12 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
     void_t set_world( motor::math::m3d::trafof_cref_t ) noexcept;
 
+  public: // light interface
+
+    // set a light direction on the shader variable
+    // if there is a bindings.
+    void_t set_light_direction( motor::math::vec3f_cref_t ) noexcept;
+    
   public: // inputs
 
     motor::wire::inputs_cptr_t borrow_shader_inputs( void_t ) const noexcept;
