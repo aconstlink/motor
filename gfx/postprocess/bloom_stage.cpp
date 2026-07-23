@@ -135,52 +135,52 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
 
         mslo.add( motor::graphics::msl_api_type::msl_4_0, R"(
             
-                config gfx.postprocess.stage.bloom.downsample
+        config gfx.postprocess.stage.bloom.downsample
+        {
+            vertex_shader
+            {
+                in vec2_t pos : position ;
+
+                out vec2_t tx : texcoord0 ;
+                out vec4_t pos : position ;
+
+                void main()
                 {
-                    vertex_shader
-                    {
-                        in vec2_t pos : position ;
+                    out.tx = sign( in.pos.xy ) * 0.5 + 0.5 ;
+                    out.pos = vec4_t( sign( in.pos.xy ), 0.0, 1.0 ) ; 
+                }
+            }
 
-                        out vec2_t tx : texcoord0 ;
-                        out vec4_t pos : position ;
+            pixel_shader
+            {
+                in vec2_t tx : texcoord0 ;
+                out vec4_t color : color ;
 
-                        void main()
-                        {
-                            out.tx = sign( in.pos.xy ) * 0.5 + 0.5 ;
-                            out.pos = vec4_t( sign( in.pos.xy ), 0.0, 1.0 ) ; 
-                        }
-                    }
+                tex2d_t tx_for_downsample ;
 
-                    pixel_shader
-                    {
-                        in vec2_t tx : texcoord0 ;
-                        out vec4_t color : color ;
+                void main()
+                {
+                    vec2_t texel = vec2_t(1.0,1.0) / texture_dims( tx_for_downsample ) ;
+                    vec2_t uv = in.tx ;
 
-                        tex2d_t tx_for_downsample ;
+                    vec3_t c = vec3_t(0.0,0.0,0.0);
+                    vec2_t uv0 = uv + texel ' vec2_t(-1.0, -1.0) ;
+                    vec2_t uv1 = uv + texel ' vec2_t( 1.0, -1.0) ;
+                    vec2_t uv2 = uv + texel ' vec2_t(-1.0,  1.0) ;
+                    vec2_t uv3 = uv + texel ' vec2_t( 1.0,  1.0) ;
 
-                        void main()
-                        {
-                            vec2_t texel = vec2_t(1.0,1.0) / texture_dims( tx_for_downsample ) ;
-                            vec2_t uv = in.tx ;
+                    c += rt_texture(tx_for_downsample, uv0 ).xyz;
+                    c += rt_texture(tx_for_downsample, uv1 ).xyz;
+                    c += rt_texture(tx_for_downsample, uv2 ).xyz;
+                    c += rt_texture(tx_for_downsample, uv3 ).xyz;
+                    c *= 0.25;
 
-                            vec3_t c = vec3_t(0.0,0.0,0.0);
-                            vec2_t uv0 = uv + texel ' vec2_t(-1.0, -1.0) ;
-                            vec2_t uv1 = uv + texel ' vec2_t( 1.0, -1.0) ;
-                            vec2_t uv2 = uv + texel ' vec2_t(-1.0,  1.0) ;
-                            vec2_t uv3 = uv + texel ' vec2_t( 1.0,  1.0) ;
-
-                            c += rt_texture(tx_for_downsample, uv0 ).xyz;
-                            c += rt_texture(tx_for_downsample, uv1 ).xyz;
-                            c += rt_texture(tx_for_downsample, uv2 ).xyz;
-                            c += rt_texture(tx_for_downsample, uv3 ).xyz;
-                            c *= 0.25;
-
-                            out.color = vec4_t( c, 1.0 ) ;
-                            //out.color = rt_texture(tx_for_downsample, in.tx ) ;
-                            //out.color = vec4_t( in.tx, 0.0, 1.0) ;
-                        }
-                    }
-                } )" );
+                    out.color = vec4_t( c, 1.0 ) ;
+                    //out.color = rt_texture(tx_for_downsample, in.tx ) ;
+                    //out.color = vec4_t( in.tx, 0.0, 1.0) ;
+                }
+            }
+        } )" );
 
         mslo.link_geometry( "gfx.postprocess.quad" );
 
@@ -194,68 +194,68 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
 
         mslo.add( motor::graphics::msl_api_type::msl_4_0, R"(
             
-                config gfx.postprocess.stage.bloom.upsample
+        config gfx.postprocess.stage.bloom.upsample
+        {
+            vertex_shader
+            {
+                in vec2_t pos : position ;
+
+                out vec2_t tx : texcoord0 ;
+                out vec4_t pos : position ;
+
+                void main()
                 {
-                    vertex_shader
-                    {
-                        in vec2_t pos : position ;
+                    out.tx = sign( in.pos.xy ) * 0.5 + 0.5 ;
+                    out.pos = vec4_t( sign( in.pos.xy ), 0.0, 1.0 ) ; 
+                }
+            }
 
-                        out vec2_t tx : texcoord0 ;
-                        out vec4_t pos : position ;
+            pixel_shader
+            {
+                in vec2_t tx : texcoord0 ;
+                out vec4_t color : color ;
 
-                        void main()
-                        {
-                            out.tx = sign( in.pos.xy ) * 0.5 + 0.5 ;
-                            out.pos = vec4_t( sign( in.pos.xy ), 0.0, 1.0 ) ; 
-                        }
-                    }
+                tex2d_t tx_for_upsample ;
 
-                    pixel_shader
-                    {
-                        in vec2_t tx : texcoord0 ;
-                        out vec4_t color : color ;
+                float_t upsample_radius(1.846) ;
 
-                        tex2d_t tx_for_upsample ;
+                void main()
+                {
+                    vec2_t texel = vec2_t(1.0,1.0) / texture_dims( tx_for_upsample ) ;
+                    vec2_t uv = in.tx ;
+                    float_t r = upsample_radius ;
 
-                        float_t upsample_radius(4.0) ;
+                    vec3_t c = vec3_t(0.0,0.0,0.0);
 
-                        void main()
-                        {
-                            vec2_t texel = vec2_t(1.0,1.0) / texture_dims( tx_for_upsample ) ;
-                            vec2_t uv = in.tx ;
-                            float_t r = upsample_radius ;
+                    vec2_t uv0 = uv + texel ' vec2_t(-1.0, -1.0) * r ;
+                    vec2_t uv1 = uv + texel ' vec2_t( 0.0, -1.0) * r ;
+                    vec2_t uv2 = uv + texel ' vec2_t( 1.0, -1.0) * r ;
 
-                            vec3_t c = vec3_t(0.0,0.0,0.0);
+                    vec2_t uv3 = uv + texel ' vec2_t(-1.0, 0.0) * r ;
+                    vec2_t uv4 = uv + texel ' vec2_t( 0.0, 0.0) ;
+                    vec2_t uv5 = uv + texel ' vec2_t( 1.0, 0.0) * r ;
 
-                            vec2_t uv0 = uv + texel ' vec2_t(-1.0, -1.0) * r ;
-                            vec2_t uv1 = uv + texel ' vec2_t( 0.0, -1.0) * r ;
-                            vec2_t uv2 = uv + texel ' vec2_t( 1.0, -1.0) * r ;
+                    vec2_t uv6 = uv + texel ' vec2_t(-1.0, 1.0) * r ;
+                    vec2_t uv7 = uv + texel ' vec2_t( 0.0, 1.0) * r ;
+                    vec2_t uv8 = uv + texel ' vec2_t( 1.0, 1.0) * r ;
 
-                            vec2_t uv3 = uv + texel ' vec2_t(-1.0, 0.0) * r ;
-                            vec2_t uv4 = uv + texel ' vec2_t( 0.0, 0.0) ;
-                            vec2_t uv5 = uv + texel ' vec2_t( 1.0, 0.0) * r ;
+                    c += rt_texture(tx_for_upsample, uv0 ).xyz ' vec3_t(1.0,1.0,1.0);
+                    c += rt_texture(tx_for_upsample, uv1 ).xyz ' vec3_t(2.0,2.0,2.0);
+                    c += rt_texture(tx_for_upsample, uv2 ).xyz ' vec3_t(1.0,1.0,1.0);
 
-                            vec2_t uv6 = uv + texel ' vec2_t(-1.0, 1.0) * r ;
-                            vec2_t uv7 = uv + texel ' vec2_t( 0.0, 1.0) * r ;
-                            vec2_t uv8 = uv + texel ' vec2_t( 1.0, 1.0) * r ;
+                    c += rt_texture(tx_for_upsample, uv3 ).xyz ' vec3_t(2.0,2.0,2.0);
+                    c += rt_texture(tx_for_upsample, uv4 ).xyz ' vec3_t(4.0,4.0,4.0);
+                    c += rt_texture(tx_for_upsample, uv5 ).xyz ' vec3_t(2.0,2.0,2.0);
 
-                            c += rt_texture(tx_for_upsample, uv0 ).xyz ' vec3_t(1.0,1.0,1.0);
-                            c += rt_texture(tx_for_upsample, uv1 ).xyz ' vec3_t(2.0,2.0,2.0);
-                            c += rt_texture(tx_for_upsample, uv2 ).xyz ' vec3_t(1.0,1.0,1.0);
+                    c += rt_texture(tx_for_upsample, uv6 ).xyz ' vec3_t(1.0,1.0,1.0);
+                    c += rt_texture(tx_for_upsample, uv7 ).xyz ' vec3_t(2.0,2.0,2.0);
+                    c += rt_texture(tx_for_upsample, uv8 ).xyz ' vec3_t(1.0,1.0,1.0);
+                    c *= 1.0/16.0;
 
-                            c += rt_texture(tx_for_upsample, uv3 ).xyz ' vec3_t(2.0,2.0,2.0);
-                            c += rt_texture(tx_for_upsample, uv4 ).xyz ' vec3_t(4.0,4.0,4.0);
-                            c += rt_texture(tx_for_upsample, uv5 ).xyz ' vec3_t(2.0,2.0,2.0);
-
-                            c += rt_texture(tx_for_upsample, uv6 ).xyz ' vec3_t(1.0,1.0,1.0);
-                            c += rt_texture(tx_for_upsample, uv7 ).xyz ' vec3_t(2.0,2.0,2.0);
-                            c += rt_texture(tx_for_upsample, uv8 ).xyz ' vec3_t(1.0,1.0,1.0);
-                            c *= 1.0/16.0;
-
-                            out.color = vec4_t( c, 1.0 ) ;
-                        }
-                    }
-                } )" );
+                    out.color = vec4_t( c, 1.0 ) ;
+                }
+            }
+        } )" );
 
         mslo.link_geometry( "gfx.postprocess.quad" );
 
@@ -295,62 +295,6 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
             _brg_up = motor::shared( motor::graphics::wire_variable_bridge_t() );
         }
     }
-
-#if 0
-    // variable sets
-    {
-        motor::graphics::variable_set_t vars;
-
-        {
-            auto * var = vars.texture_variable( "tx_map" );
-            var->set( rt_name );
-        }
-
-        {
-            auto * var = vars.data_variable< float_t >( "brightness_threshold" );
-            var->set( 10.0f );
-        }
-
-        {
-            auto * var = vars.data_variable< float_t >( "brightness_knee_percent" );
-            var->set( 0.3f );
-        }
-
-        auto vs_ptr = motor::shared( std::move( vars ), "a variable set" );
-        _msl_down->add_variable_set( motor::share( vs_ptr ) );
-
-        _brg = motor::shared( motor::graphics::wire_variable_bridge_t( motor::move( vs_ptr ) ) );
-        _brg->update_bindings();
-
-        {
-            motor::property::property_sheet_t ps;
-
-            using is_float_t = motor::wire::input_slot< float_t >;
-
-            {
-                motor::property::add_is_property< float_t >( "brightness_threshold",
-                    _brg->borrow_inputs()->borrow( "brightness_threshold" ), ps );
-
-                {
-                    auto * prop = ps.borrow_property< is_float_t >( "brightness_threshold" );
-                    prop->set_min_max( motor::property::min_max< float_t >( 1.0f, 20.0f ) );
-                }
-            }
-
-            {
-                motor::property::add_is_property< float_t >( "brightness_knee_percent",
-                    _brg->borrow_inputs()->borrow( "brightness_knee_percent" ), ps );
-
-                {
-                    auto * prop = ps.borrow_property< is_float_t >( "brightness_knee_percent" );
-                    prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 0.7f ) );
-                }
-            }
-
-            _prop_sheet = motor::shared( std::move( ps ) );
-        }
-    }
-#endif
 }
 
 //********************************************************

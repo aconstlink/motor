@@ -79,7 +79,7 @@ class merge_stage
                         tex2d_t tx_b ;
 
                         float_t strength_a(1.0) ;
-                        float_t strength_b(0.8) ;
+                        float_t strength_b(0.131) ;
 
                         void main()
                         {
