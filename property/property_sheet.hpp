@@ -40,6 +40,7 @@ namespace motor
                 {
                     motor::release( motor::move( i.second ) ) ;
                 }
+                _properties.clear() ;
             }
 
         public:

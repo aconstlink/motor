@@ -389,13 +389,13 @@ void_t bloom_stage::init_graphics( motor::graphics::gen4::frontend_ptr_t fe ) no
 //********************************************************
 void_t bloom_stage::release_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
-    fe->release< motor::graphics::msl_object_t >( motor::move( _msl_down ) );
-    fe->release< motor::graphics::msl_object_t >( motor::move( _msl_up ) );
+    fe->release< motor::graphics::msl_object_t >( _msl_down );
+    fe->release< motor::graphics::msl_object_t >( _msl_up );
 
     for( auto & pld : _per_level )
     {
-        fe->release< motor::graphics::state_object_t >( motor::move( pld.so_down ) );
-        fe->release< motor::graphics::state_object_t >( motor::move( pld.so_up ) );
+        fe->release< motor::graphics::state_object_t >( pld.so_down );
+        fe->release< motor::graphics::state_object_t >( pld.so_up );
     }
 }
 

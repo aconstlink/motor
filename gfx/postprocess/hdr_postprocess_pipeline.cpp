@@ -176,6 +176,9 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
                     {
                         vec4_t col = rt_texture( tx_map, in.tx ) ;
                         out.color = col ;
+                        
+                        float_t d = col.r ;
+                        //out.color = vec4_t( as_vec3(pow(d,10)), 1.0 ) ;
                         //out.color = vec4_t( col.r, col.r, col.r ,1.0) ;
                         //out.color = vec4_t( in.tx, 0.0, 1.0) ;
                         //if( in.tx.x > 0.5 )
@@ -191,16 +194,34 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         // variable sets
         {
-            motor::graphics::variable_set_t vars;
-
             {
-                auto * var = vars.texture_variable( "tx_map" );
-                // var->set( "gfx.postprocess.framebuffer.0" );
-                var->set( "gfx.postprocess.fb.full.hdr.0.0" );
+                motor::graphics::variable_set_t vars;
+
+                {
+                    auto * var = vars.texture_variable( "tx_map" );
+                    // var->set( "gfx.postprocess.framebuffer.0" );
+                    var->set( "gfx.postprocess.fb.full.hdr.0.0" );
+                }
+
+                _msl->add_variable_set(
+                    motor::memory::create_ptr( std::move( vars ), "a variable set" ) );
             }
 
-            _msl->add_variable_set(
-                motor::memory::create_ptr( std::move( vars ), "a variable set" ) );
+            // use this varset for temporary display
+            {
+                motor::graphics::variable_set_t vars;
+
+                {
+                    auto * var = vars.texture_variable( "tx_map" );
+                    // set as dummy, so texture variable will be found in the backend
+                    // if not found during configure, the variable can not be set 
+                    // at the moment. @see motor #154
+                    var->set( "gfx.postprocess.fb.full.hdr.0.0" );
+                }
+
+                _msl->add_variable_set(
+                    motor::memory::create_ptr( std::move( vars ), "a variable set" ) );
+            }
         }
     }
 
@@ -464,7 +485,7 @@ void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend
 }
 
 //***************************************************
-void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t fe, bool_t const temp ) noexcept
 {
     if( _size_changed )
     {
@@ -596,6 +617,7 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
     {
         fe->push( _mts_so );
         motor::graphics::gen4::backend::render_detail det;
+        det.varset = temp ? 1 : 0 ;
         fe->render( _msl, det );
         fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
     }
@@ -621,15 +643,26 @@ hdr_postprocess_pipeline::property_sheets_t hdr_postprocess_pipeline::property_s
         ret[ "tone_map" ] = _tone_map->borrow_properties();
         ret[ "brightpass" ] = _brightpass->borrow_properties();
         ret[ "bloom" ] = _bloom->borrow_properties();
-        ret[ "merge" ] = _merge->borrow_properties();        
+        ret[ "merge" ] = _merge->borrow_properties();
     }
     return ret;
 }
 
 //***************************************************
-void_t hdr_postprocess_pipeline::update_properies( void_t ) noexcept 
+void_t hdr_postprocess_pipeline::update_properies( void_t ) noexcept
 {
-    _bloom->update_properties() ;
+    _bloom->update_properties();
+}
+
+//***************************************************
+void_t hdr_postprocess_pipeline::set_map_to_screen_texture_temp( motor::string_in_t name ) noexcept
+{
+    auto * vs = _msl->borrow_varibale_set( 1 );
+    if( vs )
+    {
+        auto * var = vs->texture_variable( "tx_map" );
+        if( var ) var->set( name );
+    }
 }
 
 //***************************************************

@@ -89,7 +89,7 @@ class tone_map_stage
                         {
                             vec4_t col = rt_texture( tx_map, in.tx ) ;
                             vec3_t tone_mapped =  col.xyz / ( col.xyz + reinhard_offset ) ; 
-                            tone_mapped = pow( tone_mapped, 1.0/2.2) ;
+                            //tone_mapped = pow( tone_mapped, 1.0/2.2) ;
                             out.color = vec4_t( tone_mapped, 1.0 ) ;
                         }
                     }
@@ -141,7 +141,7 @@ class tone_map_stage
 
     void_t release_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
-        fe->release< motor::graphics::msl_object_t >( motor::move( _msl ) );
+        fe->release< motor::graphics::msl_object_t >( _msl );
     }
 
     void_t render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
