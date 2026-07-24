@@ -73,5 +73,11 @@ namespace motor
             depth_write,
             scissor_test
         } ;
+
+        enum class depth_compare
+        {
+            less,
+            less_equal
+        } ;
     }
 }

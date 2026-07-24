@@ -517,6 +517,17 @@ namespace motor
                 }
                 return GL_NONE ;
             }
+
+            static GLenum convert( motor::graphics::depth_compare const dc ) noexcept
+            {
+                switch( dc ) 
+                {
+                    case motor::graphics::depth_compare::less: return GL_LESS ;
+                    case motor::graphics::depth_compare::less_equal: return GL_LEQUAL ;
+                    default: break ;
+                }
+                return GL_NEVER ;
+            }
         }
     }
 }

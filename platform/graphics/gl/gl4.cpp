@@ -1088,8 +1088,11 @@ public:
                     glDepthMask( new_states.depth_s.ss.do_depth_write ? GL_TRUE : GL_FALSE ) ;
                     gl4_log_error( "glDepthMask" ) ;
 
-                    glDepthFunc( GL_LESS ) ;
+                    glDepthFunc( motor::platform::gl3::convert( new_states.depth_s.ss.compare_funk ) ) ;
                     gl4_log_error( "glDepthFunc" ) ;
+
+                    glDepthRange( 0.0f, 1.0f ) ;
+                    gl4_log_error( "glDepthRange" ) ;
                 }
                 else
                 {

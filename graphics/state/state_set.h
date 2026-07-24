@@ -109,8 +109,7 @@ namespace motor
         {
             bool_t do_activate = false ;
             bool_t do_depth_write = true ;
-
-            // depth buffer test func
+            motor::graphics::depth_compare compare_funk = motor::graphics::depth_compare::less ;
         };
         motor_typedefs( state_set< depth_states >, depth_states_set ) ;
 

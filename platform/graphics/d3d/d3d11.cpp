@@ -1560,7 +1560,7 @@ public: // functions
 
                 D3D11_DEPTH_STENCIL_DESC desc = {} ;
                 desc.DepthEnable = incoming_states.rss.depth_s.ss.do_activate ? TRUE : FALSE ;
-                desc.DepthFunc = D3D11_COMPARISON_LESS ;
+                desc.DepthFunc = motor::platform::d3d11::convert_depth_func( incoming_states.rss.depth_s.ss.compare_funk ) ;
                 desc.DepthWriteMask = incoming_states.rss.depth_s.ss.do_depth_write ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO ;
 
                 auto const res = _ctx->dev()->CreateDepthStencilState( &desc, &incoming_states.depth_stencil_state ) ;

@@ -1548,6 +1548,16 @@ motor::msl::generated_code_t::shaders_t glsl4_generator::generate( motor::msl::g
             {
                 var.new_name = "gl_InstanceID" ;
             }
+            else if( var.st ==  motor::msl::shader_type::pixel_shader &&
+                var.binding == motor::msl::binding::depth )
+            {
+                var.new_name = "gl_FragDepth" ;
+            }
+            else if( var.st ==  motor::msl::shader_type::pixel_shader &&
+                var.binding == motor::msl::binding::position )
+            {
+                var.new_name = "gl_FragCoord" ;
+            }
         }
     }
 
@@ -1885,7 +1895,7 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
 
                     // don not generate input position except if coming into the vertex shader
                     if ( sht_cur != motor::msl::shader_type::vertex_shader &&
-                        v.binding == motor::msl::binding::position ) continue ;
+                        v.binding == motor::msl::binding::position ) continue ;                    
 
                     motor::string_t name = v.name ;
                     motor::string_t const type_ = this_file::map_variable_type_to_string( type, v.type ) ;
@@ -1939,6 +1949,7 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
                     if ( v.binding == motor::msl::binding::vertex_id ) continue ;
                     if ( v.binding == motor::msl::binding::instance_id ) continue ;
                     if ( v.binding == motor::msl::binding::primitive_id ) continue ;
+                    if ( v.binding == motor::msl::binding::depth ) continue ;
 
                     // do not place that position variable in the interface block.
                     if ( !using_transform_feedback && v.binding == motor::msl::binding::position ) continue ;
@@ -2100,8 +2111,17 @@ motor::msl::generated_code_t::code_t glsl4_generator::generate( motor::msl::gene
                 default: break ;
                 }
 
-                std::regex rex( "in *(\\[ *[0-9]*[a-z]* *\\])? *\\." + v.name ) ;
-                shd = std::regex_replace( shd, rex, "(gl_in$1.gl_Position"+swizzle+")" ) ; 
+                if( sht_cur != motor::msl::shader_type::pixel_shader )
+                {
+                    std::regex rex( "in *(\\[ *[0-9]*[a-z]* *\\])? *\\." + v.name ) ;
+                    shd = std::regex_replace( shd, rex, "(gl_in$1.gl_Position"+swizzle+")" ) ; 
+                }
+                else
+                {
+                    std::regex rex( "in *(\\[ *[0-9]*[a-z]* *\\])? *\\." + v.name ) ;
+                    shd = std::regex_replace( shd, rex, "(gl_FragCoord"+swizzle+")" ) ; 
+                }
+                
 
                 break ;
             }

@@ -505,6 +505,19 @@ namespace motor
                 }
                 return DXGI_FORMAT_UNKNOWN ;
             }
+
+            static D3D11_COMPARISON_FUNC convert_depth_func( motor::graphics::depth_compare const dst ) noexcept
+            {
+                switch( dst )
+                {
+                case motor::graphics::depth_compare::less:
+                    return D3D11_COMPARISON_LESS  ;
+                case motor::graphics::depth_compare::less_equal:
+                    return D3D11_COMPARISON_LESS_EQUAL  ;
+                default: break ;
+                }
+                return D3D11_COMPARISON_NEVER  ;
+            }
         }
     }
 }
