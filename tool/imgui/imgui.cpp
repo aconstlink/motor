@@ -374,7 +374,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     // setup projection matrix
     {
         motor::math::mat4f_t const proj = motor::math::m3d::orthographic<float_t>::create(
-            float_t(_width), float_t(_height), 1.0f, 10.0f);
+            float_t(_width), float_t(_height), 0.0f, .1f);
 
         for (auto& vars : _vars)
         {
