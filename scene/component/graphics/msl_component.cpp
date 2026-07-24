@@ -11,6 +11,9 @@ msl_component::msl_component( this_rref_t rhv ) noexcept
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
         reinterpret_cast< void * >( &rhv._cam_vars ), sizeof( _cam_vars ) );
 
+    std::memcpy( reinterpret_cast< void * >( &_light_vars ),
+        reinterpret_cast< void * >( &rhv._light_vars ), sizeof( _light_vars ) );
+
     motor::release( motor::move( _msl ) );
     _msl = motor::move( rhv._msl );
 
@@ -26,6 +29,8 @@ msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl ) noexc
     : _msl( motor::move( msl ) )
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
+    std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
+
     if( _msl != nullptr ) _msl->register_listener( motor::share( _comp_lst ) );
     _status = motor::shared( motor::graphics::command_status_t() );
 }
@@ -36,6 +41,8 @@ msl_component::msl_component(
     : _msl( motor::move( msl ) ), _vs( vs ), _geo_id( geo_id )
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
+    std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
+
     if( _msl != nullptr )
     {
         _msl->register_listener( motor::share( _comp_lst ) );
@@ -57,6 +64,8 @@ msl_component::~msl_component( void_t ) noexcept
 size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noexcept
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
+    std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
+
     if( _msl != nullptr ) motor::release( motor::move( _msl ) );
 
     _msl = motor::move( msl );
@@ -176,6 +185,16 @@ void_t msl_component::update_bindings( void_t ) noexcept
                     }
 
                     if( sb.has_variable_binding(
+                            motor::graphics::binding_point::light_direction, name ) )
+                    {
+                        auto * var = _var_set->data_variable< motor::math::vec3f_t >( name );
+                        if( var != nullptr )
+                        {
+                            _light_vars.light_dir = var;
+                        }
+                    }
+
+                    if( sb.has_variable_binding(
                             motor::graphics::binding_point::world_matrix, name ) )
                     {
                         _trafo_vars.world->connect(
@@ -224,6 +243,15 @@ void_t msl_component::update_camera( motor::gfx::generic_camera_ptr_t cam ) noex
 void_t msl_component::set_world( motor::math::m3d::trafof_cref_t trafo ) noexcept
 {
     _trafo_vars.world->set_and_exchange( trafo.get_transformation() );
+}
+
+//*****************************************************************
+void_t msl_component::set_light_direction( motor::math::vec3f_cref_t dir ) noexcept
+{
+    if( _light_vars.light_dir )
+    {
+        _light_vars.light_dir->set( dir ) ;
+    }
 }
 
 //*****************************************************************

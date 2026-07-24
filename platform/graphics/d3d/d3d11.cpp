@@ -28,6 +28,7 @@
 #include <motor/std/string>
 #include <motor/std/string_split.hpp>
 #include <motor/std/stack>
+#include <motor/log/global.h>
 
 #include <d3d11.h>
 #include <d3dcompiler.h>

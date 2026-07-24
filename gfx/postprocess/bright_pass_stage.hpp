@@ -164,12 +164,12 @@ class bright_pass_stage
 
     void_t release_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
-        fe->release< motor::graphics::msl_object_t >( motor::move( _msl ) );
+        fe->release< motor::graphics::msl_object_t >( _msl );
     }
 
     void_t render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
-        _brg->update_bindings();
+        _brg->pull_data();
         motor::graphics::gen4::backend::render_detail det;
         fe->render( _msl, det );
     }

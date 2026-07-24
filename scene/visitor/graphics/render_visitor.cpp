@@ -17,16 +17,15 @@ render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id
 }
 
 //*****************************************************************************************
-render_visitor::render_visitor( motor::graphics::gen4::frontend_ptr_t fe,
-    motor::gfx::generic_camera_ptr_t cam ) noexcept
+render_visitor::render_visitor(
+    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
     : _msl_set_id( 0 ), _fe( fe ), _cam( cam )
 {
 }
 
 //*****************************************************************************************
 render_visitor::render_visitor( this_rref_t rhv ) noexcept
-    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ),
-      _cam( motor::move( rhv._cam ) )
+    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) )
 {
 }
 
@@ -102,6 +101,11 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
             if( set_comp->borrow_msl_component( this_t::msl_set_id(), comp ) )
             {
                 comp->render_update( _cam );
+
+                if( this_t::is_light_dir_set() )
+                {
+                    comp->set_light_direction( this_t::get_light_dir() );
+                }
 
                 auto msl = comp->borrow_msl();
 

@@ -79,7 +79,7 @@ class merge_stage
                         tex2d_t tx_b ;
 
                         float_t strength_a(1.0) ;
-                        float_t strength_b(0.8) ;
+                        float_t strength_b(0.131) ;
 
                         void main()
                         {
@@ -181,7 +181,7 @@ class merge_stage
 
     void_t release_graphics( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
-        fe->release< motor::graphics::msl_object_t >( motor::move( _msl ) );
+        fe->release< motor::graphics::msl_object_t >( _msl );
     }
 
     void_t render( motor::graphics::gen4::frontend_ptr_t fe ) noexcept

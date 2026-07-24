@@ -1895,13 +1895,23 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
             motor::string_t const type_ = this_t::map_variable_type( v.t ) ;
             motor::string_t const binding_ = this_t::map_variable_binding( s.type, v.fq, v.binding ) ;
 
-            text << type_ << " " << name << " : " << binding_ << " ;" << std::endl ;
+            if( v.binding == motor::msl::binding::unknown )
+            {
+                text << type_ << " " << name << " ;" << std::endl ;
+            }
+            else
+            {
+                text << type_ << " " << name << " : " << binding_ << " ;" << std::endl ;
+            }
+            
         }
         text << "} ;" << std::endl << std::endl ;
     }
     // inputs from previous outputs
     else 
     {
+        size_t arg_i = 0 ;
+
         text << "struct " << input_struct_name << std::endl ;
         text << "{" << std::endl ;
         for( auto const& v : var_mappings )
@@ -1914,13 +1924,23 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
             motor::string_t const type_ = this_t::map_variable_type( v.t ) ;
             motor::string_t const binding_ = this_t::map_variable_binding( s.type, motor::msl::flow_qualifier::in, v.binding ) ;
 
-            text << type_ << " " << name << " : " << binding_ << " ;" << std::endl ;
+            if( v.binding == motor::msl::binding::unknown )
+            {
+                text << type_ << " " << name << " : " << "ARG_" << arg_i++ << " ;" << std::endl ;
+            }
+            else
+            {
+                text << type_ << " " << name << " : " << binding_ << " ;" << std::endl ;
+            }
+            
         }
         text << "} ;" << std::endl << std::endl ;
     }
 
     // outputs
     {
+        size_t arg_i = 0 ;
+
         text << "struct " << output_struct_name << std::endl ;
         text << "{" << std::endl ;
         for( auto const& v : s.variables )
@@ -1937,7 +1957,14 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
                 name = var_mappings[ idx ].new_name ;
             }
 
-            text << type_ << " " << name << " : " << binding_ << " ;" << std::endl ;
+            if( v.binding == motor::msl::binding::unknown )
+            {
+                text << type_ << " " << name << " : " << "ARG_" << arg_i++ << " ;" << std::endl ;
+            }
+            else
+            {
+                text << type_ << " " << name << " : " << binding_ << " ;" << std::endl ;
+            }
         }
         text << "} ;" << std::endl << std::endl ;
     }

@@ -96,7 +96,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     void_t init_render( motor::graphics::gen4::frontend_ptr_t ) noexcept;
     void_t release_render( motor::graphics::gen4::frontend_ptr_t ) noexcept;
 
-    void_t render( motor::graphics::gen4::frontend_ptr_t ) noexcept;
+    void_t render( motor::graphics::gen4::frontend_ptr_t, bool_t const temp = false ) noexcept;
 
   public:
 
@@ -111,6 +111,8 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     // inputs slots. e.g. shader variables used in multiple passes.
     // this is usually used in ui.
     void_t update_properies( void_t ) noexcept ;
+
+    void_t set_map_to_screen_texture_temp( motor::string_in_t name ) noexcept ;
 
   private:
 
