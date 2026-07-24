@@ -1525,7 +1525,8 @@ motor::string_t hlsl5_generator::map_variable_binding( motor::msl::shader_type c
 
         mapping_t( motor::msl::binding::vertex_id, "SV_VertexID" ),
         mapping_t( motor::msl::binding::primitive_id, "SV_PrimitiveID" ),
-        mapping_t( motor::msl::binding::instance_id, "SV_InstanceID" )
+        mapping_t( motor::msl::binding::instance_id, "SV_InstanceID" ),
+        mapping_t( motor::msl::binding::depth, "SV_Depth" ),
 
     } ;
 
@@ -1541,9 +1542,9 @@ motor::string_t hlsl5_generator::map_variable_binding( motor::msl::shader_type c
     if( st == motor::msl::shader_type::vertex_shader && 
         fq == motor::msl::flow_qualifier::in && 
         binding == motor::msl::binding::position )
-        return "POSITION" ;
+        return "POSITION" ; // I think we could use SV_Position too.
     else if( binding == motor::msl::binding::position )
-        return "SV_POSITION" ;
+        return "SV_Position" ;
 
     // check render targets first
     {

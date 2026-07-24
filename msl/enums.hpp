@@ -181,7 +181,7 @@ namespace motor
         {
             unknown, position, normal, tangent,
             texcoord0,texcoord1,texcoord2,texcoord3,texcoord4,texcoord5,texcoord6,texcoord7,
-            color0, color1, color2, color3, color4, color5, color6, color7,
+            color0, color1, color2, color3, color4, color5, color6, color7, depth,
             projection, view, world, object, camera, camera_position, light_direction, viewport,
             vertex_id, primitive_id, instance_id
         };
@@ -213,6 +213,7 @@ namespace motor
                 __mapping_t( "color5", motor::msl::binding::color5 ),
                 __mapping_t( "color6", motor::msl::binding::color6 ),
                 __mapping_t( "color7", motor::msl::binding::color7 ),
+                __mapping_t( "depth", motor::msl::binding::depth ),
                 __mapping_t( "projection", motor::msl::binding::projection ),
                 __mapping_t( "view", motor::msl::binding::view ),
                 __mapping_t( "world", motor::msl::binding::world ),
@@ -236,7 +237,7 @@ namespace motor
             static char_t const * const __values[] = { 
                 "unknown", "position", "normal", "tangent",
                 "texcoord0", "texcoord1", "texcoord2", "texcoord3", "texcoord4", "texcoord5", "texcoord6", "texcoord7",
-                "color0", "color1", "color2", "color3", "color4", "color5", "color6", "color7",
+                "color0", "color1", "color2", "color3", "color4", "color5", "color6", "color7", "depth"
                 "projection", "view", "world", "object", "camera", "camera_position", "light_direction", "viewport",
                 "vertex_id", "primitive_id", "instance_id"
             } ;
