@@ -261,6 +261,10 @@ namespace motor
 
             struct MOTOR_MSL_API document
             {
+                // the use statement in the file
+                // at the moment, only one use statement
+                // can be used in a file.
+                symbol_t use_config ;
                 configs_t configs ;
                 libraries_t libraries ;
 

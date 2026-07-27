@@ -51,11 +51,49 @@ motor::msl::post_parse::document_t parser::process( motor::string_rref_t file ) 
         doc.libraries = analyse_libraries( std::move( s1 ) ) ;
     }
     {
+        auto s1 = this_t::filter_use_config_statements( statements_t( statements ) )  ;
+        if( s1.size() != 0 )
+        {
+            doc.use_config = s1.back() ;
+        }
+    }
+    {
         auto s1 = filter_config_statements( statements_t( statements ) ) ;
         doc.configs = analyse_configs( std::move( s1 ) ) ;
     }
 
     return std::move( doc ) ;
+}
+
+motor::msl::symbols_t parser::filter_use_config_statements( this_t::statements_rref_t ss ) const noexcept 
+{
+    motor::msl::symbols_t ret ;
+    
+    auto iter = ss.begin() ;
+    while( iter != ss.end() )
+    {
+        auto token = this_t::tokenize( *iter ) ;
+        
+        if( token[0] == "use" && token[1] == "config" )
+        {
+            ret.emplace_back( token[2] ) ;
+
+            // if use config name ;
+            // remove that line
+            if( token.size() > 3 && token[3] == ";" )
+            {
+                iter = ss.erase( iter ) ;
+                continue ;
+            }
+
+            // if use config name {} <- normal config
+            // replace the original statement            
+            *iter = (*iter).substr( 4 ) ;
+        }
+        ++iter ;
+    }
+
+    return ret ;
 }
 
 motor::msl::parse::configs_t parser::filter_config_statements( this_t::statements_rref_t ss ) const noexcept

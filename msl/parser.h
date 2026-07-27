@@ -37,6 +37,9 @@ namespace motor
 
         private: // 
 
+            
+            motor::msl::symbols_t filter_use_config_statements( this_t::statements_rref_t ss ) const noexcept ;
+
             motor::msl::parse::configs_t filter_config_statements( this_t::statements_rref_t ss ) const noexcept ;
             
             motor::msl::post_parse::configs_t analyse_configs( motor::msl::parse::configs_rref_t configs ) const noexcept ;
