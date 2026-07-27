@@ -49,3 +49,4 @@ AllowShortLambdasOnASingleLine: Inline
 LambdaBodyIndentation: OuterScope
 
 AlwaysBreakTemplateDeclarations: true
+AllowShortLoopsOnASingleLine: true
