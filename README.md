@@ -3,67 +3,56 @@
 [![CMake on Linux with OpenGL](https://github.com/aconstlink/motor/actions/workflows/cmake-lin-gcc-gl.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-lin-gcc-gl.yml)
 [![CMake on Win32 with DirectX 11](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+`motor` is a custom C++ real-time framework for graphics, tooling, runtime systems, and interactive applications.
 
-`motor` is a custom C++ engine for real-time audio/visual applications. It is designed around explicit control, predictable ownership, modular systems, and fast iteration.
+The project is developed as a personal engine/runtime environment. It is not meant to compete with large commercial engines. Its purpose is to explore and build the systems behind real-time applications directly: rendering abstraction, resource lifetimes, scene composition, shader workflows, data flow, tooling, and live iteration.
 
-The project is primarily a learning and research engine: it explores rendering abstraction, runtime systems, memory/resource management, and tooling workflows without hiding the low-level details.
+## Focus
 
-## Features
+`motor` is currently focused on demo and visual application workflows:
 
-### Rendering
+- multi-window rendering for tool and production views
+- OpenGL and DirectX rendering backends
+- explicit graphics resource configuration and release
+- asynchronous render-resource workflows
+- shader compilation and live iteration through MSL
+- scene graph with components and visitors
+- typed data-flow through the `wire` slot system
+- glTF based scene import from Blender
+- camera sequencing and animation playback
+- HDR/post-processing and render-pass experiments
 
-- Multi-backend rendering architecture
-  - OpenGL 4
-  - DirectX 11
-  - OpenGL ES 3
-- Cross-backend shader and material flow through the engine's MSL layer
-- Runtime shader compilation and reload-oriented workflows
-- Support for running multiple rendering backends/windows for debugging and comparison
+The engine is built around explicit control. Objects are configured before they are used, ownership is visible, and higher-level systems such as the scene graph can automate that lifecycle when needed.
 
-### Runtime Systems
+## Project Structure
 
-- Modular engine libraries built with CMake targets
-- Application lifecycle hooks for update, render, audio, input, logic, physics, profiling, networking, and tooling
-- Scene graph with components and visitors
-- Custom task/concurrency utilities
-- Explicit resource and memory management
+The repository is split into small libraries. Important modules include:
 
-### Memory
+- `application` - application and window integration
+- `graphics` - backend-facing graphics objects, frontend command layer, render state and resource handling
+- `gfx` - higher-level rendering helpers and camera utilities
+- `scene` - scene graph, components, visitors, animation and graphics integration
+- `msl` - motor shading language and shader translation infrastructure
+- `wire` - typed slots and data-flow connections
+- `math`, `geometry`, `noise` - math and geometry support
+- `concurrent` - task and scheduling utilities
+- `tool`, `property` - runtime tooling and editable data interfaces
+- `format` - asset and file format integration
 
-- Central memory manager
-- Allocation tracking with purpose tags
-- Managed and borrowed pointer conventions
-- Runtime memory visibility and leak-dump support
+Third-party dependencies live under `externals/` and are pulled in as git submodules. The engine integrates them through local CMake targets instead of modifying the external source code.
 
-### Tooling
+## Related Repositories
 
-- Dear ImGui integration
-- Built-in tooling hooks through `on_tool()`
-- Engine profiling UI support
-- Asset- and shader-iteration workflows intended for fast development loops
+The engine repository intentionally does not contain all demos and visual test applications.
 
-## Repository Scope
+- [`motor_suites`](https://github.com/aconstlink/motor_suites) contains sample applications, integration checks, and manual/visual test scenarios.
+- `motor_demos` is used for demo-focused applications built on top of the engine.
 
-This repository contains the engine code itself. It intentionally does not contain the main sample and demo applications.
-
-Related repositories:
-
-- [`motor_suites`](https://github.com/aconstlink/motor_suites)  
-  Sample applications, manual/visual test scenarios, and integration checks for engine layers.
-
-- [`motor_exdep`](https://github.com/aconstlink/motor_exdep)  
-  Work-in-progress external dependency and package integration setup.
-
-- [`motor_demos`](https://github.com/aconstlink/motor_demos)  
-  Demo-focused applications built with the engine.
-
-Keeping samples and demos outside the engine repository helps keep the engine code focused and makes the engine easier to include in other projects.
-
-## Dependencies
-
-Third-party code is pulled in through git submodules under `externals/`. The engine provides local CMake files that expose those dependencies as targets used by the rest of the build.
+This keeps the engine repository focused while still allowing larger examples and experiments to evolve separately.
 
 ## Build
+
+Clone with submodules:
 
 ```bash
 git clone --recursive https://github.com/aconstlink/motor.git
@@ -78,21 +67,16 @@ If the repository was cloned without submodules:
 git submodule update --init --recursive
 ```
 
-## Platforms
-
-Windows is the main development platform.
-
-Regularly used targets include:
-
-- Windows 10/11 with Visual Studio 2019 or newer
-- Linux with GCC and OpenGL development packages
-  ```libX11 mesa-libGLES mesa-libGL mesa-libEGL alsa-lib```  
-OpenGL ES support exists in the codebase, but is not currently the primary tested path.
+Windows is the primary development platform. The engine is also built and tested on Linux for OpenGL-oriented configurations.
 
 ## Status
 
-Active development. The current focus is on building toward polished real-time demos that exercise scene loading, rendering, runtime resources, and iteration workflows.
+Active development.
+
+The current work is centered on building polished real-time demos and using them as production-style tests for the engine: Blender scene import, camera sequencing, scene streaming, render passes, shadows, HDR, bloom, and post-processing.
+
+APIs and internal systems are still evolving. The repository is best understood as an engine development project and research runtime, not as a finished SDK.
 
 ## License
 
-MIT License
+MIT License.
