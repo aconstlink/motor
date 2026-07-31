@@ -32,6 +32,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
     vs_idx_t _vs = 0;
     geo_idx_t _geo_id = 0;
 
+    bool_t _managed = false;
     motor::graphics::command_status_mtr_t _status = nullptr;
     motor::graphics::msl_object_mtr_t _msl = nullptr;
     motor::graphics::variable_set_mtr_t _var_set = nullptr;
@@ -102,14 +103,32 @@ class MOTOR_SCENE_API msl_component : public icomponent
     msl_component( this_rref_t ) noexcept;
     msl_component( this_cref_t ) = delete;
     msl_component( motor::graphics::msl_object_mtr_safe_t ) noexcept;
+
+    // create a non-managed msl_component. This means, the msl object is
+    // managed by this component.
     msl_component( motor::graphics::msl_object_mtr_safe_t, vs_idx_t const,
+        geo_idx_t const = geo_idx_t( -1 ) ) noexcept;
+
+    // using this constructor, the msl object is probably managed
+    // from the outside, so the visitors should not do any lazy
+    // initialization for example.
+    msl_component( motor::graphics::msl_object_mtr_safe_t,
+        motor::graphics::command_status_mtr_safe_t, vs_idx_t const,
         geo_idx_t const = geo_idx_t( -1 ) ) noexcept;
 
     virtual ~msl_component( void_t ) noexcept;
 
   public:
 
-    size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept;
+    bool_t is_managed( void_t ) const noexcept
+    {
+        return _managed;
+    }
+
+    // size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept;
+    size_t set_msl( motor::graphics::msl_object_mtr_safe_t,
+        motor::graphics::command_status_mtr_t = nullptr ) noexcept;
+
     motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept
     {
         return _msl;
@@ -149,7 +168,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
     // set a light direction on the shader variable
     // if there is a bindings.
     void_t set_light_direction( motor::math::vec3f_cref_t ) noexcept;
-    
+
   public: // inputs
 
     motor::wire::inputs_cptr_t borrow_shader_inputs( void_t ) const noexcept;

@@ -37,6 +37,9 @@ set( sources
     "postprocess/tone_map_stage.hpp"
     "postprocess/bright_pass_stage.hpp"
     "postprocess/merge_stage.hpp"
+
+    "manager/msl_manager.h"
+    "manager/msl_manager.cpp"
     )
 
 motor_vs_src_dir( sources )

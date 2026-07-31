@@ -34,6 +34,8 @@ class command_status
     };
     motor_typedef( data );
 
+    mutable motor::concurrent::mrsw_t _mutex;
+
     // per backend status.
     motor::vector< data_t > _datas;
 
@@ -42,7 +44,10 @@ class command_status
     command_status( void_t ) noexcept {}
 
     command_status( this_cref_t ) = delete;
-    command_status( this_rref_t rhv ) noexcept : _datas( std::move( rhv._datas ) ) {}
+    command_status( this_rref_t rhv ) noexcept
+        : _datas( std::move( rhv._datas ) ), _mutex( std::move( rhv._mutex ) )
+    {
+    }
 
     ~command_status( void_t ) noexcept {}
 
@@ -60,6 +65,7 @@ class command_status
     bool_t set( size_t const bid, this_t::status const s,
         std::function< bool_t( this_t::status const ) > cond )
     {
+        motor::concurrent::mrsw_t::writer_lock_t lk( _mutex );
         auto & d = this_t::ensure_entry( bid );
 
         if( cond( d.status ) )
@@ -72,15 +78,17 @@ class command_status
 
     void_t set( size_t const bid, this_t::status const s ) noexcept
     {
+        motor::concurrent::mrsw_t::writer_lock_t lk( _mutex );
         auto & d = this_t::ensure_entry( bid );
         d.status = s;
     }
 
     bool_t get_status( size_t const bid, this_t::status & ret ) const noexcept
     {
+        motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
+
         size_t i = size_t( -1 );
-        while( ++i < _datas.size() && _datas[ i ].bid != bid )
-            continue;
+        while( ++i < _datas.size() && _datas[ i ].bid != bid ) continue;
 
         if( i < _datas.size() )
         {
@@ -90,19 +98,52 @@ class command_status
         return false;
     }
 
+    // checks every status (i.e. for every backend) and returns
+    // true is all status codes are set to configured.
+    bool_t is_configured( void_t ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
+
+        if( _datas.size() == 0 ) return false ;
+
+        for( auto & item : _datas )
+        {
+            if( item.status != status::configured ) return false;
+        }
+        return true;
+    }
+
+    // check every status (i.e. for every backend) and returns
+    // true is any one is in transit.
+    bool_t is_in_transit( void_t ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
+
+        if( _datas.size() == 0 ) return false ;
+
+        for( auto & item : _datas )
+        {
+            if( item.status == status::in_transit ) return true;
+        }
+        return false;
+    }
+
   public: // graphics result
 
     void_t set( size_t const bid, motor::graphics::result const r ) noexcept
     {
-        auto & d = this_t::ensure_entry( bid ) ;
-        d.res = r ; 
+        motor::concurrent::mrsw_t::writer_lock_t lk( _mutex );
+
+        auto & d = this_t::ensure_entry( bid );
+        d.res = r;
     }
 
     bool_t get_result( size_t const bid, motor::graphics::result & ret ) const noexcept
     {
+        motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
+
         size_t i = size_t( -1 );
-        while( ++i < _datas.size() && _datas[ i ].bid != bid )
-            continue;
+        while( ++i < _datas.size() && _datas[ i ].bid != bid ) continue;
 
         if( i < _datas.size() )
         {
@@ -117,8 +158,7 @@ class command_status
     data_ref_t ensure_entry( size_t const bid ) noexcept
     {
         size_t i = size_t( -1 );
-        while( ++i < _datas.size() && _datas[ i ].bid != bid )
-            continue;
+        while( ++i < _datas.size() && _datas[ i ].bid != bid ) continue;
 
         if( i >= _datas.size() )
         {

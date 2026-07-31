@@ -6,7 +6,8 @@ using namespace motor::scene;
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
     : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _brigde( std::move( rhv._brigde ) ),
-      _trafo_vars( std::move( rhv._trafo_vars ) ), _status( motor::move( rhv._status ) )
+      _trafo_vars( std::move( rhv._trafo_vars ) ), _status( motor::move( rhv._status ) ),
+      _managed( rhv._managed )
 {
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
         reinterpret_cast< void * >( &rhv._cam_vars ), sizeof( _cam_vars ) );
@@ -52,6 +53,23 @@ msl_component::msl_component(
 }
 
 //*****************************************************************
+msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl,
+    motor::graphics::command_status_mtr_safe_t status, vs_idx_t const vs,
+    geo_idx_t const geo_id ) noexcept
+    : _msl( motor::move( msl ) ), _vs( vs ), _geo_id( geo_id ), _managed( true ),
+      _status( motor::move( status ) )
+{
+    std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
+    std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
+
+    if( _msl != nullptr )
+    {
+        _msl->register_listener( motor::share( _comp_lst ) );
+        _msl->fill_variable_sets( vs );
+    }
+}
+
+//*****************************************************************
 msl_component::~msl_component( void_t ) noexcept
 {
     motor::release( motor::move( _msl ) );
@@ -61,7 +79,8 @@ msl_component::~msl_component( void_t ) noexcept
 }
 
 //*****************************************************************
-size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noexcept
+size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl,
+    motor::graphics::command_status_mtr_t status ) noexcept
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
     std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
@@ -76,8 +95,19 @@ size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noex
         _vs = _msl->borrow_varibale_sets().size();
         _msl->fill_variable_sets( _vs );
     }
-    motor::release( motor::move( _status ) );
-    _status = motor::shared( motor::graphics::command_status_t() );
+
+    if( status != nullptr )
+    {
+        _managed = true;
+        motor::release( motor::move( _status ) );
+        _status = motor::move( status );
+    }
+    else
+    {
+        motor::release( motor::move( _status ) );
+        _status = motor::shared( motor::graphics::command_status_t() );
+        _managed = false;
+    }
 
     return _vs;
 }
@@ -97,7 +127,7 @@ bool_t msl_component::render_init( motor::graphics::gen4::frontend_ptr_t fe ) no
         if( s == motor::graphics::command_status::status::in_transit ) return false;
     }
 
-    fe->configure< motor::graphics::msl_object_t >( _msl, _status );
+    if( !_managed ) fe->configure< motor::graphics::msl_object_t >( _msl, _status );
 
     return false;
 }
@@ -113,7 +143,7 @@ bool_t msl_component::render_release( motor::graphics::gen4::frontend_ptr_t fe )
         if( s == motor::graphics::command_status::status::in_transit ) return false;
     }
 
-    fe->release< motor::graphics::msl_object_t >( _msl, _status );
+    if( !_managed ) fe->release< motor::graphics::msl_object_t >( _msl, _status );
 
     return false;
 }
@@ -250,7 +280,7 @@ void_t msl_component::set_light_direction( motor::math::vec3f_cref_t dir ) noexc
 {
     if( _light_vars.light_dir )
     {
-        _light_vars.light_dir->set( dir ) ;
+        _light_vars.light_dir->set( dir );
     }
 }
 
