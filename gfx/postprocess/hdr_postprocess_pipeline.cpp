@@ -13,7 +13,8 @@ hdr_postprocess_pipeline::hdr_postprocess_pipeline( uint_t const w, uint_t const
 hdr_postprocess_pipeline::hdr_postprocess_pipeline( this_rref_t rhv ) noexcept
     : _post_so( motor::move( rhv._post_so ) ), _post_quad( motor::move( rhv._post_quad ) ),
       _post_fbs( std::move( rhv._post_fbs ) ), _mts_so( motor::move( rhv._mts_so ) ),
-      _hdr_so( motor::move( rhv._hdr_so ) ), _msl( motor::move( rhv._msl ) )
+      _hdr_so( motor::move( rhv._hdr_so ) ), _zpre_so( motor::move( rhv._zpre_so ) ),
+      _msl( motor::move( rhv._msl ) )
 {
     _hdr_fbs[ 0 ] = motor::move( rhv._hdr_fbs[ 0 ] );
     _hdr_fbs[ 1 ] = motor::move( rhv._hdr_fbs[ 1 ] );
@@ -34,6 +35,12 @@ motor::graphics::framebuffer_object_mtr_t hdr_postprocess_pipeline::borrow_hdr_f
 motor::graphics::state_object_mtr_t hdr_postprocess_pipeline::borrow_hdr_states( void_t ) noexcept
 {
     return _hdr_so;
+}
+
+//***************************************************
+motor::graphics::state_object_mtr_t hdr_postprocess_pipeline::borrow_zpre_states( void_t ) noexcept
+{
+    return _zpre_so;
 }
 
 //***************************************************
@@ -214,7 +221,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
                 {
                     auto * var = vars.texture_variable( "tx_map" );
                     // set as dummy, so texture variable will be found in the backend
-                    // if not found during configure, the variable can not be set 
+                    // if not found during configure, the variable can not be set
                     // at the moment. @see motor #154
                     var->set( "gfx.postprocess.fb.full.hdr.0.0" );
                 }
@@ -309,6 +316,32 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         }
     }
 
+    // z prepass render states
+    {
+        motor::graphics::state_object_t so =
+            motor::graphics::state_object_t( "gfx.postprocess.depth_pass" );
+
+        {
+            motor::graphics::render_state_sets_t rss;
+
+            rss.depth_s.do_change = true;
+            rss.depth_s.ss.do_activate = true; // do depth compare
+            rss.depth_s.ss.do_depth_write = true; // do depth writes
+            rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less ;
+
+            rss.clear_s.do_change = true;
+            rss.clear_s.ss.do_activate = true; 
+            rss.clear_s.ss.do_depth_clear = true; // do clear depth buffer
+
+            rss.view_s.do_change = true;
+            rss.view_s.ss.do_activate = true;
+            rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, _post_fb_dims.x(), _post_fb_dims.y() );
+            so.add_render_state_set( rss );
+        }
+
+        _zpre_so = motor::shared( std::move( so ) );
+    }
+
     // hdr render states
     {
         motor::graphics::state_object_t so =
@@ -316,19 +349,23 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
         {
             motor::graphics::render_state_sets_t rss;
-            rss.depth_s.do_change = false;
-            rss.depth_s.ss.do_activate = true;
-            rss.depth_s.ss.do_depth_write = true;
+            rss.depth_s.do_change = true;
+            rss.depth_s.ss.do_activate = true; // do depth compare
+            rss.depth_s.ss.do_depth_write = false; // do not write depth values
+            rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less_equal ;
+
             rss.polygon_s.do_change = false;
             rss.polygon_s.ss.do_activate = true;
             rss.polygon_s.ss.fm = motor::graphics::fill_mode::fill;
             rss.polygon_s.ss.ff = motor::graphics::front_face::counter_clock_wise;
             rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
+
             rss.clear_s.do_change = true;
             rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.0f, 0.0f, 0.0f, 1.0f );
             rss.clear_s.ss.do_activate = true;
             rss.clear_s.ss.do_color_clear = true;
-            rss.clear_s.ss.do_depth_clear = true;
+            rss.clear_s.ss.do_depth_clear = false; // do not clear the depth buffer
+
             rss.view_s.do_change = true;
             rss.view_s.ss.do_activate = true;
             rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, _post_fb_dims.x(), _post_fb_dims.y() );
@@ -419,6 +456,7 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
     motor::release( motor::move( _hdr_fbs[ 0 ] ) );
     motor::release( motor::move( _hdr_fbs[ 1 ] ) );
     motor::release( motor::move( _hdr_so ) );
+    motor::release( motor::move( _zpre_so ) );
     motor::release( motor::move( _mts_so ) );
     motor::release( motor::move( _msl ) );
 
@@ -455,6 +493,7 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
     fe->configure< motor::graphics::state_object_t >( _post_so );
     fe->configure< motor::graphics::state_object_t >( _mts_so );
     fe->configure< motor::graphics::state_object_t >( _hdr_so );
+    fe->configure< motor::graphics::state_object_t >( _zpre_so );
 
     _tone_map->init_graphics( fe );
     _brightpass->init_graphics( fe );
@@ -480,12 +519,14 @@ void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend
     fe->release< motor::graphics::state_object_t >( _post_so );
     fe->release< motor::graphics::state_object_t >( _mts_so );
     fe->release< motor::graphics::state_object_t >( _hdr_so );
+    fe->release< motor::graphics::state_object_t >( _zpre_so );
     fe->release< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 0 ] );
     fe->release< motor::graphics::framebuffer_object_t >( _hdr_fbs[ 1 ] );
 }
 
 //***************************************************
-void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t fe, bool_t const temp ) noexcept
+void_t hdr_postprocess_pipeline::render(
+    motor::graphics::gen4::frontend_ptr_t fe, bool_t const temp ) noexcept
 {
     if( _size_changed )
     {
@@ -617,7 +658,7 @@ void_t hdr_postprocess_pipeline::render( motor::graphics::gen4::frontend_ptr_t f
     {
         fe->push( _mts_so );
         motor::graphics::gen4::backend::render_detail det;
-        det.varset = temp ? 1 : 0 ;
+        det.varset = temp ? 1 : 0;
         fe->render( _msl, det );
         fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
     }

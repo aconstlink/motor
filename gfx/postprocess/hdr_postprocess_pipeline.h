@@ -30,6 +30,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
 
     motor::graphics::framebuffer_object_mtr_t _hdr_fbs[ 2 ];
     motor::graphics::state_object_mtr_t _hdr_so = nullptr;
+    motor::graphics::state_object_mtr_t _zpre_so = nullptr;
 
     motor::graphics::state_object_mtr_t _post_so = nullptr;
     motor::graphics::geometry_object_mtr_t _post_quad = nullptr;
@@ -87,6 +88,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
 
     motor::graphics::framebuffer_object_mtr_t borrow_hdr_fb( size_t const idx ) noexcept;
     motor::graphics::state_object_mtr_t borrow_hdr_states( void_t ) noexcept;
+    motor::graphics::state_object_mtr_t borrow_zpre_states( void_t ) noexcept;
 
   public:
 
