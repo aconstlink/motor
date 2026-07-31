@@ -86,7 +86,7 @@ namespace motor
 
         public: // variable sets
 
-            this_ref_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept ;
+            size_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept ;
             this_ref_t fill_variable_sets( size_t const ) noexcept ;
             motor::graphics::variable_set_mtr_safe_t get_varibale_set( size_t const id ) noexcept ;
             motor::graphics::variable_set_mtr_t borrow_varibale_set( size_t const id ) const noexcept ;

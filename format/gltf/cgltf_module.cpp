@@ -16,6 +16,7 @@
 #include <motor/scene/component/graphics/msl_component.h>
 #include <motor/scene/component/graphics/msl_set_component.hpp>
 #include <motor/scene/component/graphics/config_graphics_component.h>
+#include <motor/scene/component/graphics/geometry_name_component.hpp>
 #include <motor/scene/component/animation/animation_track.hpp>
 #include <motor/scene/component/animation/animation_component.h>
 
@@ -943,7 +944,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 geos[ cgltf_mesh_index( data, gltf_mesh ) ][ pidx ];
                             motor::graphics::msl_object_mtr_t msl = msls[ mid ];
 
-                            size_t const num_geo_links = msl->link_geometry( geo->name() );
+                            size_t const geo_link_idx = msl->link_geometry( geo->name() );
 
                             motor::scene::leaf_t render_node;
 
@@ -957,10 +958,16 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 render_node.add_component( motor::shared( std::move( nc ) ) );
                             }
 
+                            // add geometry name component
+                            {
+                                auto comp = motor::scene::geometry_name_component_t( geo->name() );
+                                render_node.add_component( motor::shared( std::move( comp ) ) );
+                            }
+
                             // add msl compoent
                             {
                                 auto comp = motor::scene::msl_component_t(
-                                    motor::share( msl ), num_geo_links - 1, num_geo_links - 1 );
+                                    motor::share( msl ), geo_link_idx, geo_link_idx );
 
                                 auto set_comp = motor::scene::msl_set_component_t(
                                     0, motor::shared( std::move( comp ) ) );

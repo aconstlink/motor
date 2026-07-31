@@ -41,6 +41,7 @@ set( sources
     "visitor/graphics/init_msl_visitor.hpp"
     "visitor/graphics/release_msl_visitor.hpp"
     "visitor/graphics/add_shader_to_set_visitor.hpp"
+    "visitor/graphics/add_msl_to_set_visitor.hpp"
     
 
 
@@ -63,6 +64,7 @@ set( sources
     "component/graphics/shader_change_observer_component.h"
     "component/graphics/shader_change_observer_component.cpp"
     "component/graphics/msl_set_component.hpp"
+    "component/graphics/geometry_name_component.hpp"
 
     "component/animation/animation_component.h"
     "component/animation/animation_component.cpp"

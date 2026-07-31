@@ -175,8 +175,13 @@ void_t msl_object::for_each_msl( motor::graphics::msl_api_type const t, foreach_
 //****************************************************************************
 size_t msl_object::link_geometry( motor::string_cref_t name ) noexcept
 {
+    size_t i = size_t(-1); 
+    while( _geo.size() > ++i && _geo[i] != name ) ;
+
+    if( i != _geo.size() ) return i ;
+
     _geo.emplace_back( name ) ;
-    return _geo.size() ;
+    return _geo.size() - 1 ;
 }
 
 //****************************************************************************
@@ -220,10 +225,10 @@ msl_object::this_t msl_object::light_clone( motor::string_in_t name ) const noex
 }
 
 //****************************************************************************
-msl_object::this_ref_t msl_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
+size_t msl_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
 {
     _vars.emplace_back( vs ) ;
-    return *this ;
+    return _vars.size()-1 ;
 }
 
 //****************************************************************************
@@ -304,6 +309,11 @@ void_t msl_object::register_listener( motor::graphics::compilation_listener_mtr_
         return ;
     }
 
+    // in case the shader was compiled before the the listener
+    // is attached, the listener can be used to rewire the 
+    // attached logic.
+    lst->copy_from( *_comp_lst ) ;
+
     _compilation_listeners.push_back( motor::move( lst ) ) ;
 }
 
@@ -328,6 +338,7 @@ void_t msl_object::unregister_listener( motor::graphics::compilation_listener_mt
 void_t msl_object::for_each( for_each_change_listerner_funk_t f ) noexcept
 {
     motor::concurrent::mrsw_t::reader_lock lk( _mtx_compilation_listeners ) ;
+    f( _comp_lst ) ;
     for ( auto * lst : _compilation_listeners ) f( lst ) ;
 }
 

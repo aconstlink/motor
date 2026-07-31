@@ -478,6 +478,17 @@ namespace this_file_glsl4
                     return "texture_dims ( INVALID_ARGS ) " ;
                 }
             },
+
+            {
+                motor::string_t( ":linear_depth:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {                    
+                    // linear_depth( depth, near, far )
+                    if( args.size() == 3 ) return "__msl_bi_linear_depth__( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " ) " ;
+
+                    return "linear_depth ( INVALID_ARGS ) " ;
+                }
+            },
             {
                 motor::string_t( ":emit_vertex:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
@@ -627,7 +638,8 @@ namespace this_file_glsl4
 
         fbm_1d_1,
         fbm_1d_2,
-        fbm_1d_3
+        fbm_1d_3,
+        linear_depth
     } ;
 
     static size_t as_number( api_build_in_types const i ) noexcept
@@ -1296,8 +1308,20 @@ namespace this_file_glsl4
                     "}"
                     "return v;"
                 },
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(), "__msl_bi_linear_depth__", 
+                    { { motor::msl::type_t::as_float(), "depth" }, { motor::msl::type_t::as_float(), "near" }, { motor::msl::type_t::as_float(), "far" } } 
+                },
+                // fragments/strings_t
+                { 
+                    "float z = depth * 2.0 - 1.0;",
+                    "float view_z = (near * far) / (far - z * (far - near));",
+                    "return view_z;"
+                }
             }
-
         } ;
 
         if( bit == motor::msl::buildin_type::rand_1d ) 
@@ -1385,6 +1409,11 @@ namespace this_file_glsl4
             return true ;
         }
 
+        else if( bit == motor::msl::buildin_type::linear_depth ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::linear_depth)] ) ;
+            return true ;
+        }
         return false ;
     }
 }

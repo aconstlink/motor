@@ -16,6 +16,7 @@ namespace motor
             view_matrix,        // mat4()
             camera_matrix,      // mat3()
             camera_position,    // vec3( x, y, z )
+            camera_clip,        // vec4( n, f, 1/n, 1/f )
             light_direction,    // vec3( x, y, z )
             viewport_dimension  // vec4( x, y, w, h )
         };
@@ -24,7 +25,7 @@ namespace motor
         {
             static char const * const __binding_point_names[] = { 
                 "undefined", "projection_matrix","view_matrix","camera_matrix","camera_position",
-                "light_direction", "viewport_dimension"
+                "camera_clip", "light_direction", "viewport_dimension"
             } ;
         }
 

@@ -36,6 +36,16 @@ class compilation_listener
 
   public:
 
+    void_t copy_from( this_cref_t rhv ) noexcept
+    {
+        motor::concurrent::mrsw_t::writer_lock_t lk( _mtx );
+        _has_changed = rhv._has_changed;
+        _state = rhv._state;
+        _bindings = rhv._bindings;
+    }
+
+  public:
+
     void_t set( this_t::state const s, motor::graphics::shader_bindings_cref_t bindings ) noexcept
     {
         motor::concurrent::mrsw_t::writer_lock_t lk( _mtx );

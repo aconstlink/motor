@@ -516,6 +516,16 @@ namespace this_file_hlsl5
                 }
             },
             {
+                motor::string_t( ":linear_depth:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {
+                    // linear_depth( depth, near, far )
+                    if( args.size() == 3 ) return "__bi_linear_depth__( " + args[ 0 ] + " , " + args[ 1 ] + " , " + args[ 2 ] + " ) " ;
+
+                    return "linear_depth ( INVALID_ARGS ) " ;
+                }
+            },
+            {
                 motor::string_t( ":emit_vertex:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
@@ -626,6 +636,7 @@ namespace this_file_hlsl5
     enum class api_build_in_types
     {
         texture_dims,
+        linear_depth,
         rand_1d_1,
         rand_1d_2,
         rand_1d_3,
@@ -680,6 +691,19 @@ namespace this_file_hlsl5
                     "uint width = 0 ; uint height = 0 ; int elements = 0 ; int depth = 0 ; int num_levels = 0 ; int num_samples = 0 ;",
                     "tex.GetDimensions( lod, width, height, num_levels ) ;",
                     "return uint2( width, height ) ;"
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_float(), "__bi_linear_depth__", 
+                    { { motor::msl::type_t::as_float(), "depth" }, { motor::msl::type_t::as_float(), "near" }, { motor::msl::type_t::as_float(), "far" } } 
+                },
+                // fragments/strings_t
+                { 
+                    "float z = depth ;",
+                    "float view_z = (near * far) / (far - z * (far - near));",
+                    "return view_z;"
                 }
             },
             {
@@ -1352,6 +1376,12 @@ namespace this_file_hlsl5
         if( bit == motor::msl::buildin_type::texture_dims )
         {
             ret.emplace_back( api_buildins[as_number(api_build_in_types::texture_dims)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::linear_depth )
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::linear_depth)] ) ;
             return true ;
         }
 

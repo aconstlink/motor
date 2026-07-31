@@ -182,7 +182,7 @@ namespace motor
             unknown, position, normal, tangent,
             texcoord0,texcoord1,texcoord2,texcoord3,texcoord4,texcoord5,texcoord6,texcoord7,
             color0, color1, color2, color3, color4, color5, color6, color7, depth,
-            projection, view, world, object, camera, camera_position, light_direction, viewport,
+            projection, view, world, object, camera, camera_position, camera_clip, light_direction, viewport,
             vertex_id, primitive_id, instance_id
         };
 
@@ -220,8 +220,9 @@ namespace motor
                 __mapping_t( "object", motor::msl::binding::object ),
                 __mapping_t( "camera", motor::msl::binding::camera ),
                 __mapping_t( "camera_position", motor::msl::binding::camera_position ),
+                __mapping_t( "camera_clip", motor::msl::binding::camera_clip ), // vec4(near, far, 1/near, 1/far)
                 __mapping_t( "light_direction", motor::msl::binding::light_direction ),
-                __mapping_t( "viewport", motor::msl::binding::viewport ),
+                __mapping_t( "viewport", motor::msl::binding::viewport ),                
                 __mapping_t( "vertex_id", motor::msl::binding::vertex_id ),
                 __mapping_t( "primitive_id", motor::msl::binding::primitive_id ),
                 __mapping_t( "instance_id", motor::msl::binding::instance_id )
@@ -238,7 +239,7 @@ namespace motor
                 "unknown", "position", "normal", "tangent",
                 "texcoord0", "texcoord1", "texcoord2", "texcoord3", "texcoord4", "texcoord5", "texcoord6", "texcoord7",
                 "color0", "color1", "color2", "color3", "color4", "color5", "color6", "color7", "depth"
-                "projection", "view", "world", "object", "camera", "camera_position", "light_direction", "viewport",
+                "projection", "view", "world", "object", "camera", "camera_position", "camera_clip", "light_direction", "viewport",
                 "vertex_id", "primitive_id", "instance_id"
             } ;
             return __values[ size_t( b ) ] ;
@@ -550,6 +551,7 @@ namespace motor
             fetch_data,
             texture_offset,
             texture_dims,
+            linear_depth,
             emit_vertex,        // geometry shader only
             end_primitive,      // geometry shader only
 
@@ -649,6 +651,7 @@ namespace motor
             { buildin_type::fetch_data, "fetch_data", ":fetch_data:" },
             { buildin_type::texture_offset, "texture_offset", ":texture_offset:" },
             { buildin_type::texture_dims, "texture_dims", ":texture_dims:" },
+            { buildin_type::linear_depth, "linear_depth", ":linear_depth:" },
 
             { buildin_type::emit_vertex, "emit_vertex", ":emit_vertex:" },
             { buildin_type::end_primitive, "end_primitive", ":end_primitive:" },
