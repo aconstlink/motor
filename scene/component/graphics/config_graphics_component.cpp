@@ -8,11 +8,11 @@ config_graphics_component::config_graphics_component( void_t ) noexcept {}
 
 //*************************************************************
 config_graphics_component::config_graphics_component( this_rref_t rhv ) noexcept
-    : _msl( motor::move( rhv._msl ) ),
-      _geo( motor::move( rhv._geo ) ), _imgs( std::move( rhv._imgs ) )
+    : _msl( motor::move( rhv._msl ) ), _geo( motor::move( rhv._geo ) ),
+      _imgs( std::move( rhv._imgs ) )
 {
-    _msl_status = motor::shared( motor::graphics::command_status_t() ) ;
-    _geo_status = motor::shared( motor::graphics::command_status_t() ) ;
+    _msl_status = motor::shared( motor::graphics::command_status_t() );
+    _geo_status = motor::shared( motor::graphics::command_status_t() );
 }
 
 //*************************************************************
@@ -49,29 +49,30 @@ void_t config_graphics_component::add_img( motor::graphics::image_object_safe_t 
 }
 
 //*************************************************************
-bool_t config_graphics_component::init_and_cleanup( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+bool_t config_graphics_component::init_and_cleanup(
+    motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
     // init msl
     {
-        auto const s = fe->decode( *_msl_status ) ;
-        bool_t const a = s == motor::graphics::command_status::status::configured ;
-        bool_t const b = s == motor::graphics::command_status::status::in_transit ;
+        auto const s = fe->decode( *_msl_status );
+        bool_t const a = s == motor::graphics::command_status::status::configured;
+        bool_t const b = s == motor::graphics::command_status::status::in_transit;
 
         if( !a && !b )
         {
-            fe->configure< motor::graphics::msl_object_t >( _msl, _msl_status );
+            // fe->configure< motor::graphics::msl_object_t >( _msl, _msl_status );
         }
     }
 
     // init geo
     {
-        auto const s = fe->decode( *_geo_status ) ;
-        bool_t const a = s == motor::graphics::command_status::status::configured ;
-        bool_t const b = s == motor::graphics::command_status::status::in_transit ;
+        auto [ os, res ] = fe->decode( _geo );
+        bool_t const a = os == motor::graphics::object_state::ready;
+        bool_t const b = os == motor::graphics::object_state::in_transit;
 
         if( !a && !b )
         {
-            fe->configure< motor::graphics::geometry_object_t >( _geo, _geo_status );
+            fe->configure< motor::graphics::geometry_object_t >( _geo );
         }
     }
 

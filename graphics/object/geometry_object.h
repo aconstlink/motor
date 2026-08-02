@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../object.hpp"
+#include "../object.h"
 
 #include "../buffer/vertex_buffer.hpp"
 #include "../buffer/index_buffer.hpp"

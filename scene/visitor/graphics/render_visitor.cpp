@@ -76,17 +76,17 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
         if( comp != nullptr )
         {
             // only called if render state for id exists.
-            comp->borrow_state( 0, [ & ]( motor::graphics::command_status_mtr_t status,
-                                       motor::graphics::state_object_mtr_t state ) //
+            comp->borrow_state( 0, [ & ]( motor::graphics::state_object_mtr_t state ) //
             {
-                motor::graphics::command_status::status const s = _fe->decode( *status );
-                if( s != motor::graphics::command_status::status::configured )
-                {
-                    _fe->configure< motor::graphics::state_object_t >( state, status );
-                }
-                else if( s == motor::graphics::command_status::status::configured )
+                auto res = _fe->decode( state );
+                if( res.first == motor::graphics::object_state::ready )
                 {
                     _fe->push( state );
+                }
+                else if( res.first == motor::graphics::object_state::raw ||
+                         res.first == motor::graphics::object_state::invalid )
+                {
+                    _fe->configure< motor::graphics::state_object_t >( state );
                 }
             } );
         }
@@ -128,11 +128,10 @@ void_t render_visitor::handle_post_visit( motor::scene::node_ptr_t nptr ) noexce
     auto * comp = nptr->borrow_component< motor::scene::render_settings_component_t >();
     if( comp == nullptr ) return;
 
-    auto const res = comp->borrow_state( 0, [ & ]( motor::graphics::command_status_mtr_t status,
-                                                motor::graphics::state_object_mtr_t state ) //
+    auto const res = comp->borrow_state( 0, [ & ]( motor::graphics::state_object_mtr_t state ) //
     {
-        motor::graphics::command_status::status s;
-        if( _fe->decode( *status, s ) && s == motor::graphics::command_status::status::configured )
+        auto res = _fe->decode( state );
+        if( res.first == motor::graphics::object_state::ready )
         {
             _fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
         }

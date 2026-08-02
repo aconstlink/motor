@@ -2,7 +2,7 @@
 #pragma once
 
 #include "../types.h"
-#include "../object.hpp"
+#include "../object.h"
 
 #include "../shader/shader_bindings.hpp"
 #include "../shader/shader_set.hpp"

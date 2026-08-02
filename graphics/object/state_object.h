@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../object.hpp"
+#include "../object.h"
 
 #include "../object/shader_object.h"
 #include "../buffer/vertex_attribute.h"

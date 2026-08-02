@@ -26,7 +26,6 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
 
     struct data
     {
-        motor::graphics::command_status_mtr_t status;
         motor::graphics::state_object_mtr_t state;
     };
     motor_typedef( data );
@@ -40,12 +39,12 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
     render_settings_component( this_cref_t ) = delete;
     render_settings_component( motor::graphics::state_object_mtr_safe_t rs ) noexcept
     {
-        _rs[ 0 ] = { motor::shared( motor::graphics::command_status_t() ), motor::move( rs ) };
+        _rs[ 0 ] = { motor::move( rs ) };
     }
 
     render_settings_component( motor::graphics::render_state_sets_rref_t rs ) noexcept
     {
-        _rs[ 0 ] = { motor::shared( motor::graphics::command_status_t() ),
+        _rs[ 0 ] = { 
             motor::shared( motor::graphics::state_object_t( std::move( rs ) ) ) };
     }
 
@@ -54,19 +53,17 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
         for( auto i : _rs )
         {
             motor::release( motor::move( i.second.state ) );
-            motor::release( motor::move( i.second.status ) );
         }
     }
 
     bool_t borrow_state( id_t const id,
-        std::function< void_t(
-            motor::graphics::command_status_mtr_t, motor::graphics::state_object_mtr_t ) >
+        std::function< void_t( motor::graphics::state_object_mtr_t ) >
             fn ) noexcept
     {
         auto iter = _rs.find( id );
         if( iter == _rs.end() ) return false;
         
-        fn( iter->second.status, iter->second.state ) ;
+        fn( iter->second.state ) ;
         
         return true;
     }
@@ -75,7 +72,7 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
     {
         auto iter = _rs.find( id );
         if( iter != _rs.end() ) return false;
-        _rs[ id ] = { motor::shared( motor::graphics::command_status_t() ), motor::move( rs ) };
+        _rs[ id ] = { motor::move( rs ) };
         return true;
     }
 
@@ -83,8 +80,7 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
     {
         auto iter = _rs.find( id );
         if( iter != _rs.end() ) return false;
-        _rs[ id ] = { motor::shared( motor::graphics::command_status_t() ),
-            motor::shared( motor::graphics::state_object_t( std::move( rs ) ) ) };
+        _rs[ id ] = { motor::shared( motor::graphics::state_object_t( std::move( rs ) ) ) };
         return true;
     }
 };

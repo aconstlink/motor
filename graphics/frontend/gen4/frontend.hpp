@@ -61,53 +61,53 @@ class frontend : public motor::graphics::ifrontend
   public:
 
     template < typename T >
-    this_ref_t configure( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept
+    bool_t configure( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->configure( o ); } );
+        {
+            auto const res = motor::graphics::object_t::data_manipulator( o, _be->get_bid() )
+                                 .change_to_in_transit();
 
-        return *this;
-    }
+            if( !res ) return false;
+        }
 
-    template < typename T >
-    this_ref_t configure( typename motor::core::mtr_borrow< T >::mtr_t o,
-        motor::graphics::command_status_mtr_t cs ) noexcept
-    {
-        assert( cs != nullptr );
-
-        if( !cs->set_in_transit( _be->get_bid() ) ) return *this;
         _re->send_execute( [ = ]( void_t )
         {
             auto const res = _be->configure( o );
-            cs->set( _be->get_bid(), res );
-            cs->set( _be->get_bid(), motor::graphics::command_status::status::configured );
+
+            // if the backend returns "in_transit" it will take
+            // care of the states from here on. This may be the case
+            // if the backend itself is multi-threaded too.
+            if( res != motor::graphics::result::in_transit )
+                motor::graphics::object_t::data_manipulator( o, _be->get_bid() )
+                    .change_to_ready( res );
         } );
 
-        return *this;
+        return true;
     }
 
     template < typename T >
-    this_ref_t release( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept
+    bool_t release( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->release( o ); } );
+        {
+            auto const res = motor::graphics::object_t::data_manipulator( o, _be->get_bid() )
+                                 .change_to_in_transit();
 
-        return *this;
-    }
+            if( !res ) return false;
+        }
 
-    template < typename T >
-    this_ref_t release( typename motor::core::mtr_borrow< T >::mtr_t o,
-        motor::graphics::command_status_mtr_t cs ) noexcept
-    {
-        assert( cs != nullptr );
-
-        if( !cs->set_in_transit( _be->get_bid() ) ) return *this;
         _re->send_execute( [ = ]( void_t )
         {
             auto const res = _be->release( o );
-            cs->set( _be->get_bid(), res );
-            cs->set( _be->get_bid(), motor::graphics::command_status::status::released );
+
+            // if the backend returns "in_transit" it will take
+            // care of the states from here on. This may be the case
+            // if the backend itself is multi-threaded too.
+            if( res != motor::graphics::result::in_transit )
+                motor::graphics::object_t::data_manipulator( o, _be->get_bid() )
+                    .change_to_raw( res );
         } );
 
-        return *this;
+        return true;
     }
 
     // takes the managed pointer and releases it after
@@ -119,15 +119,29 @@ class frontend : public motor::graphics::ifrontend
     // => the application layer does not need to wait for
     // the release!
     template < typename T >
-    this_ref_t release( motor::core::mtr_safe< T > o ) noexcept
+    bool_t release( motor::core::mtr_safe< T > o ) noexcept
     {
+        {
+            auto const res = motor::graphics::object_t::data_manipulator( o, _be->get_bid() )
+                                 .change_to_in_transit();
+
+            if( !res )
+            {
+                return false;
+            }
+        }
+
         _re->send_execute( [ =, mtr = o.mtr() ]( void_t )
         {
-            _be->release( mtr );
+            auto const res = _be->release( mtr );
+
+            if( res != motor::graphics::result::in_transit )
+                motor::graphics::object_t::data_manipulator( mtr, _be->get_bid() )
+                    .change_to_raw( res );
             motor::memory::release_ptr( mtr );
         } );
 
-        return *this;
+        return true;
     }
 
     this_ref_t update( motor::graphics::geometry_object_borrow_t::mtr_t o ) noexcept
@@ -237,11 +251,19 @@ class frontend : public motor::graphics::ifrontend
         return cs.get_status( _be->get_bid(), ret );
     }
 
-    motor::graphics::command_status::status decode( motor::graphics::command_status_cref_t cs ) const noexcept
+    motor::graphics::command_status::status decode(
+        motor::graphics::command_status_cref_t cs ) const noexcept
     {
-        motor::graphics::command_status::status ret ;
+        motor::graphics::command_status::status ret;
         auto res = cs.get_status( _be->get_bid(), ret );
-        return res ? ret : motor::graphics::command_status::status::invalid ;
+        return res ? ret : motor::graphics::command_status::status::invalid;
+    }
+
+  public:
+
+    motor::graphics::object_t::data_manipulator::state_pair_t decode( motor::graphics::object_mtr_t obj ) const noexcept
+    {
+        return motor::graphics::object_t::data_manipulator( obj, _be->get_bid() ).get_status() ;
     }
 };
 motor_typedef( frontend );

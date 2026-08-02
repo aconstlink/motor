@@ -5,7 +5,8 @@ set( sources
     "protos.h"
     "typedefs.h"
     "types.h"
-    "object.hpp"
+    "object.h"
+    "object.cpp"
 
     "render_engine.h"
     "render_engine.cpp"

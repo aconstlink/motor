@@ -2411,6 +2411,8 @@ public:
         // msl object. So do not return any valid is below.
         bool_t const is_valid_msl = oid != size_t( -1 ) ;
 
+        bool_t success = true ;
+
         for ( auto const & c : config_symbols )
         {
             auto const c_exp = c.expand() ;
@@ -2602,6 +2604,26 @@ public:
 
                 return true ;
             } ) ;
+
+            if( !access_res )
+            {
+                // compilation failed?
+                success = false ;
+            }
+        }
+
+
+        if( success )
+        {
+            motor::graphics::object_t::data_manipulator mani( obj_in, this_t::_bid ) ;
+            mani.reset_in_transit() ;
+            mani.change_to_ready( motor::graphics::result::ok ) ;
+        }
+        else
+        {
+            motor::graphics::object_t::data_manipulator mani( obj_in, this_t::_bid ) ;
+            mani.reset_in_transit() ;
+            mani.change_to_ready( motor::graphics::result::failed ) ;
         }
 
         // true: was msl object. so the id
@@ -3774,7 +3796,7 @@ public:
                 // #3 : otherwise we can not render
                 else
                 {
-                    motor::log::global::error<1024>( "used geometry idx invalid because" 
+                    motor::log::global::error<1024>( "[gl4] : used geometry idx invalid because" 
                         "exceeds array size for render object : %s", name.c_str() ) ;
 
                     return false ;
@@ -4143,8 +4165,9 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
         return motor::graphics::result::invalid_argument ;
     }
 
-    auto const oid = obj->get_oid( this_t::get_bid() ) ;
     
+    auto const oid = obj->get_oid( this_t::get_bid() ) ;
+
     // is it in transit
     if( oid == size_t(-2) )
     {

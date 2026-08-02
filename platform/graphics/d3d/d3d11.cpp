@@ -2297,6 +2297,8 @@ public: // functions
         // msl object. So do not return any valid is below.
         bool_t const is_valid_msl = oid != size_t( -1 ) ;
 
+        bool_t success = true ;
+
         for ( auto const & c : config_symbols )
         {
             auto const c_exp = c.expand() ;
@@ -2492,10 +2494,23 @@ public: // functions
             if( !access_res )
             {
                 motor::log::global_t::warning( "[d3d11] : msl failed. msl will not be set." ) ;
-                return access_res ;
+                success = false ;
             }
         }
-                    
+        
+        if( success )
+        {
+            motor::graphics::object_t::data_manipulator mani( obj_in, this_t::_bid ) ;
+            mani.reset_in_transit() ;
+            mani.change_to_ready( motor::graphics::result::ok ) ;
+        }
+        else
+        {
+            motor::graphics::object_t::data_manipulator mani( obj_in, this_t::_bid ) ;
+            mani.reset_in_transit() ;
+            mani.change_to_ready( motor::graphics::result::failed ) ;
+        }
+
         // true: was msl object. so the id
         // needs to go back to the caller
         if( is_valid_msl ) 

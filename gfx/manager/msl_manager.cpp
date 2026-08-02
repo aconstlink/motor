@@ -88,13 +88,13 @@ void_t msl_manager::on_render( motor::graphics::gen4::frontend_ptr_t fe ) noexce
     for( auto const idx : _msls_config )
     {
         auto & item = _msls[ idx ];
-        fe->configure< motor::graphics::msl_object_t >( item.msl, item.cs );
+        //fe->configure< motor::graphics::msl_object_t >( item.msl, item.cs );
     }
 
     for( auto const idx : _msls_release )
     {
         auto & item = _msls[ idx ];
-        fe->release< motor::graphics::msl_object_t >( item.msl, item.cs );
+        //fe->release< motor::graphics::msl_object_t >( item.msl, item.cs );
     }
 }
 

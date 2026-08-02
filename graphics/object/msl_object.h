@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../object.hpp"
+#include "../object.h"
 #include "../shader/compilation_listener.h"
 
 #include "render_object.h"
