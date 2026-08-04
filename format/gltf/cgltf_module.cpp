@@ -967,14 +967,14 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // add msl compoent
                             {
                                 auto comp = motor::scene::msl_component_t(
-                                    motor::share( msl ), false, geo_link_idx, geo_link_idx );
+                                    motor::share( msl ), geo_link_idx, geo_link_idx );
 
                                 auto set_comp = motor::scene::msl_set_component_t(
                                     0, motor::shared( std::move( comp ) ) );
 
                                 render_node.add_component( motor::shared( std::move( set_comp ) ) );
                             }
-                            #if 1
+#if 1
                             // add msl configuration comp
                             {
                                 auto comp = motor::scene::config_graphics_component_t();
@@ -982,7 +982,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 comp.set_geo( motor::share( geo ) );
                                 render_node.add_component( motor::shared( std::move( comp ) ) );
                             }
-                            #endif
+#endif
 
                             motor_node->add_child( motor::shared( std::move( render_node ) ) );
                         }

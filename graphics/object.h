@@ -64,6 +64,32 @@ class MOTOR_GRAPHICS_API object
 
     mutable motor::concurrent::mrsw_t _mutex;
     motor::vector< backend_data_t > _datas;
+    bool_t _managed = false;
+
+  public: // manager data
+
+    class MOTOR_GRAPHICS_API manager_interface
+    {
+
+        object * _ptr;
+
+      public:
+
+        manager_interface( object * ptr ) noexcept : _ptr( ptr ) {}
+        manager_interface( manager_interface const & ) = delete;
+        manager_interface( manager_interface && ) = delete;
+
+        void_t set_managed( bool_t const b ) noexcept
+        {
+            _ptr->_managed = b;
+        }
+    };
+    friend class manager_interface;
+
+    bool_t is_managed( void_t ) const noexcept
+    {
+        return _managed;
+    }
 
   public:
 
@@ -125,12 +151,12 @@ class MOTOR_GRAPHICS_API object
   public:
 
     object( void_t ) noexcept;
+    object( bool_t const managed ) noexcept;
     object( this_cref_t rhv ) noexcept;
     object( this_rref_t rhv ) noexcept;
     virtual ~object( void_t ) noexcept;
 
     this_ref_t operator=( this_cref_t rhv ) noexcept;
-
     this_ref_t operator=( this_rref_t rhv ) noexcept;
 
   public:

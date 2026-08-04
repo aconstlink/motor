@@ -32,7 +32,6 @@ class MOTOR_SCENE_API msl_component : public icomponent
     vs_idx_t _vs = 0;
     geo_idx_t _geo_id = 0;
 
-    bool_t _managed = false;
     motor::graphics::msl_object_mtr_t _msl = nullptr;
     motor::graphics::variable_set_mtr_t _var_set = nullptr;
 
@@ -105,7 +104,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
     // create a non-managed msl_component. This means, the msl object is
     // managed by this component.
-    msl_component( motor::graphics::msl_object_mtr_safe_t, bool_t const managed, vs_idx_t const,
+    msl_component( motor::graphics::msl_object_mtr_safe_t, vs_idx_t const,
         geo_idx_t const = geo_idx_t( -1 ) ) noexcept;
 
     virtual ~msl_component( void_t ) noexcept;
@@ -114,11 +113,11 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
     bool_t is_managed( void_t ) const noexcept
     {
-        return _managed;
+        return _msl->is_managed();
     }
 
     // size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept;
-    size_t set_msl( motor::graphics::msl_object_mtr_safe_t, bool_t const managed ) noexcept;
+    size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept;
 
     motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept
     {

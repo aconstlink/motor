@@ -6,7 +6,7 @@ using namespace motor::scene;
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
     : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _brigde( std::move( rhv._brigde ) ),
-      _trafo_vars( std::move( rhv._trafo_vars ) ), _managed( rhv._managed )
+      _trafo_vars( std::move( rhv._trafo_vars ) )
 {
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
         reinterpret_cast< void * >( &rhv._cam_vars ), sizeof( _cam_vars ) );
@@ -35,9 +35,9 @@ msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl ) noexc
 }
 
 //*****************************************************************
-msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl, bool_t const managed,
-    vs_idx_t const vs, geo_idx_t const geo_id ) noexcept
-    : _msl( motor::move( msl ) ), _vs( vs ), _geo_id( geo_id ), _managed( managed )
+msl_component::msl_component(
+    motor::graphics::msl_object_mtr_safe_t msl, vs_idx_t const vs, geo_idx_t const geo_id ) noexcept
+    : _msl( motor::move( msl ) ), _vs( vs ), _geo_id( geo_id )
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
     std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
@@ -58,8 +58,7 @@ msl_component::~msl_component( void_t ) noexcept
 }
 
 //*****************************************************************
-size_t msl_component::set_msl(
-    motor::graphics::msl_object_mtr_safe_t msl, bool_t const managed ) noexcept
+size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noexcept
 {
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
     std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
@@ -74,8 +73,6 @@ size_t msl_component::set_msl(
         _vs = _msl->borrow_varibale_sets().size();
         _msl->fill_variable_sets( _vs );
     }
-
-    _managed = managed;
 
     return _vs;
 }
@@ -96,8 +93,9 @@ bool_t msl_component::render_init( motor::graphics::gen4::frontend_ptr_t fe ) no
     }
     else if( ( res.first == motor::graphics::object_state::raw ||
                  res.first == motor::graphics::object_state::invalid ) &&
-             !_managed )
+             !_msl->is_managed() )
     {
+
         fe->configure< motor::graphics::msl_object_t >( _msl );
     }
 
@@ -109,7 +107,7 @@ bool_t msl_component::render_release( motor::graphics::gen4::frontend_ptr_t fe )
 {
     auto res = fe->decode( _msl );
 
-    if( res.first == motor::graphics::object_state::ready && !_managed )
+    if( res.first == motor::graphics::object_state::ready && !_msl->is_managed() )
     {
         fe->release< motor::graphics::msl_object_t >( _msl );
     }

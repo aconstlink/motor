@@ -54,6 +54,7 @@ namespace motor
 
             msl_object( void_t ) noexcept ;
             msl_object( motor::string_in_t name ) noexcept ;
+            msl_object( motor::string_in_t name, bool_t const managed ) noexcept ;
             msl_object( this_rref_t rhv ) noexcept ;
             msl_object( this_cref_t rhv ) noexcept  ;
             virtual ~msl_object( void_t ) noexcept ;

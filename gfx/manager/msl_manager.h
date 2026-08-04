@@ -53,7 +53,6 @@ class MOTOR_GFX_API msl_manager
 
     struct msl_data
     {
-        motor::graphics::command_status_mtr_t cs = nullptr;
         motor::graphics::msl_object_mtr_t msl = nullptr;
         motor::io::monitor_mtr_t mon = nullptr;
     };
@@ -95,7 +94,7 @@ class MOTOR_GFX_API msl_manager
     void_t on_update( void_t ) noexcept;
 
     using on_configure_funk_t = std::function< void_t( motor::string_in_t,
-        motor::graphics::msl_object_mtr_t, motor::graphics::command_status_mtr_t ) >;
+        motor::graphics::msl_object_mtr_t ) >;
     void_t for_each_configure_done( on_configure_funk_t ) noexcept;
 
   public: // graphics interface

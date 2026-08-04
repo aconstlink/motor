@@ -17,6 +17,13 @@ msl_object::msl_object( motor::string_in_t name ) noexcept : _name( name )
 }
 
 //****************************************************************************
+msl_object::msl_object( motor::string_in_t name, bool_t const managed ) noexcept : 
+    object( managed ), _name( name )
+{
+    this_t::register_listener( motor::share( _comp_lst ) ) ;
+}
+
+//****************************************************************************
 msl_object::msl_object( this_rref_t rhv ) noexcept : object( std::move( rhv ) )
 {
     _name = std::move( rhv._name ) ;

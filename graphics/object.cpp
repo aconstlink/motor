@@ -180,19 +180,25 @@ bool_t object::is_any_in_transit( void_t ) const noexcept
 }
 
 object::object( void_t ) noexcept {}
-object::object( this_cref_t rhv ) noexcept : _datas( rhv._datas ) {}
-object::object( this_rref_t rhv ) noexcept : _datas( std::move( rhv._datas ) ) {}
+object::object( bool_t const managed ) noexcept : _managed( managed ) {}
+object::object( this_cref_t rhv ) noexcept : _datas( rhv._datas ), _managed( rhv._managed ) {}
+object::object( this_rref_t rhv ) noexcept
+    : _datas( std::move( rhv._datas ) ), _managed( rhv._managed )
+{
+}
 object::~object( void_t ) noexcept {}
 
 object::this_ref_t object::operator=( this_cref_t rhv ) noexcept
 {
     _datas = rhv._datas;
+    _managed = rhv._managed ;
     return *this;
 }
 
 object::this_ref_t object::operator=( this_rref_t rhv ) noexcept
 {
     _datas = std::move( rhv._datas );
+    _managed = rhv._managed ;
     return *this;
 }
 

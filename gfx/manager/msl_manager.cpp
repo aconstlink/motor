@@ -63,10 +63,10 @@ void_t msl_manager::for_each_configure_done( on_configure_funk_t funk ) noexcept
     while( iter != _configures_in_process.end() )
     {
         size_t const id = *iter ;
-        auto res = _msls[id].cs->is_configured() ;
+        auto res = _msls[id].msl->is_ready();
         if( res )
         {
-            funk( _msls[id].msl->name(), _msls[id].msl, _msls[id].cs ) ;
+            funk( _msls[id].msl->name(), _msls[id].msl ) ;
             iter = _configures_in_process.erase( iter ) ;
             continue ;
         }
@@ -167,7 +167,7 @@ void_t msl_manager::start_thread( void_t ) noexcept
                     {
                         size_t const idx = ( *iter ).second;
 
-                        if( _msls[ idx ].cs->is_in_transit() )
+                        if( _msls[ idx ].msl->is_any_in_transit() )
                         {
                             motor::log::global_t::warning(
                                 "[msl_manager] : the shader is currently being processed: " +
@@ -183,11 +183,10 @@ void_t msl_manager::start_thread( void_t ) noexcept
                     }
                     else
                     {
-                        motor::graphics::msl_object_t msl( item.name );
+                        motor::graphics::msl_object_t msl( item.name, true );
                         msl.add( motor::graphics::msl_api_type::msl_4_0, shd );
 
                         this_t::msl_data md;
-                        md.cs = motor::shared( motor::graphics::command_status_t() );
                         md.msl = motor::shared( std::move( msl ) );
                         md.mon = motor::shared( motor::io::monitor_t() ) ;
                         _msls_config.emplace_back( _msls.size() );
