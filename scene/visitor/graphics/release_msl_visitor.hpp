@@ -16,6 +16,9 @@ namespace scene
 {
 // search a node by a name component. It will break the traversal
 // if the first occurance is found.
+// 
+// @obsolete do not use it anymore. releasing is done somewhere
+// else without the window id.
 class release_msl_visitor : public default_visitor
 {
     motor_this_typedefs( release_msl_visitor );

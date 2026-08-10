@@ -17,6 +17,10 @@ namespace scene
 {
 // search a node by a name component. It will break the traversal
 // if the first occurance is found.
+// 
+// @obsolete creating msl objects per shader is inefficient, because
+// a shader is not shared automatically. sharing shaders works through
+// an msl object.
 class add_shader_to_set_visitor : public default_visitor
 {
     motor_this_typedefs( add_shader_to_set_visitor );
