@@ -35,7 +35,7 @@ class MOTOR_GRAPHICS_API msl_object : public object
     };
     motor_typedef( geometry_link );
 
-    motor::vector< geometry_link_t > _geo;
+    motor::vector< motor::string_t > _geo;
     motor::vector< motor::string_t > _soo;
 
     struct data
