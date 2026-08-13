@@ -2422,13 +2422,16 @@ public: // functions
             }
 
             {
-                if ( obj.get_streamout().size() != 0 && obj.get_geometry().size() != 0 )
+                if ( obj.get_streamout().size() != 0 && obj.get_num_geo_links() != 0 )
                 {
-                    ro.link_geometry( obj.get_geometry()[ 0 ], obj.get_streamout()[ 0 ] ) ;
+                    ro.link_geometry( obj.get_geo_link(0).name, obj.get_streamout()[ 0 ] ) ;
                 }
                 else
                 {
-                    ro.link_geometry( obj.get_geometry() ) ;
+                    obj.for_each_geometry_link( [&]( size_t const i, motor::graphics::render_object_t::geometry_link const & gl )
+                    {
+                        ro.link_geometry( gl.name ) ;
+                    } ) ;
                 }
 
                 ro.link_shader( c_exp ) ;
@@ -3120,12 +3123,12 @@ public: // functions
             rd.geo_ids.clear() ;
             for ( size_t i = 0; i < rc.get_num_geometry(); ++i )
             {
-                auto const id_ = _geos.find_by_name( rc.get_geometry( i ) ) ;
+                auto const id_ = _geos.find_by_name( rc.get_geometry_link(i).name ) ;
 
                 if ( id_ == size_t( -1 ) )
                 {
                     motor::log::global_t::warning( d3d11_backend_log(
-                        "no geometry with name [" + rc.get_geometry( i ) + "] for render_config [" + rc.name() + "]" ) ) ;
+                        "no geometry with name [" + rc.get_geometry_link(i).name + "] for render_config [" + rc.name() + "]" ) ) ;
                     continue ;
                 }
 

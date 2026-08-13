@@ -38,6 +38,7 @@ set( sources
     "buffer/data_buffer.hpp"
 
     "object/render_object.h"
+    "object/render_object.cpp"
     "object/geometry_object.h"
     "object/geometry_object.cpp"
     "object/image_object.h"
