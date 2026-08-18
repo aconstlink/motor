@@ -27,7 +27,6 @@
 #include <motor/std/stack>
 #include <motor/std/string_split.hpp>
 
-#define use_new_msl 1
 
 #define gl4_log( text ) "[GL4] : " text
 #define gl4_log_error( text ) motor::ogl::error::check_and_log( "[GL4] : " text )
@@ -574,21 +573,12 @@ struct gl4_backend::pimpl
 
         void_t remove_geometry_id( size_t const id ) noexcept
         {
-            #if use_new_msl
             size_t i = size_t(-1) ;
             while( ++i <geo_ids.size() && geo_ids[i].id != id )  ;
             if( i != size_t(-1) )
             {
                 geo_ids.erase( geo_ids.begin() + i ) ;
             }
-            #else
-            auto iter = std::find_if( geo_ids.begin(), geo_ids.end(), [&]( size_t const d )
-            {
-                return d == id ;
-            } ) ;
-            if( iter == geo_ids.end() ) return ;
-            geo_ids.erase( iter ) ;
-            #endif
         }
 
         void_t invalidate( motor::string_in_t name ) noexcept
@@ -750,21 +740,8 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct msl_data
     {
-    
-        #if use_new_msl
-
         size_t ro_id ;
         motor::graphics::shader_object_t so ;
-
-        #else
-
-        // purpose: keep track of the data within the msl object
-        // if recompilation is triggered.
-        //motor::graphics::msl_object_t msl_obj ;
-
-        motor::vector< motor::graphics::render_object_t > ros ; 
-        motor::vector< motor::graphics::shader_object_t > sos ;
-        #endif
         
         void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
@@ -774,39 +751,7 @@ struct gl4_backend::pimpl
 
     using msls_t = motor::platform::datas< msl_data_t > ;
     msls_t _msls ;
-
-    // find render object by name
-    #if not use_new_msl
-    static bool_t find_ro( msls_t & items, motor::string_in_t name, 
-        std::function< void_t ( size_t const, this_t::msl_data_ref_t ) > funk ) noexcept
-    {
-        auto const res = items.for_each_with_break( 
-            [&]( size_t const j, this_t::msl_data_ref_t d )
-        {
-            auto i = size_t( -1 ) ;
-            while ( ++i < d.ros.size() && d.ros[i].name() != name ) ;
-            if( i == d.ros.size() ) return true ;
-
-            funk( j, d ) ;
-            return false ;
-        } ) ;
-        return res ;
-    }
-    #endif
-
-    #if 0
-    // find a msl object by a render object name
-    static std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_ro_name( motor::string_in_t name, msls_t & msls ) noexcept
-    {
-        auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object_t() ) ;
-        auto const res = this_t::find_ro( msls, name, [&]( size_t const id, pimpl::msl_data_ref_t d )
-        {
-            ret = std::make_pair( id, d.msl_obj ) ;
-        } ) ;
-        
-        return ret ;
-    }
-    #endif
+    
     motor::msl::database_t _mdb ;
 
     GLsizei vp_width = 0 ;
@@ -2549,13 +2494,8 @@ public:
                     }
                 }
             }
-            
-                        
-            #if use_new_msl
+
             auto * ro = obj.borrow_render_object() ;
-            #else
-            motor::graphics::render_object_t ro( c_exp ) ;
-            #endif
             motor::graphics::shader_object_t so( c_exp ) ;
 
             // generate code
@@ -2577,29 +2517,9 @@ public:
                 }
             }
 
-            #if use_new_msl
             {
                 ro->link_shader( c_exp ) ;
             }
-            #else
-            {
-                if ( obj.get_streamout().size() != 0 && obj.get_num_geo_links() != 0 )
-                {
-                    ro.link_geometry( obj.get_geo_link(0).name, obj.get_streamout()[ 0 ] ) ;
-                }
-                else
-                {
-                    obj.for_each_geometry_link( [&]( size_t const i, motor::graphics::render_object_t::geometry_link const & gl )
-                    {
-                        ro.link_geometry( gl.name ) ;
-                    } ) ;
-                    
-                }
-
-                ro.link_shader( c_exp ) ;
-                ro.add_variable_sets( obj.get_varibale_sets() ) ;
-            }
-            #endif
 
             auto const access_res = _msls.access( oid, obj.name(), [&] ( this_t::msl_data_ref_t msl )
             {
@@ -2618,20 +2538,9 @@ public:
                 }
 
                 // render object
-                #if use_new_msl
                 {
                     msl.ro_id = ro->get_oid( this_t::_bid ) ;
                 }
-                #else
-                {
-                    size_t i = size_t( -1 ) ;
-                    while ( ++i < msl.ros.size() &&
-                        std::strcmp( c_exp.c_str(), msl.ros[ i ].name().c_str() ) != 0 ) ;
-
-                    if ( i == msl.ros.size() ) msl.ros.emplace_back( std::move( ro ) ) ;
-                    else msl.ros[ i ] = std::move( ro ) ;
-                }
-                #endif
 
                 // shader object
                 {
@@ -2648,20 +2557,9 @@ public:
                         } ) ;
                     } ) ;
 
-                    #if use_new_msl
                     {
                         msl.so = std::move( so ) ;
                     }
-                    #else
-                    {
-                        size_t i = size_t( -1 ) ;
-                        while ( ++i < msl.sos.size() &&
-                            std::strcmp( msl.sos[ i ].name().c_str(), c_exp.c_str() ) != 0 ) ;
-
-                        if ( i == msl.sos.size() ) msl.sos.emplace_back( std::move( so ) ) ;
-                        else msl.sos[ i ] = std::move( so ) ;
-                    }
-                    #endif
                 }
 
                 //msl.msl_obj = std::move( obj ) ;
