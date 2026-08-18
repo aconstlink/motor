@@ -27,11 +27,11 @@ class MOTOR_GRAPHICS_API msl_object : public object
     // shader object (generated shaders and i/o)
     // geometry object maybe
 
-    motor::string_t _name; 
+    motor::string_t _name;
 
   private:
 
-    motor::graphics::render_object_t _ro ;
+    motor::graphics::render_object_mtr_t _ro;
 
     struct data
     {
@@ -56,12 +56,12 @@ class MOTOR_GRAPHICS_API msl_object : public object
     msl_object( motor::string_in_t name ) noexcept;
     msl_object( motor::string_in_t name, bool_t const managed ) noexcept;
     msl_object( this_rref_t rhv ) noexcept;
-    msl_object( this_cref_t rhv ) noexcept;
+    msl_object( this_cref_t rhv ) noexcept = delete;
     virtual ~msl_object( void_t ) noexcept;
 
   public: // operator
 
-    this_ref_t operator=( this_cref_t rhv ) noexcept;
+    this_ref_t operator=( this_cref_t rhv ) noexcept = delete;
     this_ref_t operator=( this_rref_t rhv ) noexcept;
 
   public:
@@ -77,21 +77,26 @@ class MOTOR_GRAPHICS_API msl_object : public object
   public: // geometry and streamout
 
     size_t link_geometry( motor::string_cref_t name ) noexcept;
+    bool_t unlink_geometry( motor::string_cref_t name ) noexcept ;
+    bool_t unlink_geometry( size_t const geo_idx ) noexcept ;
+
     this_ref_t link_geometry( std::initializer_list< motor::string_t > const & names ) noexcept;
 
     // link to stream out object so geometry can be fed from there.
     // the geometry is then mainly used for geometry layout.
     this_ref_t link_geometry( motor::string_cref_t name, motor::string_cref_t soo_name ) noexcept;
+    
 
-    using for_each_geo_link_funk_t = motor::graphics::render_object_t::for_each_geo_link_funk_t ;
-    void_t for_each_geometry_link( for_each_geo_link_funk_t funk ) const noexcept ;
+    using for_each_geo_link_funk_t = motor::graphics::render_object_t::for_each_geo_link_funk_t;
+    void_t for_each_geometry_link( for_each_geo_link_funk_t funk ) const noexcept;
 
-    motor::graphics::render_object_t::geometry_link_cref_t get_geo_link( size_t const idx ) const noexcept ;
+    motor::graphics::render_object_t::geometry_link_cref_t get_geo_link(
+        size_t const idx ) const noexcept;
 
-    //motor::vector< motor::string_t > const & get_geometry( void_t ) const noexcept;
-    motor::vector< motor::string_t > const & get_streamout( void_t ) const noexcept;    
+    // motor::vector< motor::string_t > const & get_geometry( void_t ) const noexcept;
+    motor::vector< motor::string_t > const & get_streamout( void_t ) const noexcept;
 
-    size_t get_num_geo_links( void_t ) const noexcept ;
+    size_t get_num_geo_links( void_t ) const noexcept;
 
   public: // variable sets
 
@@ -106,9 +111,7 @@ class MOTOR_GRAPHICS_API msl_object : public object
     motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const & borrow_varibale_sets(
         void_t ) const noexcept;
 
-    
-
-        using  for_each_var_funk_t = motor::graphics::render_object_t::for_each_var_funk_t ;
+    using for_each_var_funk_t = motor::graphics::render_object_t::for_each_var_funk_t;
     void_t for_each( for_each_var_funk_t funk ) noexcept;
 
   public:
@@ -126,11 +129,13 @@ class MOTOR_GRAPHICS_API msl_object : public object
     bool_t get_if_successful( motor::graphics::shader_bindings_out_t sb ) noexcept;
     bool_t reset_and_successful( motor::graphics::shader_bindings_out_t sb ) noexcept;
 
+    motor::graphics::render_object_mtr_t borrow_render_object( void_t ) noexcept ;
+    motor::graphics::render_object_mtr_safe_t get_render_object( void_t ) noexcept ;
 
-    // @obsolete
-    #if 0
+// @obsolete
+#if 0
     this_t light_clone( motor::string_in_t name ) const noexcept;
-    #endif
+#endif
 };
 motor_typedef( msl_object );
 } // namespace graphics

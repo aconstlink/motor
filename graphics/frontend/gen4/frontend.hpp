@@ -180,6 +180,13 @@ class frontend : public motor::graphics::ifrontend
         return *this;
     }
 
+    this_ref_t update_geometry_link( motor::graphics::msl_object_borrow_t::mtr_t msl, size_t const idx ) noexcept 
+    {
+        _re->send_execute( [ = ]( void_t ) { _be->update_geometry_link( msl, idx ) ; } );
+
+        return *this;
+    }
+
     this_ref_t use( motor::graphics::framebuffer_object_borrow_t::mtr_t o ) noexcept
     {
         _re->send_execute( [ = ]( void_t ) { _be->use( o ); } );

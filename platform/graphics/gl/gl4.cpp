@@ -27,6 +27,7 @@
 #include <motor/std/stack>
 #include <motor/std/string_split.hpp>
 
+#define use_new_msl 1
 
 #define gl4_log( text ) "[GL4] : " text
 #define gl4_log_error( text ) motor::ogl::error::check_and_log( "[GL4] : " text )
@@ -471,7 +472,13 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct render_data
     {
-        motor::vector< size_t > geo_ids ;
+        struct geo_id_data
+        {
+            size_t id ;
+            size_t hash ;
+        };
+        motor::vector< geo_id_data > geo_ids ;
+
         motor::vector< size_t > tf_ids ; // feed from for geometry
         size_t shd_id = size_t( -1 ) ;
 
@@ -558,14 +565,30 @@ struct gl4_backend::pimpl
 
         motor::vector< motor::graphics::render_state_sets > rss ;
 
+        void_t invalidate_geometry_id( size_t const idx, size_t const hash ) noexcept
+        {
+            if( idx >= geo_ids.size() ) return ;
+            geo_ids[idx].id = size_t(-1) ;
+            geo_ids[idx].hash = hash ;
+        }
+
         void_t remove_geometry_id( size_t const id ) noexcept
         {
+            #if use_new_msl
+            size_t i = size_t(-1) ;
+            while( ++i <geo_ids.size() && geo_ids[i].id != id )  ;
+            if( i != size_t(-1) )
+            {
+                geo_ids.erase( geo_ids.begin() + i ) ;
+            }
+            #else
             auto iter = std::find_if( geo_ids.begin(), geo_ids.end(), [&]( size_t const d )
             {
                 return d == id ;
             } ) ;
             if( iter == geo_ids.end() ) return ;
             geo_ids.erase( iter ) ;
+            #endif
         }
 
         void_t invalidate( motor::string_in_t name ) noexcept
@@ -727,13 +750,22 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct msl_data
     {
+    
+        #if use_new_msl
+
+        size_t ro_id ;
+        motor::graphics::shader_object_t so ;
+
+        #else
+
         // purpose: keep track of the data within the msl object
         // if recompilation is triggered.
-        motor::graphics::msl_object_t msl_obj ;
+        //motor::graphics::msl_object_t msl_obj ;
 
         motor::vector< motor::graphics::render_object_t > ros ; 
-        motor::vector< motor::graphics::shader_object_t > sos ; 
-
+        motor::vector< motor::graphics::shader_object_t > sos ;
+        #endif
+        
         void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
         }
@@ -744,6 +776,7 @@ struct gl4_backend::pimpl
     msls_t _msls ;
 
     // find render object by name
+    #if not use_new_msl
     static bool_t find_ro( msls_t & items, motor::string_in_t name, 
         std::function< void_t ( size_t const, this_t::msl_data_ref_t ) > funk ) noexcept
     {
@@ -759,7 +792,9 @@ struct gl4_backend::pimpl
         } ) ;
         return res ;
     }
+    #endif
 
+    #if 0
     // find a msl object by a render object name
     static std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_ro_name( motor::string_in_t name, msls_t & msls ) noexcept
     {
@@ -771,7 +806,7 @@ struct gl4_backend::pimpl
         
         return ret ;
     }
-
+    #endif
     motor::msl::database_t _mdb ;
 
     GLsizei vp_width = 0 ;
@@ -2383,7 +2418,7 @@ public:
     // call from support thread
     bool_t construct_msl_data_st( motor::graphics::msl_object_ptr_t obj_in ) noexcept
     {
-        auto obj = *obj_in;
+        auto & obj = *obj_in;
 
         motor::vector< motor::msl::symbol_t > config_symbols ;
 
@@ -2425,13 +2460,15 @@ public:
 
             // 1. find the msl object associated to c
             // 2. use the found oid for further processing
+            #if 0
             if ( oid == size_t( -1 ) )
             {
                 auto [i, o] = this_t::find_pair_by_ro_name( c_exp, _msls ) ;
                 oid = i ;
                 obj = o ;
             }
-            
+            #endif
+
             // msl database contains render configuration 
             // which has not been configured by the user...
             if ( oid == size_t( -1 ) )
@@ -2512,8 +2549,13 @@ public:
                     }
                 }
             }
+            
                         
+            #if use_new_msl
+            auto * ro = obj.borrow_render_object() ;
+            #else
             motor::graphics::render_object_t ro( c_exp ) ;
+            #endif
             motor::graphics::shader_object_t so( c_exp ) ;
 
             // generate code
@@ -2535,6 +2577,11 @@ public:
                 }
             }
 
+            #if use_new_msl
+            {
+                ro->link_shader( c_exp ) ;
+            }
+            #else
             {
                 if ( obj.get_streamout().size() != 0 && obj.get_num_geo_links() != 0 )
                 {
@@ -2552,6 +2599,7 @@ public:
                 ro.link_shader( c_exp ) ;
                 ro.add_variable_sets( obj.get_varibale_sets() ) ;
             }
+            #endif
 
             auto const access_res = _msls.access( oid, obj.name(), [&] ( this_t::msl_data_ref_t msl )
             {
@@ -2563,13 +2611,18 @@ public:
                         return false ;
                     }
 
-                    if( !this_t::construct_render_data( ro ) )
+                    if( !this_t::construct_render_data( *ro ) )
                     {
                         return false ;
                     }
                 }
 
                 // render object
+                #if use_new_msl
+                {
+                    msl.ro_id = ro->get_oid( this_t::_bid ) ;
+                }
+                #else
                 {
                     size_t i = size_t( -1 ) ;
                     while ( ++i < msl.ros.size() &&
@@ -2578,6 +2631,7 @@ public:
                     if ( i == msl.ros.size() ) msl.ros.emplace_back( std::move( ro ) ) ;
                     else msl.ros[ i ] = std::move( ro ) ;
                 }
+                #endif
 
                 // shader object
                 {
@@ -2594,6 +2648,11 @@ public:
                         } ) ;
                     } ) ;
 
+                    #if use_new_msl
+                    {
+                        msl.so = std::move( so ) ;
+                    }
+                    #else
                     {
                         size_t i = size_t( -1 ) ;
                         while ( ++i < msl.sos.size() &&
@@ -2602,9 +2661,10 @@ public:
                         if ( i == msl.sos.size() ) msl.sos.emplace_back( std::move( so ) ) ;
                         else msl.sos[ i ] = std::move( so ) ;
                     }
+                    #endif
                 }
 
-                msl.msl_obj = std::move( obj ) ;
+                //msl.msl_obj = std::move( obj ) ;
 
                 return true ;
             } ) ;
@@ -2675,9 +2735,9 @@ public:
         // #1 break connections BEFORE invalidating the item
         auto const res = _renders.access( oid, obj.name(), [&]( this_t::render_data_ref_t rd )
         {
-            for( auto id : rd.geo_ids )
+            for( auto const & item : rd.geo_ids )
             {
-                _geometries.access( id, [&]( this_t::geo_data_ref_t d )
+                _geometries.access( item.id, [&]( this_t::geo_data_ref_t d )
                 {
                     d.remove_render_data_id( oid ) ;
                 } ) ;
@@ -2716,7 +2776,7 @@ public:
                             rc.get_geometry_link(i).name.c_str(), rc.name().c_str() ) ;
                         continue ;
                     }
-                    config.geo_ids.emplace_back( gid ) ;
+                    config.geo_ids.emplace_back( render_data::geo_id_data{gid,rc.get_geometry_link(i).hash} ) ;
                     _geometries.access( gid, [&]( this_t::geo_data_ref_t d ){ d.add_render_data_id( new_id ) ; } ) ;
                 }
             }
@@ -2779,6 +2839,55 @@ public:
 
         if( res ) rc.set_oid( _bid, oid ) ;
         return res ;
+    }
+
+    bool_t update_geometry_link( motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
+    {
+        size_t oid = ro.get_oid( _bid ) ;
+        auto const res = _renders.access( oid, ro.name(), [&]( size_t const new_id, this_t::render_data_ref_t config )
+        {
+            // do full binding
+            if( config.geo_ids.size() <= geo_idx )
+            {
+                auto const gid = _geometries.find_by_name( ro.get_geometry_link(geo_idx).name ) ;
+                if( gid == size_t(-1) )
+                {
+                    motor::log::global_t::warning<1024>( "[gl4:update_geometry_link] : no geometry with name [%s] for render_data [%s]",
+                        ro.get_geometry_link(geo_idx).name.c_str(), ro.name().c_str() ) ;
+                    return false ;
+                }
+                config.geo_ids.emplace_back( render_data::geo_id_data{gid, ro.get_geometry_link(geo_idx).hash} ) ;
+                _geometries.access( gid, [&]( this_t::geo_data_ref_t d ){ d.add_render_data_id( new_id ) ; } ) ;
+            }
+            else if( config.geo_ids[geo_idx].hash != ro.get_geometry_link(geo_idx).hash )
+            {
+                auto const hash = ro.get_geometry_link( geo_idx).hash ;
+                if( ro.get_geometry_link( geo_idx ).ref_count == 0 )
+                {
+                    config.invalidate_geometry_id( geo_idx, hash ) ;
+                }
+                else if( config.geo_ids[geo_idx].id != size_t(-1) )
+                {
+                   // config geometry entry is valid.
+                   // maybe the ref count changed
+                   config.geo_ids[geo_idx].hash = hash ;
+                }
+                else
+                {
+                    auto const gid = _geometries.find_by_name( ro.get_geometry_link(geo_idx).name ) ;
+                    config.geo_ids[geo_idx].id = gid ;
+                    config.geo_ids[geo_idx].hash = hash ;
+                }
+            }
+            else
+            {
+                // nothing to do
+                // everything is valid.
+            }
+            return true ;
+         } ) ;
+
+         return true ;
     }
 
     bool_t bind_attributes( GLuint const vao, size_t const sid, size_t const gid ) noexcept
@@ -3790,12 +3899,12 @@ public:
                             gid = d.read_buffer().gids[0] ;
                         } ) ;
                     }
-                    else gid = config.geo_ids[ geo_idx ] ;
+                    else gid = config.geo_ids[ geo_idx ].id ;
                 }
                 // #2 : check geometry 
                 else if( config.geo_ids.size() > geo_idx )
                 {
-                    gid = config.geo_ids[ geo_idx ] ;
+                    gid = config.geo_ids[ geo_idx ].id ;
                 }
                 // #3 : otherwise we can not render
                 else
@@ -4508,6 +4617,20 @@ motor::graphics::result gl4_backend::update( motor::graphics::render_object_mtr_
 }
 
 //*******************************************************************************************
+motor::graphics::result gl4_backend::update_geometry_link( motor::graphics::msl_object_mtr_t obj, size_t const idx ) noexcept 
+{
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+    if( oid == size_t(-1) )
+    {
+        return motor::graphics::result::invalid_argument ;
+    }
+
+    auto const res  =_pimpl->update_geometry_link( *obj->borrow_render_object(), idx ) ;
+
+    return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
+}
+
+//*******************************************************************************************
 motor::graphics::result gl4_backend::use( motor::graphics::framebuffer_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr )
@@ -4614,6 +4737,11 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
         if( !res ) return motor::graphics::result::failed ;
     }
 
+    {
+        auto const res = _pimpl->update_geometry_link( *obj, detail.geo ) ;
+        if( !res ) return motor::graphics::result::failed ;
+    }
+
     // @todo
     // change per object render states here.
     _pimpl->render( oid, detail.geo, 
@@ -4642,9 +4770,8 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
     }
 
     auto const [a,b] = _pimpl->_msls.try_access<motor::graphics::result>( oid, [&]( pimpl::msl_data_ref_t msl )
-    {
-        motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
-        return this_t::render( ro, detail ) ;
+    {        
+        return this_t::render( obj->borrow_render_object(), detail ) ;
     } ) ;
     
     return (a && b == motor::graphics::result::ok) ? b : motor::graphics::result::failed ;

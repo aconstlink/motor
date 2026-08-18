@@ -36,6 +36,8 @@
 #include <directxcolors.h>
 #include <cstdio>
 
+#define use_new_msl 1
+
 #if _DEBUG
 #define D3D_DEBUG
 #endif
@@ -745,7 +747,13 @@ struct d3d11_backend::pimpl
     //*******************************************************************************************
     struct render_data
     {
-        motor::vector< size_t > geo_ids ;
+        struct geo_id_data
+        {
+            size_t id ;
+            size_t hash ;
+        };
+        motor::vector< geo_id_data > geo_ids ;
+
         motor::vector< size_t > so_ids ; // feed from for geometry
         size_t shd_id = size_t( -1 ) ;
 
@@ -992,23 +1000,23 @@ struct d3d11_backend::pimpl
             }
         }
 
-        size_t link_geometry( size_t const id ) noexcept
+        size_t link_geometry( size_t const id, size_t const hash ) noexcept
         {
             if( id == size_t( -1 ) ) return size_t( -1 ) ;
 
             for( size_t i=0; i<geo_ids.size(); ++i )
             {
-                if( geo_ids[i] == id ) return i ;
+                if( geo_ids[i].id == id ) return i ;
             }
 
             for( size_t i=0; i<geo_ids.size(); ++i )
             {
-                if( geo_ids[i] == size_t( -1 ) ) 
+                if( geo_ids[i].id == size_t( -1 ) ) 
                 {
-                    geo_ids[i] = id ; return i ;
+                    geo_ids[i].id = id ; return i ;
                 }
             }
-            geo_ids.emplace_back( id ) ;
+            geo_ids.emplace_back( render_data::geo_id_data{id, hash} ) ;
             return geo_ids.size() - 1 ;
         }
 
@@ -1017,12 +1025,19 @@ struct d3d11_backend::pimpl
             if( id == size_t( -1 ) ) return  ;
             for( size_t i=0; i<geo_ids.size(); ++i )
             {
-                if( geo_ids[i] == id ) 
+                if( geo_ids[i].id == id ) 
                 {
-                    geo_ids[i] = size_t( -1 ) ;
+                    geo_ids[i].id = size_t( -1 ) ;
                     return ;
                 }
             }
+        }
+
+        void_t invalidate_geometry_index( size_t const idx, size_t const hash ) noexcept
+        {
+            if( idx >= geo_ids.size() ) return  ;
+            geo_ids[idx].id = size_t(-1) ;
+            geo_ids[idx].hash = hash ;
         }
 
         size_t link_streamout( size_t const id ) noexcept
@@ -1067,19 +1082,29 @@ public: // msl data
     //*******************************************************************************************
     struct msl_data
     {
+        #if use_new_msl
+
+        size_t ro_id ;
+        motor::graphics::shader_object_t so ;
+
+        #else
+
         // purpose: keep track of the data within the msl object
         // if recompilation is triggered. On recompilation, there
         // might be no/lost data of the original msl object, so 
         // in that case, only the new shader code is passed and
         // the old data is used.
-        motor::graphics::msl_object_t msl_obj ;
+        //motor::graphics::msl_object_t msl_obj ;
 
         motor::vector< motor::graphics::render_object_t > ros ; 
-        motor::vector< motor::graphics::shader_object_t > sos ; 
+        motor::vector< motor::graphics::shader_object_t > sos ;
+        #endif
 
         void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
+            #if not use_new_msl
             msl_obj.~msl_object() ;
+            #endif
         }
     } ;
     motor_typedef( msl_data ) ;
@@ -1088,7 +1113,8 @@ public: // msl data
     msl_datas_t _msls ;
 
     // find render object by name
-    static bool_t find_ro( msl_datas_t & items, motor::string_in_t name, 
+    #if not use_new_msl
+    static bool_t find_ro( msls_t & items, motor::string_in_t name, 
         std::function< void_t ( size_t const, this_t::msl_data_ref_t ) > funk ) noexcept
     {
         auto const res = items.for_each_with_break( 
@@ -1103,8 +1129,10 @@ public: // msl data
         } ) ;
         return res ;
     }
+    #endif
 
     // find a msl object by a render object name
+    #if 0
     static std::pair< size_t, motor::graphics::msl_object_t > find_pair_by_ro_name( motor::string_in_t name, msl_datas_t & msls ) noexcept
     {
         auto ret = std::make_pair( size_t(-1), motor::graphics::msl_object_t() ) ;
@@ -1115,7 +1143,7 @@ public: // msl data
         
         return ret ;
     }
-
+    #endif
     motor::msl::database_t _mdb ;
 
 public: // framebuffer
@@ -2268,7 +2296,7 @@ public: // functions
     // call from support thread
     bool_t construct_msl_data_st( motor::graphics::msl_object_ptr_t obj_in ) noexcept
     {
-        auto obj = *obj_in ;
+        auto & obj = *obj_in ;
 
         motor::vector< motor::msl::symbol_t > config_symbols ;
 
@@ -2311,12 +2339,14 @@ public: // functions
 
             // 1. find the msl object associated to c
             // 2. use the found oid for further processing
+            #if 0
             if ( oid == size_t( -1 ) )
             {
                 auto [i, o] = this_t::find_pair_by_ro_name( c_exp, _msls ) ;
                 oid = i ;
                 obj = o ;
             }
+            #endif
 
             // msl database contains render configuration 
             // which has not been configured by the user...
@@ -2399,7 +2429,12 @@ public: // functions
                 }
             }
                         
+            #if use_new_msl
+            auto * ro = obj.borrow_render_object() ;
+            #else
             motor::graphics::render_object_t ro( c_exp ) ;
+            #endif
+
             motor::graphics::shader_object_t so( c_exp ) ;
 
             // generate code
@@ -2421,6 +2456,11 @@ public: // functions
                 }
             }
 
+            #if use_new_msl
+            {
+                ro->link_shader( c_exp ) ;
+            }
+            #else
             {
                 if ( obj.get_streamout().size() != 0 && obj.get_num_geo_links() != 0 )
                 {
@@ -2432,11 +2472,13 @@ public: // functions
                     {
                         ro.link_geometry( gl.name ) ;
                     } ) ;
+                    
                 }
 
                 ro.link_shader( c_exp ) ;
                 ro.add_variable_sets( obj.get_varibale_sets() ) ;
             }
+            #endif
 
             auto const access_res = _msls.access( oid, obj.name(), [&] ( this_t::msl_data_ref_t msl )
             {
@@ -2448,13 +2490,18 @@ public: // functions
                         // @todo return here.
                         return false ;
                     }
-                    if( !this_t::construct_render_config( ro ) )
+                    if( !this_t::construct_render_config( *ro ) )
                     {
                         return false ;
                     }
                 }
 
                 // render object
+                #if use_new_msl
+                {
+                    msl.ro_id = ro->get_oid( this_t::_bid ) ;
+                }
+                #else
                 {
                     size_t i = size_t( -1 ) ;
                     while ( ++i < msl.ros.size() &&
@@ -2463,6 +2510,7 @@ public: // functions
                     if ( i == msl.ros.size() ) msl.ros.emplace_back( std::move( ro ) ) ;
                     else msl.ros[ i ] = std::move( ro ) ;
                 }
+                #endif
 
                 // shader object
                 {
@@ -2479,6 +2527,11 @@ public: // functions
                         } ) ;
                     } ) ;
 
+                    #if use_new_msl
+                    {
+                        msl.so = std::move( so ) ;
+                    }
+                    #else
                     {
                         size_t i = size_t( -1 ) ;
                         while ( ++i < msl.sos.size() &&
@@ -2487,9 +2540,8 @@ public: // functions
                         if ( i == msl.sos.size() ) msl.sos.emplace_back( std::move( so ) ) ;
                         else msl.sos[ i ] = std::move( so ) ;
                     }
+                    #endif
                 }
-
-                msl.msl_obj = std::move( obj )  ;
 
                 return true ;
             } ) ;
@@ -3113,80 +3165,15 @@ public: // functions
     }
 
     //************************************************************************************************************
-    // must be called from within a safe area(i.e. through an access into _renders)
-    bool_t update( this_t::render_data_ref_t rd, motor::graphics::render_object_ref_t rc )
-    {     
-        rd.shd_id = size_t( -1 ) ;
-
-        // find geometry
-        {
-            rd.geo_ids.clear() ;
-            for ( size_t i = 0; i < rc.get_num_geometry(); ++i )
-            {
-                auto const id_ = _geos.find_by_name( rc.get_geometry_link(i).name ) ;
-
-                if ( id_ == size_t( -1 ) )
-                {
-                    motor::log::global_t::warning( d3d11_backend_log(
-                        "no geometry with name [" + rc.get_geometry_link(i).name + "] for render_config [" + rc.name() + "]" ) ) ;
-                    continue ;
-                }
-
-                rd.geo_ids.emplace_back( id_ ) ;
-            }
-        }
-
-        // handle stream out links
-        {
-            rd.so_ids.clear() ;
-            for ( size_t i = 0; i < rc.get_num_streamout(); ++i )
-            {
-                auto const id_ = _streamouts.find_by_name( rc.get_streamout( i ) ) ;
-
-                if ( id_ == size_t( -1 ) )
-                {
-                    motor::log::global_t::warning( d3d11_backend_log(
-                        "no streamout with name [" + rc.get_streamout( i ) + "] for render_config [" + rc.name() + "]" ) ) ;
-                    continue ;
-                }
-
-                rd.so_ids.emplace_back( id_ ) ;
-            }
-        }
-
-        if ( rd.geo_ids.size() == 0 && rd.so_ids.size() == 0 )
-        {
-            motor::log::global_t::warning( d3d11_backend_log(
-                "no geometry nor streamout linked to render_object with name [" + rc.name() + "]" ) ) ;
-            return false ;
-        }
-
-        // find shader
-        if ( rd.shd_id == size_t( -1 ) )
-        {
-            auto const id_ = _shaders.find_by_name( rc.get_shader() ) ;
-            if ( id_ == size_t( -1 ) )
-            {
-                motor::log::global_t::warning( d3d11_backend_log(
-                    "no streamout with name [" + rc.get_shader() + "] for render_config [" + rc.name() + "]" ) ) ;
-                return false ;
-            }
-            rd.shd_id = id_ ;
-        }
-
-        // may happen if shaders did not compile properly the first time.
-        if ( rd.shd_id == size_t( -1 ) /*|| _shaders[ rd.shd_id ].vs_blob == nullptr*/ )
-        {
-            motor::log::global_t::warning( d3d11_backend_log(
-                "something strange happened to render_config [" + rc.name() + "]" ) ) ;
-            return false ;
-        }
-
+    // this function prepares the vertex input layout 
+    // it will also remove the old input layout and recreate the new one. 
+    bool_t bind_vertex_inputs( this_t::render_data_ref_t rd, motor::graphics::render_object_ref_t rc ) noexcept
+    {
         if ( rd.geo_ids.size() != 0 )
         {
             this_t::geo_data_t::elements_t elems ;
             {
-                bool_t const valid_obj = _geos.access( rd.geo_ids[ 0 ], [&] ( this_t::geo_data_ref_t geo )
+                bool_t const valid_obj = _geos.access( rd.geo_ids[ 0 ].id, [&] ( this_t::geo_data_ref_t geo )
                 {
                     elems = geo.elements ;
                 } )  ;
@@ -3396,6 +3383,89 @@ public: // functions
             }
         }
 
+        return true ;
+    }
+
+    //************************************************************************************************************
+    // must be called from within a safe area(i.e. through an access into _renders)
+    bool_t update( this_t::render_data_ref_t rd, motor::graphics::render_object_ref_t rc )
+    {     
+        rd.shd_id = size_t( -1 ) ;
+
+        // find geometry
+        {
+            rd.geo_ids.clear() ;
+            for ( size_t i = 0; i < rc.get_num_geometry(); ++i )
+            {
+                auto const id_ = _geos.find_by_name( rc.get_geometry_link(i).name ) ;
+
+                if ( id_ == size_t( -1 ) )
+                {
+                    motor::log::global_t::warning( d3d11_backend_log(
+                        "no geometry with name [" + rc.get_geometry_link(i).name + "] for render_config [" + rc.name() + "]" ) ) ;
+                    continue ;
+                }
+
+                rd.geo_ids.emplace_back( id_ ) ;
+            }
+        }
+
+        // handle stream out links
+        {
+            rd.so_ids.clear() ;
+            for ( size_t i = 0; i < rc.get_num_streamout(); ++i )
+            {
+                auto const id_ = _streamouts.find_by_name( rc.get_streamout( i ) ) ;
+
+                if ( id_ == size_t( -1 ) )
+                {
+                    motor::log::global_t::warning( d3d11_backend_log(
+                        "no streamout with name [" + rc.get_streamout( i ) + "] for render_config [" + rc.name() + "]" ) ) ;
+                    continue ;
+                }
+
+                rd.so_ids.emplace_back( id_ ) ;
+            }
+        }        
+
+        // find shader
+        if ( rd.shd_id == size_t( -1 ) )
+        {
+            auto const id_ = _shaders.find_by_name( rc.get_shader() ) ;
+            if ( id_ == size_t( -1 ) )
+            {
+                motor::log::global_t::warning( d3d11_backend_log(
+                    "no streamout with name [" + rc.get_shader() + "] for render_config [" + rc.name() + "]" ) ) ;
+                return false ;
+            }
+            rd.shd_id = id_ ;
+        }
+
+        // may happen if shaders did not compile properly the first time.
+        if ( rd.shd_id == size_t( -1 ) /*|| _shaders[ rd.shd_id ].vs_blob == nullptr*/ )
+        {
+            motor::log::global_t::warning( d3d11_backend_log(
+                "something strange happened to render_config [" + rc.name() + "]" ) ) ;
+            return false ;
+        }
+
+        #if not use_new_msl
+        if ( rd.geo_ids.size() == 0 && rd.so_ids.size() == 0 )
+        {
+            motor::log::global_t::warning( d3d11_backend_log(
+                "no geometry nor streamout linked to render_object with name [" + rc.name() + "]" ) ) ;
+            return false ;
+        }
+        #endif
+
+        {
+            auto const res = this_t::bind_vertex_inputs( rd, rc ) ;
+            if( !res )
+            {
+                return false ;
+            }
+        }
+
         // release placeholder/ref count manager variable sets
         {
             for ( auto * vs : rd.var_sets ) motor::memory::release_ptr( vs ) ;
@@ -3594,9 +3664,65 @@ public: // functions
         return true ;
     }
 
+    bool_t update_geometry_link( motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
+    {
+        size_t oid = ro.get_oid( _bid ) ;
+        auto const res = _renders.access( oid, ro.name(), [&]( size_t const new_id, this_t::render_data_ref_t config )
+        {
+            // do full binding
+            if( config.geo_ids.size() <= geo_idx )
+            {
+                auto const gid = _geos.find_by_name( ro.get_geometry_link(geo_idx).name ) ;
+                if( gid == size_t(-1) )
+                {
+                    motor::log::global_t::warning<1024>( "[gl4:update_geometry_link] : no geometry with name [%s] for render_data [%s]",
+                        ro.get_geometry_link(geo_idx).name.c_str(), ro.name().c_str() ) ;
+                    return false ;
+                }
+                config.geo_ids.emplace_back( render_data::geo_id_data{gid, ro.get_geometry_link(geo_idx).hash} ) ;
+                //_geos.access( gid, [&]( this_t::geo_data_ref_t d ){ d.add_render_data_id( new_id ) ; } ) ;
+                
+                auto const res = _renders.access( oid, ro.name(), [&]( this_t::render_data_ref_t rd )
+                {
+                    return this_t::bind_vertex_inputs( rd, ro ) ;
+                } ) ;
+            }
+            else if( config.geo_ids[geo_idx].hash != ro.get_geometry_link(geo_idx).hash )
+            {
+                auto const hash = ro.get_geometry_link( geo_idx).hash ;
+                if( ro.get_geometry_link( geo_idx ).ref_count == 0 )
+                {
+                    config.invalidate_geometry_index( geo_idx, hash ) ;
+                }
+                else if( config.geo_ids[geo_idx].id != size_t(-1) )
+                {
+                   // config geometry entry is valid.
+                   // maybe the ref count changed
+                   config.geo_ids[geo_idx].hash = hash ;
+                }
+                else
+                {
+                    auto const gid = _geos.find_by_name( ro.get_geometry_link(geo_idx).name ) ;
+                    config.geo_ids[geo_idx].id = gid ;
+                    config.geo_ids[geo_idx].hash = hash ;
+                }
+            }
+            else
+            {
+                // nothing to do
+                // everything is valid.
+            }
+            return true ;
+         } ) ;
+
+         return true ;
+    }
+
     //************************************************************************************************************
     bool_t update( size_t const oid, motor::graphics::msl_object_ref_t obj, size_t const vs_id )
     {
+        #if use_new_msl
+        #else
         _msls.access( oid, [&]( this_t::msl_data_ref_t msl )
         {
             size_t const num_ros = msl.ros.size() ;
@@ -3605,7 +3731,7 @@ public: // functions
                 this_t::update( msl.ros[ i ].get_oid( _bid ), msl.ros[ i ], vs_id ) ;
             }
         } ) ;
-        
+        #endif
         return true ;
     }
 
@@ -4215,7 +4341,7 @@ public: // functions
                 {
                     //this_t::geo_data_ref_t geo = _geos[ rnd.geo_ids[ geo_idx ] ] ;
 
-                    _geos.access( rnd.geo_ids[geo_idx], [&]( this_t::geo_data_ref_t geo )
+                    _geos.access( rnd.geo_ids[geo_idx].id, [&]( this_t::geo_data_ref_t geo )
                     {
                         UINT const stride = geo.stride ;
                         UINT const offset = 0 ;
@@ -4240,7 +4366,7 @@ public: // functions
             else // feed from geometry path
             {
                 //this_t::geo_data_ref_t geo = _geos[ rnd.geo_ids[ geo_idx ] ] ;
-                _geos.access( rnd.geo_ids[ geo_idx ], [&]( this_t::geo_data_ref_t geo )
+                _geos.access( rnd.geo_ids[ geo_idx ].id, [&]( this_t::geo_data_ref_t geo )
                 {
                     if ( _cur_streamout_active != size_t( -1 ) )
                     {
@@ -5022,6 +5148,20 @@ motor::graphics::result d3d11_backend::update( motor::graphics::render_object_mt
     return motor::graphics::result::ok ;
 }
 
+//*******************************************************************************************
+motor::graphics::result d3d11_backend::update_geometry_link( motor::graphics::msl_object_mtr_t obj, size_t const idx ) noexcept 
+{
+    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
+    if( oid == size_t(-1) )
+    {
+        return motor::graphics::result::invalid_argument ;
+    }
+
+    auto const res  =_pimpl->update_geometry_link( *obj->borrow_render_object(), idx ) ;
+
+    return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
+}
+
 //************************************************************************************************************
 motor::graphics::result d3d11_backend::use( motor::graphics::framebuffer_object_mtr_t obj ) noexcept
 {
@@ -5124,6 +5264,11 @@ motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mt
         _pimpl->update( oid, *obj, detail.varset ) ;
     }
 
+    {
+        auto const res = _pimpl->update_geometry_link( *obj, detail.geo ) ;
+        if( !res ) return motor::graphics::result::failed ;
+    }
+
     // render
     {
         _pimpl->render( oid, detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
@@ -5155,11 +5300,15 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
 
     _pimpl->_msls.try_access( oid, [&]( pimpl::msl_data_ref_t msl )
     {
+    #if use_new_msl
+        return this_t::render( obj->borrow_render_object(), detail ) ;
+    #else
         // @note if ros == 0, the shader probably did not compile.
         // check the console! This happens only for the initial compilation
         // need fix.
         motor::graphics::render_object_mtr_t ro = &msl.ros[detail.ro_idx] ;
         res = this_t::render( ro, detail ) ;
+        #endif
     } ) ;
     return res ;
 

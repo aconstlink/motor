@@ -78,8 +78,12 @@ void_t render_object::for_each_geometry_link( for_each_geo_link_funk_t funk ) co
 
 size_t render_object::link_geometry( motor::string_cref_t name ) noexcept
 {
+    size_t free_i = size_t( -1 );
     size_t i = size_t( -1 );
-    while( _geo.size() > ++i && _geo[ i ].name != name );
+    while( _geo.size() > ++i && _geo[ i ].name != name )
+    {
+        free_i = _geo[ i ].ref_count == 0 ? i : free_i;
+    }
 
     if( i != _geo.size() )
     {
@@ -88,11 +92,48 @@ size_t render_object::link_geometry( motor::string_cref_t name ) noexcept
         return i;
     }
 
+    if( free_i != size_t( -1 ) )
+    {
+        // just let is go...
+        // so the backends can see a change and
+        // react accodingly. Resetting the hash could
+        // end up in a collision.
+        ++_geo[ free_i ].hash;
+        ++_geo[ free_i ].ref_count;
+        _geo[ free_i ].name = name;
+    }
+    else
     {
         _geo.emplace_back( this_t::geometry_link_t{ 0, 1, name } );
     }
 
-    return _geo.size() - 1;
+    return free_i != size_t( -1 ) ? free_i : _geo.size() - 1;
+}
+
+bool_t render_object::unlink_geometry( motor::string_cref_t name ) noexcept
+{
+    size_t i = size_t( -1 );
+    while( _geo.size() > ++i && _geo[ i ].name != name );
+
+    if( i == _geo.size() ) return false;
+
+    return this_t::unlink_geometry( i );
+}
+
+bool_t render_object::unlink_geometry( size_t const geo_idx ) noexcept
+{
+    if( _geo.size() <= geo_idx ) return false;
+
+    assert( _geo[ geo_idx ].ref_count > 0 );
+    --_geo[ geo_idx ].ref_count;
+    ++_geo[ geo_idx ].hash;
+
+    if( _geo[ geo_idx ].ref_count == 0 )
+    {
+        _geo[ geo_idx ].name = "";
+    }
+
+    return true;
 }
 
 render_object::this_ref_t render_object::link_geometry(

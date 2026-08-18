@@ -69,6 +69,8 @@ class MOTOR_GRAPHICS_API render_object : public object
     void_t for_each_geometry_link( for_each_geo_link_funk_t funk ) const noexcept;
 
     size_t link_geometry( motor::string_cref_t name ) noexcept;
+    bool_t unlink_geometry( motor::string_cref_t name ) noexcept ;
+    bool_t unlink_geometry( size_t const geo_idx ) noexcept ;
 
     this_ref_t link_geometry( motor::vector< motor::string_t > const & names ) noexcept;
 

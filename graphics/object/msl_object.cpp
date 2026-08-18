@@ -7,12 +7,14 @@ using namespace motor::graphics;
 //****************************************************************************
 msl_object::msl_object( void_t ) noexcept
 {
+    _ro = motor::shared( motor::graphics::render_object() );
     this_t::register_listener( motor::share( _comp_lst ) );
 }
 
 //****************************************************************************
 msl_object::msl_object( motor::string_in_t name ) noexcept : _name( name )
 {
+    _ro = motor::shared( motor::graphics::render_object( name + ".render_object" ) );
     this_t::register_listener( motor::share( _comp_lst ) );
 }
 
@@ -20,13 +22,14 @@ msl_object::msl_object( motor::string_in_t name ) noexcept : _name( name )
 msl_object::msl_object( motor::string_in_t name, bool_t const managed ) noexcept
     : object( managed ), _name( name )
 {
+    _ro = motor::shared( motor::graphics::render_object( name + ".render_object" ) );
     this_t::register_listener( motor::share( _comp_lst ) );
 }
 
 //****************************************************************************
 msl_object::msl_object( this_rref_t rhv ) noexcept
     : object( std::move( rhv ) ), _name( std::move( rhv._name ) ),
-      _datas( std::move( rhv._datas ) ), _ro( std::move( rhv._ro ) )
+      _datas( std::move( rhv._datas ) ), _ro( motor::move( rhv._ro ) )
 {
     // compilation listeners
     {
@@ -45,7 +48,7 @@ msl_object::this_ref_t msl_object::operator=( this_rref_t rhv ) noexcept
 
     _name = std::move( rhv._name );
     _datas = std::move( rhv._datas );
-    _ro = std::move( rhv._ro );
+    _ro = motor::move( rhv._ro );
 
     // compilation listeners
     {
@@ -58,7 +61,7 @@ msl_object::this_ref_t msl_object::operator=( this_rref_t rhv ) noexcept
 
     return *this;
 }
-
+#if 0
 //****************************************************************************
 msl_object::msl_object( this_cref_t rhv ) noexcept
     : object( rhv ), _name( rhv._name ), _datas( rhv._datas ), _ro( rhv._ro )
@@ -105,12 +108,15 @@ msl_object::this_ref_t msl_object::operator=( this_cref_t rhv ) noexcept
 
     return *this;
 }
+#endif
 
 //****************************************************************************
 msl_object::~msl_object( void_t ) noexcept
 {
     for( auto * lst : _compilation_listeners ) motor::release( motor::move( lst ) );
     motor::release( motor::move( _comp_lst ) );
+
+    motor::release( motor::move( _ro ) );
 }
 
 //****************************************************************************
@@ -147,14 +153,26 @@ void_t msl_object::for_each_msl(
 //****************************************************************************
 size_t msl_object::link_geometry( motor::string_cref_t name ) noexcept
 {
-    return _ro.link_geometry( name );
+    return _ro->link_geometry( name );
+}
+
+
+bool_t msl_object::unlink_geometry( motor::string_cref_t name ) noexcept
+{
+    return _ro->unlink_geometry( name ) ;
+}
+
+//****************************************************************************
+bool_t msl_object::unlink_geometry( size_t const geo_idx ) noexcept
+{
+    return _ro->unlink_geometry( geo_idx ) ;
 }
 
 //****************************************************************************
 msl_object::this_ref_t msl_object::link_geometry(
     std::initializer_list< motor::string_t > const & names ) noexcept
 {
-    _ro.link_geometry( names );
+    _ro->link_geometry( names );
 
     return *this;
 }
@@ -163,33 +181,33 @@ msl_object::this_ref_t msl_object::link_geometry(
 msl_object::this_ref_t msl_object::link_geometry(
     motor::string_cref_t name, motor::string_cref_t soo_name ) noexcept
 {
-    _ro.link_geometry( name, soo_name );
+    _ro->link_geometry( name, soo_name );
     return *this;
 }
 
 //****************************************************************************
 void_t msl_object::for_each_geometry_link( for_each_geo_link_funk_t funk ) const noexcept
 {
-    _ro.for_each_geometry_link( funk );
+    _ro->for_each_geometry_link( funk );
 }
 
 //****************************************************************************
 motor::graphics::render_object_t::geometry_link_cref_t msl_object::get_geo_link(
     size_t const idx ) const noexcept
 {
-    return _ro.get_geometry_link( idx );
+    return _ro->get_geometry_link( idx );
 }
 
 //****************************************************************************
 size_t msl_object::get_num_geo_links( void_t ) const noexcept
 {
-    return _ro.get_num_geometry();
+    return _ro->get_num_geometry();
 }
 
 //****************************************************************************
 motor::vector< motor::string_t > const & msl_object::get_streamout( void_t ) const noexcept
 {
-    return _ro.get_streamouts();
+    return _ro->get_streamouts();
 }
 #if 0
 //****************************************************************************
@@ -208,54 +226,54 @@ msl_object::this_t msl_object::light_clone( motor::string_in_t name ) const noex
 //****************************************************************************
 size_t msl_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
 {
-    return _ro.add_variable_set( motor::move( vs ) );
+    return _ro->add_variable_set( motor::move( vs ) );
 }
 
 //****************************************************************************
 msl_object::this_ref_t msl_object::fill_variable_sets( size_t const idx ) noexcept
 {
-    _ro.fill_variable_sets( idx );
+    _ro->fill_variable_sets( idx );
     return *this;
 }
 
 //****************************************************************************
 motor::graphics::variable_set_mtr_safe_t msl_object::get_varibale_set( size_t const id ) noexcept
 {
-    return _ro.get_variable_set( id );
+    return _ro->get_variable_set( id );
 }
 
 //****************************************************************************
 motor::graphics::variable_set_mtr_t msl_object::borrow_varibale_set(
     size_t const id ) const noexcept
 {
-    return _ro.borrow_variable_set( id );
+    return _ro->borrow_variable_set( id );
 }
 
 //****************************************************************************
 motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_varibale_sets(
     void_t ) const noexcept
 {
-    return _ro.get_varibale_sets();
+    return _ro->get_varibale_sets();
 }
 
 //****************************************************************************
 motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > & msl_object::borrow_varibale_sets(
     void_t ) noexcept
 {
-    return _ro.borrow_varibale_sets();
+    return _ro->borrow_varibale_sets();
 }
 
 //****************************************************************************
 motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const &
 msl_object::borrow_varibale_sets( void_t ) const noexcept
 {
-    return _ro.borrow_varibale_sets();
+    return _ro->borrow_varibale_sets();
 }
 
 //****************************************************************************
 void_t msl_object::for_each( for_each_var_funk_t funk ) noexcept
 {
-    _ro.for_each( funk );
+    _ro->for_each( funk );
 }
 
 //****************************************************************************
@@ -326,4 +344,16 @@ bool_t msl_object::get_if_successful( motor::graphics::shader_bindings_out_t sb 
 bool_t msl_object::reset_and_successful( motor::graphics::shader_bindings_out_t sb ) noexcept
 {
     return _comp_lst->reset_and_successful( sb );
+}
+
+//****************************************************************************
+motor::graphics::render_object_mtr_t msl_object::borrow_render_object( void_t ) noexcept 
+{
+    return _ro ;
+}
+
+//****************************************************************************
+motor::graphics::render_object_mtr_safe_t msl_object::get_render_object( void_t ) noexcept 
+{
+    return motor::share( _ro ) ;
 }
