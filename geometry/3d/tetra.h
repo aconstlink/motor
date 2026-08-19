@@ -27,5 +27,6 @@ namespace motor
             static motor::geometry::result make( polygon_mesh_ptr_t, input_params_cref_t ) ;
             
         };
+        motor_typedef( tetra ) ;
     }
 }
