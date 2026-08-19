@@ -78,10 +78,12 @@ size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noex
 }
 
 //*****************************************************************
+#if 0
 msl_component::this_t msl_component::light_clone( motor::string_in_t name ) const noexcept
 {
     return this_t( motor::shared( _msl->light_clone( name ) ), _vs, _geo_id );
 }
+#endif
 
 //*****************************************************************
 bool_t msl_component::render_init( motor::graphics::gen4::frontend_ptr_t fe ) noexcept

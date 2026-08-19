@@ -25,31 +25,42 @@ class add_msl_to_set_visitor : public default_visitor
     motor::scene::msl_set_component_t::id_t _id = motor::scene::msl_set_component_t::invalid_id();
 
     motor::graphics::msl_object_mtr_t _msl;
-    motor::graphics::command_status_mtr_t _status;
+
+    using variable_set_init_funk_t =
+        std::function< void_t( motor::string_in_t, motor::graphics::variable_set_mtr_t ) >;
+
+    // called when msl is added and new variable
+    // set is created for poluting the set with variables.
+    variable_set_init_funk_t _vsf = []( motor::string_in_t name,
+                                        motor::graphics::variable_set_mtr_t ) {
+    };
 
   public:
 
     add_msl_to_set_visitor( motor::scene::msl_set_component_t::id_t const id,
-        motor::graphics::msl_object_mtr_t msl ) noexcept
+        motor::graphics::msl_object_mtr_safe_t msl ) noexcept
         : _id( id ), _msl( motor::move( msl ) )
     {
     }
 
     add_msl_to_set_visitor( motor::scene::msl_set_component_t::id_t const id,
-        motor::graphics::msl_object_mtr_safe_t msl,
-        motor::graphics::command_status_mtr_safe_t status ) noexcept
-        : _id( id ), _msl( motor::move( msl ) ), _status( motor::move( status ) )
+        motor::graphics::msl_object_mtr_safe_t msl, variable_set_init_funk_t vsf ) noexcept
+        : _id( id ), _msl( motor::move( msl ) ), _vsf( std::move( vsf ) )
     {
     }
 
     add_msl_to_set_visitor( this_rref_t rhv ) noexcept
-        : _id( rhv._id ), _msl( motor::move( rhv._msl ) )
+        : _id( rhv._id ), _msl( motor::move( rhv._msl ) ), _vsf( std::move( rhv._vsf ) )
     {
     }
 
     add_msl_to_set_visitor( this_cref_t ) = delete;
 
-    virtual ~add_msl_to_set_visitor( void_t ) noexcept {}
+    virtual ~add_msl_to_set_visitor( void_t ) noexcept 
+    {
+        motor::release( motor::move( _msl ) ) ;
+    }
+
 
   public:
 
@@ -58,7 +69,6 @@ class add_msl_to_set_visitor : public default_visitor
         motor::scene::msl_set_component_mtr_t comp;
         if( nptr->has_component_and_borrow< motor::scene::msl_set_component_t >( comp ) )
         {
-
             motor::scene::msl_component_mtr_t msl_comp;
             if( comp->borrow_msl_component( _id, msl_comp ) )
             {
@@ -66,6 +76,15 @@ class add_msl_to_set_visitor : public default_visitor
             }
             else
             {
+                motor::string_t name;
+                {
+                    motor::scene::name_component_mtr_t nc;
+                    if( nptr->has_component_and_borrow< motor::scene::name_component_t >( nc ) )
+                    {
+                        name = nc->get_name();
+                    }
+                }
+
                 size_t geo_idx = size_t( -1 );
 
                 motor::scene::geometry_name_component_mtr_t geo_comp;
@@ -77,13 +96,17 @@ class add_msl_to_set_visitor : public default_visitor
                 {
                     // do not have any geometry, so we can not
                     // link the shader to any geoemtry.
+                    motor::log::global_t::warning(
+                        "[add_msl_to_set_visitor] : need geometry_name_component in order to link "
+                        "any geometry and use it in the msl_component." );
                 }
 
-                size_t const vs =
-                    _msl->add_variable_set( motor::shared( motor::graphics::variable_set_t() ) );
+                auto vs = motor::shared( motor::graphics::variable_set_t() );
+                _vsf( name, vs );
 
-                motor::scene::msl_component_t new_comp(
-                    motor::share( _msl ), motor::share( _status ), vs, geo_idx );
+                size_t const vs_idx = _msl->add_variable_set( motor::move( vs ) );
+
+                motor::scene::msl_component_t new_comp( motor::share( _msl ), vs_idx, geo_idx );
 
                 comp->add_component( _id, motor::shared( std::move( new_comp ) ) );
             }

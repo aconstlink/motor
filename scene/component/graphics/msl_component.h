@@ -141,7 +141,9 @@ class MOTOR_SCENE_API msl_component : public icomponent
     // the render_update function AFTER the msl is compiled.
     // Mainly used to populate a msl_set_component if only a msl_component
     // is present in the node.
+    #if 0
     this_t light_clone( motor::string_in_t name ) const noexcept;
+    #endif
 
   public: // render interface
 

@@ -230,6 +230,12 @@ size_t msl_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs
 }
 
 //****************************************************************************
+void_t msl_object::drop_variable_set( size_t const idx ) noexcept 
+{
+    _ro->drop_variable_set( idx ) ;
+}
+
+//****************************************************************************
 msl_object::this_ref_t msl_object::fill_variable_sets( size_t const idx ) noexcept
 {
     _ro->fill_variable_sets( idx );

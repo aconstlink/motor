@@ -96,6 +96,7 @@ class MOTOR_GRAPHICS_API render_object : public object
   public: // variable sets
 
     size_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept ;
+    void_t drop_variable_set( size_t const ) noexcept ;
 
     this_ref_t add_variable_sets(
         motor::vector< motor::graphics::variable_set_mtr_safe_t > && vss ) noexcept ;

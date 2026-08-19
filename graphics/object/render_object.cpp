@@ -200,8 +200,25 @@ motor::string_cref_t render_object::get_shader( void_t ) const noexcept
 
 size_t render_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
 {
-    _vars.emplace_back( vs );
-    return _vars.size() - 1;
+    size_t i = size_t( -1 );
+    while( ++i < _vars.size() && _vars[ i ] != nullptr );
+
+    if( i == _vars.size() )
+    {
+        _vars.emplace_back( motor::move( vs ) );
+    }
+    else
+    {
+        _vars[ i ] = motor::move( vs );
+    }
+
+    return i;
+}
+
+void_t render_object::drop_variable_set( size_t const idx ) noexcept
+{
+    if( _vars.size() <= idx ) return;
+    motor::release( motor::move( _vars[ idx ] ) );
 }
 
 render_object::this_ref_t render_object::add_variable_sets(
