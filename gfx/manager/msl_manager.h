@@ -133,6 +133,7 @@ class MOTOR_GFX_API msl_manager
   public: // graphics interface
 
     void_t on_render( motor::graphics::gen4::frontend_ptr_t ) noexcept;
+    void_t on_render_release( motor::graphics::gen4::frontend_ptr_t ) noexcept;
 
     // multi window purpose
     // this needs to be called if all windows are rendered, so

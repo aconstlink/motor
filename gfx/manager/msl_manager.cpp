@@ -126,6 +126,11 @@ void_t msl_manager::on_render( motor::graphics::gen4::frontend_ptr_t fe ) noexce
 }
 
 //**************************************************************************
+void_t msl_manager::on_render_release( motor::graphics::gen4::frontend_ptr_t ) noexcept
+{
+}
+
+//**************************************************************************
 void_t msl_manager::on_frame_done( void_t ) noexcept
 {
     _msls_config.clear();
