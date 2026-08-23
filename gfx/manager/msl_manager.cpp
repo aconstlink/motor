@@ -30,12 +30,12 @@ msl_manager::~msl_manager( void_t ) noexcept
 {
     this_t::stop_thread();
 
-    for( auto & item : _msls ) 
+    for( auto & item : _msls )
     {
-        motor::release( motor::move( item.mon ) ) ;
-        motor::release( motor::move( item.msl ) ) ;
+        motor::release( motor::move( item.mon ) );
+        motor::release( motor::move( item.msl ) );
     }
-    motor::release( motor::move( _db ) ) ;
+    motor::release( motor::move( _db ) );
 }
 
 //**************************************************************************
@@ -126,8 +126,28 @@ void_t msl_manager::on_render( motor::graphics::gen4::frontend_ptr_t fe ) noexce
 }
 
 //**************************************************************************
-void_t msl_manager::on_render_release( motor::graphics::gen4::frontend_ptr_t ) noexcept
+void_t msl_manager::on_render_init( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
+    motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
+    for( auto & item : _msls )
+    {
+        auto [ state, result ] = fe->decode( item.msl );
+        if( state != motor::graphics::object_state::ready &&
+            state != motor::graphics::object_state::in_transit )
+        {
+            fe->configure< motor::graphics::msl_object_t >( item.msl );
+        }
+    }
+}
+
+//**************************************************************************
+void_t msl_manager::on_render_release( motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
+{
+    motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
+    for( auto & item : _msls )
+    {
+        fe->release< motor::graphics::msl_object_t >( item.msl );
+    }
 }
 
 //**************************************************************************
@@ -167,7 +187,7 @@ void_t msl_manager::start_thread( bool_t const has_work ) noexcept
             {
                 std::unique_lock< std::mutex > lk( _sd->mtx );
                 while( !_sd->has_work && _sd->running ) _sd->cv.wait( lk );
-                _sd->has_work = false ;
+                _sd->has_work = false;
             }
 
             struct tmp_
