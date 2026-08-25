@@ -39,12 +39,24 @@ class MOTOR_GRAPHICS_API render_object : public object
     };
     motor_typedef( geometry_link );
 
+    struct variable_set
+    {
+        size_t hash ;
+        motor::graphics::variable_set_mtr_t vs ;
+    };
+    motor_typedef( variable_set ) ;
+
   private:
 
     motor::vector< geometry_link_t > _geo;
     motor::vector< motor::string_t > _soo;
 
+  private: // variable sets
+
     motor::vector< motor::graphics::variable_set_mtr_t > _vars;
+
+  private: // states
+
     motor::vector< motor::graphics::render_state_sets_t > _states;
 
   public:
@@ -69,8 +81,8 @@ class MOTOR_GRAPHICS_API render_object : public object
     void_t for_each_geometry_link( for_each_geo_link_funk_t funk ) const noexcept;
 
     size_t link_geometry( motor::string_cref_t name ) noexcept;
-    bool_t unlink_geometry( motor::string_cref_t name ) noexcept ;
-    bool_t unlink_geometry( size_t const geo_idx ) noexcept ;
+    bool_t unlink_geometry( motor::string_cref_t name ) noexcept;
+    bool_t unlink_geometry( size_t const geo_idx ) noexcept;
 
     this_ref_t link_geometry( motor::vector< motor::string_t > const & names ) noexcept;
 
@@ -95,50 +107,50 @@ class MOTOR_GRAPHICS_API render_object : public object
 
   public: // variable sets
 
-    size_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept ;
-    void_t drop_variable_set( size_t const ) noexcept ;
+    size_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept;
+    void_t drop_variable_set( size_t const ) noexcept;
 
     this_ref_t add_variable_sets(
-        motor::vector< motor::graphics::variable_set_mtr_safe_t > && vss ) noexcept ;
+        motor::vector< motor::graphics::variable_set_mtr_safe_t > && vss ) noexcept;
 
-    this_ref_t remove_variable_sets( void_t ) noexcept ;
+    this_ref_t remove_variable_sets( void_t ) noexcept;
 
     typedef std::function< void_t( size_t const i, motor::graphics::variable_set_mtr_t ) >
         for_each_var_funk_t;
 
-    void_t for_each( for_each_var_funk_t funk ) noexcept ;
+    void_t for_each( for_each_var_funk_t funk ) noexcept;
 
-    size_t get_num_variable_sets( void_t ) const noexcept ;
+    size_t get_num_variable_sets( void_t ) const noexcept;
 
-    motor::graphics::variable_set_mtr_safe_t get_variable_set( size_t const i ) noexcept ;
+    motor::graphics::variable_set_mtr_safe_t get_variable_set( size_t const i ) noexcept;
 
     motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets(
-        void_t ) const noexcept ;
+        void_t ) const noexcept;
 
     motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > & borrow_varibale_sets(
-        void_t ) noexcept ;
+        void_t ) noexcept;
 
     motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const & borrow_varibale_sets(
-        void_t ) const noexcept ;
+        void_t ) const noexcept;
 
     // fast version for quick access without ref counting
     motor::graphics::variable_set_borrow_t::mtr_t borrow_variable_set(
-        size_t const i ) const noexcept ;
+        size_t const i ) const noexcept;
 
-    this_ref_t fill_variable_sets( size_t const idx ) noexcept ;
+    this_ref_t fill_variable_sets( size_t const idx ) noexcept;
 
   public: // render state sets
 
-    this_ref_t add_render_state_set( motor::graphics::render_state_sets_cref_t rs ) noexcept ;
+    this_ref_t add_render_state_set( motor::graphics::render_state_sets_cref_t rs ) noexcept;
 
     typedef std::function< void_t( size_t const i, motor::graphics::render_state_sets_cref_t ) >
         for_each_render_state_funk_t;
 
-    void_t for_each( for_each_render_state_funk_t funk ) noexcept ;
+    void_t for_each( for_each_render_state_funk_t funk ) noexcept;
 
   public:
 
-    motor::string_cref_t name( void_t ) const noexcept ;
+    motor::string_cref_t name( void_t ) const noexcept;
 };
 motor_typedef( render_object );
 } // namespace graphics

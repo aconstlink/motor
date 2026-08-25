@@ -150,17 +150,16 @@ bool_t object::is_ready( void_t ) const noexcept
 {
     motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
 
-    bool_t b = true;
+    size_t b = 0;
     for( auto const & d : _datas )
     {
-        if( d.os != motor::graphics::object_state::ready )
+        if( d.os == motor::graphics::object_state::ready )
         {
-            b = false;
-            break;
+            b++ ;
         }
     }
 
-    return b;
+    return b != 0 && b == _datas.size() ;
 }
 
 // is any backend object in transit?
