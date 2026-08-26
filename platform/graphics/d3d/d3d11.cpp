@@ -2343,7 +2343,7 @@ public: // functions
                         {
                             // for @overwrite specifier
                             //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs->data_variable<float_t>( var_.name )->set( gdv->get() ) ;
+                            vs.vs->data_variable<float_t>( var_.name )->set( gdv->get() ) ;
                         }
                     }
                     else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
@@ -2354,7 +2354,7 @@ public: // functions
                         {
                             // for @overwrite specifier
                             //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
+                            vs.vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
                         }
                     }
                     else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec4f_t >*> ( df ) != nullptr )
@@ -2365,7 +2365,7 @@ public: // functions
                         {
                             // for @overwrite specifier
                             //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs->data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
+                            vs.vs->data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
                         }
                     }
                     else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
@@ -2380,7 +2380,7 @@ public: // functions
 
                             // have the type here
                             // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
-                            vs->texture_variable( var_.name )->set( gdv->get().name ) ;
+                            vs.vs->texture_variable( var_.name )->set( gdv->get().name ) ;
                         }
                     }
                 }
@@ -3309,16 +3309,16 @@ public: // functions
         {
             // track ref count for variable set
             {
-                rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
+                rc.for_each( [&] ( size_t const /*i*/, motor::graphics::render_object_t::variable_set_cref_t vs )
                 {
-                    rd.var_sets.emplace_back( motor::memory::copy_ptr( vs ) ) ;
+                    rd.var_sets.emplace_back( motor::share( vs.vs ) ) ;
                 } ) ;
             }
         }
         else
         {
-            auto * vs = rc.borrow_variable_set( vs_idx ) ;
-            rd.var_sets.emplace_back( motor::share( vs ) ) ;
+            auto vs = rc.borrow_variable_set( vs_idx ) ;
+            rd.var_sets.emplace_back( motor::share( vs.vs ) ) ;
         }
 
         // constant buffer mapping
@@ -3367,19 +3367,19 @@ public: // functions
             {
                 if( vs_idx == size_t(-1) )
                 {
-                    rc.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+                    rc.for_each( [&] ( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
-                        var_funk( _ctx->dev(), i, vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
-                        var_funk( _ctx->dev(), i, vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
-                        var_funk( _ctx->dev(), i, vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
+                        var_funk( _ctx->dev(), i, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
+                        var_funk( _ctx->dev(), i, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
+                        var_funk( _ctx->dev(), i, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
                     } ) ;
                 }
                 else
                 {
-                    auto * vs = rc.borrow_variable_set( vs_idx ) ;
-                    var_funk( _ctx->dev(), vs_idx, vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
-                    var_funk( _ctx->dev(), vs_idx, vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
-                    var_funk( _ctx->dev(), vs_idx, vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
+                    auto vs = rc.borrow_variable_set( vs_idx ) ;
+                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
+                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
+                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
                 }
                 
             } ) ;
@@ -3420,15 +3420,15 @@ public: // functions
             {
                 if( vs_idx == size_t(-1) )
                 {
-                    rc.for_each( [&] ( size_t const vs_id, motor::graphics::variable_set_mtr_t vs )
+                    rc.for_each( [&] ( size_t const vs_id, motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
-                        var_funk( _ctx->dev(), vs_id, vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
+                        var_funk( _ctx->dev(), vs_id, vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
                     } ) ;
                 }
                 else
                 {
-                    auto * vs = rc.borrow_variable_set( vs_idx ) ;
-                    var_funk( _ctx->dev(), vs_idx, vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
+                    auto vs = rc.borrow_variable_set( vs_idx ) ;
+                    var_funk( _ctx->dev(), vs_idx, vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
                 }
             } ) ;
 
@@ -3487,19 +3487,19 @@ public: // functions
             {
                 if( vs_idx == size_t(-1) )
                 {
-                    rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
+                    rc.for_each( [&] ( size_t const /*i*/, motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
-                        array_variable_mapping( vs, _streamouts, rd.var_sets_buffers_vs, rd.var_sets_buffers_so_vs, shd.vs_buffers ) ;
-                        array_variable_mapping( vs, _streamouts, rd.var_sets_buffers_gs, rd.var_sets_buffers_so_gs, shd.gs_buffers ) ;
-                        array_variable_mapping( vs, _streamouts, rd.var_sets_buffers_ps, rd.var_sets_buffers_so_ps, shd.ps_buffers ) ;
+                        array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_vs, rd.var_sets_buffers_so_vs, shd.vs_buffers ) ;
+                        array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_gs, rd.var_sets_buffers_so_gs, shd.gs_buffers ) ;
+                        array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_ps, rd.var_sets_buffers_so_ps, shd.ps_buffers ) ;
                     } ) ;
                 }
                 else
                 {
-                    auto * vs = rc.borrow_variable_set( vs_idx ) ;
-                    array_variable_mapping( vs, _streamouts, rd.var_sets_buffers_vs, rd.var_sets_buffers_so_vs, shd.vs_buffers ) ;
-                    array_variable_mapping( vs, _streamouts, rd.var_sets_buffers_gs, rd.var_sets_buffers_so_gs, shd.gs_buffers ) ;
-                    array_variable_mapping( vs, _streamouts, rd.var_sets_buffers_ps, rd.var_sets_buffers_so_ps, shd.ps_buffers ) ;
+                    auto vs = rc.borrow_variable_set( vs_idx ) ;
+                    array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_vs, rd.var_sets_buffers_so_vs, shd.vs_buffers ) ;
+                    array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_gs, rd.var_sets_buffers_so_gs, shd.gs_buffers ) ;
+                    array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_ps, rd.var_sets_buffers_so_ps, shd.ps_buffers ) ;
                 }
             } ) ;
         }

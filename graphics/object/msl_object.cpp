@@ -156,16 +156,15 @@ size_t msl_object::link_geometry( motor::string_cref_t name ) noexcept
     return _ro->link_geometry( name );
 }
 
-
 bool_t msl_object::unlink_geometry( motor::string_cref_t name ) noexcept
 {
-    return _ro->unlink_geometry( name ) ;
+    return _ro->unlink_geometry( name );
 }
 
 //****************************************************************************
 bool_t msl_object::unlink_geometry( size_t const geo_idx ) noexcept
 {
-    return _ro->unlink_geometry( geo_idx ) ;
+    return _ro->unlink_geometry( geo_idx );
 }
 
 //****************************************************************************
@@ -223,6 +222,7 @@ msl_object::this_t msl_object::light_clone( motor::string_in_t name ) const noex
     return std::move( ret );
 }
 #endif
+
 //****************************************************************************
 size_t msl_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
 {
@@ -230,9 +230,15 @@ size_t msl_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs
 }
 
 //****************************************************************************
-void_t msl_object::drop_variable_set( size_t const idx ) noexcept 
+size_t msl_object::add_empty_variable_set( void_t ) noexcept
 {
-    _ro->drop_variable_set( idx ) ;
+    return _ro->add_variable_set( motor::shared( motor::graphics::variable_set_t() ) );
+}
+
+//****************************************************************************
+void_t msl_object::drop_variable_set( size_t const idx ) noexcept
+{
+    _ro->drop_variable_set( idx );
 }
 
 //****************************************************************************
@@ -249,7 +255,7 @@ motor::graphics::variable_set_mtr_safe_t msl_object::get_varibale_set( size_t co
 }
 
 //****************************************************************************
-motor::graphics::variable_set_mtr_t msl_object::borrow_varibale_set(
+motor::graphics::render_object_t::variable_set_t msl_object::borrow_varibale_set(
     size_t const id ) const noexcept
 {
     return _ro->borrow_variable_set( id );
@@ -263,15 +269,15 @@ motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_variba
 }
 
 //****************************************************************************
-motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > & msl_object::borrow_varibale_sets(
+motor::vector< render_object::variable_set_t > & msl_object::borrow_varibale_sets(
     void_t ) noexcept
 {
     return _ro->borrow_varibale_sets();
 }
 
 //****************************************************************************
-motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const &
-msl_object::borrow_varibale_sets( void_t ) const noexcept
+motor::vector< render_object::variable_set_t > const & msl_object::borrow_varibale_sets(
+    void_t ) const noexcept
 {
     return _ro->borrow_varibale_sets();
 }
@@ -353,13 +359,13 @@ bool_t msl_object::reset_and_successful( motor::graphics::shader_bindings_out_t 
 }
 
 //****************************************************************************
-motor::graphics::render_object_mtr_t msl_object::borrow_render_object( void_t ) noexcept 
+motor::graphics::render_object_mtr_t msl_object::borrow_render_object( void_t ) noexcept
 {
-    return _ro ;
+    return _ro;
 }
 
 //****************************************************************************
-motor::graphics::render_object_mtr_safe_t msl_object::get_render_object( void_t ) noexcept 
+motor::graphics::render_object_mtr_safe_t msl_object::get_render_object( void_t ) noexcept
 {
-    return motor::share( _ro ) ;
+    return motor::share( _ro );
 }

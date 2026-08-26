@@ -481,7 +481,7 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
         int_t offset = 0 ;
         for( size_t i=0; i<_render_data.size(); ++i )
         {
-            _ro.borrow_variable_set(i)->data_variable<int32_t>( "u_offset" )->set( offset ) ;
+            _ro.borrow_variable_set(i).vs->data_variable<int32_t>( "u_offset" )->set( offset ) ;
             offset += int32_t( _render_data[i].num_quads ) ;
         }
 
@@ -489,7 +489,7 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
         {
             for( size_t i=0; i<_render_data.size(); ++i )
             {
-                _ro.borrow_variable_set(i)->texture_variable( "u_tex" )->set( _image_name ) ;
+                _ro.borrow_variable_set(i).vs->texture_variable( "u_tex" )->set( _image_name ) ;
             }
             _image_name_changed = false ;
         }
@@ -500,11 +500,11 @@ void_t sprite_render_2d::prepare_for_rendering( void_t ) noexcept
             for( size_t i=0; i<_render_data.size(); ++i )
             {
                 {
-                    auto* var = _ro.borrow_variable_set(i)->data_variable<motor::math::mat4f_t>( "u_view" ) ;
+                    auto* var = _ro.borrow_variable_set(i).vs->data_variable<motor::math::mat4f_t>( "u_view" ) ;
                     var->set( _view ) ;
                 }
                 {
-                    auto* var = _ro.borrow_variable_set(i)->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
+                    auto* var = _ro.borrow_variable_set(i).vs->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
                     var->set( _proj ) ;
                 }
             }

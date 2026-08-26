@@ -77,15 +77,14 @@ class MOTOR_GRAPHICS_API msl_object : public object
   public: // geometry and streamout
 
     size_t link_geometry( motor::string_cref_t name ) noexcept;
-    bool_t unlink_geometry( motor::string_cref_t name ) noexcept ;
-    bool_t unlink_geometry( size_t const geo_idx ) noexcept ;
+    bool_t unlink_geometry( motor::string_cref_t name ) noexcept;
+    bool_t unlink_geometry( size_t const geo_idx ) noexcept;
 
     this_ref_t link_geometry( std::initializer_list< motor::string_t > const & names ) noexcept;
 
     // link to stream out object so geometry can be fed from there.
     // the geometry is then mainly used for geometry layout.
     this_ref_t link_geometry( motor::string_cref_t name, motor::string_cref_t soo_name ) noexcept;
-    
 
     using for_each_geo_link_funk_t = motor::graphics::render_object_t::for_each_geo_link_funk_t;
     void_t for_each_geometry_link( for_each_geo_link_funk_t funk ) const noexcept;
@@ -101,16 +100,17 @@ class MOTOR_GRAPHICS_API msl_object : public object
   public: // variable sets
 
     size_t add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept;
-    void_t drop_variable_set( size_t const ) noexcept ;
+    size_t add_empty_variable_set( void_t ) noexcept;
+    void_t drop_variable_set( size_t const ) noexcept;
 
     this_ref_t fill_variable_sets( size_t const ) noexcept;
     motor::graphics::variable_set_mtr_safe_t get_varibale_set( size_t const id ) noexcept;
-    motor::graphics::variable_set_mtr_t borrow_varibale_set( size_t const id ) const noexcept;
+    motor::graphics::render_object_t::variable_set_t borrow_varibale_set(
+        size_t const id ) const noexcept;
     motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets(
         void_t ) const noexcept;
-    motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > & borrow_varibale_sets(
-        void_t ) noexcept;
-    motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const & borrow_varibale_sets(
+    motor::vector< render_object::variable_set_t > & borrow_varibale_sets( void_t ) noexcept;
+    motor::vector< render_object::variable_set_t > const & borrow_varibale_sets(
         void_t ) const noexcept;
 
     using for_each_var_funk_t = motor::graphics::render_object_t::for_each_var_funk_t;
@@ -131,8 +131,8 @@ class MOTOR_GRAPHICS_API msl_object : public object
     bool_t get_if_successful( motor::graphics::shader_bindings_out_t sb ) noexcept;
     bool_t reset_and_successful( motor::graphics::shader_bindings_out_t sb ) noexcept;
 
-    motor::graphics::render_object_mtr_t borrow_render_object( void_t ) noexcept ;
-    motor::graphics::render_object_mtr_safe_t get_render_object( void_t ) noexcept ;
+    motor::graphics::render_object_mtr_t borrow_render_object( void_t ) noexcept;
+    motor::graphics::render_object_mtr_safe_t get_render_object( void_t ) noexcept;
 
 // @obsolete
 #if 0

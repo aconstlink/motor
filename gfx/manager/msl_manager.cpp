@@ -123,6 +123,16 @@ void_t msl_manager::on_render( motor::graphics::gen4::frontend_ptr_t fe ) noexce
         auto & item = _msls[ idx ];
         fe->release< motor::graphics::msl_object_t >( item.msl );
     }
+
+    for( auto idx : _configures_in_process )
+    {
+        auto & item = _msls[ idx ];
+        auto [state, result] = fe->decode( item.msl ) ;
+        if( state == motor::graphics::object_state::invalid || state == motor::graphics::object_state::raw )
+        {
+            fe->configure< motor::graphics::msl_object_t >( item.msl ) ;
+        }
+    }
 }
 
 //**************************************************************************

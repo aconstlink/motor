@@ -24,18 +24,18 @@ quad::~quad( void_t ) noexcept
 
 void_t quad::set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) noexcept 
 {
-    _ro->for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t const & vars )
+    _ro->for_each( [&]( size_t const, motor::graphics::render_object_t::variable_set_cref_t vars )
     {
-        vars->data_variable< motor::math::mat4f_t >( "u_view" )->set( view ) ;
-        vars->data_variable< motor::math::mat4f_t >( "u_proj" )->set( proj ) ;
+        vars.vs->data_variable< motor::math::mat4f_t >( "u_view" )->set( view ) ;
+        vars.vs->data_variable< motor::math::mat4f_t >( "u_proj" )->set( proj ) ;
     } ) ;
 }
 
 void_t quad::set_position( motor::math::vec2f_cref_t pos ) noexcept 
 {
-    _ro->for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t const & vars )
+    _ro->for_each( [&]( size_t const, motor::graphics::render_object_t::variable_set_cref_t vars )
     {
-        auto * var = vars->data_variable< motor::math::mat4f_t >( "u_world" ) ;
+        auto * var = vars.vs->data_variable< motor::math::mat4f_t >( "u_world" ) ;
         motor::math::mat4f_t world = var->get() ;
         world.set_column( 3, motor::math::vec3f_t( pos, 0.0f ) ) ;
         var->set( world ) ;
@@ -55,9 +55,9 @@ void_t quad::set_position( size_t const vs, motor::math::vec2f_cref_t pos ) noex
 
 void_t quad::set_scale( motor::math::vec2f_cref_t s ) noexcept 
 {
-    _ro->for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t const & vars )
+    _ro->for_each( [&]( size_t const, motor::graphics::render_object_t::variable_set_cref_t vars )
     {
-        auto * var = vars->data_variable< motor::math::mat4f_t >( "u_world" ) ;
+        auto * var = vars.vs->data_variable< motor::math::mat4f_t >( "u_world" ) ;
         motor::math::mat4f_t world = var->get() ;
         world[0] = s.x() ;
         world[5] = s.y() ;
@@ -67,9 +67,9 @@ void_t quad::set_scale( motor::math::vec2f_cref_t s ) noexcept
 
 bool_t quad::set_texture( motor::string_cref_t name ) noexcept 
 {
-    _ro->for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t const & vars )
+    _ro->for_each( [&]( size_t const, motor::graphics::render_object_t::variable_set_cref_t vars )
     {
-        vars->texture_variable( "u_tex" )->set( name ) ;
+        vars.vs->texture_variable( "u_tex" )->set( name ) ;
     } ) ;
     
     #if 0
@@ -90,9 +90,9 @@ bool_t quad::set_texture( size_t const vs, motor::string_cref_t name ) noexcept
 
 bool_t quad::set_texcoord( motor::math::vec4f_cref_t tc ) noexcept 
 {
-     _ro->for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t const & vars )
+     _ro->for_each( [&]( size_t const, motor::graphics::render_object_t::variable_set_cref_t vars )
     {
-        vars->data_variable<motor::math::vec4f_t>( "u_tc" )->set( tc ) ;
+        vars.vs->data_variable<motor::math::vec4f_t>( "u_tc" )->set( tc ) ;
     } ) ;
     return true ;
 }
@@ -370,7 +370,7 @@ void_t quad::on_frame_render( motor::graphics::gen4::frontend_mtr_t fe ) noexcep
 {
     fe->push( _rs ) ;
 
-    _ro->for_each( [&]( size_t const i, motor::graphics::variable_set_mtr_t const & )
+    _ro->for_each( [&]( size_t const i, motor::graphics::render_object_t::variable_set_cref_t )
     {
         motor::graphics::gen4::backend::render_detail rd ;
         rd.varset = i ;

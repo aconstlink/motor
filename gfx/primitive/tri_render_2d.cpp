@@ -598,18 +598,18 @@ void_t tri_render_2d::prepare_for_rendering( void_t ) noexcept
         int_t offset = 0 ;
         for( size_t i=0; i<_render_data.size(); ++i )
         {
-            _ro.borrow_variable_set(i)->data_variable<int32_t>( "u_offset" )->set( offset ) ;
+            _ro.borrow_variable_set(i).vs->data_variable<int32_t>( "u_offset" )->set( offset ) ;
             offset += int32_t( _render_data[i].num_elems ) ;
         }
 
-        _ro.for_each( [&]( size_t const, motor::graphics::variable_set_mtr_t vars )
+        _ro.for_each( [&]( size_t const, motor::graphics::render_object_t::variable_set_cref_t vars )
         {
             {
-                auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
+                auto* var = vars.vs->data_variable<motor::math::mat4f_t>( "u_view" ) ;
                 var->set( _view ) ;
             }
             {
-                auto* var = vars->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
+                auto* var = vars.vs->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
                 var->set( _proj ) ;
             }
         } ) ;

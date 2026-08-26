@@ -2452,7 +2452,7 @@ public:
                         {
                             // for @overwrite specifier
                             //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs->data_variable<float_t>( var_.name )->set( gdv->get() ) ;
+                            vs.vs->data_variable<float_t>( var_.name )->set( gdv->get() ) ;
                         }
                     }
                     else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
@@ -2463,7 +2463,7 @@ public:
                         {
                             // for @overwrite specifier
                             //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
+                            vs.vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
                         }
                     }
                     else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec4f_t >*> ( df ) != nullptr )
@@ -2474,7 +2474,7 @@ public:
                         {
                             // for @overwrite specifier
                             //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs->data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
+                            vs.vs->data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
                         }
                     }
                     else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
@@ -2489,7 +2489,7 @@ public:
 
                             // have the type here
                             // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
-                            vs->texture_variable( var_.name )->set( gdv->get().name ) ;
+                            vs.vs->texture_variable( var_.name )->set( gdv->get().name ) ;
                         }
                     }
                 }
@@ -2718,9 +2718,9 @@ public:
                 config.var_sets_streamout.clear() ;
                 config.var_sets.clear() ;
 
-                rc.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
+                rc.for_each( [&] ( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
                 {
-                    auto const res = this_t::connect( config, i, motor::memory::copy_ptr(vs) ) ;
+                    auto const res = this_t::connect( config, i, motor::share(vs.vs) ) ;
                     motor::log::global_t::warning( !res, gl4_log( "connect" ) ) ;
                 } ) ;
 

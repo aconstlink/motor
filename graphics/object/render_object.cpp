@@ -8,9 +8,10 @@ render_object::render_object( motor::string_cref_t name ) noexcept : _name( name
 
 render_object::~render_object( void_t ) noexcept
 {
-    for( auto * v : _vars ) motor::memory::release_ptr( v );
+    for( auto & v : _vars ) motor::memory::release_ptr( v.vs );
 }
 
+#if 0
 render_object::render_object( this_cref_t rhv ) noexcept
     : object( rhv ), _name( rhv._name ), _geo( rhv._geo ), _shader( rhv._shader ),
       _states( rhv._states ), _soo( rhv._soo )
@@ -19,19 +20,17 @@ render_object::render_object( this_cref_t rhv ) noexcept
     for( size_t i = 0; i < rhv._vars.size(); ++i )
         _vars[ i ] = motor::memory::copy_ptr( rhv._vars[ i ] );
 }
+#endif
 
 render_object::render_object( this_rref_t rhv ) noexcept
     : object( std::move( rhv ) ), _name( std::move( rhv._name ) ), _geo( std::move( rhv._geo ) ),
       _shader( std::move( rhv._shader ) ), _states( std::move( rhv._states ) ),
       _soo( std::move( rhv._soo ) )
 {
-    for( auto * vs : _vars ) motor::memory::release_ptr( vs );
-
-    _vars.resize( rhv._vars.size() );
-    for( size_t i = 0; i < rhv._vars.size(); ++i )
-        _vars[ i ] = motor::memory::copy_ptr( rhv._vars[ i ] );
+    for( auto & vs : _vars ) motor::memory::release_ptr( vs.vs );
+    _vars = std::move( rhv._vars );
 }
-
+#if 0
 render_object::this_ref_t render_object::operator=( this_cref_t rhv ) noexcept
 {
     object::operator=( rhv );
@@ -50,7 +49,7 @@ render_object::this_ref_t render_object::operator=( this_cref_t rhv ) noexcept
 
     return *this;
 }
-
+#endif
 render_object::this_ref_t render_object::operator=( this_rref_t rhv ) noexcept
 {
     object::operator=( std::move( rhv ) );
@@ -61,7 +60,7 @@ render_object::this_ref_t render_object::operator=( this_rref_t rhv ) noexcept
     _states = std::move( rhv._states );
     _soo = std::move( rhv._soo );
 
-    for( auto * v : _vars ) motor::memory::release_ptr( v );
+    for( auto & v : _vars ) motor::memory::release_ptr( v.vs );
     _vars = std::move( rhv._vars );
 
     return *this;
@@ -201,15 +200,16 @@ motor::string_cref_t render_object::get_shader( void_t ) const noexcept
 size_t render_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
 {
     size_t i = size_t( -1 );
-    while( ++i < _vars.size() && _vars[ i ] != nullptr );
+    while( ++i < _vars.size() && _vars[ i ].vs != nullptr );
 
     if( i == _vars.size() )
     {
-        _vars.emplace_back( motor::move( vs ) );
+        _vars.emplace_back( this_t::variable_set_t{ 0, motor::move( vs ) } );
     }
     else
     {
-        _vars[ i ] = motor::move( vs );
+        _vars[ i ].hash++;
+        _vars[ i ].vs = motor::move( vs );
     }
 
     return i;
@@ -218,20 +218,22 @@ size_t render_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t
 void_t render_object::drop_variable_set( size_t const idx ) noexcept
 {
     if( _vars.size() <= idx ) return;
-    motor::release( motor::move( _vars[ idx ] ) );
+
+    _vars[ idx ].hash++;
+    motor::release( motor::move( _vars[ idx ].vs ) );
 }
 
 render_object::this_ref_t render_object::add_variable_sets(
     motor::vector< motor::graphics::variable_set_mtr_safe_t > && vss ) noexcept
 {
-    for( auto & utr : vss ) _vars.emplace_back( motor::move( utr ) );
+    for( auto & utr : vss ) _vars.emplace_back( this_t::variable_set{ 0, motor::move( utr ) } );
 
     return *this;
 }
 
 render_object::this_ref_t render_object::remove_variable_sets( void_t ) noexcept
 {
-    for( auto * v : _vars ) motor::memory::release_ptr( v );
+    for( auto & v : _vars ) motor::memory::release_ptr( v.vs );
     _vars.clear();
     return *this;
 }
@@ -241,6 +243,7 @@ void_t render_object::for_each( for_each_var_funk_t funk ) noexcept
     size_t i = size_t( -1 );
     for( auto const & v : _vars )
     {
+        if( v.vs == nullptr ) continue ;
         funk( ++i, v );
     }
 }
@@ -253,7 +256,13 @@ size_t render_object::get_num_variable_sets( void_t ) const noexcept
 motor::graphics::variable_set_mtr_safe_t render_object::get_variable_set( size_t const i ) noexcept
 {
     this_t::fill_variable_sets( i );
-    return motor::share( _vars[ i ] );
+    return motor::share( _vars[ i ].vs );
+}
+
+render_object::safe_variable_set_t render_object::get_safe_variable_set( size_t const i ) noexcept
+{
+    this_t::fill_variable_sets( i );
+    return safe_variable_set_t( _vars[ i ].hash, motor::share( _vars[ i ].vs ) );
 }
 
 motor::vector< motor::graphics::variable_set_mtr_safe_t > render_object::get_varibale_sets(
@@ -261,28 +270,27 @@ motor::vector< motor::graphics::variable_set_mtr_safe_t > render_object::get_var
 {
     motor::vector< motor::graphics::variable_set_mtr_safe_t > ret;
 
-    for( auto * mtr : _vars ) ret.emplace_back( motor::share( mtr ) );
+    for( auto & v : _vars ) ret.emplace_back( motor::share( v.vs ) );
 
     return ret;
 }
 
-motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > &
-render_object::borrow_varibale_sets( void_t ) noexcept
+motor::vector< render_object::variable_set_t > & render_object::borrow_varibale_sets(
+    void_t ) noexcept
 {
     return _vars;
 }
 
-motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const &
-render_object::borrow_varibale_sets( void_t ) const noexcept
+motor::vector< render_object::variable_set_t > const & render_object::borrow_varibale_sets(
+    void_t ) const noexcept
 {
     return _vars;
 }
 
 // fast version for quick access without ref counting
-motor::graphics::variable_set_borrow_t::mtr_t render_object::borrow_variable_set(
-    size_t const i ) const noexcept
+render_object::variable_set_t render_object::borrow_variable_set( size_t const i ) const noexcept
 {
-    return _vars.size() <= i ? nullptr : _vars[ i ];
+    return _vars.size() <= i ? this_t::variable_set{ 0, nullptr } : _vars[ i ];
 }
 
 render_object::this_ref_t render_object::fill_variable_sets( size_t const idx ) noexcept
@@ -294,7 +302,10 @@ render_object::this_ref_t render_object::fill_variable_sets( size_t const idx ) 
 
     for( size_t i = 0; i < old.size(); ++i ) _vars[ i ] = old[ i ];
     for( size_t i = old.size(); i < _vars.size(); ++i )
-        _vars[ i ] = motor::shared( motor::graphics::variable_set_t() );
+    {
+        _vars[ i ] =
+            this_t::variable_set_t{ 0, motor::shared( motor::graphics::variable_set_t() ) };
+    }
 
     return *this;
 }

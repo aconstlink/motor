@@ -390,14 +390,14 @@ void_t line_render_3d::prepare_for_rendering( void_t ) noexcept
 
     // 2. prepare variable set
     {
-        _ro.for_each( [&]( size_t const , motor::graphics::variable_set_mtr_t vars )
+        _ro.for_each( [&]( size_t const , motor::graphics::render_object_t::variable_set_cref_t vs )
         {
             {
-                auto* var = vars->data_variable<motor::math::mat4f_t>( "u_view" ) ;
+                auto* var = vs.vs->data_variable<motor::math::mat4f_t>( "u_view" ) ;
                 var->set( _view ) ;
             }
             {
-                auto* var = vars->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
+                auto* var = vs.vs->data_variable<motor::math::mat4f_t>( "u_proj" ) ;
                 var->set( _proj ) ;
             }
         } ) ;

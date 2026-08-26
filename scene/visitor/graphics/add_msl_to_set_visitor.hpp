@@ -56,11 +56,10 @@ class add_msl_to_set_visitor : public default_visitor
 
     add_msl_to_set_visitor( this_cref_t ) = delete;
 
-    virtual ~add_msl_to_set_visitor( void_t ) noexcept 
+    virtual ~add_msl_to_set_visitor( void_t ) noexcept
     {
-        motor::release( motor::move( _msl ) ) ;
+        motor::release( motor::move( _msl ) );
     }
-
 
   public:
 
@@ -69,22 +68,39 @@ class add_msl_to_set_visitor : public default_visitor
         motor::scene::msl_set_component_mtr_t comp;
         if( nptr->has_component_and_borrow< motor::scene::msl_set_component_t >( comp ) )
         {
+            motor::string_t name;
+            {
+                motor::scene::name_component_mtr_t nc;
+                if( nptr->has_component_and_borrow< motor::scene::name_component_t >( nc ) )
+                {
+                    name = nc->get_name();
+                }
+            }
+
             motor::scene::msl_component_mtr_t msl_comp;
             if( comp->borrow_msl_component( _id, msl_comp ) )
             {
                 // there is already a msl component.
+                size_t const geo_idx = msl_comp->get_geo_idx();
+                size_t const vs_idx = msl_comp->get_variable_set_idx();
+
+                auto * msl = msl_comp->borrow_msl();
+
+                motor::string_t geo_name = msl->get_geo_link( geo_idx ).name;
+                auto vs = msl->get_varibale_set( vs_idx );
+
+                msl->unlink_geometry( geo_idx );
+                msl->drop_variable_set( vs_idx );
+
+                _msl->link_geometry( geo_name );
+                _msl->add_variable_set( motor::move( vs ) );
+
+                _vsf( name, vs );
+
+                msl_comp->set_msl( motor::share( _msl ) );
             }
             else
             {
-                motor::string_t name;
-                {
-                    motor::scene::name_component_mtr_t nc;
-                    if( nptr->has_component_and_borrow< motor::scene::name_component_t >( nc ) )
-                    {
-                        name = nc->get_name();
-                    }
-                }
-
                 size_t geo_idx = size_t( -1 );
 
                 motor::scene::geometry_name_component_mtr_t geo_comp;

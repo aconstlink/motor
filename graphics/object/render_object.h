@@ -41,10 +41,35 @@ class MOTOR_GRAPHICS_API render_object : public object
 
     struct variable_set
     {
-        size_t hash ;
-        motor::graphics::variable_set_mtr_t vs ;
+        size_t hash;
+        motor::graphics::variable_set_mtr_t vs;
     };
-    motor_typedef( variable_set ) ;
+    motor_typedef( variable_set );
+
+    struct safe_variable_set
+    {
+        size_t hash;
+        motor::graphics::variable_set_mtr_safe_t vs;
+
+        safe_variable_set( size_t const h, motor::graphics::variable_set_mtr_safe_t vs_ )
+            : hash( h ), vs( motor::move( vs_ ) )
+        {
+        }
+
+        safe_variable_set( safe_variable_set const & rhv ) noexcept
+            : hash( rhv.hash ), vs( motor::share( rhv.vs ) )
+        {
+        }
+        safe_variable_set( safe_variable_set && rhv ) noexcept
+            : hash( rhv.hash ), vs( motor::move( rhv.vs ) )
+        {
+        }
+        ~safe_variable_set( void_t ) noexcept
+        {
+            motor::release( motor::move( vs ) );
+        }
+    };
+    motor_typedef( safe_variable_set );
 
   private:
 
@@ -53,7 +78,7 @@ class MOTOR_GRAPHICS_API render_object : public object
 
   private: // variable sets
 
-    motor::vector< motor::graphics::variable_set_mtr_t > _vars;
+    motor::vector< variable_set_t > _vars;
 
   private: // states
 
@@ -115,7 +140,7 @@ class MOTOR_GRAPHICS_API render_object : public object
 
     this_ref_t remove_variable_sets( void_t ) noexcept;
 
-    typedef std::function< void_t( size_t const i, motor::graphics::variable_set_mtr_t ) >
+    typedef std::function< void_t( size_t const i, this_t::variable_set_cref_t ) >
         for_each_var_funk_t;
 
     void_t for_each( for_each_var_funk_t funk ) noexcept;
@@ -123,19 +148,18 @@ class MOTOR_GRAPHICS_API render_object : public object
     size_t get_num_variable_sets( void_t ) const noexcept;
 
     motor::graphics::variable_set_mtr_safe_t get_variable_set( size_t const i ) noexcept;
+    safe_variable_set_t get_safe_variable_set( size_t const i ) noexcept;
 
     motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets(
         void_t ) const noexcept;
 
-    motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > & borrow_varibale_sets(
-        void_t ) noexcept;
+    motor::vector< render_object::variable_set_t > & borrow_varibale_sets( void_t ) noexcept;
 
-    motor::vector< motor::graphics::variable_set_borrow_t::mtr_t > const & borrow_varibale_sets(
+    motor::vector< render_object::variable_set_t > const & borrow_varibale_sets(
         void_t ) const noexcept;
 
     // fast version for quick access without ref counting
-    motor::graphics::variable_set_borrow_t::mtr_t borrow_variable_set(
-        size_t const i ) const noexcept;
+    render_object::variable_set_t borrow_variable_set( size_t const i ) const noexcept;
 
     this_ref_t fill_variable_sets( size_t const idx ) noexcept;
 
