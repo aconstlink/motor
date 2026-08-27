@@ -453,6 +453,9 @@ struct d3d11_backend::pimpl
     {
         bool_t compiled = false ;
 
+        // the default shader variable values.
+        motor::graphics::variable_set_t default_values ;
+
         // vs, gs, ps, else?
         guard< ID3D11VertexShader > vs ;
         guard< ID3D11GeometryShader > gs ;
@@ -540,7 +543,8 @@ struct d3d11_backend::pimpl
             ps_textures( std::move( rhv.ps_textures ) ),
             vs_buffers( std::move( rhv.vs_buffers ) ),
             gs_buffers( std::move( rhv.gs_buffers ) ),
-            ps_buffers( std::move( rhv.ps_buffers ) )
+            ps_buffers( std::move( rhv.ps_buffers ) ),
+            default_values( std::move( rhv.default_values ) )
 
         {}
 
@@ -567,6 +571,8 @@ struct d3d11_backend::pimpl
             gs_buffers = std::move( rhv.gs_buffers ) ;
             ps_buffers = std::move( rhv.ps_buffers ) ;
 
+            default_values = std::move( rhv.default_values ) ;
+
             return *this ;
         }
 
@@ -589,6 +595,8 @@ struct d3d11_backend::pimpl
             vs_buffers.clear() ;
             gs_buffers.clear() ;
             ps_buffers.clear() ;
+
+            default_values.clear() ;
         }
     } ;
     motor_typedef( shader_data ) ;
@@ -1082,7 +1090,7 @@ public: // msl data
     {
         size_t ro_id ;
         motor::graphics::shader_object_t so ;
-
+        
         void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
         }
@@ -2249,6 +2257,10 @@ public: // functions
             this_t::work_item::work_type::configure, motor::share( obj ) ) ) ;
     }
 
+    void_t inject_default_shader_variable_values( motor::graphics::msl_object_ref_t obj )
+    {
+    }
+
     //****************************************************************************************
     // call from support thread
     bool_t construct_msl_data_st( motor::graphics::msl_object_ptr_t obj_in ) noexcept
@@ -2325,7 +2337,9 @@ public: // functions
                 }
                 continue ;
             }
-                        
+            
+            motor::graphics::variable_set_t default_values ;
+
             // inject default variable values into the 
             // variable sets
             for ( auto & shd_ : res.config.shaders )
@@ -2339,49 +2353,25 @@ public: // functions
                     {
                         using ptr_t = motor::msl::generic_default_value< float_t > * ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs.vs->data_variable<float_t>( var_.name )->set( gdv->get() ) ;
-                        }
+                        default_values.data_variable<float_t>( var_.name )->set( gdv->get() ) ;
                     }
                     else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs.vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
-                        }
+                        default_values.data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
                     }
                     else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec4f_t >*> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::generic_default_value< motor::math::vec4f_t > * ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs.vs->data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
-                        }
+                        default_values.data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
                     }
                     else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::texture_dv_ptr_t ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            // if variable is already in the variable set, do not overwrite it
-                            //if( vs->has_texture_variable( var_.name ) ) continue ;
-
-                            // have the type here
-                            // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
-                            vs.vs->texture_variable( var_.name )->set( gdv->get().name ) ;
-                        }
+                        default_values.texture_variable( var_.name )->set( gdv->get().name ) ;
                     }
                 }
             }
@@ -2424,6 +2414,12 @@ public: // functions
                         // @todo return here.
                         return false ;
                     }
+
+                    _shaders.access( so.get_oid( _bid ),[&]( pimpl::shader_data_ref_t shd )
+                    {
+                        shd.default_values = std::move( default_values ) ;
+                    } ) ;
+
                     if( !this_t::construct_render_config( *ro ) )
                     {
                         return false ;
@@ -2440,6 +2436,7 @@ public: // functions
                     // reflect compilation result to the user
                     _shaders.access( so.get_oid( _bid ),[&]( pimpl::shader_data_ref_t shd )
                     {
+                    
                         obj.for_each( [&] ( motor::graphics::compilation_listener_mtr_t lst )
                         {
                             auto const s = shd.compiled ?
@@ -2501,6 +2498,8 @@ public: // functions
 
             // vertex buffer object
             {
+                config.elements.clear() ;
+
                 obj.vertex_buffer().for_each_layout_element(
                     [&] ( motor::graphics::vertex_buffer_t::data_cref_t d )
                 {
@@ -3014,6 +3013,7 @@ public: // functions
         {
             auto const res = _shaders.access( oid, obj.name(), [&]( pimpl::shader_data_ref_t sd )
             {
+                sd.invalidate("") ;
                 sd = std::move( new_shader ) ;
                 return true ;
             } ) ;
@@ -3305,12 +3305,23 @@ public: // functions
     {
         if( rd.var_sets.size() > vs_idx ) return ;
         
+        // borrowed
+        motor::graphics::variable_set_mtr_t default_values = nullptr ;
+        _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t shd )
+        {
+            default_values = &shd.default_values ;
+        } ) ;
+
         if( vs_idx == size_t(-1) )
         {
             // track ref count for variable set
             {
                 rc.for_each( [&] ( size_t const /*i*/, motor::graphics::render_object_t::variable_set_cref_t vs )
                 {
+                    if( default_values != nullptr )
+                    {
+                        vs.vs->clone_from_if_not_exist( default_values ) ;
+                    }
                     rd.var_sets.emplace_back( motor::share( vs.vs ) ) ;
                 } ) ;
             }
@@ -3319,6 +3330,11 @@ public: // functions
         {
             auto vs = rc.borrow_variable_set( vs_idx ) ;
             rd.var_sets.emplace_back( motor::share( vs.vs ) ) ;
+
+            if( default_values != nullptr )
+            {
+                vs.vs->clone_from_if_not_exist( default_values ) ;
+            }
         }
 
         // constant buffer mapping

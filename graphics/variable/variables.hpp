@@ -18,6 +18,7 @@ namespace motor
             virtual ~ivariable( void_t ) noexcept {}
 
             virtual void_cptr_t data_ptr( void_t ) const noexcept = 0 ;
+            virtual ivariable * clone( void_t ) const noexcept = 0 ;
         };
         motor_typedef( ivariable ) ;
 
@@ -48,6 +49,11 @@ namespace motor
             virtual void_cptr_t data_ptr( void_t ) const noexcept override
             {
                 return reinterpret_cast< void_cptr_t >( &_value ) ;
+            }
+
+            ivariable * clone( void_t ) const noexcept
+            {
+                return motor::memory::global_t::alloc( this_t(_value) ) ;
             }
         };
 

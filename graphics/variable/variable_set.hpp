@@ -112,15 +112,31 @@ class variable_set
         _streamouts.clear();
     }
 
-    void_t clone_from( this_mtr_t other ) noexcept
+    void_t clone_from_if_not_exist( this_mtr_t other ) noexcept
     {
         {
             motor::concurrent::mrsw_t::writer_lock_t lk( _data_mtx );
             for( auto const & d_ : other->_variables )
             {
+                if( this_t::find_data_variable_us( d_.name.c_str(), d_.type, d_.type_struct ) !=
+                    nullptr )
+                    continue;
+
                 this_t::data d = d_;
                 d.var = d.var->clone();
                 _variables.emplace_back( std::move( d ) );
+            }
+        }
+
+        {
+            motor::concurrent::mrsw_t::writer_lock_t lk( _tex_mtx );
+            for( auto const & d_ : other->_textures )
+            {
+                if( this_t::find_texture_variable_us( d_.name.c_str() ) != nullptr ) continue;
+
+                this_t::texture_data d = d_;
+                d.var = d.var->clone();
+                _textures.emplace_back( std::move( d ) );
             }
         }
     }
