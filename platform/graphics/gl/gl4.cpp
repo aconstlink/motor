@@ -272,6 +272,9 @@ struct gl4_backend::pimpl
     //********************************************************************************
     struct shader_data
     {
+        // the default shader variable values.
+        motor::graphics::variable_set_t default_values ;
+
         GLuint vs_id = GLuint( -1 ) ;
         GLuint gs_id = GLuint( -1 ) ;
         GLuint ps_id = GLuint( -1 ) ;
@@ -447,6 +450,8 @@ struct gl4_backend::pimpl
 
             uniforms.clear() ;
             attributes.clear() ;
+
+            default_values.clear() ;
         }
     } ;
     motor_typedef( shader_data ) ;
@@ -2434,7 +2439,46 @@ public:
                 }
                 continue ;
             }
-                        
+            
+            #if 0
+            motor::graphics::variable_set_t default_values ;
+
+            // inject default variable values into the 
+            // variable sets
+            for ( auto & shd_ : res.config.shaders )
+            {
+                for ( auto & var_ : shd_.variables )
+                {
+                    if ( var_.def_val == size_t( -1 ) ) continue ;
+
+                    auto * df = res.config.def_values[ var_.def_val ] ;
+                    if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< float_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        default_values.data_variable<float_t>( var_.name )->set( gdv->get() ) ;
+                    }
+                    else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        default_values.data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
+                    }
+                    else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec4f_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< motor::math::vec4f_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        default_values.data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
+                    }
+                    else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::texture_dv_ptr_t ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        default_values.texture_variable( var_.name )->set( gdv->get().name ) ;
+                    }
+                }
+            }
+            #else
             // inject default variable values into the 
             // variable sets
             for ( auto & shd_ : res.config.shaders )
@@ -2494,6 +2538,7 @@ public:
                     }
                 }
             }
+            #endif
 
             auto * ro = obj.borrow_render_object() ;
             motor::graphics::shader_object_t so( c_exp ) ;
