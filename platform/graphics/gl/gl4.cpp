@@ -493,8 +493,37 @@ struct gl4_backend::pimpl
         } ;
         motor::vector< geo_to_vao > geo_to_vaos ;
 
-        // also keep this one for ref counting
-        motor::vector< motor::graphics::variable_set_mtr_t > var_sets ;
+        struct variable_set
+        {
+            size_t hash ;
+
+            // if nullptr, this entry is invalid.
+            // also keep this one for ref counting, so we can
+            // safely use the internal variables.
+            motor::graphics::variable_set_mtr_t vs = nullptr ;
+
+            bool_t is_valid( void_t ) const noexcept
+            {
+                return vs != nullptr ;
+            }
+
+            bool_t is_invalid( void_t ) const noexcept
+            {
+                return vs == nullptr ;
+            }
+        }  ;
+        motor_typedef( variable_set ) ;
+        motor::vector< variable_set_t > var_sets ;
+        
+        bool_t has_variable_set( size_t const vs_idx ) const noexcept
+        {
+            return (vs_idx < var_sets.size() && var_sets[vs_idx].is_valid() ) ;
+        }
+
+        bool_t has_not_variable_set( size_t const vs_idx ) const noexcept
+        {
+            return vs_idx >= var_sets.size() || var_sets[vs_idx].is_invalid() ;
+        }
 
         struct uniform_variable_link
         {
@@ -599,7 +628,7 @@ struct gl4_backend::pimpl
             shd_id = GLuint( -1 ) ;
             rss.clear() ;
         
-            for( auto * v : var_sets ) motor::memory::release_ptr( v ) ;
+            for( auto & v : var_sets ) motor::release( motor::move( v.vs ) ) ;
 
             // remember that rd.var_sets hold the ref count reminder!
             var_sets.clear() ;
@@ -1754,7 +1783,7 @@ public:
                 for ( size_t s = 0; s < sets.size(); ++s )
                 {
                     auto & vs = sets[ s ] ;
-                    this_t::connect( rd, s, vs ) ;
+                    this_t::connect( rd, s, vs.hash, vs.vs ) ;
                 }
 
                 _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
@@ -2765,11 +2794,11 @@ public:
 
                 rc.for_each( [&] ( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
                 {
-                    auto const res = this_t::connect( config, i, motor::share(vs.vs) ) ;
+                    auto const res = this_t::connect( config, i, vs.hash, motor::share(vs.vs) ) ;
                     motor::log::global_t::warning( !res, gl4_log( "connect" ) ) ;
                 } ) ;
 
-                for( auto * ptr : vars ) motor::memory::release_ptr( ptr ) ;
+                for( auto & v : vars ) motor::release( motor::move( v.vs ) ) ;
             }
         
             _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
@@ -2811,8 +2840,21 @@ public:
                 }
                 else if( config.geo_ids[geo_idx].id != size_t(-1) )
                 {
-                   // config geometry entry is valid.
-                   // maybe the ref count changed
+                    // config geometry entry is valid.
+                    // maybe the data changed lets check it
+                    {
+                        auto const gid = _geometries.find_by_name( ro.get_geometry_link(geo_idx).name ) ;
+                        if( gid != config.geo_ids[geo_idx].id )
+                        {
+                            // ok, geometry changed
+                            config.geo_ids[ geo_idx ].id = gid ;
+
+                            // at this point, the geometry needs to be rebound
+                            // to the shader inputs.
+                            // At the moment, this is done before rendering
+                        }
+                    }
+
                    config.geo_ids[geo_idx].hash = hash ;
                 }
                 else
@@ -3199,11 +3241,27 @@ public:
     }
 
     //****************************************************************************************
-    bool_t connect( this_t::render_data & config, size_t const var_set_idx, motor::graphics::variable_set_mtr_t vs )
+    bool_t connect( this_t::render_data & config, size_t const var_set_idx, size_t const hash, motor::graphics::variable_set_mtr_t vs )
     {
         //this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
         _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
         {
+            // ref count one copy here for all stored items
+            {
+                size_t idx = size_t(-1) ;
+                while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
+
+                if( idx != config.var_sets.size() )
+                {
+                    config.var_sets[idx] = render_data::variable_set{ hash, motor::share( vs ) } ;
+                }
+                else
+                {
+                    config.var_sets.emplace_back( render_data::variable_set{ hash, motor::share( vs ) } ) ;
+                }
+                
+            }
+
             size_t id = 0 ;
             for( auto & uv : shd.uniforms )
             {
@@ -3321,10 +3379,7 @@ public:
                         }
                     }
                 }
-            }
-
-            // ref count one copy here for all stored items
-            config.var_sets.emplace_back( vs ) ;
+            }            
         } ) ;
         
 
@@ -3700,6 +3755,30 @@ public:
     }
 
     //****************************************************************************************
+    bool_t update_variables( motor::graphics::render_object_ref_t ro, size_t const varset_id ) noexcept
+    {
+        size_t oid = ro.get_oid( this_t::_bid ) ;
+        auto const [a,b] = _renders.access<bool_t>( oid, [&]( this_t::render_data_ref_t rd )
+        {
+            if( rd.has_not_variable_set( varset_id ) )
+            {
+                auto vs = ro.borrow_variable_set( varset_id ) ;
+                this_t::connect( rd, varset_id, vs.hash, vs.vs ) ;
+
+                _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
+                {
+                    this_t::render_object_variable_memory( rd, sd ) ;
+                    return true ;
+                } ) ;
+            }
+
+            return true ;
+        } ) ;
+
+        return a && b ;
+    }
+
+    //****************************************************************************************
     bool_t update_variables( size_t const oid, size_t const varset_id ) noexcept
     {
         auto const [a,b] = _renders.access<bool_t>( oid, [&]( this_t::render_data_ref_t rd )
@@ -3719,7 +3798,7 @@ public:
                 if( gl4_log_error("glUseProgram") ) return false ;
             }
 
-            if( config.var_sets.size() <= varset_id ) return false ;
+            if( config.var_sets.size() <= varset_id ) return false ;            
             
             // data vars
             {
@@ -3901,9 +3980,10 @@ public:
                         glBindVertexArray( 0 ) ;
                         return false ;
                     }
-                }
+                }                
 
-                if( config.var_sets.size() > varset_id )
+                //if( config.var_sets.size() > varset_id )
+                if( config.has_variable_set( varset_id ) )
                 {
                     // data vars
                     {
@@ -4672,6 +4752,12 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
     {
         motor::log::global_t::error( gl4_log( "shader did not compile. Abort render." ) ) ;
         return motor::graphics::result::failed ;
+    }
+
+    // handle dynamic variable sets
+    {
+        auto const res = _pimpl->update_variables( *obj, detail.varset ) ;
+        if( !res ) return motor::graphics::result::failed ;
     }
 
     // update variables before render

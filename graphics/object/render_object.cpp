@@ -240,11 +240,11 @@ render_object::this_ref_t render_object::remove_variable_sets( void_t ) noexcept
 
 void_t render_object::for_each( for_each_var_funk_t funk ) noexcept
 {
-    size_t i = size_t( -1 );
-    for( auto const & v : _vars )
+    for( size_t i = 0; i < _vars.size(); ++i )
     {
-        if( v.vs == nullptr ) continue ;
-        funk( ++i, v );
+        auto const & v = _vars[ i ];
+        if( v.vs == nullptr ) continue;
+        funk( i, v );
     }
 }
 

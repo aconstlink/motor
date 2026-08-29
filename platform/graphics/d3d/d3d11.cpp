@@ -3079,13 +3079,16 @@ public: // functions
     //************************************************************************************************************
     // this function prepares the vertex input layout 
     // it will also remove the old input layout and recreate the new one. 
-    bool_t bind_vertex_inputs( this_t::render_data_ref_t rd, motor::graphics::render_object_ref_t rc ) noexcept
+    // @param geo_idx by default is 0. we assume for now, all vertex input layouts are the same.
+    // but we need it for dynamic geometry links. having a separate vertex input layout for every geometry
+    // link is already issued. @see #159
+    bool_t bind_vertex_inputs( this_t::render_data_ref_t rd, motor::graphics::render_object_ref_t rc, size_t const geo_idx = 0 ) noexcept
     {
         if ( rd.geo_ids.size() != 0 )
         {
             this_t::geo_data_t::elements_t elems ;
             {
-                bool_t const valid_obj = _geos.access( rd.geo_ids[ 0 ].id, [&] ( this_t::geo_data_ref_t geo )
+                bool_t const valid_obj = _geos.access( rd.geo_ids[ geo_idx ].id, [&] ( this_t::geo_data_ref_t geo )
                 {
                     elems = geo.elements ;
                 } )  ;
@@ -3807,7 +3810,7 @@ public: // functions
                 auto const gid = _geos.find_by_name( ro.get_geometry_link(geo_idx).name ) ;
                 if( gid == size_t(-1) )
                 {
-                    motor::log::global_t::warning<1024>( "[gl4:update_geometry_link] : no geometry with name [%s] for render_data [%s]",
+                    motor::log::global_t::warning<1024>( "[d3d11:update_geometry_link] : no geometry with name [%s] for render_data [%s]",
                         ro.get_geometry_link(geo_idx).name.c_str(), ro.name().c_str() ) ;
                     return false ;
                 }
@@ -3829,7 +3832,23 @@ public: // functions
                 else if( config.geo_ids[geo_idx].id != size_t(-1) )
                 {
                    // config geometry entry is valid.
-                   // maybe the ref count changed
+                   // maybe the data changed lets check it
+                    {
+                        auto const gid = _geos.find_by_name( ro.get_geometry_link(geo_idx).name ) ;
+                        if( gid != config.geo_ids[geo_idx].id )
+                        {
+                            // ok, geometry changed
+                            config.geo_ids[ geo_idx ].id = gid ;
+
+                            // at this point, the geometry needs to be rebound
+                            // to the shader inputs.
+                            auto const res = _renders.access( oid, ro.name(), [&]( this_t::render_data_ref_t rd )
+                            {
+                                return this_t::bind_vertex_inputs( rd, ro, geo_idx ) ;
+                            } ) ;
+                        }
+                    }
+
                    config.geo_ids[geo_idx].hash = hash ;
                 }
                 else
