@@ -1783,7 +1783,7 @@ public:
                 for ( size_t s = 0; s < sets.size(); ++s )
                 {
                     auto & vs = sets[ s ] ;
-                    this_t::connect( rd, s, vs.hash, vs.vs ) ;
+                    this_t::connect( rd, s, vs.hash, motor::share( vs.vs ) ) ;
                 }
 
                 _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
@@ -2469,7 +2469,7 @@ public:
                 continue ;
             }
             
-            #if 0
+            #if 1
             motor::graphics::variable_set_t default_values ;
 
             // inject default variable values into the 
@@ -2604,6 +2604,11 @@ public:
                         // @todo return here.
                         return false ;
                     }
+
+                    _shaders.access( so.get_oid( _bid ),[&]( pimpl::shader_data_ref_t shd )
+                    {
+                        shd.default_values = std::move( default_values ) ;
+                    } ) ;
 
                     if( !this_t::construct_render_data( *ro ) )
                     {
@@ -3241,26 +3246,12 @@ public:
     }
 
     //****************************************************************************************
-    bool_t connect( this_t::render_data & config, size_t const var_set_idx, size_t const hash, motor::graphics::variable_set_mtr_t vs )
+    bool_t connect( this_t::render_data & config, size_t const var_set_idx, size_t const hash, motor::graphics::variable_set_mtr_safe_t vs )
     {
         //this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
         _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
         {
-            // ref count one copy here for all stored items
-            {
-                size_t idx = size_t(-1) ;
-                while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
-
-                if( idx != config.var_sets.size() )
-                {
-                    config.var_sets[idx] = render_data::variable_set{ hash, motor::share( vs ) } ;
-                }
-                else
-                {
-                    config.var_sets.emplace_back( render_data::variable_set{ hash, motor::share( vs ) } ) ;
-                }
-                
-            }
+            vs->clone_from_if_not_exist( &shd.default_values ) ;
 
             size_t id = 0 ;
             for( auto & uv : shd.uniforms )
@@ -3379,7 +3370,24 @@ public:
                         }
                     }
                 }
-            }            
+            }
+
+            // ref count one copy here for all stored items
+            {
+                size_t idx = size_t(-1) ;
+                while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
+
+                if( idx != config.var_sets.size() )
+                {
+                    config.var_sets[idx] = render_data::variable_set{ hash, motor::move( vs ) } ;
+                }
+                else
+                {
+                    config.var_sets.emplace_back( render_data::variable_set{ hash, motor::move( vs ) } ) ;
+                }
+                
+            }
+
         } ) ;
         
 
@@ -3763,7 +3771,7 @@ public:
             if( rd.has_not_variable_set( varset_id ) )
             {
                 auto vs = ro.borrow_variable_set( varset_id ) ;
-                this_t::connect( rd, varset_id, vs.hash, vs.vs ) ;
+                this_t::connect( rd, varset_id, vs.hash, motor::share( vs.vs ) ) ;
 
                 _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
                 {
