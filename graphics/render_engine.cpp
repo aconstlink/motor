@@ -15,6 +15,11 @@ render_engine::~render_engine( void_t ) noexcept {}
 void_t render_engine::force_clear( void_t ) noexcept 
 {
     std::lock_guard< std::mutex > lk( _mtx_has_commands ) ;
+
+    for( auto & c : _coms_ex )
+    {
+        c.cancel_funk() ;
+    }
     _coms_up.clear() ;
     _coms_ex.clear() ;
     _has_commands = false ;
@@ -32,14 +37,14 @@ bool_t render_engine::execute_frame( void_t ) noexcept
     // 1. execute upstream commands
     for( auto & c : _coms_up )
     {
-        c() ;
+        c.exec_funk() ;
     }
     _coms_up.clear() ;    
 
     // 2. execute "execute" commands
     for( auto & c : _coms_ex )
     {
-        c() ;
+        c.exec_funk() ;
     }
     _coms_ex.clear() ;
 

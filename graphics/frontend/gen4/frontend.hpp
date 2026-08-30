@@ -70,7 +70,7 @@ class frontend : public motor::graphics::ifrontend
             if( !res ) return false;
         }
 
-        _re->send_execute( [ = ]( void_t )
+        _re->send_execute( {[ = ]( void_t )
         {
             auto const res = _be->configure( o );
 
@@ -80,7 +80,7 @@ class frontend : public motor::graphics::ifrontend
             if( res != motor::graphics::result::in_transit )
                 motor::graphics::object_t::data_manipulator( o, _be->get_bid() )
                     .change_to_ready( res );
-        } );
+        }} );
 
         return true;
     }
@@ -95,7 +95,7 @@ class frontend : public motor::graphics::ifrontend
             if( !res ) return false;
         }
 
-        _re->send_execute( [ = ]( void_t )
+        _re->send_execute( {[ = ]( void_t )
         {
             auto const res = _be->release( o );
 
@@ -105,7 +105,7 @@ class frontend : public motor::graphics::ifrontend
             if( res != motor::graphics::result::in_transit )
                 motor::graphics::object_t::data_manipulator( o, _be->get_bid() )
                     .change_to_raw( res );
-        } );
+        }} );
 
         return true;
     }
@@ -131,7 +131,7 @@ class frontend : public motor::graphics::ifrontend
             }
         }
 
-        _re->send_execute( [ =, mtr = o.mtr() ]( void_t )
+        _re->send_execute( {[ =, mtr = o.mtr() ]( void_t )
         {
             auto const res = _be->release( mtr );
 
@@ -139,35 +139,47 @@ class frontend : public motor::graphics::ifrontend
                 motor::graphics::object_t::data_manipulator( mtr, _be->get_bid() )
                     .change_to_raw( res );
             motor::memory::release_ptr( mtr );
-        } );
+        }} );
 
         return true;
     }
 
     this_ref_t update( motor::graphics::geometry_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->update( o ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->update( o );
+        } } );
 
         return *this;
     }
 
     this_ref_t update( motor::graphics::array_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->update( o ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->update( o );
+        } } );
 
         return *this;
     }
 
     this_ref_t update( motor::graphics::streamout_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->update( o ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->update( o );
+        } } );
 
         return *this;
     }
 
     this_ref_t update( motor::graphics::image_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->update( o ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->update( o );
+        } } );
 
         return *this;
     }
@@ -175,35 +187,51 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t update(
         motor::graphics::render_object_borrow_t::mtr_t o, size_t const varset ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->update( o, varset ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->update( o, varset );
+        } } );
 
         return *this;
     }
 
-    this_ref_t update_geometry_link( motor::graphics::msl_object_borrow_t::mtr_t msl, size_t const idx ) noexcept 
+    this_ref_t update_geometry_link(
+        motor::graphics::msl_object_borrow_t::mtr_t msl, size_t const idx ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->update_geometry_link( msl, idx ) ; } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->update_geometry_link( msl, idx );
+        } } );
 
         return *this;
     }
 
     this_ref_t use( motor::graphics::framebuffer_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->use( o ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->use( o );
+        } } );
 
         return *this;
     }
 
     this_ref_t use( motor::graphics::streamout_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->use( o ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->use( o );
+        } } );
 
         return *this;
     }
 
     this_ref_t unuse( motor::graphics::gen4::backend::unuse_type const t ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->unuse( t ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->unuse( t );
+        } } );
 
         return *this;
     }
@@ -211,14 +239,20 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t push( motor::graphics::state_object_borrow_t::mtr_t so, size_t const sid = 0,
         bool_t const push = true ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->push( so, sid, push ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->push( so, sid, push );
+        } } );
 
         return *this;
     }
 
     this_ref_t pop( motor::graphics::gen4::backend::pop_type const pt ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->pop( pt ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->pop( pt );
+        } } );
 
         return *this;
     }
@@ -226,7 +260,10 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t render( motor::graphics::render_object_borrow_t::mtr_t o,
         motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->render( o, rd ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->render( o, rd );
+        } } );
 
         return *this;
     }
@@ -234,20 +271,27 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t render( motor::graphics::msl_object_borrow_t::mtr_t o,
         motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { _be->render( o, rd ); } );
+        _re->send_execute( { [ = ]( void_t )
+        {
+            _be->render( o, rd );
+        } } );
 
         return *this;
     }
 
     void_t force_context_swap( void_t ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) {} );
+        _re->send_execute( { [ = ]( void_t ) {
+        } } );
     }
 
     using fence_funk_t = std::function< void_t( void_t ) >;
     void_t fence( fence_funk_t funk ) noexcept
     {
-        _re->send_execute( [ = ]( void_t ) { funk(); } );
+        _re->send_execute( { [ = ]( void_t ) { funk(); }, [ = ]( void_t )
+        {
+            funk();
+        } } );
     }
 
   public:
@@ -268,9 +312,10 @@ class frontend : public motor::graphics::ifrontend
 
   public:
 
-    motor::graphics::object_t::data_manipulator::state_pair_t decode( motor::graphics::object_mtr_t obj ) const noexcept
+    motor::graphics::object_t::data_manipulator::state_pair_t decode(
+        motor::graphics::object_mtr_t obj ) const noexcept
     {
-        return motor::graphics::object_t::data_manipulator( obj, _be->get_bid() ).get_status() ;
+        return motor::graphics::object_t::data_manipulator( obj, _be->get_bid() ).get_status();
     }
 };
 motor_typedef( frontend );
