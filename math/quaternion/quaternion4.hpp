@@ -5,6 +5,8 @@
 #include "../vector/protos.hpp"
 #include "../typedefs.h"
 
+#include "../utility/fn.hpp"
+
 namespace motor
 {
     namespace math
