@@ -1,3 +1,4 @@
+#if 0
 #pragma once
 
 #include "../default_visitor.h"
@@ -9,6 +10,7 @@
 
 #include <motor/application/typedefs.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
+
 
 namespace motor
 {
@@ -69,3 +71,5 @@ class release_msl_visitor : public default_visitor
 motor_typedef( release_msl_visitor );
 } // namespace scene
 } // namespace motor
+
+#endif

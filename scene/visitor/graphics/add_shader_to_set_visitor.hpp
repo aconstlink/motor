@@ -1,3 +1,4 @@
+#if 0
 #pragma once
 
 #include "../default_visitor.h"
@@ -115,3 +116,4 @@ class add_shader_to_set_visitor : public default_visitor
 motor_typedef( add_shader_to_set_visitor );
 } // namespace scene
 } // namespace motor
+#endif

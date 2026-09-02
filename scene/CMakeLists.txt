@@ -38,11 +38,9 @@ set( sources
     
     "visitor/graphics/render_visitor.h"
     "visitor/graphics/render_visitor.cpp"
-    "visitor/graphics/init_msl_visitor.hpp"
-    "visitor/graphics/release_msl_visitor.hpp"
-    "visitor/graphics/add_shader_to_set_visitor.hpp"
     "visitor/graphics/add_msl_to_set_visitor.hpp"
-    
+    "visitor/graphics/light_pass_render_visitor.h"
+    "visitor/graphics/light_pass_render_visitor.cpp"
 
 
     "component/icomponent.h"
