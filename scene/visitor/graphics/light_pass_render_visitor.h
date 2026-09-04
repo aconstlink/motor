@@ -56,13 +56,15 @@ class MOTOR_SCENE_API light_pass_render_visitor : public ivisitor
     bool_t _light_dir_set = false;
     motor::math::vec3f_t _light_dir;
 
+    light_t _light ;
+
   public:
 
     light_pass_render_visitor( motor::scene::msl_set_component_t::id_t const id,
-        motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
+        motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam,
+        light_cref_t light ) noexcept;
 
-    light_pass_render_visitor(
-        motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
+    
     light_pass_render_visitor( this_rref_t ) noexcept;
     light_pass_render_visitor( this_cref_t ) = delete;
     virtual ~light_pass_render_visitor( void_t ) noexcept;

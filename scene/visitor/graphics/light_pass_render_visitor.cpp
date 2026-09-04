@@ -11,21 +11,15 @@ using namespace motor::scene;
 
 //*****************************************************************************************
 light_pass_render_visitor::light_pass_render_visitor( motor::scene::msl_set_component_t::id_t const id,
-    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
-    : _msl_set_id( id ), _fe( fe ), _cam( cam )
-{
-}
-
-//*****************************************************************************************
-light_pass_render_visitor::light_pass_render_visitor(
-    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
-    : _msl_set_id( 0 ), _fe( fe ), _cam( cam )
+    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam, light_cref_t light ) noexcept
+    : _msl_set_id( id ), _fe( fe ), _cam( cam ), _light( light  )
 {
 }
 
 //*****************************************************************************************
 light_pass_render_visitor::light_pass_render_visitor( this_rref_t rhv ) noexcept
-    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) )
+    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) ),
+    _light( std::move( rhv._light ) )
 {
 }
 
@@ -105,6 +99,13 @@ void_t light_pass_render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) 
                 if( this_t::is_light_dir_set() )
                 {
                     comp->set_light_direction( this_t::get_light_dir() );
+                }
+
+                {
+                    comp->set_light_direction( this_t::_light.pos_dir );
+                    comp->set_light_projection( this_t::_light.proj ) ;
+                    comp->set_light_view( this_t::_light.view ) ;
+                    comp->set_light_shadow_map( this_t::_light.shadow_map ) ;
                 }
 
                 auto msl = comp->borrow_msl();

@@ -331,53 +331,62 @@ class msl_bridge
             // global and general purpose variables
             for( auto const & s : code.shaders )
             {
+                for( auto const & v : s.variables )
                 {
-                    for( auto const & v : s.variables )
+                    motor::graphics::binding_point bp = motor::graphics::binding_point::undefined;
+
+                    if( v.binding == motor::msl::binding::object )
                     {
-                        motor::graphics::binding_point bp =
-                            motor::graphics::binding_point::undefined;
-
-                        if( v.binding == motor::msl::binding::object )
-                        {
-                            bp = motor::graphics::binding_point::object_matrix;
-                        }
-                        else if( v.binding == motor::msl::binding::world )
-                        {
-                            bp = motor::graphics::binding_point::world_matrix;
-                        }
-                        else if( v.binding == motor::msl::binding::view )
-                        {
-                            bp = motor::graphics::binding_point::view_matrix;
-                        }
-                        else if( v.binding == motor::msl::binding::projection )
-                        {
-                            bp = motor::graphics::binding_point::projection_matrix;
-                        }
-                        else if( v.binding == motor::msl::binding::camera )
-                        {
-                            bp = motor::graphics::binding_point::camera_matrix;
-                        }
-                        else if( v.binding == motor::msl::binding::camera_position )
-                        {
-                            bp = motor::graphics::binding_point::camera_position;
-                        }
-                        else if( v.binding == motor::msl::binding::camera_clip )
-                        {
-                            bp = motor::graphics::binding_point::camera_clip;
-                        }
-                        else if( v.binding == motor::msl::binding::light_direction )
-                        {
-                            bp = motor::graphics::binding_point::light_direction;
-                        }
-                        else if( v.binding == motor::msl::binding::viewport )
-                        {
-                            bp = motor::graphics::binding_point::viewport_dimension;
-                        }
-
-                        if( !sb.has_variable_binding( bp ) &&
-                            bp != motor::graphics::binding_point::undefined )
-                            sb.add_variable_binding( bp, v.name );
+                        bp = motor::graphics::binding_point::object_matrix;
                     }
+                    else if( v.binding == motor::msl::binding::world )
+                    {
+                        bp = motor::graphics::binding_point::world_matrix;
+                    }
+                    else if( v.binding == motor::msl::binding::view )
+                    {
+                        bp = motor::graphics::binding_point::view_matrix;
+                    }
+                    else if( v.binding == motor::msl::binding::projection )
+                    {
+                        bp = motor::graphics::binding_point::projection_matrix;
+                    }
+                    else if( v.binding == motor::msl::binding::camera )
+                    {
+                        bp = motor::graphics::binding_point::camera_matrix;
+                    }
+                    else if( v.binding == motor::msl::binding::camera_position )
+                    {
+                        bp = motor::graphics::binding_point::camera_position;
+                    }
+                    else if( v.binding == motor::msl::binding::camera_clip )
+                    {
+                        bp = motor::graphics::binding_point::camera_clip;
+                    }
+                    else if( v.binding == motor::msl::binding::light_direction )
+                    {
+                        bp = motor::graphics::binding_point::light_direction;
+                    }
+                    else if( v.binding == motor::msl::binding::light_projection )
+                    {
+                        bp = motor::graphics::binding_point::light_projection;
+                    }
+                    else if( v.binding == motor::msl::binding::light_view )
+                    {
+                        bp = motor::graphics::binding_point::light_view;
+                    }
+                    else if( v.binding == motor::msl::binding::light_shadow_map )
+                    {
+                        bp = motor::graphics::binding_point::light_shadow_map;
+                    }
+                    else if( v.binding == motor::msl::binding::viewport )
+                    {
+                        bp = motor::graphics::binding_point::viewport_dimension;
+                    }
+
+                    if( !sb.has_variable_binding( bp ) &&
+                        bp != motor::graphics::binding_point::undefined )
+                        sb.add_variable_binding( bp, v.name );
                 }
             }
         }

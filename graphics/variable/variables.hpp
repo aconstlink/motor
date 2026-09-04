@@ -88,6 +88,7 @@ namespace motor
 
             this_ref_t operator = ( motor::string_cref_t name ) noexcept
             {
+                if( name == _name ) return *this ;
                 _name = name ;
                 _hash = std::chrono::high_resolution_clock::now().time_since_epoch().count() ;
                 return *this ;
@@ -95,6 +96,8 @@ namespace motor
 
             this_ref_t operator = ( motor::string_rref_t name ) noexcept
             {
+                if( name == _name ) return *this ;
+
                 _name = std::move( name ) ;
                 _hash = std::chrono::high_resolution_clock::now().time_since_epoch().count() ;
                 return *this ;
@@ -102,6 +105,8 @@ namespace motor
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {
+                if( _name == rhv._name ) return *this ;
+
                 _name = rhv._name ;
                 _hash = std::chrono::high_resolution_clock::now().time_since_epoch().count() ;
                 return *this ;
@@ -109,6 +114,8 @@ namespace motor
 
             this_ref_t operator = ( this_rref_t rhv ) noexcept
             {
+                if( _name == rhv._name ) return *this ;
+
                 _name = std::move( rhv._name ) ;
                 _hash = std::chrono::high_resolution_clock::now().time_since_epoch().count() ;
                 return *this ;

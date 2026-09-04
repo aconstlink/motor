@@ -198,6 +198,36 @@ void_t msl_component::update_bindings( void_t ) noexcept
                     }
 
                     if( sb.has_variable_binding(
+                            motor::graphics::binding_point::light_projection, name ) )
+                    {
+                        auto * var = _var_set->data_variable< motor::math::mat4f_t >( name );
+                        if( var != nullptr )
+                        {
+                            _light_vars.light_proj = var;
+                        }
+                    }
+
+                    if( sb.has_variable_binding(
+                            motor::graphics::binding_point::light_view, name ) )
+                    {
+                        auto * var = _var_set->data_variable< motor::math::mat4f_t >( name );
+                        if( var != nullptr )
+                        {
+                            _light_vars.light_view = var;
+                        }
+                    }
+
+                    if( sb.has_variable_binding(
+                            motor::graphics::binding_point::light_shadow_map, name ) )
+                    {
+                        auto * var = _var_set->texture_variable( name );
+                        if( var != nullptr )
+                        {
+                            _light_vars.light_shadow_map = var;
+                        }
+                    }
+
+                    if( sb.has_variable_binding(
                             motor::graphics::binding_point::world_matrix, name ) )
                     {
                         _trafo_vars.world->connect(
@@ -254,6 +284,33 @@ void_t msl_component::set_light_direction( motor::math::vec3f_cref_t dir ) noexc
     if( _light_vars.light_dir )
     {
         _light_vars.light_dir->set( dir );
+    }
+}
+
+//*****************************************************************
+void_t msl_component::set_light_projection( motor::math::mat4f_cref_t mat ) noexcept
+{
+    if( _light_vars.light_proj )
+    {
+        _light_vars.light_proj->set( mat );
+    }
+}
+
+//*****************************************************************
+void_t msl_component::set_light_view( motor::math::mat4f_cref_t mat ) noexcept
+{
+    if( _light_vars.light_view )
+    {
+        _light_vars.light_view->set( mat );
+    }
+}
+
+//*****************************************************************
+void_t msl_component::set_light_shadow_map( motor::string_cref_t name ) noexcept
+{
+    if( _light_vars.light_shadow_map )
+    {
+        _light_vars.light_shadow_map->set( name );
     }
 }
 

@@ -182,7 +182,9 @@ namespace motor
             unknown, position, normal, tangent,
             texcoord0,texcoord1,texcoord2,texcoord3,texcoord4,texcoord5,texcoord6,texcoord7,
             color0, color1, color2, color3, color4, color5, color6, color7, depth,
-            projection, view, world, object, camera, camera_position, camera_clip, light_direction, viewport,
+            projection, view, world, object, camera, camera_position, camera_clip, 
+            light_direction, light_projection, light_view, light_shadow_map,
+            viewport,
             vertex_id, primitive_id, instance_id
         };
 
@@ -222,6 +224,9 @@ namespace motor
                 __mapping_t( "camera_position", motor::msl::binding::camera_position ),
                 __mapping_t( "camera_clip", motor::msl::binding::camera_clip ), // vec4(near, far, 1/near, 1/far)
                 __mapping_t( "light_direction", motor::msl::binding::light_direction ),
+                __mapping_t( "light_projection", motor::msl::binding::light_projection ),
+                __mapping_t( "light_view", motor::msl::binding::light_view ),
+                __mapping_t( "light_shadow_map", motor::msl::binding::light_shadow_map ),
                 __mapping_t( "viewport", motor::msl::binding::viewport ),                
                 __mapping_t( "vertex_id", motor::msl::binding::vertex_id ),
                 __mapping_t( "primitive_id", motor::msl::binding::primitive_id ),
@@ -239,7 +244,9 @@ namespace motor
                 "unknown", "position", "normal", "tangent",
                 "texcoord0", "texcoord1", "texcoord2", "texcoord3", "texcoord4", "texcoord5", "texcoord6", "texcoord7",
                 "color0", "color1", "color2", "color3", "color4", "color5", "color6", "color7", "depth"
-                "projection", "view", "world", "object", "camera", "camera_position", "camera_clip", "light_direction", "viewport",
+                "projection", "view", "world", "object", "camera", "camera_position", "camera_clip", 
+                "light_direction", "light_projection", "light_view", "light_shadow_map",
+                "viewport",
                 "vertex_id", "primitive_id", "instance_id"
             } ;
             return __values[ size_t( b ) ] ;

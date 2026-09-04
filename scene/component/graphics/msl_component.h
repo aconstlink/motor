@@ -58,10 +58,16 @@ class MOTOR_SCENE_API msl_component : public icomponent
     struct light_variables
     {
         motor::graphics::data_variable< motor::math::vec3f_t > * light_dir;
+        motor::graphics::data_variable< motor::math::mat4f_t > * light_proj ;
+        motor::graphics::data_variable< motor::math::mat4f_t > * light_view ;
+        motor::graphics::texture_variable_t * light_shadow_map ;
 
         void_t clear( void_t ) noexcept
         {
             light_dir = nullptr;
+            light_proj = nullptr ;
+            light_view = nullptr ;
+            light_shadow_map = nullptr ;
         }
     };
 
@@ -160,6 +166,9 @@ class MOTOR_SCENE_API msl_component : public icomponent
     // set a light direction on the shader variable
     // if there is a bindings.
     void_t set_light_direction( motor::math::vec3f_cref_t ) noexcept;
+    void_t set_light_projection( motor::math::mat4f_cref_t ) noexcept;
+    void_t set_light_view( motor::math::mat4f_cref_t ) noexcept;
+    void_t set_light_shadow_map( motor::string_cref_t ) noexcept;
 
   public: // inputs
 
