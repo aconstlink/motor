@@ -35,6 +35,7 @@ set( sources
     "visitor/default_visitor.h"
     "visitor/default_visitor.cpp"
     "visitor/search_by_name_visitor.hpp"
+    "visitor/camera_collector_visitor.hpp"
     
     "visitor/graphics/render_visitor.h"
     "visitor/graphics/render_visitor.cpp"
