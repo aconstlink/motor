@@ -10,8 +10,10 @@ bloom_stage::bloom_stage( void_t ) noexcept {}
 bloom_stage::bloom_stage( this_rref_t rhv ) noexcept
     : _msl_down( motor::move( rhv._msl_down ) ), _msl_up( motor::move( rhv._msl_up ) ),
       _brg_down( motor::move( rhv._brg_down ) ), _brg_up( motor::move( rhv._brg_up ) ),
-      _cl_down( motor::move( rhv._cl_down ) ), _cl_up( motor::move( rhv._cl_up ) )
+      _cl_down( motor::move( rhv._cl_down ) ), _cl_up( motor::move( rhv._cl_up ) ),
+      _per_level( std::move(rhv._per_level) )
 {
+    
 }
 
 //********************************************************
@@ -88,7 +90,7 @@ void_t bloom_stage::change_resolution( uint_t const w, uint_t const h ) noexcept
                 var->set( "" );
             }
 
-            auto vs_ptr = motor::shared( std::move( vs ), "a variable set in bloom stage" );
+            auto vs_ptr = motor::shared( std::move( vs ), "a variable set in bloom stage down level" );
             _msl_down->add_variable_set( motor::share( vs_ptr ) );
 
             _per_level[ i ].vs_down = motor::move( vs_ptr );
@@ -111,7 +113,7 @@ void_t bloom_stage::change_resolution( uint_t const w, uint_t const h ) noexcept
                 var->set( 1.0f );
             }
 
-            auto vs_ptr = motor::shared( std::move( vs ), "a variable set in bloom stage" );
+            auto vs_ptr = motor::shared( std::move( vs ), "a variable set in bloom stage up level" );
             _msl_up->add_variable_set( motor::share( vs_ptr ) );
 
             _per_level[ i ].vs_up = motor::move( vs_ptr );
@@ -372,7 +374,7 @@ void_t bloom_stage::render_down(
         motor::graphics::shader_bindings_t sb;
         if( _cl_down->reset_and_successful( sb ) )
         {
-            auto vs = _msl_down->get_varibale_set( 0 );
+            auto vs = _msl_down->borrow_varibale_set( 0 );
 
             //
             {
@@ -402,14 +404,14 @@ void_t bloom_stage::render_up(
         motor::graphics::shader_bindings_t sb;
         if( _cl_up->reset_and_successful( sb ) )
         {
-            auto vs = _msl_up->get_varibale_set( 0 );
+            auto vs = _msl_up->borrow_varibale_set( 0 );
 
             // because we have multiple variable set(i.e. one per level)
             // we just get the default values we need from the
             // first varible set.
             // unfortunately, there is no easier way at the moment.
             {
-                auto var = vs->data_variable< float_t >( "upsample_radius" );
+                auto var = vs.vs->data_variable< float_t >( "upsample_radius" );
                 if( var )
                 {
                     auto * prop = _prop_sheet->borrow_property< float_t >( "upsample_radius" );

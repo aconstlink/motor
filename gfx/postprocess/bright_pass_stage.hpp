@@ -110,7 +110,7 @@ class bright_pass_stage
                     var->set( 0.3f );
                 }
 
-                auto vs_ptr = motor::shared( std::move( vars ), "a variable set" );
+                auto vs_ptr = motor::shared( std::move( vars ), "a variable set in the bright pass" );
                 _msl->add_variable_set( motor::share( vs_ptr ) );
 
                 _brg = motor::shared(

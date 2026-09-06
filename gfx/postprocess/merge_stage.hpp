@@ -122,7 +122,7 @@ class merge_stage
                     var->set( 0.8f );
                 }
 #endif
-                auto vs_ptr = motor::shared( std::move( vars ), "a variable set" );
+                auto vs_ptr = motor::shared( std::move( vars ), "[gfx::merge_stage] : a variable set" );
                 _msl->add_variable_set( motor::move( vs_ptr ) );
 
                 {

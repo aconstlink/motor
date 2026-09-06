@@ -7,6 +7,8 @@ using namespace motor::gfx;
 hdr_postprocess_pipeline::hdr_postprocess_pipeline( uint_t const w, uint_t const h ) noexcept
     : _post_fb_dims( w, h )
 {
+
+    for( size_t i=0; i<_post_fbs.size(); ++i ) _post_fbs[i] = nullptr ;
 }
 
 //***************************************************
@@ -21,7 +23,10 @@ hdr_postprocess_pipeline::hdr_postprocess_pipeline( this_rref_t rhv ) noexcept
 }
 
 //***************************************************
-hdr_postprocess_pipeline::~hdr_postprocess_pipeline( void_t ) noexcept {}
+hdr_postprocess_pipeline::~hdr_postprocess_pipeline( void_t ) noexcept
+{
+    this_t::release();
+}
 
 //***************************************************
 motor::graphics::framebuffer_object_mtr_t hdr_postprocess_pipeline::borrow_hdr_fb(
@@ -211,7 +216,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
                 }
 
                 _msl->add_variable_set(
-                    motor::memory::create_ptr( std::move( vars ), "a variable set" ) );
+                    motor::memory::create_ptr( std::move( vars ), "[gfx::hdr_post_pipe] : a variable set" ) );
             }
 
             // use this varset for temporary display
@@ -227,7 +232,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
                 }
 
                 _msl->add_variable_set(
-                    motor::memory::create_ptr( std::move( vars ), "a variable set" ) );
+                    motor::memory::create_ptr( std::move( vars ), "[gfx::hdr_post_pipe] : a variable set" ) );
             }
         }
     }
@@ -325,12 +330,12 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             motor::graphics::render_state_sets_t rss;
 
             rss.depth_s.do_change = true;
-            rss.depth_s.ss.do_activate = true; // do depth compare
+            rss.depth_s.ss.do_activate = true;    // do depth compare
             rss.depth_s.ss.do_depth_write = true; // do depth writes
-            rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less ;
+            rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less;
 
             rss.clear_s.do_change = true;
-            rss.clear_s.ss.do_activate = true; 
+            rss.clear_s.ss.do_activate = true;
             rss.clear_s.ss.do_depth_clear = true; // do clear depth buffer
 
             rss.view_s.do_change = true;
@@ -350,9 +355,9 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         {
             motor::graphics::render_state_sets_t rss;
             rss.depth_s.do_change = true;
-            rss.depth_s.ss.do_activate = true; // do depth compare
+            rss.depth_s.ss.do_activate = true;     // do depth compare
             rss.depth_s.ss.do_depth_write = false; // do not write depth values
-            rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less_equal ;
+            rss.depth_s.ss.compare_funk = motor::graphics::depth_compare::less_equal;
 
             rss.polygon_s.do_change = false;
             rss.polygon_s.ss.do_activate = true;
@@ -465,16 +470,16 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
         motor::release( motor::move( _post_fbs[ i ] ) );
     }
 
-    _tone_map->release();
+    if( _tone_map ) _tone_map->release();
     motor::release( motor::move( _tone_map ) );
 
-    _brightpass->release();
+    if( _brightpass ) _brightpass->release();
     motor::release( motor::move( _brightpass ) );
 
-    _bloom->release();
+    if( _bloom ) _bloom->release();
     motor::release( motor::move( _bloom ) );
 
-    _merge->release();
+    if( _merge ) _merge->release();
     motor::release( motor::move( _merge ) );
 }
 

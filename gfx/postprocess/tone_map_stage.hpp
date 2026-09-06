@@ -106,12 +106,12 @@ class tone_map_stage
             // @see render()
             {
                 {
-                    auto vs_ptr = motor::shared( motor::graphics::variable_set_t() );
+                    auto vs_ptr = motor::shared( motor::graphics::variable_set_t(), "[gfx::tone_map_state] : variable set" );
                     {
                         auto * var = vs_ptr->texture_variable( "tx_map" );
                         var->set( _rt_name );
                     }
-                    _msl->add_variable_set( motor::share( vs_ptr ) );
+                    _msl->add_variable_set( motor::move( vs_ptr ) );
                 }
 
                 {
