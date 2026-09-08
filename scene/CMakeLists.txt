@@ -42,6 +42,7 @@ set( sources
     "visitor/graphics/add_msl_to_set_visitor.hpp"
     "visitor/graphics/light_pass_render_visitor.h"
     "visitor/graphics/light_pass_render_visitor.cpp"
+    "visitor/graphics/connect_msl_slot_visitor.hpp"
 
 
     "component/icomponent.h"
