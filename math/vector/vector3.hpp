@@ -105,6 +105,13 @@ namespace motor
                 _elem[2] = rhv.K( ) ;
             }
 
+            explicit vector3( type_t (&v)[3] ) noexcept 
+            {
+                _elem[0] = v[0] ;
+                _elem[1] = v[1] ;
+                _elem[2] = v[2] ;
+            }
+
             //************************************************************************************
             explicit vector3( quat4_in_t rhv )
             {
