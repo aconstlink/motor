@@ -47,6 +47,14 @@ namespace motor
                 }
             }
 
+            void_t force_exchange( void_t ) noexcept
+            {
+                if( _output_slot != nullptr ) 
+                {
+                    _value = _output_slot->get_value() ;
+                }
+            }
+
             virtual bool_t exchange( void_t ) noexcept
             {
                 bool_t res = false ;
@@ -92,7 +100,9 @@ namespace motor
                     {
                         s->connect( motor::share( this ), false ) ;
                     }
-                    this_t::exchange() ;
+                    // upon connect, it must exchange the value independent of
+                    // the fact the output slot changed or not.
+                    this_t::force_exchange() ;
                     return true ;
                 }
 

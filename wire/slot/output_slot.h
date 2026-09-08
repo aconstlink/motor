@@ -42,6 +42,8 @@ namespace motor
                 this_t::disconnect() ;
             }
 
+            // distributes/pushes value to all input slots.
+            // after exchange, the change flag is reset.
             virtual bool_t exchange( void_t ) noexcept 
             {
                 // only push data if a changed happened.
