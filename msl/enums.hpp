@@ -558,6 +558,7 @@ namespace motor
             fetch_data,
             texture_offset,
             texture_dims,
+            ndc_coords,
             linear_depth,
             emit_vertex,        // geometry shader only
             end_primitive,      // geometry shader only
@@ -658,6 +659,7 @@ namespace motor
             { buildin_type::fetch_data, "fetch_data", ":fetch_data:" },
             { buildin_type::texture_offset, "texture_offset", ":texture_offset:" },
             { buildin_type::texture_dims, "texture_dims", ":texture_dims:" },
+            { buildin_type::ndc_coords, "ndc_coords", ":ndc_coords:" },
             { buildin_type::linear_depth, "linear_depth", ":linear_depth:" },
 
             { buildin_type::emit_vertex, "emit_vertex", ":emit_vertex:" },

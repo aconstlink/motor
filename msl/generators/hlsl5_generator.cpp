@@ -516,6 +516,16 @@ namespace this_file_hlsl5
                 }
             },
             {
+                motor::string_t( ":ndc_coords:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {                    
+                    // ndc_coords( vec3(proj.xyz/proj.w) )
+                    if( args.size() == 1 ) return "__bi_ndc_coords__( " + args[ 0 ] + " ) " ;
+
+                    return "ndc_coords ( INVALID_ARGS ) " ;
+                }
+            },
+            {
                 motor::string_t( ":linear_depth:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
@@ -637,6 +647,7 @@ namespace this_file_hlsl5
     {
         texture_dims,
         linear_depth,
+        ndc_coords,
         rand_1d_1,
         rand_1d_2,
         rand_1d_3,
@@ -704,6 +715,18 @@ namespace this_file_hlsl5
                     "float z = depth ;",
                     "float view_z = (near * far) / (far - z * (far - near));",
                     "return view_z;"
+                }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec3(), "__bi_ndc_coords__", 
+                    { { motor::msl::type_t::as_vec4(), "ndc_w" } } 
+                },
+                // fragments/strings_t
+                {
+                    "float3 ndc = ndc_w.xyz / ndc_w.w ;",
+                    "return float3( ndc.xyz * 0.5 + 0.5 ) ;"
                 }
             },
             {
@@ -1382,6 +1405,12 @@ namespace this_file_hlsl5
         else if( bit == motor::msl::buildin_type::linear_depth )
         {
             ret.emplace_back( api_buildins[as_number(api_build_in_types::linear_depth)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::ndc_coords )
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::ndc_coords)] ) ;
             return true ;
         }
 

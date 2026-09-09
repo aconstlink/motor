@@ -480,6 +480,16 @@ namespace this_file_glsl4
             },
 
             {
+                motor::string_t( ":ndc_coords:" ),
+                [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
+                {                    
+                    // ndc_coords( vec4( proj ) )
+                    if( args.size() == 1 ) return "__msl_bi_ndc_coords__( " + args[ 0 ] + " ) " ;
+
+                    return "ndc_coords ( INVALID_ARGS ) " ;
+                }
+            },
+            {
                 motor::string_t( ":linear_depth:" ),
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {                    
@@ -639,7 +649,8 @@ namespace this_file_glsl4
         fbm_1d_1,
         fbm_1d_2,
         fbm_1d_3,
-        linear_depth
+        linear_depth,
+        ndc_coords
     } ;
 
     static size_t as_number( api_build_in_types const i ) noexcept
@@ -1321,6 +1332,18 @@ namespace this_file_glsl4
                     "float view_z = (near * far) / (far - z * (far - near));",
                     "return view_z;"
                 }
+            },
+            {
+                // motor::msl::signature_t
+                { 
+                    motor::msl::type_t::as_vec3(), "__msl_bi_ndc_coords__", 
+                    { { motor::msl::type_t::as_vec4(), "ndc_w" } } 
+                },
+                // fragments/strings_t
+                {
+                    "vec3 ndc = ndc_w.xyz / ndc_w.w ;"
+                    "return vec3( ndc.xyz * 0.5 + 0.5 ) ;"
+                }
             }
         } ;
 
@@ -1412,6 +1435,12 @@ namespace this_file_glsl4
         else if( bit == motor::msl::buildin_type::linear_depth ) 
         {
             ret.emplace_back( api_buildins[as_number(api_build_in_types::linear_depth)] ) ;
+            return true ;
+        }
+
+        else if( bit == motor::msl::buildin_type::ndc_coords ) 
+        {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::ndc_coords)] ) ;
             return true ;
         }
         return false ;
