@@ -22,6 +22,7 @@
 
 #include <motor/wire/kit/trafo3_composer.hpp>
 #include <motor/wire/kit/time_node.hpp>
+#include <motor/wire/slot/input_slot.h>
 
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
@@ -656,6 +657,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
             // msls[0] = default msl
             // msls[cgltf material id + 1] = msl
             msls_t msls( data->materials_count + 1, nullptr );
+            ret.materials.resize( data->materials_count );
 
             // make materials
             {
@@ -681,8 +683,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     //in vec2_t tx : texcoord ;
 
                                     out vec4_t pos : position ;
-                                    out vec2_t tx : texcoord ;
-                                    out vec3_t nrm : normal ;
+                                    out vec2_t tx : texcoord ; 
 
                                     void main()
                                     {
@@ -690,32 +691,21 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                         //pos.xyz = pos.xyz;
                                         //out.tx = in.tx ;
                                         out.pos = proj * view * world * vec4_t( pos, 1.0 ) ;
-                                        out.nrm = normalize( vec4_t( in.nrm, 0.0 ) ).xyz ;
                                     }
                                 }
 
                                 pixel_shader
                                 {
-                                    tex2d_t tex ;
-                                    vec3_t light_dir ;
-                                    vec4_t color ;
-                                    float_t time ;
+                                    vec4_t base_color ;
 
                                     in vec2_t tx : texcoord ;
-                                    in vec3_t nrm : normal ;
+
                                     out vec4_t color : color0 ;
-                                    //out vec4_t color1 : color1 ;
-                                    //out vec4_t color2 : color2 ;
 
                                     void main()
                                     {
-                                        float_t light = dot( normalize( in.nrm ), normalize( light_dir ) ) ;
-                                        out.color = vec4_t( light*time, light, light, 1.0 ) ;
-                                        out.color = vec4_t( in.nrm.x, in.nrm.y, in.nrm.z, 1.0 ) ;
-
-                                        //out.color = color ' texture( tex, in.tx ) ;
-                                        //out.color1 = vec4_t( in.nrm, 1.0 ) ;
-                                        //out.color2 = vec4_t( light, light, light , 1.0 ) ;
+                                        out.color = base_color ;
+                                        out.color = vec4_t(1.0,1.0,1.0,1.0) ;
                                     }
                                 }
                             })";
@@ -743,6 +733,17 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     motor::graphics::msl_object_t mslo( mat_name );
 
                     {
+                        motor::format::scene_item::material_item mi;
+                        mi.name = motor::string_t( cgltf_mat.name );
+                        if( cgltf_mat.has_pbr_metallic_roughness )
+                        {
+                            auto & c = cgltf_mat.pbr_metallic_roughness.base_color_factor;
+                            mi.base_color = motor::math::vec4f_t( c[ 0 ], c[ 1 ], c[ 2 ], c[ 3 ] );
+                        }
+                        ret.materials[ midx ] = std::move( mi );
+                    }
+
+                    {
                         motor::string_t shd = "config " + mat_name;
                         shd +=
                             R"(
@@ -755,44 +756,24 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                     in vec3_t pos : position ;
                                     in vec3_t nrm : normal ;
-                                    //in vec2_t tx : texcoord ;
 
                                     out vec4_t pos : position ;
-                                    out vec2_t tx : texcoord ;
-                                    out vec3_t nrm : normal ;
 
                                     void main()
                                     {
-                                        vec3_t pos = in.pos ;
-                                        //pos.xyz = pos.xyz;
-                                        //out.tx = in.tx ;
-                                        out.pos = proj * view * world * vec4_t( pos, 1.0 ) ;
-                                        out.nrm = normalize( vec4_t( in.nrm, 0.0 ) ).xyz ;
+                                        out.pos = proj * view * world * vec4_t( in.pos, 1.0 ) ;
                                     }
                                 }
 
                                 pixel_shader
                                 {
-                                    tex2d_t tex ;
-                                    vec3_t light_dir ;
-                                    vec4_t color ;
-                                    float_t time ;
+                                    vec4_t base_color ;
 
-                                    in vec2_t tx : texcoord ;
-                                    in vec3_t nrm : normal ;
                                     out vec4_t color : color0 ;
-                                    //out vec4_t color1 : color1 ;
-                                    //out vec4_t color2 : color2 ;
 
                                     void main()
                                     {
-                                        float_t light = dot( normalize( in.nrm ), normalize( light_dir ) ) ;
-                                        out.color = vec4_t( light*time, light, light, 1.0 ) ;
-                                        out.color = vec4_t( in.nrm.x, in.nrm.y, in.nrm.z, 1.0 ) ;
-
-                                        //out.color = color ' texture( tex, in.tx ) ;
-                                        //out.color1 = vec4_t( in.nrm, 1.0 ) ;
-                                        //out.color2 = vec4_t( light, light, light , 1.0 ) ;
+                                        out.color = base_color ;
                                     }
                                 }
                             })";
@@ -968,6 +949,18 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             {
                                 auto comp = motor::scene::msl_component_t(
                                     motor::share( msl ), geo_link_idx, geo_link_idx );
+
+                                // do default inputs
+                                if( prim.material != nullptr )
+                                {
+                                    using vec4_is_t = motor::wire::input_slot< motor::math::vec4f_t >;
+
+                                    auto const mat_idx =
+                                        cgltf_material_index( data, prim.material );
+
+                                    comp.borrow_shader_inputs()->borrow_or_add( "base_color",
+                                        motor::shared( vec4_is_t( ret.materials[ mat_idx ].base_color ) ) );
+                                }
 
                                 auto set_comp = motor::scene::msl_set_component_t(
                                     0, motor::shared( std::move( comp ) ) );

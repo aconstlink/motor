@@ -139,6 +139,13 @@ struct scene_item : public item
     };
     motor::vector< camera_item > cameras;
 
+    struct material_item
+    {
+        motor::string_t name ;
+        motor::math::vec4f_t base_color ;
+    };
+    motor::vector< material_item > materials ;
+
     virtual void_t release( void_t ) noexcept
     {
         motor::release( motor::move( root ) );
