@@ -7,6 +7,7 @@
 #include "bright_pass_stage.hpp"
 #include "bloom_stage.h"
 #include "merge_stage.hpp"
+#include "fxaa_stage.hpp"
 
 #include <motor/graphics/object/msl_object.h>
 #include <motor/graphics/object/state_object.h>
@@ -50,10 +51,10 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     };
     std::array< motor::graphics::framebuffer_object_mtr_t, size_t( framebuffer_type::num_types ) >
         _post_fbs;
-    
+
     static size_t to_idx( framebuffer_type const fbt ) noexcept
     {
-        return size_t( fbt ) ;
+        return size_t( fbt );
     }
 
     // the resolution we use for the
@@ -76,6 +77,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     motor::gfx::bright_pass_stage_mtr_t _brightpass = nullptr;
     motor::gfx::bloom_stage_mtr_t _bloom = nullptr;
     motor::gfx::merge_stage_mtr_t _merge = nullptr;
+    motor::gfx::fxaa_stage_mtr_t _fxaa = nullptr;    
 
   public:
 
@@ -109,12 +111,12 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
         motor::hash_map< motor::string_t, motor::property::property_sheet_mtr_t >;
     property_sheets_t property_sheets( void_t ) noexcept;
 
-    // for properties which are not easily mapped to 
+    // for properties which are not easily mapped to
     // inputs slots. e.g. shader variables used in multiple passes.
     // this is usually used in ui.
-    void_t update_properies( void_t ) noexcept ;
+    void_t update_properies( void_t ) noexcept;
 
-    void_t set_map_to_screen_texture_temp( motor::string_in_t name ) noexcept ;
+    void_t set_map_to_screen_texture_temp( motor::string_in_t name ) noexcept;
 
   private:
 

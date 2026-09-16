@@ -16,7 +16,7 @@ hdr_postprocess_pipeline::hdr_postprocess_pipeline( this_rref_t rhv ) noexcept
     : _post_so( motor::move( rhv._post_so ) ), _post_quad( motor::move( rhv._post_quad ) ),
       _post_fbs( std::move( rhv._post_fbs ) ), _mts_so( motor::move( rhv._mts_so ) ),
       _hdr_so( motor::move( rhv._hdr_so ) ), _zpre_so( motor::move( rhv._zpre_so ) ),
-      _msl( motor::move( rhv._msl ) )
+      _msl( motor::move( rhv._msl ) ), _post_fb_dims( std::move( rhv._post_fb_dims ) )
 {
     _hdr_fbs[ 0 ] = motor::move( rhv._hdr_fbs[ 0 ] );
     _hdr_fbs[ 1 ] = motor::move( rhv._hdr_fbs[ 1 ] );
@@ -186,15 +186,8 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
 
                     void main()
                     {
-                        vec4_t col = rt_texture( tx_map, in.tx ) ;
-                        out.color = col ;
-                        
-                        float_t d = col.r ;
-                        //out.color = vec4_t( as_vec3(pow(d,10)), 1.0 ) ;
-                        //out.color = vec4_t( col.r, col.r, col.r ,1.0) ;
-                        //out.color = vec4_t( in.tx, 0.0, 1.0) ;
-                        //if( in.tx.x > 0.5 )
-                          //  out.color = vec4_t( 0.0,0.0, 0.0, 1.0) ;
+                        vec4_t col = rt_texture( tx_map, in.tx );
+                        out.color = col ;                        
                     }
                 }
             } )" );
@@ -212,7 +205,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
                 {
                     auto * var = vars.texture_variable( "tx_map" );
                     // var->set( "gfx.postprocess.framebuffer.0" );
-                    var->set( "gfx.postprocess.fb.full.hdr.0.0" );
+                    var->set( "gfx.postprocess.fb.full.hdr.1.0" );
                 }
 
                 _msl->add_variable_set(
@@ -451,6 +444,13 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
         // merge hdr scene and bloom
         _merge->init( "gfx.postprocess.hdr.framebuffer.0.0", "gfx.postprocess.fb.full.hdr.2.0" );
     }
+
+    // init fxaa
+    {
+        _fxaa = motor::shared( motor::gfx::fxaa_stage_t() ) ;
+        // take rt from tone mapping stage
+        _fxaa->init( "gfx.postprocess.fb.full.hdr.0.0" );
+    }
 }
 
 //***************************************************
@@ -481,6 +481,9 @@ void_t hdr_postprocess_pipeline::release( void_t ) noexcept
 
     if( _merge ) _merge->release();
     motor::release( motor::move( _merge ) );
+
+    if( _fxaa ) _fxaa->release() ;
+    motor::release( motor::move( _fxaa ) ) ;
 }
 
 //***************************************************
@@ -504,6 +507,7 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
     _brightpass->init_graphics( fe );
     _bloom->init_graphics( fe );
     _merge->init_graphics( fe );
+    _fxaa->init_graphics( fe ) ;
 }
 
 //***************************************************
@@ -513,6 +517,7 @@ void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend
     _brightpass->release_graphics( fe );
     _bloom->release_graphics( fe );
     _merge->release_graphics( fe );
+    _fxaa->release_graphics( fe ) ;
 
     for( size_t i = 0; i < _post_fbs.size(); ++i )
     {
@@ -657,6 +662,16 @@ void_t hdr_postprocess_pipeline::render(
             fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
             fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
         }
+
+        #if 1
+        {
+            fe->use( _post_fbs[ 1 ] );
+            fe->push( _post_so );
+            _fxaa->render( fe );
+            fe->pop( motor::graphics::gen4::backend::pop_type::render_state );
+            fe->unuse( motor::graphics::gen4::backend::unuse_type::framebuffer );
+        }
+        #endif
     }
 
     // map to screen
@@ -690,6 +705,7 @@ hdr_postprocess_pipeline::property_sheets_t hdr_postprocess_pipeline::property_s
         ret[ "brightpass" ] = _brightpass->borrow_properties();
         ret[ "bloom" ] = _bloom->borrow_properties();
         ret[ "merge" ] = _merge->borrow_properties();
+        ret[ "fxaa" ] = _fxaa->borrow_properties();
     }
     return ret;
 }
