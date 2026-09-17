@@ -72,7 +72,7 @@ class fxaa_stage
                     // uses full 3x3 neighbors
                     float_t get_subpixel_blend_factor2( float_t luma_range, float_t m, 
                         float_t s, float_t n, float_t w, float_t e,
-                        float_t nw, float_t ne, float_t sw, float_t se )
+                        float_t nw, float_t ne, float_t sw, float_t se, float_t subpixel_blending )
                     {
                         float_t filter = 2.0 * (n+s+w+e) ;
                         filter += nw + ne + sw + se ;
@@ -80,7 +80,7 @@ class fxaa_stage
                         filter = abs( filter - m ) ;
                         filter = msl.fxaa.saturate( filter / luma_range ) ;
                         filter = smoothstep( 0.0, 1.0, filter ) ;
-                        return filter * filter ;
+                        return filter * filter * subpixel_blending ;
                     }
 
                     bool_t is_horizontal_edge( float_t m, 
@@ -99,8 +99,12 @@ class fxaa_stage
 
                         return horz >= vert ;
                     }
+
+                    
                 }
 
+                // basically taken from here:
+                // https://catlikecoding.com/unity/tutorials/custom-srp/fxaa/
                 config gfx.postprocess.stage.fxaa
                 {
                     vertex_shader
@@ -124,7 +128,8 @@ class fxaa_stage
 
                         float_t fixed_threshold(0.013) ;
                         float_t relative_threshold(0.33) ;
-
+                        float_t subpixel_blending(0.75) ;
+                        
                         tex2d_t tx_map ;
 
                         void main()
@@ -168,7 +173,8 @@ class fxaa_stage
                                 return ;
                             }
 
-                            float_t blend_factor = msl.fxaa.get_subpixel_blend_factor2( r, m, s, n, w, e, nw, ne, sw, se ) ;
+                            float_t blend_factor = msl.fxaa.get_subpixel_blend_factor2( 
+                                r, m, s, n, w, e, nw, ne, sw, se, subpixel_blending ) ;
                             bool_t is_horz = msl.fxaa.is_horizontal_edge( m, n, s, w, e, ne, se, nw, sw ) ;
                             
                             // setup as if it is vertical
@@ -185,8 +191,113 @@ class fxaa_stage
 
                             float_t gradient_p = abs( luma_p - m ) ;
                             float_t gradient_n = abs( luma_n - m ) ;
+                            float_t luma_grad ;
+                            float_t luma_other ;
 
-                            if( gradient_p < gradient_n ) pixel_step = -pixel_step ;
+                            if( gradient_p < gradient_n ) 
+                            {
+                                pixel_step = -pixel_step ;
+                                luma_grad = gradient_n ;
+                                luma_other = luma_n ;
+                            }
+                            else
+                            {
+                                luma_grad = gradient_p ;
+                                luma_other = luma_p ;
+                            }
+
+                            float_t edge_blend_factor ;
+
+                            // function : get_edge_blend_factor(...)
+                            {
+                                vec2_t edge_uv = uv ;
+                                vec2_t uv_step = vec2_t(0.0, 0.0) ;
+                                if( is_horz )
+                                {
+                                    edge_uv.y += 0.5 * pixel_step ;
+                                    uv_step.x = rdims.x ;
+                                }
+                                else
+                                {
+                                    edge_uv.x += 0.5 * pixel_step ;
+                                    uv_step.y = rdims.y ;
+                                }
+
+                                float_t luma_edge = 0.5 * ( m + luma_other ) ;
+                                float_t grad_thres = 0.25 * luma_grad ;
+
+                                vec2_t uv_p = edge_uv + uv_step ;
+                                vec2_t uv_n = edge_uv - uv_step ;
+
+                                float_t luma_delta_p = rt_texture( tx_map, uv_p ).g - luma_edge ;
+                                float_t luma_delta_n = rt_texture( tx_map, uv_n ).g - luma_edge ;
+
+                                // search positive direction
+                                {
+                                    bool_t at_end_p = abs( luma_delta_p ) >= grad_thres ;
+
+                                    for( int_t i=0; i<3 && !at_end_p; ++i )
+                                    {
+                                        uv_p += uv_step ;
+                                        luma_delta_p = rt_texture( tx_map, uv_p ).g - luma_edge ;
+                                        at_end_p = abs( luma_delta_p ) >= grad_thres ;
+                                    }
+                                    if( !at_end_p ) uv_p += uv_step ;
+                                }
+
+                                // search negative direction
+                                {
+                                    
+                                    bool_t at_end_n = abs( luma_delta_n ) >= grad_thres ;
+
+                                    for( int_t i=0; i<3 && !at_end_n; ++i )
+                                    {
+                                        uv_n -= uv_step ;
+                                        luma_delta_n = rt_texture( tx_map, uv_n ).g - luma_edge ;
+                                        at_end_n = abs( luma_delta_n ) >= grad_thres ;
+                                    }
+                                    if( !at_end_n ) uv_n -= uv_step ;
+                                }
+
+                                float_t dist_end_p ;
+                                float_t dist_end_n ;
+
+                                if( is_horz )
+                                {
+                                    dist_end_p = uv_p.x - uv.x ;
+                                    dist_end_n = uv.x - uv_n.x ;
+                                }
+                                else
+                                {
+                                    dist_end_p = uv_p.y - uv.y ;
+                                    dist_end_n = uv.y - uv_n.y ;
+                                }
+
+                                float_t dist_nearest_end ;
+                                bool_t delta_sign ;
+                                if( dist_end_p <= dist_end_n )
+                                {
+                                    dist_nearest_end = dist_end_p ;
+                                    delta_sign = luma_delta_p >= 0.0 ;
+                                }
+                                else
+                                {
+                                    dist_nearest_end = dist_end_n ;
+                                    delta_sign = luma_delta_n >= 0.0 ;
+                                }
+
+                                if( delta_sign == (m - luma_edge >= 0.0 ) )
+                                {
+                                    edge_blend_factor =  0.0 ;
+                                }
+                                else 
+                                {
+                                    edge_blend_factor = 0.5 - dist_nearest_end / (dist_end_p+dist_end_n) ;
+                                }
+                            }
+
+                            blend_factor = max( blend_factor, edge_blend_factor ) ;
+
 
                             vec2_t blend_uv = uv  ;
                             if( is_horz )
@@ -198,12 +309,13 @@ class fxaa_stage
                                 blend_uv.x += pixel_step * blend_factor ;
                             }
 
+                            
+
                             vec4_t tmp = pixel_step > 0.0 ? 
                                 vec4_t( 1.0, 0.0, 0.0, 1.0 ) : vec4_t( 0.0, 1.0, 0.0, 1.0 ) ;
                             
                             vec4_t txl = rt_texture( tx_map, blend_uv ) ;
                             out.color = vec4_t( txl.xyz, 1.0 ) ;
-
                         }
                     }
                 } )" );
@@ -240,6 +352,18 @@ class fxaa_stage
                 {
                     auto * var = vars.data_variable< float_t >( "relative_threshold" );
                     var->set( 0.166f );
+                }
+
+                // Choose the amount of sub-pixel aliasing removal.
+                // This can effect sharpness.
+                //   1.00 - upper limit (softer)
+                //   0.75 - default amount of filtering
+                //   0.50 - lower limit (sharper, less sub-pixel aliasing removal)
+                //   0.25 - almost off
+                //   0.00 - completely off
+                {
+                    auto * var = vars.data_variable< float_t >( "subpixel_blending" );
+                    var->set( 0.75f );
                 }
 
 #if 0
@@ -289,29 +413,17 @@ class fxaa_stage
                         }
                     }
 
-#if 0
                     {
-                        motor::property::add_is_property< float_t >( "brightness_threshold",
-                            _brg->borrow_inputs()->borrow( "brightness_threshold" ), ps );
+                        motor::property::add_is_property< float_t >( "subpixel_blending",
+                            _brg->borrow_inputs()->borrow( "subpixel_blending" ), ps );
 
                         {
-                            auto * prop =
-                                ps.borrow_property< is_float_t >( "brightness_threshold" );
-                            prop->set_min_max( motor::property::min_max< float_t >( 1.0f, 20.0f ) );
+                            auto * prop = ps.borrow_property< is_float_t >( "subpixel_blending" );
+                            prop->set_min_max(
+                                motor::property::min_max< float_t >( 0.0f, 1.0f ) );
                         }
                     }
 
-                    {
-                        motor::property::add_is_property< float_t >( "brightness_knee_percent",
-                            _brg->borrow_inputs()->borrow( "brightness_knee_percent" ), ps );
-
-                        {
-                            auto * prop =
-                                ps.borrow_property< is_float_t >( "brightness_knee_percent" );
-                            prop->set_min_max( motor::property::min_max< float_t >( 0.1f, 0.7f ) );
-                        }
-                    }
-#endif
                     _prop_sheet = motor::shared( std::move( ps ) );
                 }
             }
