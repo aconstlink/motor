@@ -4,7 +4,7 @@
 #include "../typedefs.h"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
-#include <motor/graphics/variable/wire_variable_bridge.h>
+#include <motor/graphics/variable/wire_variable_input_bridge.hpp>
 #include <motor/property/property_sheet.hpp>
 
 namespace motor
@@ -18,7 +18,7 @@ class bright_pass_stage
   private:
 
     motor::graphics::msl_object_mtr_t _msl = nullptr;
-    motor::graphics::wire_variable_bridge_mtr_t _brg = nullptr;
+    motor::graphics::wire_variable_input_bridge_mtr_t _brg = nullptr;
 
     motor::property::property_sheet_mtr_t _prop_sheet = nullptr;
 
@@ -114,7 +114,7 @@ class bright_pass_stage
                 _msl->add_variable_set( motor::share( vs_ptr ) );
 
                 _brg = motor::shared(
-                    motor::graphics::wire_variable_bridge_t( motor::move( vs_ptr ) ) );
+                    motor::graphics::wire_variable_input_bridge_t( motor::move( vs_ptr ) ) );
                 _brg->update_bindings();
 
                 {
@@ -124,7 +124,7 @@ class bright_pass_stage
 
                     {
                         motor::property::add_is_property< float_t >( "brightness_threshold",
-                            _brg->borrow_inputs()->borrow( "brightness_threshold" ), ps );
+                            _brg->borrow_inputs().borrow( "brightness_threshold" ), ps );
 
                         {
                             auto * prop =
@@ -135,7 +135,7 @@ class bright_pass_stage
 
                     {
                         motor::property::add_is_property< float_t >( "brightness_knee_percent",
-                            _brg->borrow_inputs()->borrow( "brightness_knee_percent" ), ps );
+                            _brg->borrow_inputs().borrow( "brightness_knee_percent" ), ps );
 
                         {
                             auto * prop =
@@ -174,7 +174,7 @@ class bright_pass_stage
         fe->render( _msl, det );
     }
 
-    motor::wire::inputs_mtr_t borrow_inputs( void_t ) noexcept
+    motor::wire::inputs_ref_t borrow_inputs( void_t ) noexcept
     {
         return _brg->borrow_inputs();
     }

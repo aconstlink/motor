@@ -4,7 +4,7 @@
 #include "../typedefs.h"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
-#include <motor/graphics/variable/wire_variable_bridge.h>
+#include <motor/graphics/variable/wire_variable_input_bridge.hpp>
 #include <motor/property/property_sheet.hpp>
 
 namespace motor
@@ -18,7 +18,7 @@ class fxaa_stage
   private:
 
     motor::graphics::msl_object_mtr_t _msl = nullptr;
-    motor::graphics::wire_variable_bridge_mtr_t _brg = nullptr;
+    motor::graphics::wire_variable_input_bridge_mtr_t _brg = nullptr;
 
     motor::property::property_sheet_mtr_t _prop_sheet = nullptr;
 
@@ -383,7 +383,7 @@ class fxaa_stage
                 _msl->add_variable_set( motor::share( vs_ptr ) );
 
                 _brg = motor::shared(
-                    motor::graphics::wire_variable_bridge_t( motor::move( vs_ptr ) ) );
+                    motor::graphics::wire_variable_input_bridge_t( motor::move( vs_ptr ) ) );
                 _brg->update_bindings();
 
                 {
@@ -393,7 +393,7 @@ class fxaa_stage
 
                     {
                         motor::property::add_is_property< float_t >( "fixed_threshold",
-                            _brg->borrow_inputs()->borrow( "fixed_threshold" ), ps );
+                            _brg->borrow_inputs().borrow( "fixed_threshold" ), ps );
 
                         {
                             auto * prop = ps.borrow_property< is_float_t >( "fixed_threshold" );
@@ -404,7 +404,7 @@ class fxaa_stage
 
                     {
                         motor::property::add_is_property< float_t >( "relative_threshold",
-                            _brg->borrow_inputs()->borrow( "relative_threshold" ), ps );
+                            _brg->borrow_inputs().borrow( "relative_threshold" ), ps );
 
                         {
                             auto * prop = ps.borrow_property< is_float_t >( "relative_threshold" );
@@ -415,7 +415,7 @@ class fxaa_stage
 
                     {
                         motor::property::add_is_property< float_t >( "subpixel_blending",
-                            _brg->borrow_inputs()->borrow( "subpixel_blending" ), ps );
+                            _brg->borrow_inputs().borrow( "subpixel_blending" ), ps );
 
                         {
                             auto * prop = ps.borrow_property< is_float_t >( "subpixel_blending" );
@@ -454,7 +454,7 @@ class fxaa_stage
         fe->render( _msl, det );
     }
 
-    motor::wire::inputs_mtr_t borrow_inputs( void_t ) noexcept
+    motor::wire::inputs_ref_t borrow_inputs( void_t ) noexcept
     {
         return _brg->borrow_inputs();
     }

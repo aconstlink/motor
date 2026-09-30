@@ -36,6 +36,7 @@ set( sources
     "visitor/default_visitor.cpp"
     "visitor/search_by_name_visitor.hpp"
     "visitor/camera_collector_visitor.hpp"
+    "visitor/light_collector_visitor.hpp"
     
     "visitor/graphics/render_visitor.h"
     "visitor/graphics/render_visitor.cpp"
@@ -57,6 +58,7 @@ set( sources
     "component/trafo3d_component.cpp"
     "component/camera_component.h"
     "component/camera_component.cpp"
+    "component/light_component.hpp"
     "component/graphics/render_variables_component.hpp"
     "component/variables_component.hpp"
     "component/graphics/config_graphics_component.h"
@@ -65,6 +67,7 @@ set( sources
     "component/graphics/shader_change_observer_component.cpp"
     "component/graphics/msl_set_component.hpp"
     "component/graphics/geometry_name_component.hpp"
+    "component/graphics/render_data_set.hpp"
 
     "component/animation/animation_component.h"
     "component/animation/animation_component.cpp"

@@ -2,9 +2,10 @@
 #pragma once
 
 #include "../icomponent.h"
+#include "render_data_set.hpp"
 
 #include <motor/graphics/object/msl_object.h>
-#include <motor/graphics/variable/wire_variable_bridge.h>
+
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/gfx/camera/generic_camera.h>
@@ -33,8 +34,22 @@ class MOTOR_SCENE_API msl_component : public icomponent
     geo_idx_t _geo_id = 0;
 
     motor::graphics::msl_object_mtr_t _msl = nullptr;
-    motor::graphics::variable_set_mtr_t _var_set = nullptr;
 
+#if 0
+    motor::graphics::variable_set_mtr_t _var_set = nullptr;
+#endif
+
+    motor::scene::render_data_set_t _base_data_set ;
+
+    // allows temporary variable assignment. for example, a light render visitor
+    // requires a variable set for each light rendered, or each camera view rendered.
+    // so the shader has a puropse of being a pass of a material. but that material
+    // could be hit by mutliple lights for eample. So for each light hit, we need to
+    // store the variable data for a frame in order to render it properly. Otherwise
+    // we would override the variable set data.
+    motor::vector< motor::scene::render_data_set_t > _sub_sets;
+
+#if 0
   private: // camera variables
 
     struct camera_variables
@@ -58,20 +73,21 @@ class MOTOR_SCENE_API msl_component : public icomponent
     struct light_variables
     {
         motor::graphics::data_variable< motor::math::vec3f_t > * light_dir;
-        motor::graphics::data_variable< motor::math::mat4f_t > * light_proj ;
-        motor::graphics::data_variable< motor::math::mat4f_t > * light_view ;
-        motor::graphics::texture_variable_t * light_shadow_map ;
+        motor::graphics::data_variable< motor::math::mat4f_t > * light_proj;
+        motor::graphics::data_variable< motor::math::mat4f_t > * light_view;
+        motor::graphics::texture_variable_t * light_shadow_map;
 
         void_t clear( void_t ) noexcept
         {
             light_dir = nullptr;
-            light_proj = nullptr ;
-            light_view = nullptr ;
-            light_shadow_map = nullptr ;
+            light_proj = nullptr;
+            light_view = nullptr;
+            light_shadow_map = nullptr;
         }
     };
 
     light_variables _light_vars;
+#endif
 
   private: // trafo variables
 
@@ -100,8 +116,9 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
   private:
 
+  #if 0
     motor::graphics::wire_variable_bridge_t _brigde;
-
+    #endif
   public:
 
     msl_component( this_rref_t ) noexcept;
@@ -143,19 +160,14 @@ class MOTOR_SCENE_API msl_component : public icomponent
         return _geo_id;
     }
 
-    // allows to clone without shader variables. Those are determined by
-    // the render_update function AFTER the msl is compiled.
-    // Mainly used to populate a msl_set_component if only a msl_component
-    // is present in the node.
-    #if 0
-    this_t light_clone( motor::string_in_t name ) const noexcept;
-    #endif
+    void_t ensure_render_data( size_t const num_datas ) noexcept;
 
   public: // render interface
 
     bool_t render_init( motor::graphics::gen4::frontend_ptr_t ) noexcept;
     bool_t render_release( motor::graphics::gen4::frontend_ptr_t ) noexcept;
     void_t render_update( motor::gfx::generic_camera_ptr_t ) noexcept;
+    void_t render_update( size_t const render_id, motor::gfx::generic_camera_ptr_t ) noexcept;
 
   public: // transformation interface
 
@@ -178,8 +190,9 @@ class MOTOR_SCENE_API msl_component : public icomponent
   private:
 
     void_t update_bindings( void_t ) noexcept;
+    void_t update_bindings( size_t const render_id ) noexcept;
     void_t update_camera( motor::gfx::generic_camera_ptr_t ) noexcept;
-    void_t prefill_bridge( void_t ) noexcept;
+    void_t update_camera( size_t const render_id, motor::gfx::generic_camera_ptr_t ) noexcept;
 };
 motor_typedef( msl_component );
 } // namespace scene

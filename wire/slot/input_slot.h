@@ -51,6 +51,7 @@ namespace motor
             {
                 if( _output_slot != nullptr ) 
                 {
+                    _has_changed = true ;
                     _value = _output_slot->get_value() ;
                 }
             }

@@ -28,6 +28,7 @@ set( sources
 
     "util/quad.h"
     "util/quad.cpp"
+    "util/light.hpp"
 
     "postprocess/hdr_postprocess_pipeline.h"
     "postprocess/hdr_postprocess_pipeline.cpp"

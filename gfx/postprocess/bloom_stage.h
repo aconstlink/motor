@@ -4,7 +4,7 @@
 #include "../typedefs.h"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
-#include <motor/graphics/variable/wire_variable_bridge.h>
+#include <motor/graphics/variable/wire_variable_input_bridge.hpp>
 #include <motor/property/property_sheet.hpp>
 
 namespace motor
@@ -20,8 +20,8 @@ class bloom_stage
     motor::graphics::msl_object_mtr_t _msl_down = nullptr;
     motor::graphics::msl_object_mtr_t _msl_up = nullptr;
 
-    motor::graphics::wire_variable_bridge_mtr_t _brg_down = nullptr;
-    motor::graphics::wire_variable_bridge_mtr_t _brg_up = nullptr;
+    motor::graphics::wire_variable_input_bridge_mtr_t _brg_down = nullptr;
+    motor::graphics::wire_variable_input_bridge_mtr_t _brg_up = nullptr;
 
     motor::property::property_sheet_mtr_t _prop_sheet = nullptr;
 
@@ -91,7 +91,7 @@ class bloom_stage
     void_t render_up(
         this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
 
-    motor::wire::inputs_mtr_t borrow_inputs( void_t ) noexcept;
+    motor::wire::inputs_ref_t borrow_inputs( void_t ) noexcept;
 
     motor::property::property_sheet_mtr_t borrow_properties( void_t ) noexcept;
     void_t update_properties( void_t ) noexcept ;

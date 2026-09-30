@@ -3,6 +3,7 @@
 
 #include "../object.h"
 #include "../shader/compilation_listener.h"
+#include "../shader/shader_bindings.hpp"
 
 #include "render_object.h"
 

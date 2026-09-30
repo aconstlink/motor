@@ -52,9 +52,10 @@ set( sources
 
     "variable/variables.hpp"
     "variable/variable_set.hpp"
+    "variable/variable_set_view.hpp"
     "variable/type_traits.hpp"
-    "variable/wire_variable_bridge.h"
-    "variable/wire_variable_bridge.cpp"
+    "variable/wire_variable_input_bridge.hpp"
+    "variable/wire_variable_output_bridge.hpp"
 
     "texture/image.hpp"
     )

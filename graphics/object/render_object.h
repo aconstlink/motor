@@ -78,7 +78,7 @@ class MOTOR_GRAPHICS_API render_object : public object
 
   private: // variable sets
 
-    motor::vector< variable_set_t > _vars;
+    motor::vector< this_t::variable_set_t > _vars;
 
   private: // states
 

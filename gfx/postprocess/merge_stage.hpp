@@ -4,7 +4,7 @@
 #include "../typedefs.h"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
-#include <motor/graphics/variable/wire_variable_bridge.h>
+#include <motor/graphics/variable/wire_variable_input_bridge.hpp>
 #include <motor/property/property_sheet.hpp>
 
 namespace motor
@@ -18,7 +18,7 @@ class merge_stage
   private:
 
     motor::graphics::msl_object_mtr_t _msl = nullptr;
-    motor::graphics::wire_variable_bridge_mtr_t _brg = nullptr;
+    motor::graphics::wire_variable_input_bridge_mtr_t _brg = nullptr;
 
     motor::property::property_sheet_mtr_t _prop_sheet = nullptr;
 
@@ -126,7 +126,7 @@ class merge_stage
                 _msl->add_variable_set( motor::move( vs_ptr ) );
 
                 {
-                    _brg = motor::shared( motor::graphics::wire_variable_bridge_t() );
+                    _brg = motor::shared( motor::graphics::wire_variable_input_bridge_t() );
                 }
 
 #if 0
@@ -206,7 +206,7 @@ class merge_stage
                     {
                         motor::string_t const name = "strength_a";
                         using is_t = motor::wire::input_slot< float_t >;
-                        auto * is = _brg->borrow_inputs()->borrow( name );
+                        auto * is = _brg->borrow_inputs().borrow( name );
                         motor::property::add_is_property< is_t::value_t >( name, is, *_prop_sheet );
                         {
                             auto * prop = _prop_sheet->borrow_property< is_t >( name );
@@ -218,7 +218,7 @@ class merge_stage
                     {
                         motor::string_t const name = "strength_b";
                         using is_t = motor::wire::input_slot< float_t >;
-                        auto * is = _brg->borrow_inputs()->borrow( name );
+                        auto * is = _brg->borrow_inputs().borrow( name );
                         motor::property::add_is_property< is_t::value_t >( name, is, *_prop_sheet );
                         {
                             auto * prop = _prop_sheet->borrow_property< is_t >( name );
@@ -235,7 +235,7 @@ class merge_stage
         fe->render( _msl, det );
     }
 
-    motor::wire::inputs_mtr_t borrow_inputs( void_t ) noexcept
+    motor::wire::inputs_ref_t borrow_inputs( void_t ) noexcept
     {
         return _brg->borrow_inputs();
     }

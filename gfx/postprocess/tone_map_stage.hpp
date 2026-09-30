@@ -4,7 +4,7 @@
 #include "../typedefs.h"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
-#include <motor/graphics/variable/wire_variable_bridge.h>
+#include <motor/graphics/variable/wire_variable_input_bridge.hpp>
 #include <motor/property/property_sheet.hpp>
 
 namespace motor
@@ -18,7 +18,7 @@ class tone_map_stage
   private:
 
     motor::graphics::msl_object_mtr_t _msl = nullptr;
-    motor::graphics::wire_variable_bridge_mtr_t _brg = nullptr;
+    motor::graphics::wire_variable_input_bridge_mtr_t _brg = nullptr;
 
     motor::property::property_sheet_mtr_t _prop_sheet = nullptr;
 
@@ -120,7 +120,7 @@ class tone_map_stage
                 }
 
                 {
-                    _brg = motor::shared( motor::graphics::wire_variable_bridge_t() );
+                    _brg = motor::shared( motor::graphics::wire_variable_input_bridge_t() );
                 }
             }
         }
@@ -171,7 +171,7 @@ class tone_map_stage
                     {
                         motor::string_t const name = "reinhard_offset";
                         using is_t = motor::wire::input_slot< motor::math::vec3f_t >;
-                        auto * is = _brg->borrow_inputs()->borrow( name );
+                        auto * is = _brg->borrow_inputs().borrow( name );
                         motor::property::add_is_property< is_t::value_t >( name, is, *_prop_sheet );
                         {
                             auto * prop = _prop_sheet->borrow_property< is_t >( name );
@@ -188,7 +188,7 @@ class tone_map_stage
         fe->render( _msl, det );
     }
 
-    motor::wire::inputs_mtr_t borrow_inputs( void_t ) noexcept
+    motor::wire::inputs_ref_t borrow_inputs( void_t ) noexcept
     {
         return _brg->borrow_inputs();
     }

@@ -689,7 +689,7 @@ motor::hash_map< motor::string_t, motor::wire::inputs_mtr_t > hdr_postprocess_pi
     void_t ) noexcept
 {
     inputs_map_t ret;
-    ret[ "tone_map" ] = _tone_map->borrow_inputs();
+    ret[ "tone_map" ] = &_tone_map->borrow_inputs();
 
     return ret;
 }

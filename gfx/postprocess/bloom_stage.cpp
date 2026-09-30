@@ -293,8 +293,8 @@ void_t bloom_stage::init( uint_t const w, uint_t const h ) noexcept
         }
 
         {
-            _brg_down = motor::shared( motor::graphics::wire_variable_bridge_t() );
-            _brg_up = motor::shared( motor::graphics::wire_variable_bridge_t() );
+            _brg_down = motor::shared( motor::graphics::wire_variable_input_bridge_t() );
+            _brg_up = motor::shared( motor::graphics::wire_variable_input_bridge_t() );
         }
     }
 }
@@ -436,7 +436,7 @@ void_t bloom_stage::render_up(
 }
 
 //********************************************************
-motor::wire::inputs_mtr_t bloom_stage::borrow_inputs( void_t ) noexcept
+motor::wire::inputs_ref_t bloom_stage::borrow_inputs( void_t ) noexcept
 {
     return _brg_down->borrow_inputs();
 }
