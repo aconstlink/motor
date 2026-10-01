@@ -81,10 +81,22 @@ class wire_variable_output_bridge
         }
     }
 
+    // exchange all pulled values with the connected
+    // input slots. Requires a pull_data before.
     void_t exchange( void_t ) noexcept
     {
         for( auto & b : _bindings )
         {
+            b.slot->exchange() ;
+        }
+    }
+
+    // pull and exchange in one function.
+    void_t pull_and_exchange( void_t ) 
+    {
+        for( auto & b : _bindings )
+        {
+            b.pull_funk( b );
             b.slot->exchange() ;
         }
     }
