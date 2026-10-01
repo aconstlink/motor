@@ -185,7 +185,7 @@ void_t msl_component::update_bindings( void_t ) noexcept
                             motor::graphics::binding_point::world_matrix, name ) )
                     {
                         _trafo_vars.world->connect( motor::share(
-                            _base_data_set.variable_bridge().borrow_inputs()->borrow_or_add(
+                            _base_data_set.variable_bridge().borrow_inputs().borrow_or_add(
                                 name, motor::shared(
                                           motor::wire::input_slot< motor::math::mat4f_t >() ) ) ) );
                     }
@@ -242,13 +242,13 @@ void_t msl_component::set_light_shadow_map( motor::string_cref_t name ) noexcept
 }
 
 //*****************************************************************
-motor::wire::inputs_cptr_t msl_component::borrow_shader_inputs( void_t ) const noexcept
+motor::wire::inputs_cref_t msl_component::borrow_shader_inputs( void_t ) const noexcept
 {
     return _base_data_set.variable_bridge().borrow_inputs();
 }
 
 //*****************************************************************
-motor::wire::inputs_ptr_t msl_component::borrow_shader_inputs( void_t ) noexcept
+motor::wire::inputs_ref_t msl_component::borrow_shader_inputs( void_t ) noexcept
 {
     return _base_data_set.variable_bridge().borrow_inputs();
 }

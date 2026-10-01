@@ -184,8 +184,8 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
   public: // inputs
 
-    motor::wire::inputs_cptr_t borrow_shader_inputs( void_t ) const noexcept;
-    motor::wire::inputs_ptr_t borrow_shader_inputs( void_t ) noexcept;
+    motor::wire::inputs_cref_t borrow_shader_inputs( void_t ) const noexcept;
+    motor::wire::inputs_ref_t borrow_shader_inputs( void_t ) noexcept;
 
   private:
 

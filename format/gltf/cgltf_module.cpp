@@ -958,7 +958,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     auto const mat_idx =
                                         cgltf_material_index( data, prim.material );
 
-                                    comp.borrow_shader_inputs()->borrow_or_add( "base_color",
+                                    comp.borrow_shader_inputs().borrow_or_add( "base_color",
                                         motor::shared( vec4_is_t( ret.materials[ mat_idx ].base_color ) ) );
                                 }
 

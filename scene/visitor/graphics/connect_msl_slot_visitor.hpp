@@ -58,8 +58,8 @@ class connect_msl_slot_visitor : public default_visitor
             motor::scene::msl_component_mtr_t msl_comp;
             if( comp->borrow_msl_component( _id, msl_comp ) )
             {
-                auto * inp = msl_comp->borrow_shader_inputs();
-                _cf( *inp );
+                auto & inp = msl_comp->borrow_shader_inputs();
+                _cf( inp );
             }
         }
 
