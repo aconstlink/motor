@@ -129,7 +129,7 @@ class sheet< T, true >
             if( typeid( *iter->second ) == typeid( *other.mtr() ) )
             {
                 motor::release( other );
-                return motor::share( iter->second );
+                return iter->second;
             }
             this_t::remove( name ) ;
         }
