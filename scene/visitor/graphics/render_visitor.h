@@ -19,16 +19,18 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
     motor::scene::msl_set_component_t::id_t _msl_set_id =
         motor::scene::msl_set_component_t::invalid_id();
 
+    size_t _render_data_id = size_t( -1 );
+
     motor::graphics::gen4::frontend_ptr_t _fe;
 
     motor::gfx::generic_camera_ptr_t _cam = nullptr;
 
-    bool_t _light_dir_set = false;
-    motor::math::vec3f_t _light_dir;
-
   public:
 
     render_visitor( motor::scene::msl_set_component_t::id_t const id,
+        motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
+
+    render_visitor( motor::scene::msl_set_component_t::id_t const id, size_t const render_id,
         motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam ) noexcept;
 
     render_visitor(
@@ -36,24 +38,6 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
     render_visitor( this_rref_t ) noexcept;
     render_visitor( this_cref_t ) = delete;
     virtual ~render_visitor( void_t ) noexcept;
-
-  public: // light interface
-
-    bool_t is_light_dir_set( void_t ) const noexcept
-    {
-        return _light_dir_set;
-    }
-
-    motor::math::vec3f_cref_t get_light_dir( void_t ) const noexcept
-    {
-        return _light_dir ;
-    }
-
-    void_t set_light_direction( motor::math::vec3f_in_t dir ) noexcept
-    {
-        _light_dir_set = true;
-        _light_dir = dir;
-    }
 
   public:
 

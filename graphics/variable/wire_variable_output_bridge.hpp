@@ -92,7 +92,9 @@ class wire_variable_output_bridge
     }
 
     // pull and exchange in one function.
-    void_t pull_and_exchange( void_t ) 
+    // 1. pull from shader variables
+    // 2. exchange to the connected input slots 
+    void_t pull_and_exchange( void_t ) noexcept
     {
         for( auto & b : _bindings )
         {

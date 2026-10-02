@@ -4,6 +4,7 @@
 #include "../icomponent.h"
 #include "render_data_set.hpp"
 
+#include <motor/graphics/variable/wire_variable_output_bridge.hpp>
 #include <motor/graphics/object/msl_object.h>
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
@@ -39,7 +40,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
     motor::graphics::variable_set_mtr_t _var_set = nullptr;
 #endif
 
-    motor::scene::render_data_set_t _base_data_set ;
+    motor::scene::render_data_set_t _base_data_set;
 
     // allows temporary variable assignment. for example, a light render visitor
     // requires a variable set for each light rendered, or each camera view rendered.
@@ -48,46 +49,6 @@ class MOTOR_SCENE_API msl_component : public icomponent
     // store the variable data for a frame in order to render it properly. Otherwise
     // we would override the variable set data.
     motor::vector< motor::scene::render_data_set_t > _sub_sets;
-
-#if 0
-  private: // camera variables
-
-    struct camera_variables
-    {
-        motor::graphics::data_variable< motor::math::mat4f_t > * proj;
-        motor::graphics::data_variable< motor::math::mat4f_t > * cam;
-        motor::graphics::data_variable< motor::math::mat4f_t > * view;
-        motor::graphics::data_variable< motor::math::vec3f_t > * cam_pos;
-
-        void_t clear( void_t ) noexcept
-        {
-            proj = nullptr;
-            cam = nullptr;
-            view = nullptr;
-            cam_pos = nullptr;
-        }
-    };
-
-    camera_variables _cam_vars;
-
-    struct light_variables
-    {
-        motor::graphics::data_variable< motor::math::vec3f_t > * light_dir;
-        motor::graphics::data_variable< motor::math::mat4f_t > * light_proj;
-        motor::graphics::data_variable< motor::math::mat4f_t > * light_view;
-        motor::graphics::texture_variable_t * light_shadow_map;
-
-        void_t clear( void_t ) noexcept
-        {
-            light_dir = nullptr;
-            light_proj = nullptr;
-            light_view = nullptr;
-            light_shadow_map = nullptr;
-        }
-    };
-
-    light_variables _light_vars;
-#endif
 
   private: // trafo variables
 
@@ -116,9 +77,13 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
   private:
 
-  #if 0
-    motor::graphics::wire_variable_bridge_t _brigde;
-    #endif
+    // this output bridge is designed to connect only to 
+    // subset render data input bridges.
+    // this is a current workaround because we do not have 
+    // variable set views. So we have to use full variable sets
+    // which required a full copy of the data.
+    motor::graphics::wire_variable_output_bridge_t _out_bridge;
+
   public:
 
     msl_component( this_rref_t ) noexcept;
@@ -160,14 +125,12 @@ class MOTOR_SCENE_API msl_component : public icomponent
         return _geo_id;
     }
 
-    void_t ensure_render_data( size_t const num_datas ) noexcept;
-
   public: // render interface
 
     bool_t render_init( motor::graphics::gen4::frontend_ptr_t ) noexcept;
     bool_t render_release( motor::graphics::gen4::frontend_ptr_t ) noexcept;
     void_t render_update( motor::gfx::generic_camera_ptr_t ) noexcept;
-    void_t render_update( size_t const render_id, motor::gfx::generic_camera_ptr_t ) noexcept;
+    size_t render_update( size_t const render_id, motor::gfx::generic_camera_ptr_t ) noexcept;
 
   public: // transformation interface
 
@@ -193,6 +156,13 @@ class MOTOR_SCENE_API msl_component : public icomponent
     void_t update_bindings( size_t const render_id ) noexcept;
     void_t update_camera( motor::gfx::generic_camera_ptr_t ) noexcept;
     void_t update_camera( size_t const render_id, motor::gfx::generic_camera_ptr_t ) noexcept;
+
+    bool_t ensure_render_data( size_t const id ) noexcept;
+    void_t ensure_render_data( size_t const id, motor::graphics::shader_bindings_cref_t ) noexcept;
+
+    // connect the output bridge to the input bridge slots of
+    // render_data_set with id.
+    void_t connect_output_to_input( size_t const id );
 };
 motor_typedef( msl_component );
 } // namespace scene

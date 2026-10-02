@@ -10,7 +10,7 @@ namespace motor
 {
 namespace graphics
 {
-// allows to connect to slots which are updating 
+// allows to connect to slots which are updating
 // shader variables. slot -> shader variable
 // if the other way is required, @see wire_variable_output_bridge
 class wire_variable_input_bridge
@@ -42,7 +42,7 @@ class wire_variable_input_bridge
     wire_variable_input_bridge( motor::graphics::variable_set_mtr_safe_t vs ) noexcept
         : _vs( motor::move( vs ) )
     {
-        this_t::update_bindings() ;
+        this_t::update_bindings();
     }
     wire_variable_input_bridge( this_rref_t rhv ) noexcept
     {
@@ -71,6 +71,30 @@ class wire_variable_input_bridge
         _bindings = std::move( rhv._bindings );
 
         return *this;
+    }
+
+  public:
+
+    // exchange all pulled values with the connected
+    // input slots. Requires a pull_data before.
+    void_t exchange( void_t ) noexcept
+    {
+        for( auto & b : _bindings )
+        {
+            b.slot->exchange();
+        }
+    }
+
+    // pull and exchange in one function.
+    // 1. exchange from connected output slots
+    // 2. push data to shader varialbes.
+    void_t exchange_and_push( void_t ) noexcept
+    {
+        for( auto & b : _bindings )
+        {
+            b.slot->exchange();
+            b.pull_funk( b );
+        }
     }
 
   public: // update interface

@@ -116,12 +116,12 @@ class render_data_set
         std::memcpy( reinterpret_cast< void * >( &_trafo_vars ),
             reinterpret_cast< void * >( &rhv._trafo_vars ), sizeof( _trafo_vars ) );
     }
-    ~render_data_set( void_t ) noexcept 
+    ~render_data_set( void_t ) noexcept
     {
         motor::release( motor::move( _var_set ) );
     }
 
-    vs_idx_t get_render_data_set_idx( void_t ) const noexcept
+    vs_idx_t get_variable_set_idx( void_t ) const noexcept
     {
         return _vs_idx;
     }
@@ -200,6 +200,7 @@ class render_data_set
         // #2
         {
             _vs_idx = idx;
+            motor::release( motor::move( _var_set ) );
             _var_set = motor::move( vs );
         }
 
@@ -322,7 +323,7 @@ class render_data_set
         motor::release( motor::move( _var_set ) );
         _vs_idx = this_t::vs_idx_t( -1 );
 
-        _bridge.clear() ;
+        _bridge.clear();
     }
 
     void_t set_varset(

@@ -17,6 +17,13 @@ render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id
 }
 
 //*****************************************************************************************
+render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id, size_t const render_id,
+    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
+    : _msl_set_id( id ), _fe( fe ), _cam( cam ), _render_data_id( render_id )
+{
+}
+
+//*****************************************************************************************
 render_visitor::render_visitor(
     motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
     : _msl_set_id( 0 ), _fe( fe ), _cam( cam )
@@ -25,7 +32,8 @@ render_visitor::render_visitor(
 
 //*****************************************************************************************
 render_visitor::render_visitor( this_rref_t rhv ) noexcept
-    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) )
+    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) ),
+    _render_data_id( rhv._render_data_id )
 {
 }
 
@@ -100,12 +108,16 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
             motor::scene::msl_component_mtr_t comp;
             if( set_comp->borrow_msl_component( this_t::msl_set_id(), comp ) )
             {
-                comp->render_update( _cam );
-
-                if( this_t::is_light_dir_set() )
+                size_t used_vs_idx = comp->get_variable_set_idx() ;
+                if( _render_data_id != size_t(-1) )
                 {
-                    comp->set_light_direction( this_t::get_light_dir() );
+                    used_vs_idx = comp->render_update( _render_data_id, _cam ) ;
                 }
+                else
+                {
+                    comp->render_update( _cam );
+                }
+                
 
                 auto msl = comp->borrow_msl();
 
@@ -114,7 +126,7 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
                     detail.start = 0;
                     // detail.num_elems = 3 ;
                     detail.geo = comp->get_geo_idx() == size_t( -1 ) ? 0 : comp->get_geo_idx();
-                    detail.varset = comp->get_variable_set_idx();
+                    detail.varset = used_vs_idx;
                     _fe->render( msl, detail );
                 }
             }
