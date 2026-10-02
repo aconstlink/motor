@@ -3377,15 +3377,12 @@ public:
                 size_t idx = size_t(-1) ;
                 while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
 
-                if( idx != config.var_sets.size() )
+                if( idx == config.var_sets.size() )
                 {
-                    config.var_sets[idx] = render_data::variable_set{ hash, motor::move( vs ) } ;
+                    config.var_sets.resize( idx + 1 ) ;
                 }
-                else
-                {
-                    config.var_sets.emplace_back( render_data::variable_set{ hash, motor::move( vs ) } ) ;
-                }
-                
+
+                config.var_sets[idx] = render_data::variable_set{ hash, motor::move( vs ) } ;                
             }
 
         } ) ;
