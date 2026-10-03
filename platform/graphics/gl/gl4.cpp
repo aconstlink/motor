@@ -26,7 +26,7 @@
 #include <motor/std/vector>
 #include <motor/std/stack>
 #include <motor/std/string_split.hpp>
-
+#include <motor/std/hash_map>
 
 #define gl4_log( text ) "[GL4] : " text
 #define gl4_log_error( text ) motor::ogl::error::check_and_log( "[GL4] : " text )
@@ -497,6 +497,10 @@ struct gl4_backend::pimpl
         {
             size_t hash ;
 
+            // the variable set index into the render objects
+            // variable set list.
+            size_t vs_idx ;
+
             // if nullptr, this entry is invalid.
             // also keep this one for ref counting, so we can
             // safely use the internal variables.
@@ -514,15 +518,22 @@ struct gl4_backend::pimpl
         }  ;
         motor_typedef( variable_set ) ;
         motor::vector< variable_set_t > var_sets ;
-        
+
         bool_t has_variable_set( size_t const vs_idx ) const noexcept
         {
-            return (vs_idx < var_sets.size() && var_sets[vs_idx].is_valid() ) ;
+            size_t found = size_t(-1) ;
+            while( ++found < var_sets.size() && var_sets[found].vs_idx != vs_idx ) ;
+            if( found == var_sets.size() ) return false ;
+            return ( var_sets[found].is_valid() ) ;
         }
 
         bool_t has_not_variable_set( size_t const vs_idx ) const noexcept
         {
-            return vs_idx >= var_sets.size() || var_sets[vs_idx].is_invalid() ;
+            size_t found = size_t(-1) ;
+            while( ++found < var_sets.size() && var_sets[found].vs_idx != vs_idx ) ;
+            if( found == var_sets.size() ) return true ;
+
+            return var_sets[found].is_invalid() ;
         }
 
         struct uniform_variable_link
@@ -1783,7 +1794,7 @@ public:
                 for ( size_t s = 0; s < sets.size(); ++s )
                 {
                     auto & vs = sets[ s ] ;
-                    this_t::connect( rd, s, vs.hash, motor::share( vs.vs ) ) ;
+                    this_t::connect( rd, vs.vs_idx, vs.hash, motor::move( vs.vs ) ) ;
                 }
 
                 _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
@@ -1792,9 +1803,9 @@ public:
                     return true ;
                 } ) ;
 
-                for( size_t vs_id=0; vs_id<rd.var_sets.size(); ++vs_id )
+                for( size_t i=0; i<rd.var_sets.size(); ++i )
                 {
-                    this_t::update_variables( rd, vs_id ) ;
+                    this_t::update_variables( rd, rd.var_sets[i].vs_idx ) ;
                 }
             } ) ;
         }
@@ -3382,7 +3393,7 @@ public:
                     config.var_sets.resize( idx + 1 ) ;
                 }
 
-                config.var_sets[idx] = render_data::variable_set{ hash, motor::move( vs ) } ;                
+                config.var_sets[idx] = render_data::variable_set{ hash, var_set_idx, motor::move( vs ) } ;                
             }
 
         } ) ;
@@ -3802,15 +3813,12 @@ public:
                 glUseProgram( sconfig.pg_id ) ;
                 if( gl4_log_error("glUseProgram") ) return false ;
             }
-
-            if( config.var_sets.size() <= varset_id ) return false ;            
             
             // data vars
             {
                 for ( auto & link : config.var_sets_data )
-                {
-                    if ( link.var_set_idx > varset_id ) break ;
-                    if ( link.var_set_idx < varset_id ) continue ;
+                {                    
+                    if ( link.var_set_idx != varset_id ) continue ;
 
                     auto & uv = sconfig.uniforms[ link.uniform_id ] ;
                     uv.do_copy_funk( link.mem, link.var ) ;
@@ -3826,8 +3834,7 @@ public:
                 {
                     for( auto& link : config.var_sets_texture )
                     {
-                        if ( link.var_set_idx > varset_id ) break ;
-                        if ( link.var_set_idx < varset_id ) continue ;
+                        if ( link.var_set_idx != varset_id ) continue ;
 
                         auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -3867,8 +3874,7 @@ public:
                 {
                     for( auto & link : config.var_sets_array )
                     {
-                        if ( link.var_set_idx > varset_id ) break ;
-                        if ( link.var_set_idx < varset_id ) continue ;
+                        if ( link.var_set_idx != varset_id ) continue ;
 
                         auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -3883,8 +3889,7 @@ public:
                 {
                     for( auto & link : config.var_sets_streamout )
                     {
-                        if ( link.var_set_idx > varset_id ) break ;
-                        if ( link.var_set_idx < varset_id ) continue ;
+                        if ( link.var_set_idx != varset_id ) continue ;
 
                         auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -3994,8 +3999,7 @@ public:
                     {
                         for ( auto & link : config.var_sets_data )
                         {
-                            if ( link.var_set_idx > varset_id ) break ;
-                            if ( link.var_set_idx < varset_id ) continue ;
+                            if ( link.var_set_idx != varset_id ) continue ;
 
                             auto & uv = sconfig.uniforms[ link.uniform_id ] ;
                             if ( !uv.do_uniform_funk( link.mem ) )
@@ -4013,8 +4017,7 @@ public:
                         {
                             for( auto & link : config.var_sets_texture )
                             {
-                                if ( link.var_set_idx > varset_id ) break ;
-                                if ( link.var_set_idx < varset_id ) continue ;
+                                if ( link.var_set_idx != varset_id ) continue ;
 
                                 glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                                 gl4_log_error( "glActiveTexture" ) ;
@@ -4048,8 +4051,7 @@ public:
                         {
                             for( auto & link : config.var_sets_array )
                             {
-                                if ( link.var_set_idx > varset_id ) break ;
-                                if ( link.var_set_idx < varset_id ) continue ;
+                                if ( link.var_set_idx != varset_id ) continue ;
 
                                 glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                                 motor::ogl::error::check_and_log( gl4_log( "glActiveTexture" ) ) ;
@@ -4072,8 +4074,7 @@ public:
                         {
                             for( auto & link : config.var_sets_streamout )
                             {
-                                if ( link.var_set_idx > varset_id ) break ;
-                                if ( link.var_set_idx < varset_id ) continue ;
+                                if ( link.var_set_idx != varset_id ) continue ;
 
                                 //auto const & tfd = _feedbacks[ link.so_id ] ;
                                 auto const [a, b] = _feedbacks.access<bool_t>( link.so_id, [&]( motor::string_in_t name, 
