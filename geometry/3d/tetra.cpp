@@ -85,8 +85,8 @@ motor::geometry::result tetra::make( polygon_mesh_ptr_t m_out_ptr, input_params_
 
         // bottom
         vertices[0] = vertex{ 0, 3, 0 } ;
-        vertices[1] = vertex{ 1, 3, 1 } ;
-        vertices[2] = vertex{ 2, 3, 2 } ;
+        vertices[1] = vertex{ 2, 3, 1 } ;
+        vertices[2] = vertex{ 1, 3, 2 } ;
 
         // front
         vertices[3] = vertex{ 0, 2, 0 } ;
