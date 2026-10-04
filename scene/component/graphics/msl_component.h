@@ -141,6 +141,8 @@ class MOTOR_SCENE_API msl_component : public icomponent
     // set a light direction on the shader variable
     // if there is a bindings.
     void_t set_light_direction( motor::math::vec3f_cref_t ) noexcept;
+    void_t set_light_direction( size_t const render_id, motor::math::vec3f_cref_t dir ) noexcept ;
+
     void_t set_light_projection( motor::math::mat4f_cref_t ) noexcept;
     void_t set_light_view( motor::math::mat4f_cref_t ) noexcept;
     void_t set_light_shadow_map( motor::string_cref_t ) noexcept;

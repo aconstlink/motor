@@ -6,6 +6,7 @@
 #include "../../component/graphics/msl_set_component.hpp"
 
 #include <motor/gfx/camera/generic_camera.h>
+#include <motor/gfx/util/light.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 namespace motor
@@ -20,6 +21,7 @@ class MOTOR_SCENE_API light_pass_render_visitor : public ivisitor
 
   public:
 
+#if 0
     enum class light_type
     {
         point_light,
@@ -43,28 +45,32 @@ class MOTOR_SCENE_API light_pass_render_visitor : public ivisitor
         motor::string_t shadow_map ;
     };
     motor_typedef( light ) ;
+#endif
 
   private:
 
     motor::scene::msl_set_component_t::id_t _msl_set_id =
         motor::scene::msl_set_component_t::invalid_id();
 
+    size_t const _render_data_id ;
+
     motor::graphics::gen4::frontend_ptr_t _fe;
 
-    motor::gfx::generic_camera_ptr_t _cam = nullptr;
+    motor::gfx::generic_camera_mtr_t _cam = nullptr;
+    motor::gfx::light_mtr_t _light = nullptr;
 
     bool_t _light_dir_set = false;
     motor::math::vec3f_t _light_dir;
 
-    light_t _light ;
-
   public:
 
     light_pass_render_visitor( motor::scene::msl_set_component_t::id_t const id,
-        motor::graphics::gen4::frontend_ptr_t, motor::gfx::generic_camera_ptr_t cam,
-        light_cref_t light ) noexcept;
+        size_t const render_id,
+        motor::graphics::gen4::frontend_ptr_t, 
+        
+        motor::gfx::generic_camera_mtr_t cam,
+        motor::gfx::light_mtr_t light ) noexcept;
 
-    
     light_pass_render_visitor( this_rref_t ) noexcept;
     light_pass_render_visitor( this_cref_t ) = delete;
     virtual ~light_pass_render_visitor( void_t ) noexcept;

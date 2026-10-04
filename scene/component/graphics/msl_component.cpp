@@ -245,6 +245,15 @@ void_t msl_component::set_light_direction( motor::math::vec3f_cref_t dir ) noexc
 }
 
 //*****************************************************************
+void_t msl_component::set_light_direction( size_t const render_id, motor::math::vec3f_cref_t dir ) noexcept
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_light_direction( dir ) ;
+    }
+}
+
+//*****************************************************************
 void_t msl_component::set_light_projection( motor::math::mat4f_cref_t mat ) noexcept
 {
     _base_data_set.set_light_projection( mat );
