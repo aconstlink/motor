@@ -108,7 +108,14 @@ motor::platform::result dx11_context::swap( void_t ) noexcept
 
     {
         RECT rc ;
-        GetClientRect( _hwnd, &rc ) ;
+        {
+            auto const res = GetClientRect( _hwnd, &rc ) ;
+            if( res == 0 )
+            {
+                motor::log::global_t::error( "[dx11_context]: GetClientRect failed." ) ;
+                return motor::platform::result::failed ;
+            }
+        }
         UINT const width = rc.right - rc.left ;
         UINT const height = rc.bottom - rc.top ;
 
@@ -118,14 +125,20 @@ motor::platform::result dx11_context::swap( void_t ) noexcept
         if( width == 0 || height == 0 ) 
             return motor::platform::result::ok ;
 
+        if( _pRenderTargetView == nullptr )
+            return motor::platform::result::ok ;
+
         if( desc.BufferDesc.Width != width ||
-            desc.BufferDesc.Height != height )
+            desc.BufferDesc.Height != height 
+            )
         {
             _pImmediateContext->OMSetRenderTargets( 0, 0, 0 );
 
             // Release all outstanding references to the swap chain's buffers.
             _pRenderTargetView->Release() ;
+            _pRenderTargetView = nullptr ;
             _pDepthStencilView->Release() ;
+            _pDepthStencilView = nullptr ;
 
             HRESULT hr;
             // Preserve the existing buffer count and format.
@@ -143,11 +156,19 @@ motor::platform::result dx11_context::swap( void_t ) noexcept
                 ID3D11Texture2D* pBuffer;
                 hr = _pSwapChain->GetBuffer( 0, __uuidof( ID3D11Texture2D ),
                     ( void** ) &pBuffer );
-                // Perform error handling here!
+                if( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( "D3D11 context GetBuffer failed" ) ;
+                    return motor::platform::result::failed_d3d ;
+                }
 
                 hr = _pd3dDevice->CreateRenderTargetView( pBuffer, NULL,
                     &_pRenderTargetView );
-                // Perform error handling here!
+                if( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( "D3D11 context CreateRenderTargetView failed" ) ;
+                    return motor::platform::result::failed_d3d ;
+                }
                 pBuffer->Release();
             }
 
@@ -239,6 +260,8 @@ motor::platform::result dx11_context::create_context( HWND hwnd ) noexcept
 //***********************************************************************
 void_t dx11_context::clear_now( motor::math::vec4f_cref_t vec ) noexcept 
 {
+    if( _pRenderTargetView == nullptr ) return ;
+
     // old: DirectX::Colors::MidnightBlue
     FLOAT color[ 4 ] = { vec.x(), vec.y(), vec.z(), vec.w() } ;
     _pImmediateContext->ClearRenderTargetView( _pRenderTargetView, color ) ;
