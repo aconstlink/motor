@@ -3311,7 +3311,7 @@ public: // functions
     void_t check_and_create_data_for_variable_set( this_t::render_data_ref_t rd, 
             motor::graphics::render_object_ref_t rc, size_t const vs_idx = size_t(-1) ) noexcept
     {
-        if( rd.var_sets.size() > vs_idx ) return ;
+        if( rd.var_set_to_idx_map.find( vs_idx ) != rd.var_set_to_idx_map.end() ) return ;
         
         // borrowed
         motor::graphics::variable_set_mtr_t default_values = nullptr ;
@@ -4243,24 +4243,17 @@ public: // functions
             {
                 auto update_funk = [&] ( ID3D11DeviceContext * ctx_, size_t const vsid, this_t::render_data::cbuffers_t & cbuffers )
                 {
-                    size_t idx = size_t( -1 ) ;
-                    while ( ++idx < cbuffers.size()
-                        && cbuffers[ idx ].var_set_idx < vsid ) ;
-
-                    if ( idx == cbuffers.size() ) return ;
-                    if ( cbuffers[ idx ].var_set_idx != vsid ) return ;
-
-                    auto * vs = rnd.var_sets[ rnd.var_set_to_idx_map[vsid] ] ;
-
-                    auto & cb = cbuffers[ idx ] ;
-                    for ( size_t i = 0; i < cb.data_variables.size(); ++i )
+                    // Dynamic sets are appended in draw order, not ID order.
+                    for ( auto & cb : cbuffers )
                     {
-                        auto & dv = cb.data_variables[ i ] ;
-
-                        if ( dv.ivar == nullptr ) continue ;
-                        dv.do_copy_funk_from_origin( cb.mem ) ;
+                        if ( cb.var_set_idx != vsid ) continue ;
+                        for ( auto & dv : cb.data_variables )
+                        {
+                            if ( dv.ivar == nullptr ) continue ;
+                            dv.do_copy_funk_from_origin( cb.mem ) ;
+                        }
+                        ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
                     }
-                    ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
                 } ;
 
                 update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_vs ) ;
@@ -4379,8 +4372,7 @@ public: // functions
 
                 for ( auto & cb : rnd._cbuffers_vs )
                 {
-                    if ( cb.var_set_idx > varset_id ) break  ;
-                    if ( cb.var_set_idx < varset_id ) continue ;
+                    if ( cb.var_set_idx != varset_id ) continue ;
                     ctx->VSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
                 }
 
@@ -4410,8 +4402,7 @@ public: // functions
 
                 for ( auto & cb : rnd._cbuffers_gs )
                 {
-                    if ( cb.var_set_idx > varset_id ) break  ;
-                    if ( cb.var_set_idx < varset_id ) continue ;
+                    if ( cb.var_set_idx != varset_id ) continue ;
 
                     ctx->GSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
                 }
@@ -4446,16 +4437,14 @@ public: // functions
 
                 for ( auto & cb : rnd._cbuffers_ps )
                 {
-                    if ( cb.var_set_idx > varset_id ) break  ;
-                    if ( cb.var_set_idx < varset_id ) continue ;
+                    if ( cb.var_set_idx != varset_id ) continue ;
 
                     ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
                 }
 
                 for ( auto & img : rnd.var_sets_imgs_ps )
                 {
-                    if ( img.var_set_idx > varset_id ) break  ;
-                    if ( img.var_set_idx < varset_id ) continue ;
+                    if ( img.var_set_idx != varset_id ) continue ;
 
                     _images.access( img.id, [&]( this_t::image_data_ref_t imgd )
                     {
@@ -4587,8 +4576,7 @@ public: // functions
 
                 for ( auto & cb : rnd._cbuffers_ps )
                 {
-                    if ( cb.var_set_idx > varset_id ) break  ;
-                    if ( cb.var_set_idx < varset_id ) continue ;
+                    if ( cb.var_set_idx != varset_id ) continue ;
 
                     ID3D11Buffer * const null_buffer[ 1 ] = { nullptr };
                     ctx->PSSetConstantBuffers( cb.slot, 1, null_buffer ) ;
@@ -4596,8 +4584,7 @@ public: // functions
 
                 for ( auto & img : rnd.var_sets_imgs_ps )
                 {
-                    if ( img.var_set_idx > varset_id ) break  ;
-                    if ( img.var_set_idx < varset_id ) continue ;
+                    if ( img.var_set_idx != varset_id ) continue ;
 
                     ID3D11ShaderResourceView * const null_view[ 1 ] = { nullptr };
                     ctx->PSSetShaderResources( img.slot, 1, null_view ) ;
