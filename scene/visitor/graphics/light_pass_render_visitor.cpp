@@ -10,16 +10,19 @@
 using namespace motor::scene;
 
 //*****************************************************************************************
-light_pass_render_visitor::light_pass_render_visitor( motor::scene::msl_set_component_t::id_t const id,
-    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam, light_cref_t light ) noexcept
-    : _msl_set_id( id ), _fe( fe ), _cam( cam ), _light( light  )
+light_pass_render_visitor::light_pass_render_visitor(
+    motor::scene::msl_set_component_t::id_t const id, size_t const render_id,
+    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam,
+    motor::gfx::light_mtr_t light ) noexcept
+    : _msl_set_id( id ), _render_data_id( render_id ), _fe( fe ), _cam( cam ), _light( light )
 {
 }
 
 //*****************************************************************************************
 light_pass_render_visitor::light_pass_render_visitor( this_rref_t rhv ) noexcept
-    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) ),
-    _light( std::move( rhv._light ) )
+    : _msl_set_id( rhv._msl_set_id ), _render_data_id( rhv._render_data_id ),
+      _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) ),
+      _light( motor::move( rhv._light ) )
 {
 }
 
@@ -94,20 +97,23 @@ void_t light_pass_render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) 
             motor::scene::msl_component_mtr_t comp;
             if( set_comp->borrow_msl_component( this_t::msl_set_id(), comp ) )
             {
-                comp->render_update( _cam );
+                size_t const used_vs_idx = comp->render_update( _render_data_id, _cam );
 
-                if( this_t::is_light_dir_set() )
+                if( _light != nullptr &&
+                    _light->get_light_type() == motor::gfx::light_type::directional )
                 {
-                    comp->set_light_direction( this_t::get_light_dir() );
+                    auto * ll = dynamic_cast< motor::gfx::directional_light_ptr_t >( _light );
+                    comp->set_light_direction( _render_data_id, ll->get_direction() );
                 }
 
+#if 0
                 {
                     comp->set_light_direction( this_t::_light.pos_dir );
                     comp->set_light_projection( this_t::_light.proj ) ;
                     comp->set_light_view( this_t::_light.view ) ;
                     comp->set_light_shadow_map( this_t::_light.shadow_map ) ;
                 }
-
+#endif
                 auto msl = comp->borrow_msl();
 
                 {
@@ -115,7 +121,7 @@ void_t light_pass_render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) 
                     detail.start = 0;
                     // detail.num_elems = 3 ;
                     detail.geo = comp->get_geo_idx() == size_t( -1 ) ? 0 : comp->get_geo_idx();
-                    detail.varset = comp->get_variable_set_idx();
+                    detail.varset = used_vs_idx ;
                     _fe->render( msl, detail );
                 }
             }
