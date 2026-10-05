@@ -20,6 +20,7 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
         motor::scene::msl_set_component_t::invalid_id();
 
     size_t _render_data_id = size_t( -1 );
+    size_t _render_state_id = 0;
 
     motor::graphics::gen4::frontend_ptr_t _fe;
 
@@ -54,6 +55,11 @@ class MOTOR_SCENE_API render_visitor : public ivisitor
     motor::scene::msl_set_component_t::id_t msl_set_id( void_t ) const noexcept
     {
         return _msl_set_id;
+    }
+
+    size_t render_state_id( void_t ) const noexcept
+    {
+        return _render_state_id ;
     }
 
     motor::graphics::gen4::frontend_ptr_t borrow_frontend( void_t ) noexcept

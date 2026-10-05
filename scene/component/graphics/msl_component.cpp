@@ -260,15 +260,42 @@ void_t msl_component::set_light_projection( motor::math::mat4f_cref_t mat ) noex
 }
 
 //*****************************************************************
+void_t msl_component::set_light_projection( size_t const render_id, motor::math::mat4f_cref_t mat ) noexcept
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_light_projection( mat ) ;
+    }
+}
+
+//*****************************************************************
 void_t msl_component::set_light_view( motor::math::mat4f_cref_t mat ) noexcept
 {
     _base_data_set.set_light_view( mat );
 }
 
 //*****************************************************************
+void_t msl_component::set_light_view( size_t const render_id, motor::math::mat4f_cref_t mat ) noexcept
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_light_view( mat ) ;
+    }
+}
+
+//*****************************************************************
 void_t msl_component::set_light_shadow_map( motor::string_cref_t name ) noexcept
 {
     _base_data_set.set_light_shadow_map( name );
+}
+
+//*****************************************************************
+void_t msl_component::set_light_shadow_map( size_t const render_id, motor::string_cref_t n ) noexcept
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_light_shadow_map( n ) ;
+    }
 }
 
 //*****************************************************************

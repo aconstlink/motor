@@ -21,38 +21,24 @@ class MOTOR_SCENE_API light_pass_render_visitor : public ivisitor
 
   public:
 
-#if 0
-    enum class light_type
+    struct shadow_data
     {
-        point_light,
-        directional_light
-    };
-
-    struct light
-    {
-        light_type lt ;
-        
-        // if point light, this is the lights' position
-        // if directional light, this is the lights' direction
-        motor::math::vec3f_t pos_dir ;
-
         // transforms in light projection space
-        motor::math::mat4f_t proj ;
+        motor::math::mat4f_t proj;
         // transforms into light view space
-        motor::math::mat4f_t view ;
+        motor::math::mat4f_t view;
 
         // the shadow map pre-rendered.
-        motor::string_t shadow_map ;
+        motor::string_t shadow_map;
     };
-    motor_typedef( light ) ;
-#endif
+    motor_typedef( shadow_data ) ;
 
   private:
 
     motor::scene::msl_set_component_t::id_t _msl_set_id =
         motor::scene::msl_set_component_t::invalid_id();
 
-    size_t const _render_data_id ;
+    size_t const _render_data_id;
 
     motor::graphics::gen4::frontend_ptr_t _fe;
 
@@ -62,14 +48,22 @@ class MOTOR_SCENE_API light_pass_render_visitor : public ivisitor
     bool_t _light_dir_set = false;
     motor::math::vec3f_t _light_dir;
 
+    // borrowed for the traversal
+    motor::gfx::ishadow_data_mtr_t _shadow_data_ptr ;
+
+    using shadow_data_cast_funk_t = std::function< void_t ( size_t const render_id, motor::scene::msl_component_mtr_t ) > ;
+    shadow_data_cast_funk_t _cast_shadow_data ;
+
   public:
 
     light_pass_render_visitor( motor::scene::msl_set_component_t::id_t const id,
-        size_t const render_id,
-        motor::graphics::gen4::frontend_ptr_t, 
-        
-        motor::gfx::generic_camera_mtr_t cam,
-        motor::gfx::light_mtr_t light ) noexcept;
+        size_t const render_id, motor::graphics::gen4::frontend_ptr_t,
+        motor::gfx::generic_camera_mtr_t cam, motor::gfx::light_mtr_t light,
+        motor::gfx::ishadow_data_mtr_t = nullptr ) noexcept;
+
+    light_pass_render_visitor( motor::scene::msl_set_component_t::id_t const id,
+        size_t const render_id, motor::graphics::gen4::frontend_ptr_t,
+        motor::gfx::generic_camera_mtr_t cam, motor::gfx::light_mtr_t light, shadow_data_cref_t ) noexcept;
 
     light_pass_render_visitor( this_rref_t ) noexcept;
     light_pass_render_visitor( this_cref_t ) = delete;
@@ -124,6 +118,8 @@ class MOTOR_SCENE_API light_pass_render_visitor : public ivisitor
 
     void_t handle_visit( motor::scene::node_ptr_t ) noexcept;
     void_t handle_post_visit( motor::scene::node_ptr_t ) noexcept;
+
+    void_t determine_and_set_shadow_data_cast_funk( motor::gfx::ishadow_data_mtr_t ) noexcept ;
 };
 motor_typedef( light_pass_render_visitor );
 } // namespace scene

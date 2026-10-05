@@ -1142,6 +1142,8 @@ public:
                     GLenum const glsrc = motor::platform::gl3::convert( new_states.blend_s.ss.src_blend_factor ) ;
                     GLenum const gldst = motor::platform::gl3::convert( new_states.blend_s.ss.dst_blend_factor  );
 
+                    glBlendEquation( GL_FUNC_ADD ) ;
+                    motor::ogl::error::check_and_log( gl4_log( "glBlendEquation" ) ) ;
                     glBlendFunc( glsrc, gldst ) ;
                     motor::ogl::error::check_and_log( gl4_log( "glBlendFunc" ) ) ;
                 }

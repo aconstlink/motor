@@ -20,6 +20,32 @@ enum class light_type
     area
 };
 
+struct ishadow_data
+{
+    virtual ~ishadow_data( void_t ) noexcept {}
+};
+motor_typedef( ishadow_data );
+
+struct single_shadow_data : public ishadow_data
+{
+    virtual ~single_shadow_data( void_t ) noexcept {}
+
+    single_shadow_data(
+        motor::math::mat4f_cref_t p, motor::math::mat4f_cref_t v, motor::string_cref_t sm ) noexcept
+        : proj( p ), view( v ), shadow_map( sm )
+    {
+    }
+
+    // transforms in light projection space
+    motor::math::mat4f_t proj;
+    // transforms into light view space
+    motor::math::mat4f_t view;
+
+    // the shadow map pre-rendered.
+    motor::string_t shadow_map;
+};
+motor_typedef( single_shadow_data );
+
 class light
 {
     motor_this_typedefs( light );
@@ -29,13 +55,25 @@ class light
     motor::math::vec4f_t _color;
     float_t _intensity;
 
+    motor::gfx::ishadow_data_mtr_t _shadow_data = nullptr;
+
   public:
 
     light( void_t ) noexcept {}
-    virtual ~light( void_t ) noexcept {}
+    virtual ~light( void_t ) noexcept
+    {
+        motor::release( motor::move( _shadow_data ) );
+    }
+
     virtual light_type get_light_type( void_t ) const noexcept = 0;
+
+    template < typename T >
+    T * borrow_shader_data( void_t ) noexcept
+    {
+        return dynamic_cast< T * >( _shadow_data );
+    }
 };
-motor_typedef( light ) ;
+motor_typedef( light );
 
 //****************************************************
 class directional_light : public light
@@ -59,7 +97,7 @@ class directional_light : public light
 
     virtual light_type get_light_type( void_t ) const noexcept
     {
-        return this_t::get_light_type_static() ;
+        return this_t::get_light_type_static();
     }
 
     motor::math::vec3f_cref_t get_direction( void_t ) const noexcept
@@ -101,7 +139,7 @@ class point_light : public light
 
     virtual light_type get_light_type( void_t ) const noexcept
     {
-        return this_t::get_light_type_static() ;
+        return this_t::get_light_type_static();
     }
 
     motor::math::vec3f_cref_t get_position( void_t ) const noexcept
@@ -148,7 +186,8 @@ class spot_light : public light
 
     virtual light_type get_light_type( void_t ) const noexcept
     {
-        return this_t::get_light_type_static() ;;
+        return this_t::get_light_type_static();
+        ;
     }
 
     motor::math::vec3f_cref_t get_position( void_t ) const noexcept
