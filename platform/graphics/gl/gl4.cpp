@@ -790,6 +790,7 @@ struct gl4_backend::pimpl
         
         void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
+            ro_id = size_t(-1) ;
         }
     };
     motor_typedef( msl_data ) ;
@@ -1967,6 +1968,23 @@ public:
         return _shaders.invalidate( oid ) ;
     }
 
+    //************************************************************************************************************
+    void_t release_msl_data( size_t const oid ) noexcept 
+    {
+        _msls.access( oid, [&]( msl_data & data )
+        {
+            // we do not need the name, the id should suffice because
+            // we have the id internally so it must be valid.
+            this_t::release_render_data( data.ro_id, "" ) ;
+            this_t::release_shader_data( data.so.get_oid( _bid ) ) ;
+
+            data.ro_id = size_t(-1) ;
+            
+        } ) ;
+        
+        _msls.invalidate( oid ) ;
+    }
+
     //****************************************************************************************
     void_t detach_shaders( GLuint const program_id )
     {
@@ -2721,9 +2739,14 @@ public:
     bool_t release_render_data( motor::graphics::render_object_ref_t obj ) noexcept
     {
         size_t oid = obj.get_oid( _bid ) ;
+        return this_t::release_render_data( oid, obj.name() ) ;
+    }
 
+    //****************************************************************************************
+    bool_t release_render_data( size_t oid, motor::string_in_t name ) noexcept
+    {
         // #1 break connections BEFORE invalidating the item
-        auto const res = _renders.access( oid, obj.name(), [&]( this_t::render_data_ref_t rd )
+        auto const res = _renders.access( oid, name, [&]( this_t::render_data_ref_t rd )
         {
             for( auto const & item : rd.geo_ids )
             {
@@ -2744,7 +2767,6 @@ public:
         } ) ;
 
         _renders.invalidate( oid ) ;
-
         return true ;
     }
 
@@ -4422,9 +4444,19 @@ motor::graphics::result gl4_backend::configure( motor::graphics::streamout_objec
 }
 
 //************************************************************************************************************
-motor::graphics::result gl4_backend::release( motor::graphics::msl_object_mtr_t ) noexcept 
+motor::graphics::result gl4_backend::release( motor::graphics::msl_object_mtr_t obj ) noexcept 
 {
-    return motor::graphics::result::failed ;
+    if( obj == nullptr || obj->name().empty() )
+    {
+        motor::log::global_t::error( gl4_log( "msl object is nullptr or has no name" ) );
+        return motor::graphics::result::invalid_argument ;
+    }
+
+    _pimpl->release_msl_data( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    obj->borrow_render_object()->set_oid( this_t::get_bid(), size_t(-1) ) ;
+
+    return motor::graphics::result::ok ;
 }
 
 //******************************************************************************************************

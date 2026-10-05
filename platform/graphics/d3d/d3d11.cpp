@@ -1098,6 +1098,7 @@ public: // msl data
         
         void_t invalidate( motor::string_in_t /*name*/ ) noexcept
         {
+            ro_id = size_t(-1) ;
         }
     } ;
     motor_typedef( msl_data ) ;
@@ -3079,6 +3080,17 @@ public: // functions
     void_t release_render_data( size_t const oid ) noexcept 
     {
         _renders.invalidate( oid ) ;
+    }
+
+    //************************************************************************************************************
+    void_t release_msl_data( size_t const oid ) noexcept 
+    {
+        _msls.access( oid, [&]( msl_data & data )
+        {
+            this_t::release_render_data( data.ro_id ) ;
+            _shaders.invalidate( data.so.get_oid( _bid ) ) ;
+        } ) ;
+        _msls.invalidate( oid ) ;
     }
 
     //************************************************************************************************************
@@ -5097,9 +5109,19 @@ motor::graphics::result d3d11_backend::configure( motor::graphics::streamout_obj
 }
 
 //************************************************************************************************************
-motor::graphics::result d3d11_backend::release( motor::graphics::msl_object_mtr_t ) noexcept 
+motor::graphics::result d3d11_backend::release( motor::graphics::msl_object_mtr_t obj ) noexcept 
 {
-    return motor::graphics::result::failed ;
+    if( obj == nullptr || obj->name().empty() )
+    {
+        d3d11_log_errorv( "msl object is nullptr or has no name" ) ;
+        return motor::graphics::result::invalid_argument ;
+    }
+
+    _pimpl->release_msl_data( obj->get_oid( this_t::get_bid() ) ) ;
+    obj->set_oid( this_t::get_bid(), size_t( -1 ) ) ;
+    obj->borrow_render_object()->set_oid( this_t::get_bid(), size_t(-1) ) ;
+
+    return motor::graphics::result::ok ;
 }
 
 //************************************************************************************************************
