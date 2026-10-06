@@ -499,7 +499,7 @@ struct gl4_backend::pimpl
 
             // the variable set index into the render objects
             // variable set list.
-            size_t vs_idx ;
+            //size_t vs_idx ;
 
             // if nullptr, this entry is invalid.
             // also keep this one for ref counting, so we can
@@ -519,30 +519,79 @@ struct gl4_backend::pimpl
         motor_typedef( variable_set ) ;
         motor::vector< variable_set_t > var_sets ;
 
+        // index into var_sets. This is 1:1 to the render_objects'
+        // variable set list.
+        // an entry of value size_t(-1)
+        struct varset_to_idx_data
+        { 
+            size_t idx = size_t(-1) ; 
+
+            // data uniform variables into
+            // var_sets_data
+            size_t data_idx_begin = size_t(-1) ;
+            size_t data_idx_end = size_t(-1) ;
+
+            // texture uniform variables into
+            // var_sets_texture
+            size_t texture_idx_begin = size_t(-1) ;
+            size_t texture_idx_end = size_t(-1) ;
+
+            // array uniform variables into
+            // var_sets_array
+            size_t array_idx_begin = size_t(-1) ;
+            size_t array_idx_end = size_t(-1) ;
+
+            // streamout uniform variables into
+            // var_sets_streamout
+            size_t streamout_idx_begin = size_t(-1) ;
+            size_t streamout_idx_end = size_t(-1) ;
+
+            varset_to_idx_data & check_and_reset( void_t ) noexcept
+            {
+                if( data_idx_begin == data_idx_end ) 
+                    data_idx_begin = data_idx_end = size_t(-1) ;
+
+                return *this ;
+            }
+        };
+        motor::vector< varset_to_idx_data > varset_to_idx ;
+
+        bool_t get_vs_to_idx_entry( size_t const varset_idx, varset_to_idx_data & data_out) noexcept
+        {
+            if( has_not_variable_set( varset_idx ) ) return false ;
+            data_out = varset_to_idx[varset_idx] ;
+            return true ;
+        }
+
         bool_t has_variable_set( size_t const vs_idx ) const noexcept
         {
+        #if 1
+            return varset_to_idx.size() > vs_idx && varset_to_idx[vs_idx].idx != size_t(-1) ;
+        #else
             size_t found = size_t(-1) ;
             while( ++found < var_sets.size() && var_sets[found].vs_idx != vs_idx ) ;
             if( found == var_sets.size() ) return false ;
             return ( var_sets[found].is_valid() ) ;
+        #endif
         }
 
         bool_t has_not_variable_set( size_t const vs_idx ) const noexcept
         {
+            #if 1
+            return !has_variable_set( vs_idx ) ;
+            #else
             size_t found = size_t(-1) ;
             while( ++found < var_sets.size() && var_sets[found].vs_idx != vs_idx ) ;
             if( found == var_sets.size() ) return true ;
 
             return var_sets[found].is_invalid() ;
+            #endif
         }
 
         struct uniform_variable_link
         {
             // the user variable holding the data.
             motor::graphics::ivariable_ptr_t var ;
-
-            // index into var_sets
-            size_t var_set_idx ;
 
             // the index into the shader_config::uniforms array
             size_t uniform_id ;
@@ -554,9 +603,6 @@ struct gl4_backend::pimpl
 
         struct uniform_texture_link
         {
-            // index into var_sets
-            size_t var_set_idx ;
-
             // the index into the shader_config::uniforms array
             size_t uniform_id ;
             GLint tex_id ;
@@ -576,9 +622,6 @@ struct gl4_backend::pimpl
 
         struct uniform_array_data_link
         {
-            // index into var_sets
-            size_t var_set_idx ;
-
             // the index into the shader_config::uniforms array
             size_t uniform_id ;
             GLint tex_id ;
@@ -591,9 +634,6 @@ struct gl4_backend::pimpl
 
         struct uniform_streamout_link
         {
-            // index into var_sets
-            size_t var_set_idx ;
-
             // the index into the shader_config::uniforms array
             size_t uniform_id ;
             GLint tex_id[2] ; // streamout object do double buffer
@@ -640,6 +680,7 @@ struct gl4_backend::pimpl
             rss.clear() ;
         
             for( auto & v : var_sets ) motor::release( motor::move( v.vs ) ) ;
+            varset_to_idx.clear() ;
 
             // remember that rd.var_sets hold the ref count reminder!
             var_sets.clear() ;
@@ -647,7 +688,7 @@ struct gl4_backend::pimpl
             var_sets_streamout.clear() ;
             var_sets_data.clear() ;
             var_sets_texture.clear() ;
-
+            
             motor::memory::global_t::dealloc( mem_block ) ;
             mem_block = nullptr ;
 
@@ -1794,11 +1835,25 @@ public:
                 rd.var_sets_streamout.clear() ;
 
                 auto sets = std::move( rd.var_sets ) ;
+                auto idxs = std::move( rd.varset_to_idx ) ;
+
+                #if 1
+                // here i is the variable set index. 
+                // the entry is the index into the internal var_sets
+                // vector.
+                for( size_t i = 0; i< idxs.size(); ++i )
+                {
+                    if( idxs[i].idx == size_t(-1) ) continue ;
+                    auto & vs = sets[ idxs[i].idx ] ;
+                    this_t::connect( rd, i, vs.hash, motor::move( vs.vs ) ) ;
+                }
+                #else
                 for ( size_t s = 0; s < sets.size(); ++s )
                 {
                     auto & vs = sets[ s ] ;
                     this_t::connect( rd, vs.vs_idx, vs.hash, motor::move( vs.vs ) ) ;
                 }
+                #endif
 
                 _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
                 {
@@ -1806,10 +1861,17 @@ public:
                     return true ;
                 } ) ;
 
-                for( size_t i=0; i<rd.var_sets.size(); ++i )
+                #if 1
+                for( size_t i=0; i<rd.varset_to_idx.size(); ++i )
+                {
+                    this_t::update_variables( rd, i ) ;
+                }
+                #else
+                for( size_t i=0; i<rd.var_sets.size(); ++i )                
                 {
                     this_t::update_variables( rd, rd.var_sets[i].vs_idx ) ;
                 }
+                #endif
             } ) ;
         }
 
@@ -2826,6 +2888,8 @@ public:
                 // remember that rd.var_sets hold the ref count reminder!
                 // no need to release any managed pointer!
                 auto vars = std::move( config.var_sets ) ;
+                auto vsidx_to_idx = std::move( config.varset_to_idx ) ;
+
                 config.var_sets_data.clear() ;
                 config.var_sets_texture.clear() ;
                 config.var_sets_array.clear() ;
@@ -3288,6 +3352,19 @@ public:
         {
             vs->clone_from_if_not_exist( &shd.default_values ) ;
 
+            render_data_t::varset_to_idx_data vtidx_data ;
+            vtidx_data.data_idx_begin = config.var_sets_data.size() ;
+            vtidx_data.data_idx_end = config.var_sets_data.size() ;
+
+            vtidx_data.texture_idx_begin = config.var_sets_texture.size() ;
+            vtidx_data.texture_idx_end = config.var_sets_texture.size() ;
+
+            vtidx_data.array_idx_begin = config.var_sets_array.size() ;
+            vtidx_data.array_idx_end = config.var_sets_array.size() ;
+
+            vtidx_data.streamout_idx_begin = config.var_sets_streamout.size() ;
+            vtidx_data.streamout_idx_end = config.var_sets_streamout.size() ;
+
             size_t id = 0 ;
             for( auto & uv : shd.uniforms )
             {
@@ -3303,11 +3380,12 @@ public:
                     }
 
                     this_t::render_data::uniform_variable_link link ;
-                    link.var_set_idx = var_set_idx ;
                     link.uniform_id = id++ ;
                     link.var = var ;
 
                     config.var_sets_data.emplace_back( link ) ;
+
+                    ++vtidx_data.data_idx_end ;
                 }
                 else if( motor::ogl::uniform_is_texture( uv.type ) )
                 {
@@ -3325,7 +3403,6 @@ public:
                         auto const& tx_name = var->get() ;
 
                         this_t::render_data::uniform_texture_link link ;
-                        link.var_set_idx = var_set_idx ;
                         link.uniform_id = id++ ;
                         link.img_hash = var->get().hash() ;
                         link.var = var ;
@@ -3343,6 +3420,7 @@ public:
                             continue ;
                         }
                         config.var_sets_texture.emplace_back( link ) ;
+                        ++vtidx_data.texture_idx_end ;
                     }
                 }
                 else if( motor::ogl::uniform_is_buffer( uv.type ) )
@@ -3368,10 +3446,10 @@ public:
                         } ) ;
                         if( !res ) return false ;
 
-                        link.var_set_idx = var_set_idx ;
                         link.uniform_id = id++ ;
 
                         config.var_sets_array.emplace_back( link ) ;
+                        ++vtidx_data.array_idx_end ;
                         return true ;
                     } ;
 
@@ -3388,9 +3466,9 @@ public:
                         } ) ;
                         if( !res ) return false ; 
 
-                        link.var_set_idx = var_set_idx ;
                         link.uniform_id = id++ ;
                         config.var_sets_streamout.emplace_back( link ) ;
+                        ++vtidx_data.streamout_idx_end ;
                         return true ;
                     } ;
 
@@ -3408,6 +3486,22 @@ public:
             }
 
             // ref count one copy here for all stored items
+            #if 1
+            {
+                if( config.varset_to_idx.size() <= var_set_idx )
+                    config.varset_to_idx.resize( var_set_idx + 1 ) ;
+
+                size_t idx = size_t(-1) ;
+                while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
+
+                if( idx == config.var_sets.size() )
+                    config.var_sets.resize( idx + 1 ) ;
+
+                vtidx_data.idx = idx ;
+                config.varset_to_idx[ var_set_idx ] = vtidx_data.check_and_reset() ;
+                config.var_sets[idx] = render_data::variable_set{ hash, /*var_set_idx,*/  motor::move( vs ) } ;
+            }
+            #else
             {
                 size_t idx = size_t(-1) ;
                 while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
@@ -3419,7 +3513,7 @@ public:
 
                 config.var_sets[idx] = render_data::variable_set{ hash, var_set_idx, motor::move( vs ) } ;                
             }
-
+            #endif
         } ) ;
         
 
@@ -3831,6 +3925,9 @@ public:
     //****************************************************************************************
     bool_t update_variables( this_t::render_data & config, size_t const varset_id ) noexcept
     {
+        render_data_t::varset_to_idx_data entry ;
+        if( !config.get_vs_to_idx_entry( varset_id, entry ) ) return false ;
+
         _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t sconfig )
         {
             {
@@ -3840,6 +3937,15 @@ public:
             
             // data vars
             {
+            #if 1
+                for( size_t i=entry.data_idx_begin;i<entry.data_idx_end;++i)
+                {
+                    auto const & link = config.var_sets_data[i] ;
+
+                    auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                    uv.do_copy_funk( link.mem, link.var ) ;
+                }
+            #else
                 for ( auto & link : config.var_sets_data )
                 {                    
                     if ( link.var_set_idx != varset_id ) continue ;
@@ -3847,6 +3953,7 @@ public:
                     auto & uv = sconfig.uniforms[ link.uniform_id ] ;
                     uv.do_copy_funk( link.mem, link.var ) ;
                 }
+            #endif
             }
 
             // tex vars
@@ -3856,9 +3963,9 @@ public:
                 int_t tex_unit = 0 ;
                 // textures
                 {
-                    for( auto& link : config.var_sets_texture )
+                    for( size_t i=entry.texture_idx_begin;i<entry.texture_idx_end;++i)
                     {
-                        if ( link.var_set_idx != varset_id ) continue ;
+                        auto & link = config.var_sets_texture[i] ;
 
                         auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -3866,8 +3973,8 @@ public:
                         // automatic image update
                         if( link.img_hash != link.var->get().hash() )
                         {
-                            size_t const i = _images.find_by_name( link.var->get().name() ) ;
-                            if( i == size_t(-1) )
+                            size_t const img_idx = _images.find_by_name( link.var->get().name() ) ;
+                            if( img_idx == size_t(-1) )
                             {
                                 motor::log::global::warning("[gl4] : image variable value not found : " 
                                     "%s : Resetting to old name.", link.var->get().name().c_str() ) ;
@@ -3879,10 +3986,10 @@ public:
                             }
                             else
                             {
-                                _images.access( i, [&]( this_t::image_data_ref_t id )
+                                _images.access( img_idx, [&]( this_t::image_data_ref_t id )
                                 {
                                     link.img_hash = link.var->get().hash() ;
-                                    link.img_id = i ;
+                                    link.img_id = img_idx ;
                                     link.tex_id = id.tex_id ;
                                 } ) ;
                             }
@@ -3896,9 +4003,9 @@ public:
 
                 // array data vars
                 {
-                    for( auto & link : config.var_sets_array )
+                    for( size_t i=entry.array_idx_begin;i<entry.array_idx_end;++i)
                     {
-                        if ( link.var_set_idx != varset_id ) continue ;
+                        auto & link = config.var_sets_array[i] ;
 
                         auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -3911,9 +4018,10 @@ public:
 
                 // transform feedback bound vars
                 {
-                    for( auto & link : config.var_sets_streamout )
+                    for( size_t i=entry.streamout_idx_begin;i<entry.streamout_idx_end;++i)
                     {
-                        if ( link.var_set_idx != varset_id ) continue ;
+                        auto & link = config.var_sets_streamout[i] ;
+                        
 
                         auto var = motor::graphics::data_variable< int_t >( tex_unit ) ;
                         auto & uv = sconfig.uniforms[ link.uniform_id ] ;
@@ -4019,8 +4127,22 @@ public:
                 //if( config.var_sets.size() > varset_id )
                 if( config.has_variable_set( varset_id ) )
                 {
+                    auto const & vtidx = config.varset_to_idx[varset_id] ;
+
                     // data vars
                     {
+                    #if 1
+                        for ( size_t i=vtidx.data_idx_begin; i< vtidx.data_idx_end; ++i )
+                        {
+                            auto const & link = config.var_sets_data[i] ;
+
+                            auto & uv = sconfig.uniforms[ link.uniform_id ] ;
+                            if ( !uv.do_uniform_funk( link.mem ) )
+                            {
+                                motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ;
+                            }
+                        }
+                    #else
                         for ( auto & link : config.var_sets_data )
                         {
                             if ( link.var_set_idx != varset_id ) continue ;
@@ -4031,6 +4153,7 @@ public:
                                 motor::log::global_t::error( "[gl4] : uniform " + uv.name + " failed." ) ;
                             }
                         }
+                        #endif
                     }
 
                     // tex vars
@@ -4039,9 +4162,9 @@ public:
                         int_t tex_unit = 0 ;
                         // textures
                         {
-                            for( auto & link : config.var_sets_texture )
+                            for ( size_t i=vtidx.texture_idx_begin; i< vtidx.texture_idx_end; ++i )
                             {
-                                if ( link.var_set_idx != varset_id ) continue ;
+                                auto const & link = config.var_sets_texture[i] ;
 
                                 glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                                 gl4_log_error( "glActiveTexture" ) ;
@@ -4073,9 +4196,9 @@ public:
 
                         // array data vars
                         {
-                            for( auto & link : config.var_sets_array )
+                            for ( size_t i=vtidx.array_idx_begin; i< vtidx.array_idx_end; ++i )
                             {
-                                if ( link.var_set_idx != varset_id ) continue ;
+                                auto const & link = config.var_sets_array[i] ;
 
                                 glActiveTexture( GLenum( GL_TEXTURE0 + tex_unit ) ) ;
                                 motor::ogl::error::check_and_log( gl4_log( "glActiveTexture" ) ) ;
@@ -4096,9 +4219,9 @@ public:
 
                         // transform feedback as TBO
                         {
-                            for( auto & link : config.var_sets_streamout )
+                            for ( size_t i=vtidx.streamout_idx_begin; i< vtidx.streamout_idx_end; ++i )
                             {
-                                if ( link.var_set_idx != varset_id ) continue ;
+                                auto & link = config.var_sets_streamout[i] ;
 
                                 //auto const & tfd = _feedbacks[ link.so_id ] ;
                                 auto const [a, b] = _feedbacks.access<bool_t>( link.so_id, [&]( motor::string_in_t name, 
