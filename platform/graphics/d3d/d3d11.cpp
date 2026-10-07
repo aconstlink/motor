@@ -807,8 +807,9 @@ struct d3d11_backend::pimpl
         struct image_variable
         {
             // into var_sets
+            #if 0
             size_t var_set_idx ;
-
+            #endif
             // if initially assigned, this is computed
             // and can be used if the image changes during
             // the course of the application.
@@ -901,13 +902,17 @@ struct d3d11_backend::pimpl
             std::array< size_t, indices::num_indices > cbuffer_begin = {size_t(-1), size_t(-1), size_t(-1)} ;
             std::array< size_t, indices::num_indices > cbuffer_end = {size_t(-1), size_t(-1), size_t(-1)};
             
-
-            #if 0
             // texture uniform variables into
-            // var_sets_texture
+            // var_sets_imgs_*
+            std::array< size_t, indices::num_indices > imgs_begin = {size_t(-1), size_t(-1), size_t(-1)} ;
+            std::array< size_t, indices::num_indices > imgs_end = {size_t(-1), size_t(-1), size_t(-1)};
+            
+            
+            #if 0
             size_t texture_idx_begin = size_t(-1) ;
             size_t texture_idx_end = size_t(-1) ;
 
+            
             // array uniform variables into
             // var_sets_array
             size_t array_idx_begin = size_t(-1) ;
@@ -3535,41 +3540,45 @@ public: // functions
             //this_t::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
             _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t shd )
             {
+                size_t const a0 = render_data_t::varset_to_idx_data::indices::vertex_shader ;
+                size_t const a1 = render_data_t::varset_to_idx_data::indices::geometry_shader ;
+                size_t const a2 = render_data_t::varset_to_idx_data::indices::pixel_shader ;
+
                 if( vs_idx == size_t(-1) )
                 {
                     rc.for_each( [&] ( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
                         auto & mapping_entry = rd.varset_to_idx[i] ;
 
-                        mapping_entry.cbuffer_begin[0] = rd._cbuffers_vs.size() ;
-                        mapping_entry.cbuffer_begin[1] = rd._cbuffers_gs.size() ;
-                        mapping_entry.cbuffer_begin[2] = rd._cbuffers_ps.size() ;
+                        mapping_entry.cbuffer_begin[a0] = rd._cbuffers_vs.size() ;
+                        mapping_entry.cbuffer_begin[a1] = rd._cbuffers_gs.size() ;
+                        mapping_entry.cbuffer_begin[a2] = rd._cbuffers_ps.size() ;
 
                         var_funk( _ctx->dev(), i, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
                         var_funk( _ctx->dev(), i, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
                         var_funk( _ctx->dev(), i, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
 
-                        mapping_entry.cbuffer_end[0] = rd._cbuffers_vs.size() ;
-                        mapping_entry.cbuffer_end[1] = rd._cbuffers_gs.size() ;
-                        mapping_entry.cbuffer_end[2] = rd._cbuffers_ps.size() ;
+                        mapping_entry.cbuffer_end[a0] = rd._cbuffers_vs.size() ;
+                        mapping_entry.cbuffer_end[a1] = rd._cbuffers_gs.size() ;
+                        mapping_entry.cbuffer_end[a2] = rd._cbuffers_ps.size() ;
                     } ) ;
                 }
                 else
                 {
                     auto & mapping_entry = rd.varset_to_idx[vs_idx] ;
 
-                    mapping_entry.cbuffer_begin[0] = rd._cbuffers_vs.size() ;
-                    mapping_entry.cbuffer_begin[1] = rd._cbuffers_gs.size() ;
-                    mapping_entry.cbuffer_begin[2] = rd._cbuffers_ps.size() ;
+                    mapping_entry.cbuffer_begin[a0] = rd._cbuffers_vs.size() ;
+                    mapping_entry.cbuffer_begin[a1] = rd._cbuffers_gs.size() ;
+                    mapping_entry.cbuffer_begin[a2] = rd._cbuffers_ps.size() ;
 
                     auto vs = rc.borrow_variable_set( vs_idx ) ;
                     var_funk( _ctx->dev(), vs_idx, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
                     var_funk( _ctx->dev(), vs_idx, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
                     var_funk( _ctx->dev(), vs_idx, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
 
-                    mapping_entry.cbuffer_end[0] = rd._cbuffers_vs.size() ;
-                    mapping_entry.cbuffer_end[1] = rd._cbuffers_gs.size() ;
-                    mapping_entry.cbuffer_end[2] = rd._cbuffers_ps.size() ;
+                    mapping_entry.cbuffer_end[a0] = rd._cbuffers_vs.size() ;
+                    mapping_entry.cbuffer_end[a1] = rd._cbuffers_gs.size() ;
+                    mapping_entry.cbuffer_end[a2] = rd._cbuffers_ps.size() ;
                 }
                 
             } ) ;
@@ -3577,7 +3586,7 @@ public: // functions
 
         // texture variable mapping
         {
-            auto var_funk = [] ( ID3D11Device * dev, size_t const var_set_idx, motor::graphics::variable_set_mtr_t vs, image_datas_t & images,
+            auto var_funk = [] ( ID3D11Device * dev, motor::graphics::variable_set_mtr_t vs, image_datas_t & images,
                         this_t::shader_data_t::image_variables_ref_t ps_textures, this_t::render_data::image_variables_inout_t var_sets_imgs_ps )
             {
                 for ( auto & t : ps_textures )
@@ -3589,7 +3598,6 @@ public: // functions
                     if( i == size_t(-1) ) continue ;
 
                     this_t::render_data_t::image_variable_t iv ;
-                    iv.var_set_idx = var_set_idx ;
                     iv.value_hash = dv->get().hash() ;
                     iv.id = i ;
                     iv.name = t.name ;
@@ -3608,17 +3616,40 @@ public: // functions
             //this_t::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
             _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t shd )
             {
+                size_t const a0 = render_data_t::varset_to_idx_data::indices::vertex_shader ;
+                size_t const a1 = render_data_t::varset_to_idx_data::indices::geometry_shader ;
+                size_t const a2 = render_data_t::varset_to_idx_data::indices::pixel_shader ;
+
                 if( vs_idx == size_t(-1) )
                 {
-                    rc.for_each( [&] ( size_t const vs_id, motor::graphics::render_object_t::variable_set_cref_t vs )
+                    rc.for_each( [&] ( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
-                        var_funk( _ctx->dev(), vs_id, vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
+                        auto & mapping_entry = rd.varset_to_idx[i] ;
+
+                        #if 0 // vs and gs not used right now
+                        mapping_entry.imgs_begin[a0] = rd.var_sets_imgs_vs.size() ;
+                        mapping_entry.imgs_begin[a1] = rd.var_sets_imgs_gs.size() ;
+                        #endif
+                        mapping_entry.imgs_begin[a2] = rd.var_sets_imgs_ps.size() ;
+
+                        var_funk( _ctx->dev(), vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
+                        #if 0
+                        mapping_entry.imgs_end[a0] = rd.var_sets_imgs_vs.size() ;
+                        mapping_entry.imgs_end[a1] = rd.var_sets_imgs_gs.size() ;
+                        #endif
+                        mapping_entry.imgs_end[a2] = rd.var_sets_imgs_ps.size() ;
                     } ) ;
                 }
                 else
                 {
+                    auto & mapping_entry = rd.varset_to_idx[vs_idx] ;
+
+                    mapping_entry.imgs_begin[a2] = rd.var_sets_imgs_ps.size() ;
+
                     auto vs = rc.borrow_variable_set( vs_idx ) ;
-                    var_funk( _ctx->dev(), vs_idx, vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
+                    var_funk( _ctx->dev(), vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps ) ;
+
+                    mapping_entry.imgs_end[a2] = rd.var_sets_imgs_ps.size() ;
                 }
             } ) ;
 
@@ -4271,15 +4302,19 @@ public: // functions
                 if( rnd.has_variable_set( varset_id ) )
                 {
                     auto const & entry = rnd.varset_to_idx[ varset_id ] ;
-                    for( size_t i=entry.cbuffer_begin[0]; i<entry.cbuffer_end[0]; ++i )
+                    size_t const a0 = render_data_t::varset_to_idx_data::indices::vertex_shader ;
+                    size_t const a1 = render_data_t::varset_to_idx_data::indices::geometry_shader ;
+                    size_t const a2 = render_data_t::varset_to_idx_data::indices::pixel_shader ;
+
+                    for( size_t i=entry.cbuffer_begin[a0]; i<entry.cbuffer_end[a0]; ++i )
                     {
                         update_funk( _ctx->ctx(), rnd._cbuffers_vs[i] ) ;
                     }
-                    for( size_t i=entry.cbuffer_begin[1]; i<entry.cbuffer_end[1]; ++i )
+                    for( size_t i=entry.cbuffer_begin[a1]; i<entry.cbuffer_end[a1]; ++i )
                     {
                         update_funk( _ctx->ctx(), rnd._cbuffers_gs[i] ) ;
                     }
-                    for( size_t i=entry.cbuffer_begin[2]; i<entry.cbuffer_end[2]; ++i )
+                    for( size_t i=entry.cbuffer_begin[a2]; i<entry.cbuffer_end[a2]; ++i )
                     {
                         update_funk( _ctx->ctx(), rnd._cbuffers_ps[i] ) ;
                     }
@@ -4310,6 +4345,51 @@ public: // functions
             // all we need to do is to figure out if a texture variable has
             // changed its name. If so, assign correct image id.
             {
+            #if 1
+                auto update_funk = [&] ( size_t const vsid, this_t::render_data::image_variable_t & iv )
+                {
+                    auto * vs = rnd.var_sets[ rnd.varset_to_idx[vsid].idx ].vs ;
+
+                    {
+                        auto * tx_var = vs->find_texture_variable( iv.name.c_str() ) ;
+
+                        // if nullptr, variable does not exist anymore
+                        // what to do then?
+                        if ( tx_var == nullptr ) return ;
+
+                        if ( tx_var->get().hash() == iv.value_hash ) return  ;
+                        iv.value_hash = tx_var->get().hash() ;
+                        
+                        size_t const idx = _images.find_by_name( tx_var->get().name() ) ;
+                        iv.id = idx ;
+                    }
+                } ;
+
+                if( rnd.has_variable_set( varset_id ) )
+                {
+                    auto const & entry = rnd.varset_to_idx[ varset_id ] ;
+                    size_t const a0 = render_data_t::varset_to_idx_data::indices::vertex_shader ;
+                    size_t const a1 = render_data_t::varset_to_idx_data::indices::geometry_shader ;
+                    size_t const a2 = render_data_t::varset_to_idx_data::indices::pixel_shader ;
+
+                    for( size_t i=entry.imgs_begin[a0]; i<entry.imgs_end[a0]; ++i )
+                    {
+                        update_funk( varset_id, rnd.var_sets_imgs_vs[i] ) ;
+                    }
+                    #if 0 // currently not implemented
+                    for( size_t i=entry.imgs_begin[a1]; i<entry.imgs_end[a1]; ++i )
+                    {
+                        update_funk( varset_id, rnd.var_sets_imgs_gs[i] ) ;
+                    }
+                    #endif
+                    for( size_t i=entry.imgs_begin[a2]; i<entry.imgs_end[a2]; ++i )
+                    {
+                        update_funk( varset_id, rnd.var_sets_imgs_ps[i] ) ;
+                    }
+
+                }
+
+            #else
                 auto update_funk = [&] ( size_t const vsid, this_t::render_data::image_variables_t & image_variables )
                 {                    
                     #if 1
@@ -4344,6 +4424,7 @@ public: // functions
 
                 update_funk( varset_id, rnd.var_sets_imgs_vs ) ;
                 update_funk( varset_id, rnd.var_sets_imgs_ps ) ;
+            #endif
             }
 
             return true ;
@@ -4499,25 +4580,35 @@ public: // functions
             if( rnd.has_variable_set( varset_id ) )
             {
                 auto const access = render_data_t::varset_to_idx_data::indices::pixel_shader ;
-
                 auto const idx = rnd.varset_to_idx[varset_id].idx ;
-                auto const begin = rnd.varset_to_idx[varset_id].cbuffer_begin[access] ;
-                auto const end = rnd.varset_to_idx[varset_id].cbuffer_end[access] ;
+
+                {
+                    auto const begin = rnd.varset_to_idx[varset_id].cbuffer_begin[access] ;
+                    auto const end = rnd.varset_to_idx[varset_id].cbuffer_end[access] ;
+                
+                    for( size_t i=begin; i<end; ++i )
+                    {
+                        auto & cb = rnd._cbuffers_ps[i] ;
+                        ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
+                    }
+                }
 
                 #if 1
-                for( size_t i=begin; i<end; ++i )
-                {
-                    auto & cb = rnd._cbuffers_ps[i] ;
-                    ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
+                {   
+                    auto const begin = rnd.varset_to_idx[varset_id].imgs_begin[access] ;
+                    auto const end = rnd.varset_to_idx[varset_id].imgs_end[access] ;
+                    for( size_t i=begin; i<end; ++i )
+                    {
+                        auto & img = rnd.var_sets_imgs_ps[i] ;
+
+                        _images.access( img.id, [&]( this_t::image_data_ref_t imgd )
+                        {
+                            ctx->PSSetShaderResources( img.slot, 1, imgd.view ) ;
+                            ctx->PSSetSamplers( img.slot, 1, imgd.sampler ) ;
+                        } ) ;
+                    }
                 }
                 #else
-                for ( auto & cb : rnd._cbuffers_ps )
-                {
-                    if ( cb.var_set_idx != varset_id ) continue ;
-
-                    ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
-                }
-                #endif
                 for ( auto & img : rnd.var_sets_imgs_ps )
                 {
                     if ( img.var_set_idx != varset_id ) continue ;
@@ -4528,6 +4619,7 @@ public: // functions
                         ctx->PSSetSamplers( img.slot, 1, imgd.sampler ) ;
                     } ) ;
                 }
+                #endif
 
                 for ( auto & buf : rnd.var_sets_buffers_ps[ idx ].second )
                 {
@@ -4663,6 +4755,19 @@ public: // functions
                     }
                 }
 
+                #if 1
+                {
+                    auto const begin = rnd.varset_to_idx[ varset_id ].imgs_begin[ access ];
+                    auto const end = rnd.varset_to_idx[ varset_id ].imgs_end[ access ];
+
+                    for( size_t i = begin; i < end; ++i )
+                    {
+                        auto & img = rnd.var_sets_imgs_ps[i] ;
+                        ID3D11ShaderResourceView * const null_view[ 1 ] = { nullptr };
+                        ctx->PSSetShaderResources( img.slot, 1, null_view ) ;
+                    }
+                }
+                #else
                 for ( auto & img : rnd.var_sets_imgs_ps )
                 {
                     if ( img.var_set_idx != varset_id ) continue ;
@@ -4671,6 +4776,7 @@ public: // functions
                     ctx->PSSetShaderResources( img.slot, 1, null_view ) ;
                     //ctx->PSSetSamplers( img.slot, 1, images[ img.id ].sampler ) ;
                 }
+                #endif
 
                 for ( auto & buf : rnd.var_sets_buffers_ps[ idx ].second )
                 {
