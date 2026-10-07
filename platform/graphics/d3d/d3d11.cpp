@@ -906,20 +906,8 @@ struct d3d11_backend::pimpl
             // var_sets_imgs_*
             std::array< size_t, indices::num_indices > imgs_begin = {size_t(-1), size_t(-1), size_t(-1)} ;
             std::array< size_t, indices::num_indices > imgs_end = {size_t(-1), size_t(-1), size_t(-1)};
-            
-            
-            #if 0
-            // array uniform variables into
-            // var_sets_array
-            size_t array_idx_begin = size_t(-1) ;
-            size_t array_idx_end = size_t(-1) ;
-
-            // streamout uniform variables into
-            // var_sets_streamout
-            size_t streamout_idx_begin = size_t(-1) ;
-            size_t streamout_idx_end = size_t(-1) ;            
-            #endif
         };
+
         // index: variable set id
         // storage : index into var_sets
         motor::vector< varset_to_idx_data > varset_to_idx ;
