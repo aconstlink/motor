@@ -773,12 +773,7 @@ struct d3d11_backend::pimpl
         ID3D11InputLayout* vertex_layout_so = nullptr ;
 
         ID3D11RasterizerState* raster_state = nullptr ;
-        ID3D11BlendState* blend_state = nullptr ;
-
-        motor::hash_map< size_t, size_t > var_set_to_idx_map ;
-
-        // also keep this one for ref counting
-        motor::vector< motor::graphics::variable_set_mtr_t > var_sets ;
+        ID3D11BlendState* blend_state = nullptr ;        
 
         struct data_variable
         {
@@ -867,8 +862,6 @@ struct d3d11_backend::pimpl
         // requires its own constant buffer data.
         struct cbuffer
         {
-            size_t var_set_idx ;
-
             UINT slot ;
             void_ptr_t mem = nullptr ;
             guard<ID3D11Buffer> ptr ;
@@ -884,6 +877,92 @@ struct d3d11_backend::pimpl
         //
         ///////////////////// END: Cbuffer variables <-> normal data variables
 
+        // index into var_sets. This is 1:1 to the render_objects'
+        // variable set list.
+        // an entry of value size_t(-1) means it is invalid
+        struct varset_to_idx_data
+        { 
+            enum indices
+            {
+                vertex_shader = 0,
+                geometry_shader = 1,
+                pixel_shader = 2,
+                num_indices
+            };
+            // into var_sets
+            size_t idx = size_t(-1) ; 
+
+            // data variables into
+            // cbuffers
+            // indices: 
+            // 0: vertex shader cbuffers
+            // 1: geometry shader cbuffers
+            // 2: pixel shader cbuffers
+            std::array< size_t, indices::num_indices > cbuffer_begin = {size_t(-1), size_t(-1), size_t(-1)} ;
+            std::array< size_t, indices::num_indices > cbuffer_end = {size_t(-1), size_t(-1), size_t(-1)};
+            
+
+            #if 0
+            // texture uniform variables into
+            // var_sets_texture
+            size_t texture_idx_begin = size_t(-1) ;
+            size_t texture_idx_end = size_t(-1) ;
+
+            // array uniform variables into
+            // var_sets_array
+            size_t array_idx_begin = size_t(-1) ;
+            size_t array_idx_end = size_t(-1) ;
+
+            // streamout uniform variables into
+            // var_sets_streamout
+            size_t streamout_idx_begin = size_t(-1) ;
+            size_t streamout_idx_end = size_t(-1) ;            
+            #endif
+        };
+        // index: variable set id
+        // storage : index into var_sets
+        motor::vector< varset_to_idx_data > varset_to_idx ;
+
+        struct variable_set
+        {
+            size_t hash ;
+
+            // if nullptr, this entry is invalid.
+            // also keep this one for ref counting, so we can
+            // safely use the internal variables.
+            motor::graphics::variable_set_mtr_t vs = nullptr ;
+
+            bool_t is_valid( void_t ) const noexcept
+            {
+                return vs != nullptr ;
+            }
+
+            bool_t is_invalid( void_t ) const noexcept
+            {
+                return vs == nullptr ;
+            }
+        }  ;
+        motor_typedef( variable_set ) ;
+        motor::vector< variable_set_t > var_sets ;        
+
+        // returns true if the entry exists and is valid, otherwise false.
+        bool_t get_vs_to_idx_entry( size_t const varset_idx, varset_to_idx_data & data_out) noexcept
+        {
+            if( has_not_variable_set( varset_idx ) ) return false ;
+            data_out = varset_to_idx[varset_idx] ;
+            return true ;
+        }
+
+        bool_t has_variable_set( size_t const vs_idx ) const noexcept
+        {
+            return varset_to_idx.size() > vs_idx && varset_to_idx[vs_idx].idx != size_t(-1) ;
+        }
+
+        bool_t has_not_variable_set( size_t const vs_idx ) const noexcept
+        {
+            return !has_variable_set( vs_idx ) ;
+        }
+
         render_data( void_t ) noexcept {}
         render_data( render_data const & ) = delete ;
         render_data( render_data && rhv ) noexcept
@@ -898,8 +977,10 @@ struct d3d11_backend::pimpl
             motor_move_member_ptr( raster_state, rhv ) ;
             motor_move_member_ptr( blend_state, rhv ) ;
 
-            var_set_to_idx_map = std::move( rhv.var_set_to_idx_map ) ;
-            var_sets = std::move( rhv.var_sets ) ;
+            //var_set_to_idx_map = std::move( rhv.var_set_to_idx_map ) ;            
+            
+            varset_to_idx = std::move( rhv.varset_to_idx ) ;
+            var_sets = std::move(rhv.var_sets ) ;
             var_sets_imgs_vs = std::move( rhv.var_sets_imgs_vs ) ;
             var_sets_imgs_ps = std::move( rhv.var_sets_imgs_ps ) ;
             var_sets_buffers_vs = std::move( rhv.var_sets_buffers_vs ) ;
@@ -930,7 +1011,8 @@ struct d3d11_backend::pimpl
             motor_move_member_ptr( raster_state, rhv ) ;
             motor_move_member_ptr( blend_state, rhv ) ;
 
-            var_set_to_idx_map = std::move( rhv.var_set_to_idx_map ) ; 
+            //var_set_to_idx_map = std::move( rhv.var_set_to_idx_map ) ; 
+            varset_to_idx = std::move( rhv.varset_to_idx ) ;
             var_sets = std::move( rhv.var_sets ) ;
             var_sets_imgs_vs = std::move( rhv.var_sets_imgs_vs ) ;
             var_sets_imgs_ps = std::move( rhv.var_sets_imgs_ps ) ;
@@ -980,7 +1062,8 @@ struct d3d11_backend::pimpl
                 blend_state = nullptr ;
             }
 
-            var_set_to_idx_map.clear() ;
+            //var_set_to_idx_map.clear() ;
+            varset_to_idx.clear() ;
             var_sets_imgs_vs.clear() ;
             var_sets_imgs_ps.clear() ;
             var_sets_buffers_vs.clear() ;
@@ -991,7 +1074,7 @@ struct d3d11_backend::pimpl
             var_sets_buffers_so_ps.clear() ;
 
             {
-                for( auto * mtr : var_sets ) motor::memory::release_ptr( mtr ) ;
+                for( auto & data : var_sets ) motor::release( motor::move( data.vs ) ) ;
                 var_sets.clear() ;
             }
 
@@ -3322,9 +3405,13 @@ public: // functions
     // otherwise, only create for specific idx
     void_t check_and_create_data_for_variable_set( this_t::render_data_ref_t rd, 
             motor::graphics::render_object_ref_t rc, size_t const vs_idx = size_t(-1) ) noexcept
-    {
+    {        
+        #if 1
+        if( rd.has_variable_set( vs_idx ) ) return  ;
+        #else
         if( rd.var_set_to_idx_map.find( vs_idx ) != rd.var_set_to_idx_map.end() ) return ;
-        
+        #endif
+
         // borrowed
         motor::graphics::variable_set_mtr_t default_values = nullptr ;
         _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t shd )
@@ -3336,29 +3423,71 @@ public: // functions
         {
             // track ref count for variable set
             {
+                rd.varset_to_idx.resize( rc.get_num_variable_sets() ) ;
+
                 rc.for_each( [&] ( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
                 {
                     if( default_values != nullptr )
                     {
                         vs.vs->clone_from_if_not_exist( default_values ) ;
                     }
+                    #if 1
+                    {
+                        render_data_t::varset_to_idx_data entry ;
+                        entry.idx = rd.var_sets.size() ;
+                        rd.varset_to_idx[ i ] = std::move( entry ) ;
+                    }
+                    {
+                        render_data_t::variable_set vs_ ;
+                        vs_.vs = motor::share( vs.vs ) ;
+                        rd.var_sets.emplace_back( std::move( vs_ ) ) ;
+                    }
+                    #else
                     rd.var_set_to_idx_map[ i ] = rd.var_sets.size() ;
                     rd.var_sets.emplace_back( motor::share( vs.vs ) ) ;
+                    #endif
                 } ) ;
             }
         }
         else
         {
-            auto vs = rc.borrow_variable_set( vs_idx ) ;
-            rd.var_set_to_idx_map[ vs_idx ] = rd.var_sets.size() ;
-            rd.var_sets.emplace_back( motor::share( vs.vs ) ) ; ;
+            #if 1
+            // make indirection entry
+            {
+                render_data_t::varset_to_idx_data entry ;
+                entry.idx = rd.var_sets.size() ;
 
+                if( rd.varset_to_idx.size() <= vs_idx ) 
+                    rd.varset_to_idx.resize( vs_idx + 1 ) ;
+                rd.varset_to_idx[vs_idx] = std::move( entry ) ;
+            }
+
+            // store variable set itself
+            {
+                render_data_t::variable_set vs_ ;
+                vs_.vs = motor::share( rc.borrow_variable_set( vs_idx ).vs ) ;
+                rd.var_sets.emplace_back( std::move( vs_ ) ) ;
+            }
             
+            // assign default values
+            {
+                auto vs = rc.borrow_variable_set( vs_idx ) ;
+                if( default_values != nullptr )
+                {
+                    vs.vs->clone_from_if_not_exist( default_values ) ;
+                }
+            }
+            #else
+            rd.var_set_to_idx_map[ vs_idx ] = rd.var_sets.size() ;
 
+            auto vs = rc.borrow_variable_set( vs_idx ) ;
+            rd.var_sets.emplace_back( motor::share( vs.vs ) ) ; ;            
+            
             if( default_values != nullptr )
             {
                 vs.vs->clone_from_if_not_exist( default_values ) ;
             }
+            #endif
         }
 
         // constant buffer mapping
@@ -3371,8 +3500,9 @@ public: // functions
                     this_t::render_data_t::cbuffer_t cb ;
                     cb.mem = motor::memory::global_t::alloc_raw< uint8_t >( c.sib, "[d3d11] : vertex shader cbuffer variable" ) ;
                     cb.slot = c.slot ;
+                    #if 0
                     cb.var_set_idx = var_set_idx ;
-
+                    #endif
                     D3D11_BUFFER_DESC bd = {} ;
                     bd.Usage = D3D11_USAGE_DEFAULT ;
                     bd.ByteWidth = UINT( c.sib ) ;
@@ -3409,17 +3539,37 @@ public: // functions
                 {
                     rc.for_each( [&] ( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
+                        auto & mapping_entry = rd.varset_to_idx[i] ;
+
+                        mapping_entry.cbuffer_begin[0] = rd._cbuffers_vs.size() ;
+                        mapping_entry.cbuffer_begin[1] = rd._cbuffers_gs.size() ;
+                        mapping_entry.cbuffer_begin[2] = rd._cbuffers_ps.size() ;
+
                         var_funk( _ctx->dev(), i, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
                         var_funk( _ctx->dev(), i, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
                         var_funk( _ctx->dev(), i, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
+
+                        mapping_entry.cbuffer_end[0] = rd._cbuffers_vs.size() ;
+                        mapping_entry.cbuffer_end[1] = rd._cbuffers_gs.size() ;
+                        mapping_entry.cbuffer_end[2] = rd._cbuffers_ps.size() ;
                     } ) ;
                 }
                 else
                 {
+                    auto & mapping_entry = rd.varset_to_idx[vs_idx] ;
+
+                    mapping_entry.cbuffer_begin[0] = rd._cbuffers_vs.size() ;
+                    mapping_entry.cbuffer_begin[1] = rd._cbuffers_gs.size() ;
+                    mapping_entry.cbuffer_begin[2] = rd._cbuffers_ps.size() ;
+
                     auto vs = rc.borrow_variable_set( vs_idx ) ;
                     var_funk( _ctx->dev(), vs_idx, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
                     var_funk( _ctx->dev(), vs_idx, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
                     var_funk( _ctx->dev(), vs_idx, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
+
+                    mapping_entry.cbuffer_end[0] = rd._cbuffers_vs.size() ;
+                    mapping_entry.cbuffer_end[1] = rd._cbuffers_gs.size() ;
+                    mapping_entry.cbuffer_end[2] = rd._cbuffers_ps.size() ;
                 }
                 
             } ) ;
@@ -3618,9 +3768,10 @@ public: // functions
 
         // release placeholder/ref count manager variable sets
         {
-            rd.var_set_to_idx_map.clear() ;
+            rd.varset_to_idx.clear() ;
+            //rd.var_set_to_idx_map.clear() ;
 
-            for ( auto * vs : rd.var_sets ) motor::memory::release_ptr( vs ) ;
+            for ( auto & vs : rd.var_sets ) motor::memory::release_ptr( vs.vs ) ;
             rd.var_sets.clear() ;
         }
 
@@ -3660,165 +3811,11 @@ public: // functions
             rd.var_sets_buffers_so_ps.clear() ;
         }        
 
-        #if 1 
         {
             // vs_idx == size_t(-1)
             this_t::check_and_create_data_for_variable_set( rd, rc ) ;
         }
-        #else
-        // track ref count for variable set
-        {
-            rc.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
-            {
-                rd.var_sets.emplace_back( motor::memory::copy_ptr( vs ) ) ;
-            } ) ;
-        }
 
-        // constant buffer mapping
-        {
-            auto var_funk = [] ( ID3D11Device * dev, size_t const var_set_idx, motor::graphics::variable_set_mtr_t vs,
-                this_t::shader_data_t::cbuffers_ref_t cbuffers, this_t::render_data::cbuffers_inout_t cbs )
-            {
-                for ( auto & c : cbuffers )
-                {
-                    this_t::render_data_t::cbuffer_t cb ;
-                    cb.mem = motor::memory::global_t::alloc_raw< uint8_t >( c.sib, "[d3d11] : vertex shader cbuffer variable" ) ;
-                    cb.slot = c.slot ;
-                    cb.var_set_idx = var_set_idx ;
-
-                    D3D11_BUFFER_DESC bd = {} ;
-                    bd.Usage = D3D11_USAGE_DEFAULT ;
-                    bd.ByteWidth = UINT( c.sib ) ;
-                    bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER ;
-                    bd.CPUAccessFlags = 0 ;
-
-                    D3D11_SUBRESOURCE_DATA InitData = {} ;
-                    InitData.pSysMem = cb.mem ;
-                    auto const hr = dev->CreateBuffer( &bd, &InitData, cb.ptr ) ;
-                    if ( FAILED( hr ) )
-                    {
-                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_CONSTANT_BUFFER" ) ) ;
-                    }
-
-                    for ( auto & var : c.datas )
-                    {
-                        render_data_t::data_variable_t dv ;
-                        dv.ivar = vs->data_variable( var.name, var.t, var.ts ) ;
-                        dv.sib = motor::graphics::size_of( var.t ) * motor::graphics::size_of( var.ts ) ;
-                        dv.name = var.name ;
-                        dv.t = var.t ;
-                        dv.ts = var.ts ;
-                        dv.offset = var.offset ;
-                        cb.data_variables.emplace_back( dv ) ;
-                    }
-                    cbs.emplace_back( std::move( cb ) ) ;
-                }
-            } ;
-
-            //this_t::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
-            _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t shd )
-            {
-                rc.for_each( [&] ( size_t const i, motor::graphics::variable_set_mtr_t vs )
-                {
-                    var_funk( _ctx->dev(), i, vs, shd.vs_cbuffers, rd._cbuffers_vs ) ;
-                    var_funk( _ctx->dev(), i, vs, shd.gs_cbuffers, rd._cbuffers_gs ) ;
-                    var_funk( _ctx->dev(), i, vs, shd.ps_cbuffers, rd._cbuffers_ps ) ;
-                } ) ;
-            } ) ;
-        }
-
-        // texture variable mapping
-        {
-            //this_t::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
-            _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t shd )
-            {
-                rc.for_each( [&] ( size_t const vs_id, motor::graphics::variable_set_mtr_t vs )
-                {
-                    for ( auto & t : shd.ps_textures )
-                    {
-                        auto * dv = vs->texture_variable( t.name ) ;
-                        motor::string_t const img_name = dv->get().name() ;
-                        
-                        size_t const i = _images.find_by_name( img_name ) ;
-                        if( i == size_t(-1) ) continue ;
-
-                        this_t::render_data_t::image_variable_t iv ;
-                        iv.var_set_idx = vs_id ;
-                        iv.value_hash = dv->get().hash() ;
-                        iv.id = i ;
-                        iv.name = t.name ;
-                        iv.slot = t.slot ;
-                        rd.var_sets_imgs_ps.emplace_back( std::move( iv ) ) ;
-
-                        // set y flip for the current texture in the current variable set
-                        _images.access( i, [&]( this_t::image_data_ref_t d )
-                        {
-                            auto * var = vs->data_variable< float_t >( "sys_flipv_" + t.name ) ;
-                            var->set( d.requires_y_flip ) ;
-                        } ) ;
-                    }
-                } ) ;
-            } ) ;
-
-            
-        }
-
-        auto array_variable_mapping = [&]( motor::graphics::render_object_ref_t rc_,
-            pimpl::streamout_datas_t & streamouts,
-            this_t::render_data_t::varsets_to_buffers_t & var_sets_buffers,
-            this_t::render_data_t::varsets_to_buffers_t & var_sets_buffers_so,
-            pimpl::shader_data_t::buffer_variables_ref_t the_buffer )
-        {
-            rc_.for_each( [&] ( size_t const /*i*/, motor::graphics::variable_set_mtr_t vs )
-            {
-                this_t::render_data_t::buffer_variables_t bvs ;
-                this_t::render_data_t::buffer_variables_t bvs_so ;
-                for ( auto & t : the_buffer )
-                {
-                    // first try data_buffers...
-                    motor::string_t const name = vs->array_variable( t.name )->get().name() ;
-                    size_t const i = _arrays.find_by_name( name ) ;
-
-                    // ... if the stored variable name is found in the data_buffers array, it is used ...
-                    if ( i < _arrays.size() )
-                    {
-                        this_t::render_data_t::buffer_variable_t bv ;
-                        bv.id = i ;
-                        bv.name = t.name ;
-                        bv.slot = t.slot ;
-                        bvs.emplace_back( std::move( bv ) ) ;
-                    }
-                    // ... otherwise we default to the streamout objects
-                    else
-                    {
-                        motor::string_t const name2 = vs->array_variable_streamout( t.name )->get().name() ;
-                        size_t const i2 = streamouts.find_by_name( name2 ) ;
-
-                        if ( i2 < streamouts.size() )
-                        {
-                            this_t::render_data_t::buffer_variable_t bv ;
-                            bv.id = i2 ;
-                            bv.name = t.name ;
-                            bv.slot = t.slot ;
-                            bvs_so.emplace_back( std::move( bv ) ) ;
-                        }
-                    }
-                }
-                var_sets_buffers.emplace_back( std::make_pair( vs, std::move( bvs ) ) ) ;
-                var_sets_buffers_so.emplace_back( std::make_pair( vs, std::move( bvs_so ) ) ) ;
-            } ) ;
-        } ;
-
-        {
-            //this_t::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
-            _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t shd )
-            {
-                array_variable_mapping( rc, _streamouts, rd.var_sets_buffers_vs, rd.var_sets_buffers_so_vs, shd.vs_buffers ) ;
-                array_variable_mapping( rc, _streamouts, rd.var_sets_buffers_gs, rd.var_sets_buffers_so_gs, shd.gs_buffers ) ;
-                array_variable_mapping( rc, _streamouts, rd.var_sets_buffers_ps, rd.var_sets_buffers_so_ps, shd.ps_buffers ) ;
-            } ) ;
-        }
-        #endif
         return true ;
     }
 
@@ -4243,16 +4240,51 @@ public: // functions
         {
             // search if variable set exists
             {
-                auto found = rnd.var_set_to_idx_map.find( varset_id ) ;
+                #if 1
+                if( rnd.has_not_variable_set( varset_id ) )
+                    this_t::check_and_create_data_for_variable_set( rnd, obj, varset_id ) ;
 
+                #else
+                auto found = rnd.var_set_to_idx_map.find( varset_id ) ;
                 if( found == rnd.var_set_to_idx_map.end() ) 
                 {
                     this_t::check_and_create_data_for_variable_set( rnd, obj, varset_id ) ;
                 }
+                #endif
             }
 
             // data variables
             {
+                
+
+                #if 1
+                auto update_funk = [&] ( ID3D11DeviceContext * ctx_, this_t::render_data::cbuffer_t & cb )
+                {
+                    for ( auto & dv : cb.data_variables )
+                    {
+                        if ( dv.ivar == nullptr ) continue ;
+                        dv.do_copy_funk_from_origin( cb.mem ) ;
+                    }
+                    ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 ) ;
+                } ;
+
+                if( rnd.has_variable_set( varset_id ) )
+                {
+                    auto const & entry = rnd.varset_to_idx[ varset_id ] ;
+                    for( size_t i=entry.cbuffer_begin[0]; i<entry.cbuffer_end[0]; ++i )
+                    {
+                        update_funk( _ctx->ctx(), rnd._cbuffers_vs[i] ) ;
+                    }
+                    for( size_t i=entry.cbuffer_begin[1]; i<entry.cbuffer_end[1]; ++i )
+                    {
+                        update_funk( _ctx->ctx(), rnd._cbuffers_gs[i] ) ;
+                    }
+                    for( size_t i=entry.cbuffer_begin[2]; i<entry.cbuffer_end[2]; ++i )
+                    {
+                        update_funk( _ctx->ctx(), rnd._cbuffers_ps[i] ) ;
+                    }
+                }
+                #else
                 auto update_funk = [&] ( ID3D11DeviceContext * ctx_, size_t const vsid, this_t::render_data::cbuffers_t & cbuffers )
                 {
                     // Dynamic sets are appended in draw order, not ID order.
@@ -4271,6 +4303,7 @@ public: // functions
                 update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_vs ) ;
                 update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_gs ) ;
                 update_funk( _ctx->ctx(), varset_id, rnd._cbuffers_ps ) ;
+                #endif
             }
 
             // textures
@@ -4279,10 +4312,16 @@ public: // functions
             {
                 auto update_funk = [&] ( size_t const vsid, this_t::render_data::image_variables_t & image_variables )
                 {                    
+                    #if 1
+                    if( rnd.has_not_variable_set( vsid ) ) return ;
+
+                    auto * vs = rnd.var_sets[ rnd.varset_to_idx[vsid].idx ].vs ;
+                    #else
                     if( rnd.var_set_to_idx_map.find( vsid ) == 
                         rnd.var_set_to_idx_map.end() ) return ;
-
+                    
                     auto * vs = rnd.var_sets[ rnd.var_set_to_idx_map[vsid] ] ;
+                    #endif
 
                     for ( size_t i = 0; i < image_variables.size(); ++i )
                     {
@@ -4305,14 +4344,6 @@ public: // functions
 
                 update_funk( varset_id, rnd.var_sets_imgs_vs ) ;
                 update_funk( varset_id, rnd.var_sets_imgs_ps ) ;
-
-                #if 0
-                size_t idx = size_t( -1 ) ;
-                while ( ++idx < cbuffers.size()
-                    && cbuffers[ idx ].var_set_idx < vsid ) ;
-
-                rnd.var_sets_imgs_ps
-                    #endif
             }
 
             return true ;
@@ -4333,8 +4364,7 @@ public: // functions
 
         return _renders.access( id, [&]( motor::string_in_t rnd_name, this_t::render_data_ref_t rnd )
         {
-            if( rnd.var_set_to_idx_map.find( varset_id ) == 
-                rnd.var_set_to_idx_map.end() ) return false ;            
+            if( rnd.has_not_variable_set( varset_id ) ) return false ;
 
             if ( rnd.shd_id == size_t( -1 ) )
             {
@@ -4377,16 +4407,29 @@ public: // functions
 
 
             // SECTION: vertex shader variables
-            if( rnd.var_set_to_idx_map.find( varset_id ) != 
-                rnd.var_set_to_idx_map.end() )
+            if( rnd.has_variable_set( varset_id ) )
             {
-                auto const idx = rnd.var_set_to_idx_map[varset_id] ;
+                auto const access = render_data_t::varset_to_idx_data::indices::vertex_shader ;
 
-                for ( auto & cb : rnd._cbuffers_vs )
+                auto const idx = rnd.varset_to_idx[varset_id].idx ;
+                auto const begin = rnd.varset_to_idx[varset_id].cbuffer_begin[access] ;
+                auto const end = rnd.varset_to_idx[varset_id].cbuffer_end[access] ;
+                #if 1
+                for( size_t i=begin; i<end; ++i )
                 {
-                    if ( cb.var_set_idx != varset_id ) continue ;
+                    auto & cb = rnd._cbuffers_vs[i] ;
                     ctx->VSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
                 }
+                #else
+                for ( auto & cb : rnd._cbuffers_vs )
+                {
+                
+                    
+                    if ( cb.var_set_idx != varset_id ) continue ;
+                    
+                    ctx->VSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
+                }
+                #endif
 
                 for ( auto & buf : rnd.var_sets_buffers_vs[ idx ].second )
                 {
@@ -4407,17 +4450,28 @@ public: // functions
             }
 
             // SECTION: geometry shader variables
-            if( rnd.var_set_to_idx_map.find( varset_id ) != 
-                rnd.var_set_to_idx_map.end() )
+            if( rnd.has_variable_set( varset_id ) )
             {
-                auto const idx = rnd.var_set_to_idx_map[varset_id] ;
+                auto const access = render_data_t::varset_to_idx_data::indices::geometry_shader ;
 
+                auto const idx = rnd.varset_to_idx[varset_id].idx ;
+                auto const begin = rnd.varset_to_idx[varset_id].cbuffer_begin[access] ;
+                auto const end = rnd.varset_to_idx[varset_id].cbuffer_end[access] ;
+
+                #if 1
+                for( size_t i=begin; i<end; ++i )
+                {
+                    auto & cb = rnd._cbuffers_gs[i] ;
+                    ctx->GSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
+                }
+                #else
                 for ( auto & cb : rnd._cbuffers_gs )
                 {
                     if ( cb.var_set_idx != varset_id ) continue ;
 
                     ctx->GSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
                 }
+                #endif
 
                 for ( auto & buf : rnd.var_sets_buffers_gs[ idx ].second )
                 {
@@ -4442,18 +4496,28 @@ public: // functions
             }
 
             // SECTION: pixel shader variables
-            if( rnd.var_set_to_idx_map.find( varset_id ) != 
-                rnd.var_set_to_idx_map.end() )
+            if( rnd.has_variable_set( varset_id ) )
             {
-                auto const idx = rnd.var_set_to_idx_map[varset_id] ;
+                auto const access = render_data_t::varset_to_idx_data::indices::pixel_shader ;
 
+                auto const idx = rnd.varset_to_idx[varset_id].idx ;
+                auto const begin = rnd.varset_to_idx[varset_id].cbuffer_begin[access] ;
+                auto const end = rnd.varset_to_idx[varset_id].cbuffer_end[access] ;
+
+                #if 1
+                for( size_t i=begin; i<end; ++i )
+                {
+                    auto & cb = rnd._cbuffers_ps[i] ;
+                    ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
+                }
+                #else
                 for ( auto & cb : rnd._cbuffers_ps )
                 {
                     if ( cb.var_set_idx != varset_id ) continue ;
 
                     ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr ) ;
                 }
-
+                #endif
                 for ( auto & img : rnd.var_sets_imgs_ps )
                 {
                     if ( img.var_set_idx != varset_id ) continue ;
@@ -4581,17 +4645,22 @@ public: // functions
             }
 
             // SECTION: UNBIND pixel shader variables
-            if( rnd.var_set_to_idx_map.find( varset_id ) != 
-                rnd.var_set_to_idx_map.end() )
+            if( rnd.has_variable_set( varset_id ) )
             {
-                auto const idx = rnd.var_set_to_idx_map[varset_id] ;
+                auto const access = render_data_t::varset_to_idx_data::indices::pixel_shader ;
+                auto const idx = rnd.varset_to_idx[ varset_id ].idx;
 
-                for ( auto & cb : rnd._cbuffers_ps )
                 {
-                    if ( cb.var_set_idx != varset_id ) continue ;
+                    auto const begin = rnd.varset_to_idx[ varset_id ].cbuffer_begin[ access ];
+                    auto const end = rnd.varset_to_idx[ varset_id ].cbuffer_end[ access ];
 
-                    ID3D11Buffer * const null_buffer[ 1 ] = { nullptr };
-                    ctx->PSSetConstantBuffers( cb.slot, 1, null_buffer ) ;
+                    for( size_t i = begin; i < end; ++i )
+                    {
+                        auto & cb = rnd._cbuffers_ps[ i ];
+
+                        ID3D11Buffer * const null_buffer[ 1 ] = { nullptr };
+                        ctx->PSSetConstantBuffers( cb.slot, 1, null_buffer );
+                    }
                 }
 
                 for ( auto & img : rnd.var_sets_imgs_ps )

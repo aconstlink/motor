@@ -529,30 +529,26 @@ struct gl4_backend::pimpl
             // data uniform variables into
             // var_sets_data
             size_t data_idx_begin = size_t(-1) ;
+            // points one after the last entry.
             size_t data_idx_end = size_t(-1) ;
 
             // texture uniform variables into
             // var_sets_texture
             size_t texture_idx_begin = size_t(-1) ;
+            // points one after the last entry.
             size_t texture_idx_end = size_t(-1) ;
 
             // array uniform variables into
             // var_sets_array
             size_t array_idx_begin = size_t(-1) ;
+            // points one after the last entry.
             size_t array_idx_end = size_t(-1) ;
 
             // streamout uniform variables into
             // var_sets_streamout
             size_t streamout_idx_begin = size_t(-1) ;
-            size_t streamout_idx_end = size_t(-1) ;
-
-            varset_to_idx_data & check_and_reset( void_t ) noexcept
-            {
-                if( data_idx_begin == data_idx_end ) 
-                    data_idx_begin = data_idx_end = size_t(-1) ;
-
-                return *this ;
-            }
+            // points one after the last entry.
+            size_t streamout_idx_end = size_t(-1) ;            
         };
         motor::vector< varset_to_idx_data > varset_to_idx ;
 
@@ -3498,7 +3494,7 @@ public:
                     config.var_sets.resize( idx + 1 ) ;
 
                 vtidx_data.idx = idx ;
-                config.varset_to_idx[ var_set_idx ] = vtidx_data.check_and_reset() ;
+                config.varset_to_idx[ var_set_idx ] = std::move( vtidx_data ) ;
                 config.var_sets[idx] = render_data::variable_set{ hash, /*var_set_idx,*/  motor::move( vs ) } ;
             }
             #else
