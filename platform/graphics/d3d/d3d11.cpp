@@ -909,10 +909,6 @@ struct d3d11_backend::pimpl
             
             
             #if 0
-            size_t texture_idx_begin = size_t(-1) ;
-            size_t texture_idx_end = size_t(-1) ;
-
-            
             // array uniform variables into
             // var_sets_array
             size_t array_idx_begin = size_t(-1) ;
