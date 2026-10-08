@@ -28,3 +28,6 @@
 [submodule "externals/jkuhlmann/cgltf"]
 	path = externals/jkuhlmann/cgltf
 	url = https://github.com/jkuhlmann/cgltf.git
+[submodule "externals/jrouwe/JoltPhysics"]
+	path = externals/jrouwe/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics.git
