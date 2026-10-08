@@ -354,3 +354,14 @@ void_t msl_component::connect_output_to_input( size_t const id )
         [ & ]( motor::string_in_t name, motor::wire::ioutput_slot_ptr_t os )
     { iss.borrow( name )->connect( motor::share( os ) ); } );
 }
+
+//*****************************************************************
+void_t msl_component::sync_inputs( void_t ) noexcept
+{
+    _base_data_set.variable_bridge().exchange_and_push() ;
+}
+
+//*****************************************************************
+void_t msl_component::sync_outputs( void_t ) noexcept
+{
+}

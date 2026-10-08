@@ -126,6 +126,22 @@ class msl_set_component : public motor::scene::icomponent
             f( d.second.msl );
         }
     }
+
+    virtual void_t sync_inputs( void_t ) noexcept 
+    {
+        for( auto & item : _components )
+        {
+            item.second.msl->sync_inputs() ;
+        }
+    }
+
+    virtual void_t sync_outputs( void_t ) noexcept 
+    {
+        for( auto & item : _components )
+        {
+            item.second.msl->sync_outputs() ;
+        }
+    }
 };
 motor_typedef( msl_set_component );
 } // namespace scene

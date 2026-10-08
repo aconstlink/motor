@@ -77,9 +77,9 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
   private:
 
-    // this output bridge is designed to connect only to 
+    // this output bridge is designed to connect only to
     // subset render data input bridges.
-    // this is a current workaround because we do not have 
+    // this is a current workaround because we do not have
     // variable set views. So we have to use full variable sets
     // which required a full copy of the data.
     motor::graphics::wire_variable_output_bridge_t _out_bridge;
@@ -141,7 +141,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
     // set a light direction on the shader variable
     // if there is a bindings.
     void_t set_light_direction( motor::math::vec3f_cref_t ) noexcept;
-    void_t set_light_direction( size_t const render_id, motor::math::vec3f_cref_t dir ) noexcept ;
+    void_t set_light_direction( size_t const render_id, motor::math::vec3f_cref_t dir ) noexcept;
 
     void_t set_light_projection( motor::math::mat4f_cref_t ) noexcept;
     void_t set_light_projection( size_t const render_id, motor::math::mat4f_cref_t ) noexcept;
@@ -157,6 +157,9 @@ class MOTOR_SCENE_API msl_component : public icomponent
     motor::wire::inputs_cref_t borrow_shader_inputs( void_t ) const noexcept;
     motor::wire::inputs_ref_t borrow_shader_inputs( void_t ) noexcept;
 
+    virtual void_t sync_inputs( void_t ) noexcept;
+    virtual void_t sync_outputs( void_t ) noexcept;
+
   private:
 
     void_t update_bindings( void_t ) noexcept;
@@ -169,7 +172,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
     // connect the output bridge to the input bridge slots of
     // render_data_set with id.
-    void_t connect_output_to_input( size_t const id );
+    void_t connect_output_to_input( size_t const id );    
 };
 motor_typedef( msl_component );
 } // namespace scene

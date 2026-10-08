@@ -197,7 +197,7 @@ bool_t app::carrier_update( void_t ) noexcept
     MOTOR_PROBE( "system", "carrier_update" ) ;
 
     std::chrono::microseconds dt_micro ;
-    float_t dt_sec = 0.0f ;
+    float_t dt_sec = 0.0f ;    
 
     // compute dt micro seconds. Here it also yield if the micro seconds == 0
     // this can happen in small projects, so we have to wait until micro != 0
@@ -226,7 +226,7 @@ bool_t app::carrier_update( void_t ) noexcept
         }
         _creation_queue.clear() ;
     }
-
+    
     // do window message updates -> on_event
     {        
         for( auto iter=_windows.begin() ; iter!=_windows.end(); )
@@ -387,8 +387,9 @@ bool_t app::carrier_update( void_t ) noexcept
                 if( d.window_closed ) 
                     d.last_frame = true ;
 
-                dat.first_frame = d.first_frame ;
-                dat.last_frame = d.last_frame ;
+                bool_t const first_frame = d.first_frame ;
+                bool_t const last_frame = d.last_frame ;
+
                 d.first_frame = false ;
 
                 auto * re = d.fe->borrow_render_engine() ;
@@ -396,27 +397,36 @@ bool_t app::carrier_update( void_t ) noexcept
                 {
                     if( auto * fe = dynamic_cast<motor::graphics::gen4::frontend_ptr_t>(d.fe); fe != nullptr ) 
                     {
-                        this->on_render( d.wid, fe, dat ) ;
-
-                        if( this_t::before_tool( dt_micro ) )
+                        if( last_frame )
                         {
-                            d.imgui->execute( [&] ( void_t )
-                            {
-                                this_t::tool_data_t td 
-                                { 
-                                    fe, d.imgui,
-                                    dat_graphic.sec_dt,
-                                    dat_graphic.micro_dt,
-                                    dat_graphic.milli_dt
-                                } ;
-                                if( this->on_tool( d.wid, td ) )
-                                {
-                                    this_t::display_engine_stats() ;
-                                    d.imgui->render( fe ) ;
-                                }
-                            } ) ;
+                            this->on_last_frame( d.wid, fe, dat ) ;
+                        }
+                        else
+                        {
+                            if( first_frame ) this->on_first_frame( d.wid, fe, dat ) ;
+                        
+                            this->on_render( d.wid, fe, dat ) ;
 
-                            this_t::after_tool(0) ;
+                            if( this_t::before_tool( dt_micro ) )
+                            {
+                                d.imgui->execute( [&] ( void_t )
+                                {
+                                    this_t::tool_data_t td 
+                                    { 
+                                        fe, d.imgui,
+                                        dat_graphic.sec_dt,
+                                        dat_graphic.micro_dt,
+                                        dat_graphic.milli_dt
+                                    } ;
+                                    if( this->on_tool( d.wid, td ) )
+                                    {
+                                        this_t::display_engine_stats() ;
+                                        d.imgui->render( fe ) ;
+                                    }
+                                } ) ;
+
+                                this_t::after_tool(0) ;
+                            }
                         }
                     }
                     re->leave_frame() ;
