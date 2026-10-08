@@ -62,11 +62,11 @@ class fxaa_stage
                     // uses only the cross neighbors
                     float_t get_subpixel_blend_factor( float_t luma_range, float_t m, float_t s, float_t n, float_t w, float_t e )
                     {
-                        float_t filter = (n+s+w+e)/4.0 ;
-                        filter = abs( filter - m ) ;
-                        filter = filter / luma_range ;
-                        filter = smoothstep( 0.0, 1.0, filter ) ;
-                        return filter * filter ;
+                        float_t filter_ = (n+s+w+e)/4.0 ;
+                        filter_ = abs( filter - m ) ;
+                        filter_ = filter / luma_range ;
+                        filter_ = smoothstep( 0.0, 1.0, filter_ ) ;
+                        return filter_ * filter_ ;
                     }
 
                     // uses full 3x3 neighbors
@@ -74,13 +74,13 @@ class fxaa_stage
                         float_t s, float_t n, float_t w, float_t e,
                         float_t nw, float_t ne, float_t sw, float_t se, float_t subpixel_blending )
                     {
-                        float_t filter = 2.0 * (n+s+w+e) ;
-                        filter += nw + ne + sw + se ;
-                        filter *= 1.0 / 12.0 ;
-                        filter = abs( filter - m ) ;
-                        filter = msl.fxaa.saturate( filter / luma_range ) ;
-                        filter = smoothstep( 0.0, 1.0, filter ) ;
-                        return filter * filter * subpixel_blending ;
+                        float_t filter_ = 2.0 * (n+s+w+e) ;
+                        filter_ += nw + ne + sw + se ;
+                        filter_ *= 1.0 / 12.0 ;
+                        filter_ = abs( filter_ - m ) ;
+                        filter_ = msl.fxaa.saturate( filter_ / luma_range ) ;
+                        filter_ = smoothstep( 0.0, 1.0, filter_ ) ;
+                        return filter_ * filter_ * subpixel_blending ;
                     }
 
                     bool_t is_horizontal_edge( float_t m, 
