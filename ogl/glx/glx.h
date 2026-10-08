@@ -5,6 +5,7 @@
 #include "../api.h"
 
 #include <motor/std/vector>
+#include <motor/std/string>
 
 #define Status int
 //#include <GL/glcorearb.h>
@@ -23,7 +24,7 @@ namespace motor
 
         private:
 
-            typedef motor::vector< char_t const * > strings_t ;
+            typedef motor::vector< motor::string_t > strings_t ;
             static strings_t _glx_extensions ;
 
         public: 
@@ -33,6 +34,7 @@ namespace motor
             /// all functions are loaded from.
             /// @precondition a opengl context must be current.
             static motor::ogl::result init( Display *, int ) ;
+            static void_t deinit( void_t ) noexcept ;
 
 
             static bool_t is_supported( char_cptr_t name ) ;

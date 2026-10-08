@@ -31,10 +31,10 @@ namespace motor
             private:
 
                 Display * _display = NULL ;
-                Window _wnd ;
+                Window _wnd = 0 ;
 
                 struct pimpl ;
-                pimpl * _pimpl ;
+                pimpl * _pimpl = nullptr ;
 
                 motor::platform::gen4::gl4_backend_mtr_t _backend = nullptr ;
 
@@ -57,6 +57,7 @@ namespace motor
             private:
 
                 bool_t  determine_gl_version( motor::application::gl_version & ) const noexcept ;
+                void_t release_context( void_t ) noexcept ;
 
             public:
 

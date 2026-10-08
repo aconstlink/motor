@@ -78,7 +78,7 @@ void_ptr_t glx::load_glx_function( char_cptr_t name )
 }
 
 //**************************************************************
-bool_t glx::is_supported( char_cptr_t name ) 
+bool_t glx::is_supported( char_cptr_t name )
 {
     if( motor::log::global_t::warning( _glx_extensions.size() == 0, 
         "[glx::is_supported] : extension string is empty" ) )
@@ -96,15 +96,19 @@ bool_t glx::is_supported( char_cptr_t name )
 }
 
 //**************************************************************
+void_t glx::deinit( void_t ) noexcept
+{
+    strings_t().swap( _glx_extensions ) ;
+}
+
+//**************************************************************
 motor::ogl::result glx::init( Display * display, int screen ) 
 {
     {
         char_cptr_t extensions = glXQueryExtensionsString( display, screen ) ;
-
-        motor::vector< motor::string_t > extension_strings ;
-        motor::mstd::string_ops::split( motor::string_t(char_cptr_t(extensions)), ' ', extension_strings ) ;
-
-        for( auto const & e : extension_strings ) _glx_extensions.push_back( e.c_str() ) ;
+        _glx_extensions.clear() ;
+        if( extensions == nullptr ) return motor::ogl::result::failed ;
+        motor::mstd::string_ops::split( motor::string_t( extensions ), ' ', _glx_extensions ) ;
     }
 
     if( !CHECK_AND_LOAD_COND( glXCreateContextAttribs, "glXCreateContextAttribsARB" ) )
@@ -113,9 +117,10 @@ motor::ogl::result glx::init( Display * display, int screen )
     }
 
     
-    if( !CHECK_AND_LOAD_COND( glXSwapInterval, "glXSwapIntervalEXT" ) )
+    // Swap control is optional; its absence must not prevent context creation.
+    if( this_t::is_supported( "GLX_EXT_swap_control" ) )
     {
-        return motor::ogl::result::failed ;
+        CHECK_AND_LOAD_COND( glXSwapInterval, "glXSwapIntervalEXT" ) ;
     }
 
     if( !CHECK_AND_LOAD_COND( glXChooseFBConfig, "glXChooseFBConfig" ) )

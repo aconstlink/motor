@@ -15,6 +15,7 @@
 
 #if MOTOR_GRAPHICS_GLX
 #include <motor/ogl/glx/glx.h>
+#include "../glx/glx_config.h"
 #endif
 
 using namespace motor::platform ;
@@ -25,66 +26,17 @@ struct xlib_carrier::glx_pimpl
 {
     motor::platform::glx::glx_context_t ctx ;
     motor::graphics::render_engine_t re ;
-    motor::graphics::ifrontend_ptr_t fe ;
-
-    static GLXFBConfig get_config( Display  * display ) noexcept
-    {
-        static GLXFBConfig *fbc = nullptr ;
-        if( fbc != nullptr )
-        {
-            return fbc[0] ;
-        }
-
-        int_ptr_t visual_attribs = motor::memory::global_t::alloc_raw<int_t>( 24, 
-                "[glx_window::create_glx_window] : visual_attribs" ) ;
-
-        {
-            struct va_pair{
-                int_t flag ;
-                int_t value ;
-            };
-
-            va_pair * va_pairs = (va_pair*)visual_attribs ;
-            va_pairs[0] = {GLX_X_RENDERABLE, True} ;
-            va_pairs[1] = {GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT} ;
-            va_pairs[2] = {GLX_RENDER_TYPE, GLX_RGBA_BIT} ;
-            va_pairs[3] = {GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR} ;
-            va_pairs[4] = {GLX_RED_SIZE, 8} ;
-            va_pairs[5] = {GLX_GREEN_SIZE, 8} ;
-            va_pairs[6] = {GLX_BLUE_SIZE, 8} ;
-            va_pairs[7] = {GLX_ALPHA_SIZE, 8} ;
-            va_pairs[8] = {GLX_DEPTH_SIZE, 24} ;
-            va_pairs[9] = {GLX_STENCIL_SIZE, 8} ;
-            va_pairs[10] = {GLX_DOUBLEBUFFER, True} ;
-            va_pairs[11] = {None, None} ;
-        }
-
-        int fbcount ;
-        fbc = glXChooseFBConfig( 
-                display, DefaultScreen( display ),
-                visual_attribs, &fbcount ) ;
-
-        if( fbc == nullptr || fbcount == 0 ) 
-        {
-            motor::log::global_t::error( 
-                "[glx_window::create_glx_window] : glXChooseFBConfig" ) ;
-
-            return 0 ;
-        }
-
-        GLXFBConfig fbconfig = fbc[0] ;
-
-        //XFree( fbc ) ;
-        //natus::memory::global_t::dealloc( visual_attribs ) ;
-
-        return fbconfig ;
-    }
+    motor::graphics::ifrontend_ptr_t fe = nullptr ;
 } ;
 #endif
 
 //**********************************************************************
 Display * xlib_carrier::connect_display( void_t ) noexcept
 {
+    static int_t const threads_initialized = XInitThreads() ;
+    if( motor::log::global_t::error( threads_initialized == 0,
+        "[xlib_carrier] : XInitThreads" ) ) exit( EXIT_FAILURE ) ;
+
     if( _display_use_count++ > 0 )
     {
         return _display ;
@@ -95,7 +47,7 @@ Display * xlib_carrier::connect_display( void_t ) noexcept
     if( motor::log::global_t::error( 
          _display==NULL, "[xlib_carrier] : XOpenDisplay" ) )
     {
-        exit(0) ;
+        exit( EXIT_FAILURE ) ;
     }
 
     return _display ;
@@ -104,18 +56,14 @@ Display * xlib_carrier::connect_display( void_t ) noexcept
 //**********************************************************************
 void_t xlib_carrier::disconnect_display( void_t ) noexcept
 {
-    if( _display_use_count-- == 1 )
+    if( _display_use_count != 0 && --_display_use_count == 0 )
     {
+        #if MOTOR_GRAPHICS_GLX
+        motor::ogl::glx::deinit() ;
+        #endif
         XCloseDisplay( _display ) ;
         _display = NULL ;
     }
-}
-
-//**********************************************************************
-Display * xlib_carrier::move_display( void_t ) noexcept
-{
-    ++_display_use_count ;
-    return _display ;
 }
 
 //**********************************************************************
@@ -138,13 +86,15 @@ xlib_carrier::xlib_carrier( motor::application::app_mtr_safe_t app ) noexcept : 
 //**********************************************************************
 xlib_carrier::xlib_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) )
 {
-    this_t::move_display() ;
     _device_module = motor::move( rhv._device_module ) ;
     _xlib_windows = std::move( rhv._xlib_windows ) ;
+    _glx_windows = std::move( rhv._glx_windows ) ;
+    _queue = std::move( rhv._queue ) ;
     _destroy_queue = std::move( rhv._destroy_queue ) ;
     _display = motor::move( rhv._display ) ;
     _display_use_count = rhv._display_use_count ;
     rhv._display_use_count = 0 ;
+    _done = rhv._done.load() ;
 }
 
 //**********************************************************************
@@ -157,13 +107,6 @@ xlib_carrier::~xlib_carrier( void_t ) noexcept
 //********************************************************************
 motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 {
-    int_t ret = XInitThreads() ;
-    if( motor::log::global_t::error( ret == 0, 
-        "[xlib_carrier] : XInitThreads" ) )
-    {
-        exit(ret) ;
-    }
-
     using _clock_t = std::chrono::high_resolution_clock ;
     _clock_t::time_point tp_begin = _clock_t::now() ;
 
@@ -187,6 +130,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 
             for( auto & wd : _xlib_windows )
             {
+                if( event.xany.window != wd.hwnd ) continue ;
                 switch( event.type )
                 {
                 case Expose:
@@ -205,6 +149,8 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                 case ConfigureNotify:
                     {
                         XConfigureEvent evt = event.xconfigure ;
+                        wd.x = evt.x ;
+                        wd.y = evt.y ;
                         wd.width = evt.width ;
                         wd.height = evt.height ;
                         this_t::send_resize( wd ) ;
@@ -235,7 +181,10 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                 case ClientMessage:
                     {
                         auto const & e = (XClientMessageEvent const &)event ;
-                        if( e.data.l[0] == XInternAtom( _display, "WM_DELETE_WINDOW", True ) )
+                        if( e.message_type == XInternAtom( _display, "WM_PROTOCOLS", True ) &&
+                            e.format == 32 &&
+                            Atom( e.data.l[0] ) == XInternAtom( _display, "WM_DELETE_WINDOW", True ) &&
+                            std::find( _destroy_queue.begin(), _destroy_queue.end(), e.window ) == _destroy_queue.end() )
                         {
                             _destroy_queue.emplace_back( e.window ) ;
                         }
@@ -246,6 +195,8 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
             _device_module->handle_input_event( event ) ;
             //XSync( _display, True ) ;
         }
+
+        for( auto & wd : _xlib_windows ) this_t::handle_messages( wd ) ;
 
         // test window destruction
         // also do 
@@ -285,12 +236,15 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                                 size_t(iter->width), size_t(iter->height) } ) ;
                         }
 
-                        d.ptr->ctx.activate() ;
-                        d.ptr->ctx.borrow_backend()->render_begin() ;
-                        d.ptr->re.execute_frame() ;
-                        d.ptr->ctx.borrow_backend()->render_end() ;
-                        d.ptr->ctx.swap() ;
-                        d.ptr->ctx.deactivate() ;
+                        if( motor::platform::success( d.ptr->ctx.activate() ) )
+                        {
+                            d.ptr->ctx.borrow_backend()->render_begin() ;
+                            d.ptr->re.execute_frame() ;
+                            d.ptr->ctx.borrow_backend()->render_end() ;
+                            d.ptr->ctx.swap() ;
+                            d.ptr->ctx.deactivate() ;
+                        }
+                        else d.ptr->re.force_clear() ;
                     }
                     // required for now, otherwise the application stalls.
                     else if( milli == 0 )
@@ -327,15 +281,17 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
             for( auto & d : _queue )
             {
                 size_t const wnd_idx = _xlib_windows.size() ;
-                Window hwnd = this_t::create_xlib_window( d.wi ) ;
+                Colormap colormap = 0 ;
+                Window hwnd = this_t::create_xlib_window( d.wi, colormap ) ;
 
                 {
                     xlib_window_data wd ;
                     wd.hwnd = hwnd ;
+                    wd.colormap = colormap ;
                     wd.wnd = d.wnd ;
                     wd.lsn = d.lsn ;
-                    wd.x = 0 ;
-                    wd.y = 0 ;
+                    wd.x = d.wi.x ;
+                    wd.y = d.wi.y ;
                     wd.width = d.wi.w ;
                     wd.height = d.wi.h ;
                     wd.window_text = d.wi.window_name ;
@@ -360,7 +316,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                 #if MOTOR_GRAPHICS_GLX
                 if( d.wi.gen == motor::application::graphics_generation::gen4_gl4 )
                 {
-                    _xlib_windows.back().window_text = " [gl4 #" + motor::to_string(wnd_idx) +"]";
+                    _xlib_windows.back().window_text += " [gl4 #" + motor::to_string(wnd_idx) +"]";
 
                     motor::platform::glx::glx_context_t ctx ;
 
@@ -377,8 +333,9 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         this_t::glx_pimpl * pimpl = motor::memory::global_t::alloc(
                             this_t::glx_pimpl( { std::move(ctx) } ), "[xlib_carrier] : glx context") ;
 
-                            pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.backend() ),
+                            pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.borrow_backend() ),
                                 "[xlib_carrier] : gen4 frontend") ;
+                            pimpl->ctx.deactivate() ;
                             
                             _xlib_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
@@ -386,7 +343,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                     }
                     else
                     {
-                        motor::log::global_t::critical( "Wanted to create a WGL window but could not." ) ;
+                        motor::log::global_t::critical( "Wanted to create a GLX window but could not." ) ;
                     }
                 }
                 #endif
@@ -403,9 +360,10 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
         }
     }
 
-    for( auto const & d : _xlib_windows )
+    while( !_xlib_windows.empty() )
     {
-        this_t::handle_destroyed_hwnd( d.hwnd ) ;
+        if( !this_t::handle_destroyed_hwnd( _xlib_windows.back().hwnd ) )
+            std::this_thread::yield() ;
     }
 
     return motor::application::result::ok ;
@@ -438,7 +396,7 @@ motor::application::iwindow_mtr_safe_t xlib_carrier::create_window( motor::appli
 }
 
 //********************************************************************
-Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t wi ) noexcept
+Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t wi, Colormap & colormap ) noexcept
 {
     motor::application::window_info wil = wi ;
 
@@ -464,26 +422,42 @@ Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t 
     {
     }
 
-    Window wnd = XCreateSimpleWindow( 
+    Window wnd = 0 ;
+    #if MOTOR_GRAPHICS_GLX
+    if( wi.gen == motor::application::graphics_generation::gen4_auto ||
+        wi.gen == motor::application::graphics_generation::gen4_gl4 )
+    {
+        GLXFBConfig const config = motor::platform::glx::choose_config( _display, DefaultScreen( _display ) ) ;
+        XVisualInfo * visual = config != nullptr ? glXGetVisualFromFBConfig( _display, config ) : nullptr ;
+        if( motor::log::global_t::error( visual == nullptr, "[xlib_carrier] : no GLX window visual" ) )
+            return 0 ;
+
+        root = RootWindow( _display, visual->screen ) ;
+        colormap = XCreateColormap( _display, root, visual->visual, AllocNone ) ;
+        XSetWindowAttributes attributes {} ;
+        attributes.colormap = colormap ;
+        attributes.border_pixel = 0 ;
+        wnd = XCreateWindow( _display, root, start_x, start_y, width, height, 0,
+            visual->depth, InputOutput, visual->visual, CWColormap | CWBorderPixel, &attributes ) ;
+        XFree( visual ) ;
+    }
+    else
+    #endif
+    wnd = XCreateSimpleWindow(
             _display, root, 
             start_x, start_y, width, height, 1, 
             XBlackPixel(_display,0), 
             XWhitePixel(_display,0) ) ;
     
     
-    if( motor::log::global_t::error( wnd == BadAlloc, 
-            "[xlib_carrier::create_window] : XCreateSimpleWindow - BadAlloc" ) )
-    {
-        return wnd ;
-    }
-    else if( motor::log::global_t::error( wnd == BadValue, 
-            "[xlib_carrier::create_window] : XCreateSimpleWindow - BadValue" ) )
+    if( motor::log::global_t::error( wnd == 0,
+            "[xlib_carrier::create_window] : XCreateWindow failed" ) )
     {
         return wnd ;
     }
 
     XSelectInput( _display, wnd, 
-        ExposureMask | StructureNotifyMask | SubstructureRedirectMask | SubstructureNotifyMask | KeyPressMask | KeyReleaseMask | 
+        ExposureMask | StructureNotifyMask | KeyPressMask | KeyReleaseMask |
         PointerMotionMask | ButtonPressMask | ButtonReleaseMask | VisibilityChangeMask | EnterWindowMask  | LeaveWindowMask ) ;
 
     // prepare per window data
@@ -508,6 +482,40 @@ Window xlib_carrier::create_xlib_window( motor::application::window_info_cref_t 
 }
 
 //*******************************************************************************************
+void_t xlib_carrier::handle_messages( xlib_window_data_ref_t wd ) noexcept
+{
+    motor::application::window_message_listener_t::state_vector_t states ;
+    if( !wd.lsn->swap_and_reset( states ) ) return ;
+
+    if( states.close_changed && states.close_msg.close )
+    {
+        if( std::find( _destroy_queue.begin(), _destroy_queue.end(), wd.hwnd ) == _destroy_queue.end() )
+            _destroy_queue.emplace_back( wd.hwnd ) ;
+        return ;
+    }
+    if( wd.closing ) return ;
+
+    if( states.show_changed )
+    {
+        if( states.show_msg.show ) XMapWindow( _display, wd.hwnd ) ;
+        else XUnmapWindow( _display, wd.hwnd ) ;
+    }
+    if( states.resize_changed )
+    {
+        auto const & msg = states.resize_msg ;
+        if( msg.position ) XMoveWindow( _display, wd.hwnd, msg.x, msg.y ) ;
+        if( msg.resize ) XResizeWindow( _display, wd.hwnd,
+            std::max( size_t( 1 ), msg.w ), std::max( size_t( 1 ), msg.h ) ) ;
+    }
+    if( states.vsync_msg_changed )
+    {
+        wd.sv.vsync_msg_changed = true ;
+        wd.sv.vsync_msg = states.vsync_msg ;
+    }
+    XFlush( _display ) ;
+}
+
+//*******************************************************************************************
 bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept 
 {
     auto iter = std::find_if( _xlib_windows.begin(), _xlib_windows.end(), [&]( xlib_window_data_cref_t d )
@@ -515,9 +523,13 @@ bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
         return d.hwnd == hwnd ;
     } ) ;
 
-    assert( iter != _xlib_windows.end() ) ;
+    if( iter == _xlib_windows.end() ) return true ;
 
-    this_t::send_destroy( *iter ) ;
+    if( !iter->closing )
+    {
+        iter->closing = true ;
+        this_t::send_destroy( *iter ) ;
+    }
 
     size_t const borrowed = iter->wnd->set_renderable( nullptr, nullptr ) ;
     if( borrowed != 0 ) return false ;
@@ -533,6 +545,13 @@ bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
 
         if( iter2 != _glx_windows.end() )
         {
+            // No application thread can enqueue more commands after detaching.
+            if( iter2->ptr->re.can_execute() )
+            {
+                if( motor::platform::success( iter2->ptr->ctx.activate() ) )
+                    iter2->ptr->re.execute_frame() ;
+                else iter2->ptr->re.force_clear() ;
+            }
             motor::memory::global_t::dealloc( iter2->ptr->fe ) ;
             motor::memory::global_t::dealloc( iter2->ptr ) ;
             _glx_windows.erase( iter2 ) ;
@@ -541,10 +560,12 @@ bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
     #endif 
 
     XDestroyWindow( _display, iter->hwnd ) ;
+    if( iter->colormap != 0 ) XFreeColormap( _display, iter->colormap ) ;
 
     motor::memory::release_ptr( iter->wnd ) ;
     motor::memory::release_ptr( iter->lsn ) ;
     _xlib_windows.erase( iter ) ;
+    return true ;
 }
 
 //*******************************************************************************************

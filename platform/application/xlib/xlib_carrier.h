@@ -10,6 +10,7 @@
 #include <motor/application/carrier.h>
 
 #include <X11/Xlib.h>
+#include <atomic>
 
 namespace motor
 {
@@ -35,17 +36,17 @@ namespace motor
 
                 Display * connect_display( void_t ) noexcept ;
                 void_t disconnect_display( void_t ) noexcept ;
-                Display * move_display( void_t ) noexcept ;
-
-                motor::platform::xlib::xlib_module_mtr_t _device_module ;
+                motor::platform::xlib::xlib_module_mtr_t _device_module = nullptr ;
             
-                bool_t _done = false ;
+                std::atomic< bool_t > _done { false } ;
 
             private:
 
                 struct xlib_window_data
                 {
                     Window hwnd ;
+                    Colormap colormap = 0 ;
+                    bool_t closing = false ;
                     motor::application::window_mtr_t wnd ;
                     motor::application::window_message_listener_mtr_t lsn ;
                     // can be used to store messages to be used continuously.
@@ -109,7 +110,8 @@ namespace motor
 
             private:
 
-                Window create_xlib_window( motor::application::window_info_cref_t ) noexcept ;
+                Window create_xlib_window( motor::application::window_info_cref_t, Colormap & ) noexcept ;
+                void_t handle_messages( xlib_window_data_ref_t ) noexcept ;
                 bool_t handle_destroyed_hwnd( Window hwnd ) noexcept ;
                 void_t send_destroy( xlib_window_data_in_t d ) noexcept ;
                 void_t send_create( xlib_window_data_in_t ) noexcept ;

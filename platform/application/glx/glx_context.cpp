@@ -1,4 +1,5 @@
 #include "glx_context.h"
+#include "glx_config.h"
 
 #include <motor/graphics/backend/gen4/null.h>
 
@@ -13,53 +14,10 @@ using namespace motor::platform::glx ;
 
 struct context::pimpl
 {
-    GLXContext context ;
-    static GLXFBConfig make_config( Display * display ) noexcept 
-    {
-        int_ptr_t visual_attribs = motor::memory::global_t::alloc_raw<int_t>( 24, 
-            "[glx_window::create_glx_window] : visual_attribs" ) ;
-
-        {
-            struct va_pair{
-                int_t flag ;
-                int_t value ;
-            };
-
-            va_pair * va_pairs = (va_pair*)visual_attribs ;
-            va_pairs[0] = {GLX_X_RENDERABLE, True} ;
-            va_pairs[1] = {GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT} ;
-            va_pairs[2] = {GLX_RENDER_TYPE, GLX_RGBA_BIT} ;
-            va_pairs[3] = {GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR} ;
-            va_pairs[4] = {GLX_RED_SIZE, 8} ;
-            va_pairs[5] = {GLX_GREEN_SIZE, 8} ;
-            va_pairs[6] = {GLX_BLUE_SIZE, 8} ;
-            va_pairs[7] = {GLX_ALPHA_SIZE, 8} ;
-            va_pairs[8] = {GLX_DEPTH_SIZE, 24} ;
-            va_pairs[9] = {GLX_STENCIL_SIZE, 8} ;
-            va_pairs[10] = {GLX_DOUBLEBUFFER, True} ;
-            va_pairs[11] = {None, None} ;
-        }
-
-        int fbcount ;
-        GLXFBConfig * fbc = glXChooseFBConfig( 
-                display, DefaultScreen( display ),
-                visual_attribs, &fbcount ) ;
-
-        if( fbc == nullptr || fbcount == 0 ) 
-        {
-            motor::log::global_t::error( 
-                "[glx_window::create_glx_window] : glXChooseFBConfig" ) ;
-
-            return 0 ;
-        }
-
-        GLXFBConfig fbconfig = fbc[0] ;
-
-        //XFree( fbc ) ;
-        motor::memory::global_t::dealloc_raw( visual_attribs ) ;
-
-        return fbconfig ;
-    }
+    GLXContext context = nullptr ;
+    GLXFBConfig config = nullptr ;
+    GLXPbuffer pbuffer = 0 ;
+    motor::application::gl_version version ;
 } ;
 
 //****************************************************************
@@ -93,6 +51,8 @@ context::context( this_rref_t rhv ) noexcept
 //****************************************************************
 context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
 {
+    if( this == &rhv ) return *this ;
+    this_t::release_context() ;
     _display = rhv._display ;
     rhv._display = NULL ;
 
@@ -109,14 +69,37 @@ context::this_ref_t context::operator = ( this_rref_t rhv ) noexcept
 //****************************************************************
 context::~context( void_t ) noexcept
 {
-    this_t::deactivate() ;
+    this_t::release_context() ;
+}
+
+//****************************************************************
+void_t context::release_context( void_t ) noexcept
+{
+    if( _pimpl == nullptr ) return ;
+
+    if( _backend != nullptr && motor::platform::no_success( this_t::activate() ) )
+    {
+        _backend->on_context_destruction() ;
+    }
 
     _backend = motor::memory::release_ptr( _backend ) ;
 
     // the backend can not exist without the context.
     assert( _backend == nullptr ) ;
 
+    if( _display != nullptr && _pimpl->context != nullptr )
+    {
+        // Destroying a shared context must not unbind the main context.
+        this_t::deactivate() ;
+        glXDestroyContext( _display, _pimpl->context ) ;
+    }
+    if( _display != nullptr && _pimpl->pbuffer != 0 )
+        glXDestroyPbuffer( _display, _pimpl->pbuffer ) ;
+
     motor::memory::global_t::dealloc( _pimpl ) ;
+    _pimpl = nullptr ;
+    _display = nullptr ;
+    _wnd = 0 ;
 }
 
 //***********************************************************************
@@ -135,28 +118,36 @@ motor::platform::result context::create_context( Window wnd, Display * disp ) no
 //***************************************************************
 motor::platform::result context::activate( void_t ) noexcept
 {
-    //glXMakeCurrent( _display, _wnd, NULL ) ;
-    //XLockDisplay( _display ) ;
-    auto const res = glXMakeCurrent( _display, _wnd, _pimpl->context ) ;
-    //XUnlockDisplay( _display ) ;
+    if( _display == nullptr || _pimpl == nullptr || _pimpl->context == nullptr )
+        return motor::platform::result::invalid_xlib_handle ;
+
+    GLXDrawable const drawable = _pimpl->pbuffer != 0 ? _pimpl->pbuffer : _wnd ;
+    auto const res = glXMakeContextCurrent( _display, drawable, drawable, _pimpl->context ) ;
     motor::log::global_t::warning( !res, 
             motor_log_fn( "glXMakeCurrent" ) ) ;
 
-    return motor::platform::result::ok ;
+    return res ? motor::platform::result::ok : motor::platform::result::failed_glx ;
 }
 
 //***************************************************************
 motor::platform::result context::deactivate( void_t ) noexcept
 {
-    auto const res = glXMakeCurrent( _display, 0, 0 ) ;
+    if( _display == nullptr || _pimpl == nullptr || _pimpl->context == nullptr ||
+        glXGetCurrentContext() != _pimpl->context ) return motor::platform::result::ok ;
+
+    auto const res = glXMakeContextCurrent( _display, 0, 0, nullptr ) ;
     motor::log::global_t::warning( !res, 
             motor_log_fn( "glXMakeCurrent" ) ) ;
-    return motor::platform::result::ok ;
+    return res ? motor::platform::result::ok : motor::platform::result::failed_glx ;
 }
 
 //***************************************************************
 motor::platform::result context::vsync( bool_t const on_off ) noexcept
 {
+    if( _display == nullptr || _wnd == 0 ) return motor::platform::result::invalid_xlib_handle ;
+    if( !motor::ogl::glx::is_supported( "GLX_EXT_swap_control" ) ||
+        motor::ogl::glx::glXSwapInterval == nullptr ) return motor::platform::result::invalid_extension ;
+
     motor::ogl::glx::glXSwapInterval( _display, _wnd, on_off ? 1 : 0 ) ;
     return motor::platform::result::ok ;
 }
@@ -177,7 +168,8 @@ motor::graphics::gen4::backend_mtr_safe_t context::backend( void_t ) noexcept
     if( _backend != nullptr ) return motor::share( _backend ) ;
 
     motor::application::gl_version glv ;
-    this->get_gl_version( glv ) ;
+    if( motor::platform::no_success( this_t::activate() ) ||
+        motor::platform::no_success( this_t::get_gl_version( glv ) ) ) return {} ;
 
     // create gen 4 renderer
     if( glv.major >= 4 || (glv.major >= 4 && glv.minor >= 0) )
@@ -285,6 +277,14 @@ void_t context::clear_now( motor::math::vec4f_t const & vec ) noexcept
 //***************************************************************
 motor::platform::result context::create_the_context( motor::application::gl_info_cref_t gli ) noexcept
 {
+    XWindowAttributes attributes ;
+    if( !XGetWindowAttributes( _display, _wnd, &attributes ) )
+        return motor::platform::result::invalid_xlib_handle ;
+
+    _pimpl->config = motor::platform::glx::choose_config( _display,
+        XScreenNumberOfScreen( attributes.screen ), XVisualIDFromVisual( attributes.visual ) ) ;
+    if( _pimpl->config == nullptr ) return motor::platform::result::failed_gfx_context_creation ;
+
     auto res = motor::ogl::glx::init( _display, DefaultScreen( _display ) ) ;
 
     if( motor::log::global_t::error( motor::ogl::no_success(res), 
@@ -302,8 +302,8 @@ motor::platform::result context::create_the_context( motor::application::gl_info
         return motor::platform::result::failed ;
     }
 
-    if( glx_major < 1 ) return motor::platform::result::failed_glx ;
-    if( glx_minor < 3 ) return motor::platform::result::failed_glx ;
+    if( glx_major < 1 || ( glx_major == 1 && glx_minor < 3 ) )
+        return motor::platform::result::failed_glx ;
 
     // determine the GL version by creating a simple 1.0 context.
     motor::application::gl_version glv ;
@@ -322,7 +322,7 @@ motor::platform::result context::create_the_context( motor::application::gl_info
     } ;
 
     GLXContext context = motor::ogl::glx::glXCreateContextAttribs( 
-          _display, this_t::pimpl::make_config( _display ), 
+          _display, _pimpl->config,
           0, True, context_attribs );
 
     if( motor::log::global_t::error( !context, 
@@ -331,10 +331,12 @@ motor::platform::result context::create_the_context( motor::application::gl_info
         return motor::platform::result::failed ;
     }
 
+    _pimpl->context = context ;
+    _pimpl->version = glv ;
+    if( motor::platform::no_success( this_t::activate() ) )
+        return motor::platform::result::failed_gfx_context_creation ;
+
     this_t::init_gl_context() ;
-    
-    //this_t::activate() ;
-    glXMakeCurrent( _display, _wnd, context ) ;
     {
         motor::application::gl_version version ;
         if( !success( this_t::get_gl_version( version ) ) )
@@ -372,7 +374,7 @@ bool_t context::determine_gl_version( motor::application::gl_version & gl_out ) 
     } ;
 
     GLXContext context = motor::ogl::glx::glXCreateContextAttribs( 
-          _display, this_t::pimpl::make_config(_display), 
+          _display, _pimpl->config,
           0, True, context_attribs );
 
     if( motor::log::global_t::error( !context, 
@@ -382,7 +384,11 @@ bool_t context::determine_gl_version( motor::application::gl_version & gl_out ) 
     }
 
     motor::application::gl_version version ;
-    glXMakeCurrent( _display, _wnd, context ) ;
+    if( !glXMakeCurrent( _display, _wnd, context ) )
+    {
+        glXDestroyContext( _display, context ) ;
+        return false ;
+    }
 
     this_t::init_gl_context() ;
 
@@ -407,5 +413,31 @@ bool_t context::determine_gl_version( motor::application::gl_version & gl_out ) 
 
 motor::platform::opengl::rendering_context_mtr_safe_t context::create_shared( void_t ) noexcept 
 {
-    return this_mtr_safe_t() ;
+    if( _display == nullptr || _pimpl == nullptr || _pimpl->context == nullptr ) return {} ;
+
+    auto shared = motor::memory::create_ptr< this_t >( "glx shared context" ) ;
+    shared->_display = _display ;
+    shared->_pimpl->config = _pimpl->config ;
+    shared->_pimpl->version = _pimpl->version ;
+
+    int const context_attributes[] =
+    {
+        GLX_CONTEXT_MAJOR_VERSION_ARB, _pimpl->version.major,
+        GLX_CONTEXT_MINOR_VERSION_ARB, _pimpl->version.minor, None
+    } ;
+    shared->_pimpl->context = motor::ogl::glx::glXCreateContextAttribs(
+        _display, _pimpl->config, _pimpl->context, True, context_attributes ) ;
+
+    // The compiler thread gets its own drawable, not the visible window.
+    int const pbuffer_attributes[] = { GLX_PBUFFER_WIDTH, 1, GLX_PBUFFER_HEIGHT, 1, None } ;
+    if( shared->_pimpl->context != nullptr )
+        shared->_pimpl->pbuffer = glXCreatePbuffer( _display, _pimpl->config, pbuffer_attributes ) ;
+
+    if( shared->_pimpl->context == nullptr || shared->_pimpl->pbuffer == 0 )
+    {
+        motor::log::global_t::error( "[glx_context] : failed to create shared context" ) ;
+        motor::release( motor::move( shared ) ) ;
+        return {} ;
+    }
+    return motor::move( shared ) ;
 }
