@@ -284,7 +284,8 @@ namespace motor
             //************************************************************************************
             type_t angle( void ) const 
             {
-                return std::acos( (this_t::trace()-type_t(2))*(type_t(0.5)) ) ;
+                //return std::acos( (this_t::trace()-type_t(2))*(type_t(0.5)) ) ;
+                return std::atan2(_elem[2], _elem[0] ) ;
             }
 
         public: // operator +
@@ -387,9 +388,10 @@ namespace motor
             } 
 
             //************************************************************************************
-            this_ref_t operator *= ( this_cref_t rhv ) noexcept
+            this_ref_t operator *= ( this_cref_t rhv_ ) noexcept
             {
                 this_t mat( *this ) ;
+                this_cref_t  rhv = (&rhv_ == this ) ? mat : rhv_ ;
 
                 _elem[0] = mat.row(0).dot(rhv.column(0)) ;
                 _elem[1] = mat.row(0).dot(rhv.column(1)) ;
