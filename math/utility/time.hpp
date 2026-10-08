@@ -40,7 +40,7 @@ namespace motor
                 ret.mil = milli % 1000 ;
                 ret.sec = sec % 60 ;
                 ret.min = min % 60 ; 
-                ret.hour = hour % 60 ;
+                ret.hour = hour % 24 ;
                 ret.day = day ;
             }
         };
