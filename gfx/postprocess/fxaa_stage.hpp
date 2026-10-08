@@ -2,6 +2,7 @@
 
 #include "../api.h"
 #include "../typedefs.h"
+#include "postprocess_status.hpp"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/graphics/variable/wire_variable_input_bridge.hpp>
@@ -63,8 +64,8 @@ class fxaa_stage
                     float_t get_subpixel_blend_factor( float_t luma_range, float_t m, float_t s, float_t n, float_t w, float_t e )
                     {
                         float_t filter_ = (n+s+w+e)/4.0 ;
-                        filter_ = abs( filter - m ) ;
-                        filter_ = filter / luma_range ;
+                        filter_ = abs( filter_ - m ) ;
+                        filter_ = filter_ / luma_range ;
                         filter_ = smoothstep( 0.0, 1.0, filter_ ) ;
                         return filter_ * filter_ ;
                     }
@@ -452,6 +453,12 @@ class fxaa_stage
         _brg->pull_data();
         motor::graphics::gen4::backend::render_detail det;
         fe->render( _msl, det );
+    }
+
+    motor::gfx::postprocess_status_t check_status(
+        motor::graphics::gen4::frontend_ptr_t fe ) const noexcept
+    {
+        return motor::gfx::detail::check_postprocess_shader( fe, _msl, "fxaa" );
     }
 
     motor::wire::inputs_ref_t borrow_inputs( void_t ) noexcept

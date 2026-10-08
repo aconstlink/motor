@@ -2,6 +2,7 @@
 
 #include "../api.h"
 #include "../typedefs.h"
+#include "postprocess_status.hpp"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/graphics/variable/wire_variable_input_bridge.hpp>
@@ -90,6 +91,14 @@ class bloom_stage
         this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
     void_t render_up(
         this_t::level_type const lt, motor::graphics::gen4::frontend_ptr_t fe ) noexcept;
+
+    motor::gfx::postprocess_status_t check_status(
+        motor::graphics::gen4::frontend_ptr_t fe ) const noexcept
+    {
+        return motor::gfx::postprocess_status_t::combine(
+            motor::gfx::detail::check_postprocess_shader( fe, _msl_down, "bloom.downsample" ),
+            motor::gfx::detail::check_postprocess_shader( fe, _msl_up, "bloom.upsample" ) );
+    }
 
     motor::wire::inputs_ref_t borrow_inputs( void_t ) noexcept;
 

@@ -31,6 +31,7 @@ set( sources
     "util/light.hpp"
 
     "postprocess/hdr_postprocess_pipeline.h"
+    "postprocess/postprocess_status.hpp"
     "postprocess/hdr_postprocess_pipeline.cpp"
     "postprocess/bloom_stage.h"
     "postprocess/bloom_stage.cpp"

@@ -49,6 +49,25 @@ motor::graphics::state_object_mtr_t hdr_postprocess_pipeline::borrow_zpre_states
 }
 
 //***************************************************
+motor::gfx::postprocess_status_t hdr_postprocess_pipeline::check_status(
+    motor::graphics::gen4::frontend_ptr_t fe ) const noexcept
+{
+    using status_t = motor::gfx::postprocess_status_t;
+    auto const check_stage = [fe]( auto * stage, char_cptr_t const name ) noexcept
+    {
+        return stage ? stage->check_status( fe ) : status_t{ status_t::state_type::pending, name };
+    };
+    auto status = motor::gfx::detail::check_postprocess_shader( fe, _msl, "map_to_screen" );
+    for( auto const next : { check_stage( _brightpass, "brightpass" ),
+        check_stage( _bloom, "bloom" ), check_stage( _merge, "merge" ),
+        check_stage( _tone_map, "tone_map" ), check_stage( _fxaa, "fxaa" ) } )
+    {
+        status = status_t::combine( status, next );
+    }
+    return status;
+}
+
+//***************************************************
 void_t hdr_postprocess_pipeline::on_resize( uint_t const w, uint_t const h ) noexcept
 {
     _dims = motor::math::vec2ui_t( w, h );

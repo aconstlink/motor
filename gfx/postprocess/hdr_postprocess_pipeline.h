@@ -92,6 +92,10 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     motor::graphics::state_object_mtr_t borrow_hdr_states( void_t ) noexcept;
     motor::graphics::state_object_mtr_t borrow_zpre_states( void_t ) noexcept;
 
+    // Shader configuration status for this frontend; no resources are exposed.
+    motor::gfx::postprocess_status_t check_status(
+        motor::graphics::gen4::frontend_ptr_t ) const noexcept;
+
   public:
 
     void_t on_resize( uint_t const w, uint_t const h ) noexcept;
