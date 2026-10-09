@@ -27,7 +27,8 @@ namespace motor
 
             static int_t ceil( typec_t x ) {
                 //return (int)x + (int)( (x > T(0)) && ( (int)x != x ) ) ;
-                return x < type_t( 0 ) ? int_t( x ) : int_t( x + type_t( 1 ) );
+                //return x < type_t( 0 ) ? int_t( x ) : int_t( x + type_t( 1 ) );
+                return int_t( std::ceil( x ) ) ;
             }
 
             static type_t floor( typec_t x ) {
