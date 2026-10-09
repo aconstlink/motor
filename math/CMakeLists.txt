@@ -99,6 +99,29 @@ set( sources
 
 motor_vs_src_dir( sources )
 
+set( pch_files 
+  vector/protos.hpp
+    vector/vector2.hpp
+    vector/vector3.hpp
+    vector/vector4.hpp
+    vector/vector2b.hpp
+    vector/vector3b.hpp
+    vector/vector4b.hpp
+    vector/normalization.hpp
+
+    matrix/protos.hpp
+    matrix/matrix2.hpp
+    matrix/matrix3.hpp
+    matrix/matrix4.hpp
+    matrix/matrix2x3.hpp
+    quaternion/protos.hpp
+    quaternion/quaternion3.hpp
+    quaternion/quaternion4.hpp
+)
+add_library( math_pch INTERFACE )
+target_precompile_headers( math_pch INTERFACE ${pch_files}
+)
+
 add_library( ${cur_lib_name} INTERFACE ${sources} )
 target_link_libraries( ${cur_lib_name}
     INTERFACE motor::std

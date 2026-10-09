@@ -10,6 +10,37 @@ option( CMAKE_DISABLE_FIND_PACKAGE_WindowsSDK "" ON )
 
 add_subdirectory( "openal-soft" )
 
+option( MOTOR_OPENAL_PRECOMPILED_HEADERS "Use precompiled C++ headers for OpenAL Soft" ON )
+
+# Keep PCH artifacts target-local because OpenAL's compile definitions differ.
+if( MOTOR_OPENAL_PRECOMPILED_HEADERS )
+  foreach( openal_target OpenAL alcommon soft_oal )
+    if( TARGET ${openal_target} )
+      target_precompile_headers( ${openal_target} PRIVATE
+        "$<$<COMPILE_LANGUAGE:CXX>:<algorithm$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<array$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<atomic$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<memory$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<mutex$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<string$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<type_traits$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<utility$<ANGLE-R>>"
+        "$<$<COMPILE_LANGUAGE:CXX>:<vector$<ANGLE-R>>"
+      )
+    endif()
+  endforeach()
+  unset( openal_target )
+endif()
+
+if( MSVC )
+  foreach( openal_target OpenAL soft_oal alcommon al-excommon altonegen alrecord common ex-common )
+    if( TARGET ${openal_target} )
+      target_compile_options( ${openal_target} PRIVATE /MP )
+    endif()
+  endforeach()
+  unset( openal_target )
+endif()
+
 #
 # set target properties 
 #
@@ -65,7 +96,7 @@ if( TARGET OpenAL )
   if( MOTOR_TARGET_OS_WIN )
 
     if( MOTOR_COMPILER_MSC )
-      set( unwanted_compiler_options "/wd4834" "/wd4018" "/wd4060" )
+      set( unwanted_compiler_options /wd4834 /wd4018 /wd4060 )
       target_compile_options( OpenAL PRIVATE ${unwanted_compiler_options} )
     endif()
 

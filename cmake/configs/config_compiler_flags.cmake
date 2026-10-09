@@ -26,7 +26,7 @@ if( MOTOR_COMPILER_MSC )
     # W4 : Warning level 4, e.g. nearly all warnings
     # WX : all compiler warnings as errors
     # EH : exception handling
-    set( MOTOR_COMPILER_OPTIONS_PRIVATE /W4 /WX /EHsc ${MOTOR_UNWANTED_COMPILER_OPTIONS} )
+    set( MOTOR_COMPILER_OPTIONS_PRIVATE /W4 /WX /EHsc /MP ${MOTOR_UNWANTED_COMPILER_OPTIONS} )
 
     target_compile_options( ${THIS_TARGET} INTERFACE ${MOTOR_COMPILER_OPTIONS_PRIVATE} )
 

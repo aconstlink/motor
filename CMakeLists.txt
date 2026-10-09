@@ -170,7 +170,7 @@ foreach( _subdir ${subdirs_header_only} )
 
     add_subdirectory( ${_subdir} )
     add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
-
+    
     set_target_properties( ${cur_lib_name} PROPERTIES LINKER_LANGUAGE CXX )
     set_target_properties( ${cur_lib_name} PROPERTIES OUTPUT_NAME ${cur_file_name} )
     #set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
@@ -212,6 +212,13 @@ foreach( _subdir ${subdirs} )
     unset( LIB_NAME_UPPER )
 
     add_subdirectory( ${_subdir} )
+
+    #target_precompile_headers( ${cur_lib_name} REUSE_FROM core_pch )
+    #target_precompile_headers( ${cur_lib_name} REUSE_FROM math_pch )
+    target_link_libraries( ${cur_lib_name} PRIVATE
+      core_pch
+      math_pch
+      )
 
     set_target_properties( ${cur_lib_name} PROPERTIES LINKER_LANGUAGE CXX )
     set_target_properties( ${cur_lib_name} PROPERTIES OUTPUT_NAME ${cur_file_name} )
