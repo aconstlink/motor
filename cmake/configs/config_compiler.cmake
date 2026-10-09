@@ -19,6 +19,7 @@ add_library( ${THIS_TARGET} INTERFACE )
 #
 # it need to be used in the target property CXX_STANDARD
 set( MOTOR_CXX_STANDARD 20 )
+target_compile_features( ${THIS_TARGET} INTERFACE cxx_std_20 )
 set( CMAKE_CXX_STANDARD_REQUIRED 20 )
 
 #message( ${CMAKE_CXX_COMPILER_ID} )

@@ -41,7 +41,9 @@ if( OPENGL_FOUND )
     set( MOTOR_GRAPHICS_EGL ON )
     find_library( EGL_LIB EGL "EGL 1.4 Library" )
     target_compile_definitions( ${THIS_TARGET}_gl INTERFACE -DMOTOR_GRAPHICS_EGL )
-    target_link_libraries( ${THIS_TARGET}_gl INTERFACE ${EGL_LIB} )
+    target_link_libraries( ${THIS_TARGET}_gl INTERFACE
+      $<BUILD_INTERFACE:${EGL_LIB}>
+      $<INSTALL_INTERFACE:OpenGL::EGL> )
     message( STATUS "[graphics] : EGL found" )
   endif()
 
@@ -51,7 +53,9 @@ if( OPENGL_FOUND )
     if( TARGET OpenGL::OpenGL )
       target_link_libraries( ${THIS_TARGET}_gl INTERFACE OpenGL::OpenGL )
     else()
-      target_link_libraries( ${THIS_TARGET}_gl INTERFACE ${OPENGL_LIBRARIES} )
+      target_link_libraries( ${THIS_TARGET}_gl INTERFACE
+        "$<BUILD_INTERFACE:${OPENGL_LIBRARIES}>"
+        $<INSTALL_INTERFACE:OpenGL::GL> )
     endif() 
     message( STATUS "[graphics] : GLX found" )
   endif()
@@ -73,7 +77,9 @@ find_library( OPENGLES3_LIBRARY GLESv2 "OpenGL ES v3.0 library")
 if( OPENGLES3_LIBRARY )
   set( MOTOR_GRAPHICS_OPENGLES ON )
   target_compile_definitions( ${THIS_TARGET}_es INTERFACE -DMOTOR_GRAPHICS_OPENGLES )
-  target_link_libraries( ${THIS_TARGET}_es INTERFACE ${OPENGLES3_LIBRARY} )
+  target_link_libraries( ${THIS_TARGET}_es INTERFACE
+    $<BUILD_INTERFACE:${OPENGLES3_LIBRARY}>
+    $<INSTALL_INTERFACE:GLESv2> )
   message( STATUS "[graphics] : OpenGLES v3.0 libs found" )
 endif()
 unset( OPENGLES3_LIBRARY CACHE )
