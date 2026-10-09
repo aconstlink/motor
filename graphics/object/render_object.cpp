@@ -217,9 +217,7 @@ size_t render_object::add_variable_set( motor::graphics::variable_set_mtr_safe_t
 
 void_t render_object::drop_variable_set( size_t const idx ) noexcept
 {
-    if( _vars.size() <= idx ) return;
-
-    _vars[ idx ].hash++;
+    if( _vars.size() <= idx ) return;    
     motor::release( motor::move( _vars[ idx ].vs ) );
 }
 
@@ -255,16 +253,30 @@ size_t render_object::get_num_variable_sets( void_t ) const noexcept
 
 motor::graphics::variable_set_mtr_safe_t render_object::get_variable_set( size_t const i ) noexcept
 {
+    return _vars.size() > i ? motor::share( _vars[ i ].vs ) : nullptr;
+}
+
+//*****************************************************************************************
+motor::graphics::variable_set_mtr_safe_t render_object::get_or_create_variable_set(
+    size_t const i ) noexcept
+{
     this_t::fill_variable_sets( i );
+    if( _vars[ i ].vs == nullptr )
+    {
+        ++_vars[ i ].hash;
+        _vars[ i ].vs = motor::shared( motor::graphics::variable_set_t() );
+    }
     return motor::share( _vars[ i ].vs );
 }
 
+//*****************************************************************************************
 render_object::safe_variable_set_t render_object::get_safe_variable_set( size_t const i ) noexcept
 {
     this_t::fill_variable_sets( i );
     return safe_variable_set_t( _vars[ i ].hash, motor::share( _vars[ i ].vs ) );
 }
 
+//*****************************************************************************************
 motor::vector< motor::graphics::variable_set_mtr_safe_t > render_object::get_varibale_sets(
     void_t ) const noexcept
 {
@@ -275,27 +287,30 @@ motor::vector< motor::graphics::variable_set_mtr_safe_t > render_object::get_var
     return ret;
 }
 
+//*****************************************************************************************
 motor::vector< render_object::variable_set_t > & render_object::borrow_varibale_sets(
     void_t ) noexcept
 {
     return _vars;
 }
 
+//*****************************************************************************************
 motor::vector< render_object::variable_set_t > const & render_object::borrow_varibale_sets(
     void_t ) const noexcept
 {
     return _vars;
 }
 
-// fast version for quick access without ref counting
+//*****************************************************************************************
 render_object::variable_set_t render_object::borrow_variable_set( size_t const i ) const noexcept
 {
     return _vars.size() <= i ? this_t::variable_set{ 0, nullptr } : _vars[ i ];
 }
 
-render_object::this_ref_t render_object::fill_variable_sets( size_t const idx ) noexcept
+//*****************************************************************************************
+void_t render_object::fill_variable_sets( size_t const idx ) noexcept
 {
-    if( idx < _vars.size() ) return *this;
+    if( idx < _vars.size() ) return;
 
     auto old = std::move( _vars );
     _vars.resize( idx + 1 );
@@ -306,10 +321,9 @@ render_object::this_ref_t render_object::fill_variable_sets( size_t const idx ) 
         _vars[ i ] =
             this_t::variable_set_t{ 0, motor::shared( motor::graphics::variable_set_t() ) };
     }
-
-    return *this;
 }
 
+//*****************************************************************************************
 render_object::this_ref_t render_object::add_render_state_set(
     motor::graphics::render_state_sets_cref_t rs ) noexcept
 {

@@ -738,7 +738,7 @@ void_t hdr_postprocess_pipeline::update_properies( void_t ) noexcept
 //***************************************************
 void_t hdr_postprocess_pipeline::set_map_to_screen_texture_temp( motor::string_in_t name ) noexcept
 {
-    auto vs = _msl->borrow_varibale_set( 1 );
+    auto vs = _msl->borrow_variable_set( 1 );
     if( vs.vs )
     {
         auto * var = vs.vs->texture_variable( "tx_map" );

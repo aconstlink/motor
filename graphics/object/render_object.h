@@ -147,6 +147,7 @@ class MOTOR_GRAPHICS_API render_object : public object
 
     size_t get_num_variable_sets( void_t ) const noexcept;
 
+    motor::graphics::variable_set_mtr_safe_t get_or_create_variable_set( size_t const i ) noexcept;
     motor::graphics::variable_set_mtr_safe_t get_variable_set( size_t const i ) noexcept;
     safe_variable_set_t get_safe_variable_set( size_t const i ) noexcept;
 
@@ -161,7 +162,7 @@ class MOTOR_GRAPHICS_API render_object : public object
     // fast version for quick access without ref counting
     render_object::variable_set_t borrow_variable_set( size_t const i ) const noexcept;
 
-    this_ref_t fill_variable_sets( size_t const idx ) noexcept;
+    void_t fill_variable_sets( size_t const idx ) noexcept;
 
   public: // render state sets
 

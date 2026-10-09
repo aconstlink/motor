@@ -105,12 +105,13 @@ class MOTOR_GRAPHICS_API msl_object : public object
     void_t drop_variable_set( size_t const ) noexcept;
 
     this_ref_t fill_variable_sets( size_t const ) noexcept;
-    motor::graphics::variable_set_mtr_safe_t get_varibale_set( size_t const id ) noexcept;
-    motor::graphics::render_object_t::variable_set_t borrow_varibale_set(
+    motor::graphics::variable_set_mtr_safe_t get_variable_set( size_t const id ) noexcept;
+    motor::graphics::variable_set_mtr_safe_t get_or_create_variable_set( size_t const id ) noexcept;
+    motor::graphics::render_object_t::variable_set_t borrow_variable_set(
         size_t const id ) const noexcept;
     motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets(
         void_t ) const noexcept;
-    motor::vector< render_object::variable_set_t > & borrow_varibale_sets( void_t ) noexcept;
+    motor::vector< render_object::variable_set_t > & borrow_variable_sets( void_t ) noexcept;
     motor::vector< render_object::variable_set_t > const & borrow_varibale_sets(
         void_t ) const noexcept;
 

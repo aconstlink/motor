@@ -87,7 +87,7 @@ class add_msl_to_set_visitor : public default_visitor
                 auto * msl = msl_comp->borrow_msl();
 
                 motor::string_t geo_name = msl->get_geo_link( geo_idx ).name;
-                auto vs = msl->get_varibale_set( vs_idx );
+                auto vs = msl->get_variable_set( vs_idx );
 
                 msl->unlink_geometry( geo_idx );
                 msl->drop_variable_set( vs_idx );

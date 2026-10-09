@@ -154,7 +154,7 @@ class tone_map_stage
             motor::graphics::shader_bindings_t sb;
             if( _comp_list->reset_and_successful( sb ) )
             {
-                auto vs = _msl->get_varibale_set( 0 );
+                auto vs = _msl->get_variable_set( 0 );
 
                 {
                     auto * var = vs->texture_variable( "tx_map" );

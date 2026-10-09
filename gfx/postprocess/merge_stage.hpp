@@ -194,7 +194,7 @@ class merge_stage
             motor::graphics::shader_bindings_t sb;
             if( _comp_list->reset_and_successful( sb ) )
             {
-                auto vs = _msl->get_varibale_set( 0 );
+                auto vs = _msl->get_variable_set( 0 );
 
                 // update wire slot to shader variable bridge
                 {

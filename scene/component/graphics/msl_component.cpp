@@ -185,7 +185,7 @@ void_t msl_component::update_bindings( void_t ) noexcept
 
             // init base data set
             {
-                auto var_set = _msl->get_varibale_set( _vs );
+                auto var_set = _msl->get_variable_set( _vs );
 
                 // update the base data.
                 _base_data_set.update_bindings( _vs, motor::share( var_set ), sb );
@@ -331,11 +331,11 @@ void_t msl_component::ensure_render_data(
     // check if already connected.
     if( ( _sub_sets[ id ].get_variable_set_idx() == size_t( -1 ) ) )
     {
-        auto [ hash, vs ] = _msl->borrow_varibale_set( _vs );
+        auto [ hash, vs ] = _msl->borrow_variable_set( _vs );
         if( vs != nullptr )
         {
             size_t const idx = _msl->add_empty_variable_set();
-            auto [ hash2, vs_new ] = _msl->borrow_varibale_set( idx );
+            auto [ hash2, vs_new ] = _msl->borrow_variable_set( idx );
             vs_new->clone_from_if_not_exist( vs );
 
             _sub_sets[ id ].update_bindings( idx, motor::share( vs_new ), sb );
