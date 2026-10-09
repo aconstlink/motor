@@ -561,27 +561,18 @@ struct gl4_backend::pimpl
 
         bool_t has_variable_set( size_t const vs_idx ) const noexcept
         {
-        #if 1
             return varset_to_idx.size() > vs_idx && varset_to_idx[vs_idx].idx != size_t(-1) ;
-        #else
-            size_t found = size_t(-1) ;
-            while( ++found < var_sets.size() && var_sets[found].vs_idx != vs_idx ) ;
-            if( found == var_sets.size() ) return false ;
-            return ( var_sets[found].is_valid() ) ;
-        #endif
         }
 
         bool_t has_not_variable_set( size_t const vs_idx ) const noexcept
         {
-            #if 1
             return !has_variable_set( vs_idx ) ;
-            #else
-            size_t found = size_t(-1) ;
-            while( ++found < var_sets.size() && var_sets[found].vs_idx != vs_idx ) ;
-            if( found == var_sets.size() ) return true ;
+        }
 
-            return var_sets[found].is_invalid() ;
-            #endif
+        bool_t has_variable_set_changed( size_t const vs_idx, size_t const hash ) const noexcept
+        {
+            if( has_not_variable_set( vs_idx ) ) return false ;
+            return var_sets[ varset_to_idx[vs_idx].idx ].hash != hash ;
         }
 
         struct uniform_variable_link
@@ -675,6 +666,19 @@ struct gl4_backend::pimpl
             shd_id = GLuint( -1 ) ;
             rss.clear() ;
         
+            invalidate_variables() ;
+
+            for( auto & d : geo_to_vaos ) 
+            {
+                glDeleteVertexArrays( 1, &d.vao ) ;
+                gl4_log_error2( "glDeleteVertexArrays", name ) ;
+            }
+
+            geo_to_vaos.clear() ;
+        }
+
+        void_t invalidate_variables( void_t ) noexcept
+        {
             for( auto & v : var_sets ) motor::release( motor::move( v.vs ) ) ;
             varset_to_idx.clear() ;
 
@@ -687,14 +691,6 @@ struct gl4_backend::pimpl
             
             motor::memory::global_t::dealloc( mem_block ) ;
             mem_block = nullptr ;
-
-            for( auto & d : geo_to_vaos ) 
-            {
-                glDeleteVertexArrays( 1, &d.vao ) ;
-                gl4_log_error2( "glDeleteVertexArrays", name ) ;
-            }
-
-            geo_to_vaos.clear() ;
         }
     };
     motor_typedef( render_data ) ;
@@ -2558,7 +2554,6 @@ public:
                 continue ;
             }
             
-            #if 1
             motor::graphics::variable_set_t default_values ;
 
             // inject default variable values into the 
@@ -2596,67 +2591,6 @@ public:
                     }
                 }
             }
-            #else
-            // inject default variable values into the 
-            // variable sets
-            for ( auto & shd_ : res.config.shaders )
-            {
-                for ( auto & var_ : shd_.variables )
-                {
-                    if ( var_.def_val == size_t( -1 ) ) continue ;
-
-                    auto * df = res.config.def_values[ var_.def_val ] ;
-                    if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
-                    {
-                        using ptr_t = motor::msl::generic_default_value< float_t > * ;
-                        ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs.vs->data_variable<float_t>( var_.name )->set( gdv->get() ) ;
-                        }
-                    }
-                    else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec3f_t >*> ( df ) != nullptr )
-                    {
-                        using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > * ;
-                        ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs.vs->data_variable<motor::math::vec3f_t>( var_.name )->set( gdv->get() ) ;
-                        }
-                    }
-                    else if ( dynamic_cast<motor::msl::generic_default_value< motor::math::vec4f_t >*> ( df ) != nullptr )
-                    {
-                        using ptr_t = motor::msl::generic_default_value< motor::math::vec4f_t > * ;
-                        ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            //if( vs->has_data_variable( var_.name ) ) continue ;
-                            vs.vs->data_variable<motor::math::vec4f_t>( var_.name )->set( gdv->get() ) ;
-                        }
-                    }
-                    else if ( dynamic_cast<motor::msl::texture_dv_ptr_t> ( df ) != nullptr )
-                    {
-                        using ptr_t = motor::msl::texture_dv_ptr_t ;
-                        ptr_t gdv = static_cast<ptr_t>( df ) ;
-                        for ( auto & vs : obj.borrow_varibale_sets() )
-                        {
-                            // for @overwrite specifier
-                            // if variable is already in the variable set, do not overwrite it
-                            //if( vs->has_texture_variable( var_.name ) ) continue ;
-
-                            // have the type here
-                            // gdv->get().t == motor::msl::texture_tag_dv::type::tex1d
-                            vs.vs->texture_variable( var_.name )->set( gdv->get().name ) ;
-                        }
-                    }
-                }
-            }
-            #endif
 
             auto * ro = obj.borrow_render_object() ;
             motor::graphics::shader_object_t so( c_exp ) ;
@@ -3341,7 +3275,184 @@ public:
     }
 
     //****************************************************************************************
-    bool_t connect( this_t::render_data & config, size_t const var_set_idx, size_t const hash, motor::graphics::variable_set_mtr_safe_t vs )
+    // helper function requires context:
+    // you need to know if a variable set is reconnecting
+    // at the moment, just really call if you know if a reconnect is happening.
+    // a reconnection could happen, if a variable set is still there, but on the user side
+    // the variable set has been replaced.
+    bool_t reconnect( this_t::render_data & config, size_t const var_set_idx, size_t const hash, 
+        motor::graphics::variable_set_mtr_safe_t vs )
+    { 
+        // enforce description - see function desc
+        assert( config.varset_to_idx.size() > var_set_idx ) ;
+        assert( config.varset_to_idx[ var_set_idx ].idx != size_t(-1) ) ;
+        #if 0
+        // ref count one copy here for all stored items
+        {
+            if( config.varset_to_idx.size() <= var_set_idx )
+                config.varset_to_idx.resize( var_set_idx + 1 ) ;
+
+            size_t idx = size_t(-1) ;
+            while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
+
+            if( idx == config.var_sets.size() )
+                config.var_sets.resize( idx + 1 ) ;
+
+            vtidx_data.idx = idx ;
+
+            config.varset_to_idx[ var_set_idx ] = std::move( vtidx_data ) ;
+            config.var_sets[idx] = render_data::variable_set{ hash, /*var_set_idx,*/  motor::move( vs ) } ;
+        }
+
+        _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
+        {
+            vs->clone_from_if_not_exist( &shd.default_values ) ;
+
+
+            render_data_t::varset_to_idx_data vtidx_data ;
+            vtidx_data.data_idx_begin = config.var_sets_data.size() ;
+            vtidx_data.data_idx_end = config.var_sets_data.size() ;
+
+            vtidx_data.texture_idx_begin = config.var_sets_texture.size() ;
+            vtidx_data.texture_idx_end = config.var_sets_texture.size() ;
+
+            vtidx_data.array_idx_begin = config.var_sets_array.size() ;
+            vtidx_data.array_idx_end = config.var_sets_array.size() ;
+
+            vtidx_data.streamout_idx_begin = config.var_sets_streamout.size() ;
+            vtidx_data.streamout_idx_end = config.var_sets_streamout.size() ;
+
+            size_t id = 0 ;
+            for( auto & uv : shd.uniforms )
+            {
+                // is it a data uniform variable?
+                if( motor::ogl::uniform_is_data( uv.type ) )
+                {
+                    auto const types = motor::platform::gl3::to_type_type_struct( uv.type ) ;
+                    auto* var = vs->data_variable( uv.name, types.first, types.second ) ;
+                    if( var == nullptr )
+                    {
+                        motor::log::global_t::error( gl4_log( "can not claim variable " + uv.name ) ) ;
+                        continue ;
+                    }
+
+                    this_t::render_data::uniform_variable_link link ;
+                    link.uniform_id = id++ ;
+                    link.var = var ;
+
+                    config.var_sets_data.emplace_back( link ) ;
+
+                    ++vtidx_data.data_idx_end ;
+                }
+                else if( motor::ogl::uniform_is_texture( uv.type ) )
+                {
+                    //auto const types = motor::platform::gl3::to_type_type_struct( uv.type ) ;
+                    auto* var = vs->texture_variable( uv.name ) ;
+
+                    if( var == nullptr )
+                    {
+                        motor::log::global_t::error( gl4_log( "can not claim variable " + uv.name ) ) ;
+                        continue ;
+                    }
+
+                    // looking for image
+                    {
+                        auto const& tx_name = var->get() ;
+
+                        this_t::render_data::uniform_texture_link link ;
+                        link.uniform_id = id++ ;
+                        link.img_hash = var->get().hash() ;
+                        link.var = var ;
+
+                        auto const res = _images.access_by_name( tx_name.name(), [&]( size_t const img_id, this_t::image_data_ref_t d )
+                        {
+                            link.img_id = img_id ;
+                            link.tex_id = d.tex_id ;
+                        } ) ;
+
+                        if( !res ) 
+                        {
+                            motor::log::global_t::error<1024>( "[gl4] : Could not find image [%s]", 
+                                tx_name.name().c_str() ) ;
+                            continue ;
+                        }
+                        config.var_sets_texture.emplace_back( link ) ;
+                        ++vtidx_data.texture_idx_end ;
+                    }
+                }
+                else if( motor::ogl::uniform_is_buffer( uv.type ) )
+                {
+                    motor::string_t tx_name ;
+
+                    {
+                        tx_name = vs->array_variable( uv.name )->get().name() ;
+
+                        if ( tx_name.empty() )
+                            tx_name = vs->array_variable_streamout( uv.name )->get().name() ;
+                    }
+
+                    // looking for data buffer
+                    auto handle_buffer_link = [&]( void_t )
+                    {
+                        this_t::render_data::uniform_array_data_link link ;
+                        
+                        auto const res = _arrays.access_by_name( tx_name, [&]( size_t const id_, this_t::array_data_ref_t d )
+                        {
+                            link.buf_id = id_ ;
+                            link.tex_id = d.tex_id ;
+                        } ) ;
+                        if( !res ) return false ;
+
+                        link.uniform_id = id++ ;
+
+                        config.var_sets_array.emplace_back( link ) ;
+                        ++vtidx_data.array_idx_end ;
+                        return true ;
+                    } ;
+
+                    // looking for streamout/transform feedback
+                    auto handle_feedback_link = [&]( void_t )
+                    {
+                        this_t::render_data::uniform_streamout_link link ;
+                        
+                        auto const res = _feedbacks.access_by_name( tx_name, [&]( size_t const id_, this_t::feedback_data_ref_t d )
+                        {
+                            link.tex_id[0] = d._buffers[0].tids[0] ;
+                            link.tex_id[1] = d._buffers[1].tids[0] ;
+                            link.so_id = id_ ;
+                        } ) ;
+                        if( !res ) return false ; 
+
+                        link.uniform_id = id++ ;
+                        config.var_sets_streamout.emplace_back( link ) ;
+                        ++vtidx_data.streamout_idx_end ;
+                        return true ;
+                    } ;
+
+                    if( !handle_buffer_link() )
+                    {
+                        if( !handle_feedback_link() )
+                        {
+                            motor::log::global_t::error<2048>(  
+                              "[gl4] : Could not find array nor streamout object [%s]", 
+                                tx_name.c_str() ) ;
+                            continue ;
+                        }
+                    }
+                }
+            }
+
+            
+
+        } ) ;
+        #endif
+
+        return true ;
+    }
+
+    //****************************************************************************************
+    bool_t connect( this_t::render_data & config, size_t const var_set_idx, size_t const hash, 
+    motor::graphics::variable_set_mtr_safe_t vs )
     {
         //this_t::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
         _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
@@ -3482,7 +3593,6 @@ public:
             }
 
             // ref count one copy here for all stored items
-            #if 1
             {
                 if( config.varset_to_idx.size() <= var_set_idx )
                     config.varset_to_idx.resize( var_set_idx + 1 ) ;
@@ -3494,22 +3604,11 @@ public:
                     config.var_sets.resize( idx + 1 ) ;
 
                 vtidx_data.idx = idx ;
+
                 config.varset_to_idx[ var_set_idx ] = std::move( vtidx_data ) ;
                 config.var_sets[idx] = render_data::variable_set{ hash, /*var_set_idx,*/  motor::move( vs ) } ;
             }
-            #else
-            {
-                size_t idx = size_t(-1) ;
-                while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
 
-                if( idx == config.var_sets.size() )
-                {
-                    config.var_sets.resize( idx + 1 ) ;
-                }
-
-                config.var_sets[idx] = render_data::variable_set{ hash, var_set_idx, motor::move( vs ) } ;                
-            }
-            #endif
         } ) ;
         
 
@@ -3890,10 +3989,20 @@ public:
         size_t oid = ro.get_oid( this_t::_bid ) ;
         auto const [a,b] = _renders.access<bool_t>( oid, [&]( this_t::render_data_ref_t rd )
         {
-            if( rd.has_not_variable_set( varset_id ) )
+            auto [hash, vs] = ro.borrow_variable_set( varset_id ) ;
+
+            if( rd.has_variable_set( varset_id ) && 
+                rd.has_variable_set_changed( varset_id, hash )) 
             {
-                auto vs = ro.borrow_variable_set( varset_id ) ;
-                this_t::connect( rd, varset_id, vs.hash, motor::share( vs.vs ) ) ;
+                auto & varset = rd.var_sets[ rd.varset_to_idx[ varset_id ].idx ] ;
+                rd.varset_to_idx[ varset_id ].idx = size_t( -1 ) ;
+                motor::release( motor::move( varset.vs ) ) ;
+                varset.hash = size_t(-1) ;
+                
+            }
+            else if( rd.has_not_variable_set( varset_id ) )
+            {
+                this_t::connect( rd, varset_id, hash, motor::share( vs ) ) ;
 
                 _shaders.access( rd.shd_id, [&]( this_t::shader_data_ref_t sd )
                 {
