@@ -131,15 +131,15 @@ namespace motor
                 _data( v ) {}
 
             generic_property( T const & v, motor::property::editor_hint const h ) noexcept :
-                _data( v ), base_t( h ) {}
+                base_t( h ), _data( v ) {}
 
             generic_property( T const & v, typename this_t::min_max_in_t mm ) noexcept :
-                _data( v ), base_t( mm ){}
+                base_t( mm ), _data( v ){}
 
             generic_property( T const & v, motor::property::editor_hint const h, typename this_t::min_max_in_t mm ) noexcept :
-                _data( v ), base_t( h, mm ){}
+                base_t( h, mm ), _data( v ){}
 
-            generic_property( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) ), _data( rhv._data ), _changed( rhv._changed ) {}
+            generic_property( this_rref_t rhv ) noexcept : base_t( std::move( rhv ) ), _changed( rhv._changed ), _data( rhv._data ) {}
 
             virtual ~generic_property( void_t ) noexcept {}
 

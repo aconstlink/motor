@@ -13,10 +13,10 @@ hdr_postprocess_pipeline::hdr_postprocess_pipeline( uint_t const w, uint_t const
 
 //***************************************************
 hdr_postprocess_pipeline::hdr_postprocess_pipeline( this_rref_t rhv ) noexcept
-    : _post_so( motor::move( rhv._post_so ) ), _post_quad( motor::move( rhv._post_quad ) ),
-      _post_fbs( std::move( rhv._post_fbs ) ), _mts_so( motor::move( rhv._mts_so ) ),
-      _hdr_so( motor::move( rhv._hdr_so ) ), _zpre_so( motor::move( rhv._zpre_so ) ),
-      _msl( motor::move( rhv._msl ) ), _post_fb_dims( std::move( rhv._post_fb_dims ) )
+    : _hdr_so( motor::move( rhv._hdr_so ) ), _zpre_so( motor::move( rhv._zpre_so ) ),
+      _post_so( motor::move( rhv._post_so ) ), _post_quad( motor::move( rhv._post_quad ) ),
+      _post_fbs( std::move( rhv._post_fbs ) ), _post_fb_dims( std::move( rhv._post_fb_dims ) ),
+      _mts_so( motor::move( rhv._mts_so ) ), _msl( motor::move( rhv._msl ) )
 {
     _hdr_fbs[ 0 ] = motor::move( rhv._hdr_fbs[ 0 ] );
     _hdr_fbs[ 1 ] = motor::move( rhv._hdr_fbs[ 1 ] );

@@ -221,7 +221,7 @@ namespace motor{ namespace mstd {
 
         void_t push_back( T && v, size_t const grow_by = 10 ) noexcept
         {
-            size_t const pos = this_t::resize_by( 1 ) ;
+            size_t const pos = this_t::resize_by( 1, grow_by ) ;
             _ptr[ pos ] = std::move( v ) ;
         }
 

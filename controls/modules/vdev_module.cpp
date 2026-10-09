@@ -55,10 +55,6 @@ void_t vdev_module::search( motor::controls::imodule::search_funk_t funk ) noexc
 //***
 void_t vdev_module::update( void_t ) noexcept
 {
-    for( auto & g : _games )
-    {
-        //g.dev->update() ;
-    }
 }
 
 void_t vdev_module::release( void_t ) noexcept 

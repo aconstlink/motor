@@ -146,14 +146,14 @@ namespace motor
 
             void_t set_mass_variation_type( variation_type const avt ) noexcept 
             { 
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_mass() ;
                 } ;
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         return this_t::random_real_number( this_t::get_mass() * 0.2f, this_t::get_mass() ) ;
                     } ;
@@ -164,14 +164,14 @@ namespace motor
 
             void_t set_age_variation_type( variation_type const avt ) noexcept 
             {             
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_age() ;
                 };
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         return this_t::random_real_number( this_t::get_age() * 0.2f, this_t::get_age() ) ;
                     } ;
@@ -183,14 +183,14 @@ namespace motor
 
             void_t set_acceleration_variation_type( variation_type const avt ) noexcept 
             { 
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_acceleration() ;
                 } ;
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         return this_t::random_real_number( this_t::get_acceleration() * 0.2f, this_t::get_acceleration() ) ;
                     } ;
@@ -202,14 +202,14 @@ namespace motor
 
             void_t set_velocity_variation_type( variation_type const avt ) noexcept 
             {
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_velocity() ;
                 } ;
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         return this_t::random_real_number( this_t::get_velocity() * 0.2f, this_t::get_velocity() ) ;
                     } ;
@@ -285,14 +285,14 @@ namespace motor
 
             void_t set_radius_variation_type( variation_type const avt ) noexcept 
             { 
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_radius() ;
                 } ;
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         return this_t::random_real_number( this_t::get_radius() * 0.2f, this_t::get_radius() ) ;
                     } ;
@@ -303,14 +303,14 @@ namespace motor
 
             void_t set_angle_variation_type( variation_type const avt ) noexcept 
             { 
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_angle() ;
                 } ;
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         return this_t::random_real_number( this_t::get_angle() * 0.2f, this_t::get_angle() ) ;
                     } ;
@@ -407,14 +407,14 @@ namespace motor
 
             void_t set_parallel_variation_type( variation_type const avt ) noexcept 
             { 
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_parallel_distance() ;
                 } ;
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         auto const r = this_t::random_real_number( 0.0f, 1.0f ) ;
                         return motor::math::interpolation<float_t>::linear( this_t::get_parallel_distance() * 0.2f, this_t::get_parallel_distance(), r ) ;
@@ -426,14 +426,14 @@ namespace motor
 
             void_t set_ortho_variation_type( variation_type const avt ) noexcept 
             { 
-                variation_funk_t funk = [=]( void_t )
+                variation_funk_t funk = [=, this]( void_t )
                 {
                     return this_t::get_ortho_distance() ;
                 } ;
 
                 if( avt == physics::variation_type::random )
                 {
-                    funk = [=]( void_t )
+                    funk = [=, this]( void_t )
                     {
                         auto const r = this_t::random_real_number( 0.0f, 1.0f ) ;
                         return motor::math::interpolation<float_t>::linear( this_t::get_ortho_distance() * 0.2f, this_t::get_ortho_distance(), r ) ;

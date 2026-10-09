@@ -51,13 +51,13 @@ namespace motor
             shader_object( motor::string_cref_t name ) noexcept
                 : _name( name ) {}
 
-            shader_object( this_cref_t rhv ) noexcept : object( rhv ), _name( rhv._name ),
-                _shader_bindings( rhv._shader_bindings ), _shader_sets( rhv._shader_sets ),
+            shader_object( this_cref_t rhv ) noexcept : object( rhv ),
+                _shader_bindings( rhv._shader_bindings ), _shader_sets( rhv._shader_sets ), _name( rhv._name ),
                 _sm( rhv._sm ) {}
 
             shader_object( this_rref_t rhv ) noexcept : object( std::move(rhv) ),
-                _name( std::move( rhv._name ) ), _shader_bindings( std::move( rhv._shader_bindings ) ),
-                _shader_sets( std::move( rhv._shader_sets ) ), _sm( rhv._sm ) {}
+                _shader_bindings( std::move( rhv._shader_bindings ) ),
+                _shader_sets( std::move( rhv._shader_sets ) ), _name( std::move( rhv._name ) ), _sm( rhv._sm ) {}
 
             this_ref_t operator = ( this_cref_t rhv ) noexcept
             {

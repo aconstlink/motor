@@ -381,7 +381,7 @@ namespace motor
             // the schedule will pass the resource handle
             // of this task to this function so the
             // executing function could add further tasks
-            bool_t execute( this_ptr_t this_res ) noexcept 
+            bool_t execute( this_ptr_t ) noexcept
             {
                 if( _incomings != 0 ) return false ;
 

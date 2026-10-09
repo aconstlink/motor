@@ -7,13 +7,13 @@
 using namespace motor::wire ;
 
 //*****************************************************
-inode::inode( motor::string_in_t n, motor::concurrent::task_mtr_t t ) noexcept : _name( n ) , _task( motor::move(t) )
+inode::inode( motor::string_in_t n, motor::concurrent::task_mtr_t t ) noexcept : _task( motor::move(t) ), _name( n )
 {
  }
 
 //*****************************************************
-inode::inode( this_rref_t rhv ) noexcept : _incoming( std::move( rhv._incoming ) ), 
-    _outgoing( std::move( rhv._outgoing ) ), _task( motor::move( rhv._task ) ), 
+inode::inode( this_rref_t rhv ) noexcept : _task( motor::move( rhv._task ) ), _incoming( std::move( rhv._incoming ) ),
+    _outgoing( std::move( rhv._outgoing ) ),
     _name( std::move(rhv._name) )
     
 {

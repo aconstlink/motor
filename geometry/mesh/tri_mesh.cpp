@@ -200,7 +200,7 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
         size_t conf_idx = size_t( offset ) ;
         {
             size_t const end = offset + num_confs ;
-            for( conf_idx; conf_idx<end; ++conf_idx )
+            for( ; conf_idx<end; ++conf_idx )
             {
                 auto & cur_conf = confs[ conf_idx ] ;
 
@@ -292,7 +292,7 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
                 }
 
                 // normals
-                if( index_vector.nrm_id != -1 )
+                if( index_vector.nrm_id != uint_t(-1) )
                 {
                     new_normals[vertex_id * 3 + 0] = normals[0][index_vector.nrm_id * 3 + 0] ;
                     new_normals[vertex_id * 3 + 1] = normals[0][index_vector.nrm_id * 3 + 1] ;
@@ -300,21 +300,21 @@ motor::geometry::result tri_mesh::flatten( flat_tri_mesh_ref_t mesh_out ) const
                 }
 
                 // texcoords0
-                if( index_vector.tx0_id != -1 )
+                if( index_vector.tx0_id != uint_t(-1) )
                 {
                     new_uvs0[vertex_id * 2 + 0] = texcoords[0][index_vector.tx0_id * uvb + 0] ;
                     new_uvs0[vertex_id * 2 + 1] = texcoords[0][index_vector.tx0_id * uvb + 1] ;
                 }
 
                 // texcoords1
-                if( index_vector.tx1_id != -1 )
+                if( index_vector.tx1_id != uint_t(-1) )
                 {
                     new_uvs1[vertex_id * 2 + 0] = texcoords[1][index_vector.tx1_id * uvb + 0] ;
                     new_uvs1[vertex_id * 2 + 1] = texcoords[1][index_vector.tx1_id * uvb + 1] ;
                 }
 
                 // texcoords2
-                if( index_vector.tx2_id != -1 )
+                if( index_vector.tx2_id != uint_t(-1) )
                 {
                     new_uvs2[vertex_id * 2 + 0] = texcoords[2][index_vector.tx2_id * uvb + 0] ;
                     new_uvs2[vertex_id * 2 + 1] = texcoords[2][index_vector.tx2_id * uvb + 1] ;

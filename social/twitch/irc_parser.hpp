@@ -140,7 +140,7 @@ namespace motor { namespace social { namespace twitch
                     if ( pos != std::string::npos )
                     {
                         auto const line = _raw_msg.substr( start, pos - start ) ;
-                        _lines.emplace_back( this_t::message_line { line } ) ;
+                        _lines.emplace_back( this_t::message_line { line, {}, {}, {} } ) ;
                         start = pos + 2 ;
 
                         continue ;
@@ -150,7 +150,7 @@ namespace motor { namespace social { namespace twitch
                     auto const line = _raw_msg.substr( start, _raw_msg.size() - start ) ;
                     if ( line.size() != 0 )
                     {
-                        _lines.emplace_back( this_t::message_line { line } ) ;
+                        _lines.emplace_back( this_t::message_line { line, {}, {}, {} } ) ;
                     }
                     break ;
                 }

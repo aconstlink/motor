@@ -5,9 +5,9 @@ using namespace motor::scene;
 
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
-    : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _trafo_vars( std::move( rhv._trafo_vars ) ),
+    : _vs( rhv._vs ), _geo_id( rhv._geo_id ),
       _base_data_set( std::move( rhv._base_data_set ) ), _sub_sets( std::move( rhv._sub_sets ) ),
-      _out_bridge( std::move( rhv._out_bridge ) )
+      _trafo_vars( std::move( rhv._trafo_vars ) ), _out_bridge( std::move( rhv._out_bridge ) )
 {
 #if 0
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
@@ -42,7 +42,7 @@ msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl ) noexc
 //*****************************************************************
 msl_component::msl_component(
     motor::graphics::msl_object_mtr_safe_t msl, vs_idx_t const vs, geo_idx_t const geo_id ) noexcept
-    : _msl( motor::move( msl ) ), _vs( vs ), _geo_id( geo_id )
+    : _vs( vs ), _geo_id( geo_id ), _msl( motor::move( msl ) )
 {
 #if 0
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
