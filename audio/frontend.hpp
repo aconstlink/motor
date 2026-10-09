@@ -36,7 +36,7 @@ namespace motor
             template< typename T >
             this_ref_t release( typename motor::core::mtr_borrow< T >::mtr_t o ) noexcept 
             {
-                _re->send_execute( [=]( void_t )
+                _re->send_execute( [=, this]( void_t )
                 {
                     _be->release( o ) ;
                 } ) ;
@@ -49,7 +49,7 @@ namespace motor
             template< typename T >
             this_ref_t release( motor::core::mtr_safe< T > o ) noexcept 
             {
-                _re->send_execute( [=, mtr = o.mtr() ]( void_t )
+                _re->send_execute( [=, this, mtr = o.mtr() ]( void_t )
                 {
                     _be->release( mtr ) ;
                     motor::memory::release_ptr( mtr ) ;
@@ -61,7 +61,7 @@ namespace motor
             void_t configure( motor::audio::capture_type const ct, 
                 motor::audio::capture_object_mtr_t o ) noexcept 
             {
-                _re->send_execute( [=]( void_t )
+                _re->send_execute( [=, this]( void_t )
                 {
                     _be->configure( ct, o ) ;
                 } ) ;
@@ -69,7 +69,7 @@ namespace motor
 
             void_t capture( motor::audio::capture_object_mtr_t o, bool_t const b = true ) noexcept 
             {
-                _re->send_execute( [=]( void_t )
+                _re->send_execute( [=, this]( void_t )
                 {
                     _be->capture( o, b ) ;
                 } ) ;
@@ -77,7 +77,7 @@ namespace motor
 
             void_t configure( motor::audio::buffer_object_mtr_t o ) noexcept
             {
-                _re->send_execute( [=]( void_t )
+                _re->send_execute( [=, this]( void_t )
                 {
                     _be->configure( o ) ;
                 } ) ;
@@ -85,7 +85,7 @@ namespace motor
 
             void_t update( motor::audio::buffer_object_mtr_t o ) noexcept 
             {
-                _re->send_execute( [=]( void_t )
+                _re->send_execute( [=, this]( void_t )
                 {
                     _be->update( o ) ;
                 } ) ;
@@ -93,7 +93,7 @@ namespace motor
 
             void_t execute( motor::audio::buffer_object_mtr_t o, motor::audio::backend::execute_detail_cref_t ed ) noexcept 
             {
-                _re->send_execute( [=]( void_t )
+                _re->send_execute( [=, this]( void_t )
                 {
                     _be->execute( o, ed ) ;
                 } ) ;

@@ -385,7 +385,7 @@ motor::network::socket_id_t unix_net_module::create_tcp_client(
         tcpd->name = std::move( info_in.name ) ;
         tcpd->bp = std::move( info_in.bp ) ;
 
-        tcpd->t = std::thread( [=] ( void )
+        tcpd->t = std::thread( [=, this] ( void )
         {
             motor::log::global_t::status( "[unix_net_module] : starting client thread : " + tcpd->name ) ;
 

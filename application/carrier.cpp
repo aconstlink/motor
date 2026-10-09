@@ -94,7 +94,7 @@ motor::application::result carrier::start_update_thread( void_t ) noexcept
 
     _sd->update_running = true ;
     
-    _thr = std::thread( [=]( void_t )
+    _thr = std::thread( [=, this]( void_t )
     {
         motor::application::app_t::carrier_accessor ca( _app ) ;
         ca.init( this ) ;

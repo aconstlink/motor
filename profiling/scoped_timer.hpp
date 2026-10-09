@@ -34,7 +34,7 @@ namespace motor
             // by default, result is printed to motor::log::status
             scoped_timer( char const * name ) noexcept : _name(name),
                 _start(this_clock_t::now()),
-                _funk([=]( char const * name, T const & dur )
+                _funk([=, this]( char const * name, T const & dur )
             {
                 motor::log::global::status<1024>( "%s : %zu units", 
                     _name, dur.count()) ;

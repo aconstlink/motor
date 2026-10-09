@@ -19,7 +19,7 @@ render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id
 //*****************************************************************************************
 render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id, size_t const render_id,
     motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
-    : _msl_set_id( id ), _fe( fe ), _cam( cam ), _render_data_id( render_id )
+    : _msl_set_id( id ), _render_data_id( render_id ), _fe( fe ), _cam( cam )
 {
 }
 
@@ -32,8 +32,8 @@ render_visitor::render_visitor(
 
 //*****************************************************************************************
 render_visitor::render_visitor( this_rref_t rhv ) noexcept
-    : _msl_set_id( rhv._msl_set_id ), _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) ),
-    _render_data_id( rhv._render_data_id )
+    : _msl_set_id( rhv._msl_set_id ), _render_data_id( rhv._render_data_id ),
+      _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) )
 {
 }
 

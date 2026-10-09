@@ -3,7 +3,7 @@
 using namespace motor::graphics;
 
 object::data_manipulator::data_manipulator( object * ptr, size_t const bid ) noexcept
-    : _obj( ptr ), _bid( bid )
+    : _bid( bid ), _obj( ptr )
 {
 }
 object::data_manipulator::~data_manipulator( void_t ) noexcept {}

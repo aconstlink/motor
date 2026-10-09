@@ -179,7 +179,7 @@ namespace motor
                     thread_data_ptr_t res = motor::memory::global_t::alloc( 
                         thread_data(), "[motor:concurrent] : thread_data" ) ;
 
-                    auto thd = std::thread( [=]( void_t )
+                    auto thd = std::thread( [this]( void_t )
                     {
                         tasks_t tmp_tasks ;
 

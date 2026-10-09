@@ -45,7 +45,7 @@ class command_status
 
     command_status( this_cref_t ) = delete;
     command_status( this_rref_t rhv ) noexcept
-        : _datas( std::move( rhv._datas ) ), _mutex( std::move( rhv._mutex ) )
+        : _mutex( std::move( rhv._mutex ) ), _datas( std::move( rhv._datas ) )
     {
     }
 

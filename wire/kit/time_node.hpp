@@ -44,9 +44,8 @@ class time_node : public motor::wire::funk_node< motor::wire::unnamed_slot_sheet
     }
     time_node( this_cref_t ) = delete;
     time_node( this_rref_t rhv ) noexcept
-        : base_t( std::move( rhv ) ), _time_is( motor::move( rhv._time_is ) ),
-          _sec_os( motor::move( rhv._sec_os ) ), _ms_os( motor::move( rhv._ms_os ) ),
-          _input_mode( rhv._input_mode )
+        : base_t( std::move( rhv ) ), _input_mode( rhv._input_mode ), _time_is( motor::move( rhv._time_is ) ),
+          _sec_os( motor::move( rhv._sec_os ) ), _ms_os( motor::move( rhv._ms_os ) )
     {
         base_t::set_funk( this_t::make_funk() );
     }
@@ -97,7 +96,7 @@ class time_node : public motor::wire::funk_node< motor::wire::unnamed_slot_sheet
 
     base_t::funk_t make_funk( void_t ) noexcept
     {
-        return [ = ]( base_t * /*self*/ )
+        return [=, this]( base_t * /*self*/ )
         {
             float_t const t = _input_mode == input_time_mode::absolute
                                   ? this->_time_is->get_value()

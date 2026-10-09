@@ -77,7 +77,7 @@ bool_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                 {
                     auto mm = ptr->get_min_max() ;
 
-                    ImGui::Text( name.c_str() ) ;
+                    ImGui::TextUnformatted( name.c_str() ) ;
                     ImGui::BeginGroup() ;
 
                     // configuration
@@ -171,7 +171,7 @@ bool_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                         auto v = ptr->get() ;
 
                         ImGui::BeginGroup() ;
-                        ImGui::Text( name.c_str() ) ;
+                        ImGui::TextUnformatted( name.c_str() ) ;
                         {
                             float_t x = v.x() ;
                             motor::string_t label_ = "x##" + label ;
@@ -215,7 +215,7 @@ bool_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                 auto * ptr = dynamic_cast<motor::property::vec4f_traits_ptr_t>( p ) ;
                 if ( ptr != nullptr )
                 {
-                    ImGui::Text( name.c_str() ) ;
+                    ImGui::TextUnformatted( name.c_str() ) ;
                     ImGui::BeginGroup() ;
 
                     auto mm = ptr->get_min_max() ;
@@ -327,7 +327,7 @@ bool_t imgui_property::handle( motor::string_in_t sheet_name, motor::property::p
                     {
                     case motor::property::editor_hint::no_edit:
                     {
-                        ImGui::Text( ptr->get().c_str() ) ;
+                        ImGui::TextUnformatted( ptr->get().c_str() ) ;
                         if ( ImGui::IsItemClicked() )
                         {
                             ptr->set_hint( motor::property::editor_hint::edit_box ) ;

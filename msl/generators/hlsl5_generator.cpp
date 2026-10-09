@@ -1715,7 +1715,6 @@ motor::msl::generated_code_t::shaders_t hlsl5_generator::generate( motor::msl::g
         // fill build-ins that need to be processed
         // in the 1st pass.
         {
-            size_t offset = 0 ;
             for( auto& s : genable.config.shaders )
             {
                 for( auto& c : s.codes )

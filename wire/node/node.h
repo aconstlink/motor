@@ -274,7 +274,7 @@ class node : public inode, private slot_policy
 
     virtual motor::concurrent::task_t::task_funk_t make_task_funk( void_t ) noexcept
     {
-        return [ = ]( motor::concurrent::task_t::task_funk_param_in_t )
+        return [=, this]( motor::concurrent::task_t::task_funk_param_in_t )
         {
             // exchange all inputs... (pull)
             // this->inputs().exchange() ;

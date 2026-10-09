@@ -273,7 +273,7 @@ void manager::dealloc( void_ptr_t ptr ) noexcept
 {
     if( ptr == nullptr ) return ;
 
-    size_t const sib = this_t::release_entry_dealloc( ptr ) ;
+    [[maybe_unused]] size_t const sib = this_t::release_entry_dealloc( ptr ) ;
 
     #if USE_SIB_OPTIMIZATION
     if ( sib <= 16 )
