@@ -57,6 +57,7 @@ class variable_set
     };
     motor_typedef( streamout_data );
     motor::vector< streamout_data > _streamouts;
+    mutable motor::concurrent::mrsw_t _soutvar_mtx;
 
     std::mutex _mtx;
 
@@ -201,7 +202,32 @@ class variable_set
             this_t::find_data_variable( name, type, type_struct ) );
     }
 
-  public: // string_view
+  public: // data_variable
+
+    struct data_variable_info
+    {
+        std::string_view name;
+        motor::graphics::type type;
+        motor::graphics::type_struct type_struct;
+    };
+    motor_typedef( data_variable_info );
+
+    //***************************************************************************************
+    bool_t data_variable_name(
+        motor::graphics::ivariable_ptr_t ptr, data_variable_info_out_t out ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock lk( _data_mtx );
+        size_t i = size_t( -1 );
+        while( ++i < _variables.size() && _variables[ i ].var != ptr );
+
+        if( i == _variables.size() ) return false;
+
+        out.name = _variables[ i ].name;
+        out.type = _variables[ i ].type;
+        out.type_struct = _variables[ i ].type_struct;
+
+        return true;
+    }
 
     //***************************************************************************************
     template < class T >
@@ -321,6 +347,23 @@ class variable_set
   public: // texture variable
 
     //***************************************************************************************
+    bool_t texture_variable_name(
+        motor::graphics::ivariable_ptr_t ptr, std::string_view & out ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock lk( _tex_mtx );
+        size_t i = size_t( -1 );
+        while( ++i < _textures.size() && _textures[ i ].var != ptr );
+
+        out = std::string_view( "" );
+        if( i == _textures.size() ) return false;
+
+        out = _textures[ i ].name;
+        ;
+
+        return true;
+    }
+
+    //***************************************************************************************
     motor::graphics::texture_variable_t * find_texture_variable(
         char const * const name ) const noexcept
     {
@@ -407,6 +450,23 @@ class variable_set
   public: // array variable
 
     //***************************************************************************************
+    bool_t array_variable_name(
+        motor::graphics::ivariable_ptr_t ptr, std::string_view & out ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock lk( _avar_mtx );
+        size_t i = size_t( -1 );
+        while( ++i < _arrays.size() && _arrays[ i ].var != ptr );
+
+        out = std::string_view( "" );
+        if( i == _arrays.size() ) return false;
+
+        out = _arrays[ i ].name;
+        ;
+
+        return true;
+    }
+
+    //***************************************************************************************
     motor::graphics::array_variable_t * array_variable( char const * const name ) noexcept
     {
         // quick search first with reader lock
@@ -444,6 +504,23 @@ class variable_set
 
   public: // streamout array vars
 
+    //***************************************************************************************
+    bool_t array_variable_streamoutname(
+        motor::graphics::ivariable_ptr_t ptr, std::string_view & out ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock lk( _soutvar_mtx );
+        size_t i = size_t( -1 );
+        while( ++i < _streamouts.size() && _streamouts[ i ].var != ptr );
+
+        out = std::string_view( "" );
+        if( i == _streamouts.size() ) return false;
+
+        out = _streamouts[ i ].name;
+        ;
+
+        return true;
+    }
+
     // allows to connect a streamout object with a data buffer in the shader
     motor::graphics::streamout_variable_t * array_variable_streamout(
         motor::string_in_t name ) noexcept
@@ -453,7 +530,7 @@ class variable_set
 
         // before inserting, check if name and type match
         {
-            std::lock_guard< std::mutex > lk( _mtx );
+            motor::concurrent::mrsw_t::writer_lock lk( _soutvar_mtx );
 
             auto iter = std::find_if( _streamouts.begin(), _streamouts.end(),
                 [ & ]( this_t::streamout_data_cref_t d ) { return d.name == name; } );

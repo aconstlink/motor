@@ -575,6 +575,12 @@ struct gl4_backend::pimpl
             return var_sets[ varset_to_idx[vs_idx].idx ].hash != hash ;
         }
 
+        // no bound checking
+        variable_set_ref_t via_indirection( size_t const vs_idx ) noexcept
+        {
+            return var_sets[ varset_to_idx[vs_idx].idx ] ;
+        }
+
         struct uniform_variable_link
         {
             // the user variable holding the data.
@@ -3276,30 +3282,93 @@ public:
 
     //****************************************************************************************
     // helper function requires context:
-    // you need to know if a variable set is reconnecting
+    // you need to know if a variable set is reconnecting.
     // at the moment, just really call if you know if a reconnect is happening.
     // a reconnection could happen, if a variable set is still there, but on the user side
-    // the variable set has been replaced.
+    // the variable set has been replaced so the hash values differ.
     bool_t reconnect( this_t::render_data & config, size_t const var_set_idx, size_t const hash, 
         motor::graphics::variable_set_mtr_safe_t vs )
     { 
         // enforce description - see function desc
         assert( config.varset_to_idx.size() > var_set_idx ) ;
         assert( config.varset_to_idx[ var_set_idx ].idx != size_t(-1) ) ;
+        assert( config.var_sets[ config.varset_to_idx[ var_set_idx ].idx ].hash != hash ) ;
+        assert( config.var_sets[ config.varset_to_idx[ var_set_idx ].idx ].vs != nullptr ) ;
+
+        auto * old_vs = config.via_indirection( var_set_idx ).vs ;
+
+        _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
+        {
+            vs->clone_from_if_not_exist( &shd.default_values ) ;
+        } ) ;
+
+        // exchange data variables
+        // the uniform link will be given the new variables from the new
+        // variable set, which is basically a "reconect"
+        {
+            auto const s = config.varset_to_idx[ var_set_idx ].data_idx_begin ;
+            auto const e = config.varset_to_idx[ var_set_idx ].data_idx_end ;
+
+            std::string_view name ;
+
+            motor::graphics::variable_set_t::data_variable_info_t dvi ;
+            for( size_t i=s; i<e; ++i )
+            {
+                auto * ptr = config.var_sets_data[i].var ;
+
+                if( !old_vs->data_variable_name( ptr, dvi ) ) 
+                {
+                    motor::log::global::error<1024>( 
+                        "[reconnect] : count not find variable %s", name.data() ) ;
+                    config.var_sets_data[i].var = nullptr ;
+                    continue ;
+                }
+                config.var_sets_data[i].var = 
+                    vs->data_variable( motor::string_t(dvi.name), dvi.type, dvi.type_struct) ;
+            }
+        }
+
+        // exchange texture variables
+        {
+            auto const s = config.varset_to_idx[ var_set_idx ].texture_idx_begin ;
+            auto const e = config.varset_to_idx[ var_set_idx ].texture_idx_end ;
+
+            std::string_view name ;
+
+            for( size_t i=s; i<e; ++i )
+            {
+                auto * ptr = config.var_sets_texture[i].var ;
+
+                if( !old_vs->texture_variable_name( ptr, name ) ) 
+                {
+                    motor::log::global::error<1024>( 
+                        "[reconnect] : count not find variable %s", name.data() ) ;
+                    config.var_sets_texture[i].var = nullptr ;
+                    continue ;
+                }
+                config.var_sets_texture[i].var = vs->texture_variable( motor::string_t(name) ) ;
+            }
+        }
+
+        // exchange array and streamout variables
+        {
+            // nothing to do. array do not carry variables but ids.
+            // and we do not need to change the ids
+        }
+
+
+        {
+            motor::release( motor::move( old_vs ) ) ;
+
+            auto & entry = config.via_indirection( var_set_idx ) ;
+            entry.vs = motor::move( vs ) ;
+            entry.hash = hash ;
+        }
+
         #if 0
         // ref count one copy here for all stored items
         {
-            if( config.varset_to_idx.size() <= var_set_idx )
-                config.varset_to_idx.resize( var_set_idx + 1 ) ;
-
-            size_t idx = size_t(-1) ;
-            while( ++idx < config.var_sets.size() && config.var_sets[idx].is_valid() ) ;
-
-            if( idx == config.var_sets.size() )
-                config.var_sets.resize( idx + 1 ) ;
-
-            vtidx_data.idx = idx ;
-
+        
             config.varset_to_idx[ var_set_idx ] = std::move( vtidx_data ) ;
             config.var_sets[idx] = render_data::variable_set{ hash, /*var_set_idx,*/  motor::move( vs ) } ;
         }
@@ -3994,10 +4063,7 @@ public:
             if( rd.has_variable_set( varset_id ) && 
                 rd.has_variable_set_changed( varset_id, hash )) 
             {
-                auto & varset = rd.var_sets[ rd.varset_to_idx[ varset_id ].idx ] ;
-                rd.varset_to_idx[ varset_id ].idx = size_t( -1 ) ;
-                motor::release( motor::move( varset.vs ) ) ;
-                varset.hash = size_t(-1) ;
+                this_t::reconnect( rd, varset_id, hash, motor::share( vs ) ) ;
                 
             }
             else if( rd.has_not_variable_set( varset_id ) )
