@@ -190,7 +190,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
                     p0 + ImVec2( 2.0f, height * 0.25f ) +
                     ImVec2( 0.0f, ( ( the_big + i ) % 2 ) * ImGui::GetTextLineHeight() * 0.5 ) );
                 // ImGui::SetWindowFontScale( 1.0f ) ;
-                ImGui::Text( this_t::make_time_string2( cur_milli ) );
+                ImGui::TextUnformatted( this_t::make_time_string2( cur_milli ) );
                 // ImGui::SetWindowFontScale( 1.0f ) ;
                 ImGui::SameLine();
 #endif
@@ -378,7 +378,7 @@ void_t timeline::end( void_t ) noexcept
     // play
     {
         auto s = this_t::make_time_string( _play );
-        ImGui::TextColored( ImVec4( 0.0f, 1.0f, 0.0f, 1.0f ), s );
+        ImGui::TextColored( ImVec4( 0.0f, 1.0f, 0.0f, 1.0f ), "%s", s );
     }
 
     ImGui::SameLine();
@@ -388,7 +388,7 @@ void_t timeline::end( void_t ) noexcept
         if( _hover != size_t( -1 ) )
         {
             auto s = this_t::make_time_string( _hover );
-            ImGui::TextColored( ImVec4( 1.0f, 1.0f, 0.0f, 1.0f ), s );
+            ImGui::TextColored( ImVec4( 1.0f, 1.0f, 0.0f, 1.0f ), "%s", s );
         }
         else
         {
@@ -401,7 +401,7 @@ void_t timeline::end( void_t ) noexcept
     // max milli
     {
         auto s = this_t::make_time_string( _max_milli );
-        ImGui::TextColored( ImVec4( 1.0f, 0.0f, 0.0f, 1.0f ), s );
+        ImGui::TextColored( ImVec4( 1.0f, 0.0f, 0.0f, 1.0f ), "%s", s );
     }
 
     ImGui::SameLine();

@@ -20,10 +20,10 @@ trafo3d_component::trafo3d_component( motor::math::m3d::trafof_cref_t trafo_loca
 
 //********************************************************************************
 trafo3d_component::trafo3d_component( this_rref_t rhv ) noexcept
-    : icomponent( std::move( rhv ) ), _trafo( std::move( rhv._trafo ) ),
-      _trafo_local( std::move( rhv._trafo_local ) ), _computed( std::move( rhv._computed ) ),
-      _trafo_is( motor::move( rhv._trafo_is ) ), _computed_os( motor::move( rhv._computed_os ) ),
-      _composer( std::move( rhv._composer ) )
+    : icomponent( std::move( rhv ) ), _trafo_is( motor::move( rhv._trafo_is ) ),
+      _computed_os( motor::move( rhv._computed_os ) ), _composer( std::move( rhv._composer ) ),
+      _trafo( std::move( rhv._trafo ) ), _trafo_local( std::move( rhv._trafo_local ) ),
+      _computed( std::move( rhv._computed ) )
 {
 }
 

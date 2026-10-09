@@ -1,6 +1,7 @@
 
 #include "fractal.h"
 
+#include <algorithm>
 #include <cstring>
 
 using namespace motor::geometry ;
@@ -449,7 +450,7 @@ fractal_3d::objects_t fractal_3d::iterate( divider_funk_t funk, fractal_object_c
         //objs = std::move( store ) ;
 
         objs.resize( cur_pos ) ;
-        std::memcpy( objs.data(), store.data(), sizeof(fractal_object_t)*cur_pos ) ;
+        std::copy_n( store.begin(), cur_pos, objs.begin() ) ;
         
     }
 

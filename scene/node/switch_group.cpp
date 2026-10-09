@@ -95,7 +95,7 @@ motor::scene::result switch_group::apply( motor::scene::ivisitor_ptr_t vptr ) no
     auto const r = vptr->visit( this ) ;
     if( r != motor::scene::result::no_descent )
     {
-        this_t::traverse_children( vptr, [=]( size_t i ) { return this->_actives[i] ; } ) ;
+        this_t::traverse_children( vptr, [=, this]( size_t i ) { return this->_actives[i] ; } ) ;
     }    
     return vptr->post_visit( this, r ) ;
 }

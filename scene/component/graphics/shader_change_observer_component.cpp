@@ -1,5 +1,4 @@
 
-#pragma once
 
 #include "shader_change_observer_component.h"
 

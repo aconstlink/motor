@@ -27,7 +27,7 @@ namespace motor
                 num_values
             };
 
-            static char const * const to_string( this_t::notify const n ) noexcept
+            static char const * to_string( this_t::notify const n ) noexcept
             {
                 static char const * const __strings[] = { "none", "deletion", "change", "invalid" } ;
                 return __strings[ size_t(n) >= size_t(notify::num_values) ? size_t(notify::num_values) : size_t(n) ] ;

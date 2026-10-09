@@ -109,7 +109,7 @@ bool_t custom_imgui_widgets::direction( char const * label, motor::math::vec2f_r
 void_t custom_imgui_widgets::text_overlay( char const * label, motor::string_cref_t text, int corner ) noexcept 
 {
     this_t::overlay_begin( label, corner ) ;
-    ImGui::Text(text.c_str());
+    ImGui::TextUnformatted(text.c_str());
     this_t::overlay_end() ;
 }
 

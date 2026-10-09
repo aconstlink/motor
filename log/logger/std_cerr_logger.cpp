@@ -27,7 +27,7 @@ using namespace motor::log ;
 
 namespace this_file
 {
-    static int const __log_level_color[] = {
+    static constexpr int __log_level_color[] = {
         WHITE, WHITE, YELLOW, MAGENTA, RED, BLUE
     } ;
 
@@ -39,8 +39,8 @@ namespace this_file
 
     static void_t text_color( int const attr, int const fg, int const bg ) noexcept
     {
-        char buffer[13] ;
-        std::snprintf( buffer, 13, "%c[%d;%d;%dm", 0x1B, attr, fg + 30, bg + 40 ) ;
+        char buffer[64] ;
+        std::snprintf( buffer, sizeof( buffer ), "%c[%d;%d;%dm", 0x1B, attr, fg + 30, bg + 40 ) ;
         printf( "%s", buffer ) ;
     }
 

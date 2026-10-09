@@ -23,9 +23,9 @@ render_object::render_object( this_cref_t rhv ) noexcept
 #endif
 
 render_object::render_object( this_rref_t rhv ) noexcept
-    : object( std::move( rhv ) ), _name( std::move( rhv._name ) ), _geo( std::move( rhv._geo ) ),
-      _shader( std::move( rhv._shader ) ), _states( std::move( rhv._states ) ),
-      _soo( std::move( rhv._soo ) )
+    : object( std::move( rhv ) ), _name( std::move( rhv._name ) ), _shader( std::move( rhv._shader ) ),
+      _geo( std::move( rhv._geo ) ), _soo( std::move( rhv._soo ) ),
+      _states( std::move( rhv._states ) )
 {
     for( auto & vs : _vars ) motor::memory::release_ptr( vs.vs );
     _vars = std::move( rhv._vars );

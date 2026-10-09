@@ -29,7 +29,7 @@ msl_object::msl_object( motor::string_in_t name, bool_t const managed ) noexcept
 //****************************************************************************
 msl_object::msl_object( this_rref_t rhv ) noexcept
     : object( std::move( rhv ) ), _name( std::move( rhv._name ) ),
-      _datas( std::move( rhv._datas ) ), _ro( motor::move( rhv._ro ) )
+      _ro( motor::move( rhv._ro ) ), _datas( std::move( rhv._datas ) )
 {
     // compilation listeners
     {

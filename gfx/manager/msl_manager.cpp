@@ -13,13 +13,12 @@ msl_manager::msl_manager( motor::io::database_mtr_safe_t db ) noexcept : _db( mo
 
 //**************************************************************************
 msl_manager::msl_manager( this_rref_t rhv ) noexcept
-    : _db( motor::move( rhv._db ) ), _loads( std::move( rhv._loads ) ),
-      _directs( std::move( rhv._directs ) ),
-      _configures_in_process( std::move( rhv._configures_in_process ) ),
-      _msls_release( std::move( rhv._msls_release ) ),
-      _msls_config( std::move( rhv._msls_config ) ), _msls( std::move( rhv._msls ) ),
+    : _db( motor::move( rhv._db ) ), _location_to_id( std::move( rhv._location_to_id ) ),
       _name_to_id( std::move( rhv._name_to_id ) ),
-      _location_to_id( std::move( rhv._location_to_id ) )
+      _msls( std::move( rhv._msls ) ), _msls_config( std::move( rhv._msls_config ) ),
+      _msls_release( std::move( rhv._msls_release ) ),
+      _configures_in_process( std::move( rhv._configures_in_process ) ),
+      _loads( std::move( rhv._loads ) ), _directs( std::move( rhv._directs ) )
 {
     rhv.stop_thread();
     this_t::start_thread( true );

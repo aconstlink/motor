@@ -38,7 +38,7 @@ class sheet< T, true >
 
     sheet( void_t ) noexcept {}
     sheet( this_rref_t rhv ) noexcept
-        : _ts( std::move( rhv._ts ) ), _disconnect_on_clear( rhv._disconnect_on_clear )
+        : _disconnect_on_clear( rhv._disconnect_on_clear ), _ts( std::move( rhv._ts ) )
     {
     }
     sheet( this_cref_t ) noexcept = delete;
@@ -229,7 +229,7 @@ class sheet< T, false >
 
     sheet( void_t ) noexcept {}
     sheet( this_rref_t rhv ) noexcept
-        : _ts( std::move( rhv._ts ) ), _disconnect_on_clear( rhv._disconnect_on_clear )
+        : _disconnect_on_clear( rhv._disconnect_on_clear ), _ts( std::move( rhv._ts ) )
     {
     }
     sheet( this_cref_t ) noexcept = delete;

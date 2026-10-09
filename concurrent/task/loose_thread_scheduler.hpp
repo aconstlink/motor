@@ -124,7 +124,7 @@ namespace motor
             {
                 if( motor::concurrent::task::scheduler_accessor::will_execute( t ) ) 
                 {
-                    auto f = std::async( std::launch::async, [=]( void_t )
+                    auto f = std::async( std::launch::async, [=, this]( void_t )
                     {
                         motor::concurrent::task::scheduler_accessor::execute( t ) ;
 
