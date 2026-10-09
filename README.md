@@ -78,6 +78,10 @@ The current work is centered on building polished real-time demos and using them
 
 APIs and internal systems are still evolving. The repository is best understood as an engine development project and research runtime, not as a finished SDK.
 
+## AI-Assisted Development
+
+Motor is a long-running, independently developed C++ engine. AI tools are used to assist with code reviews, compiler warning cleanup, bug investigation, test development, documentation, and technical brainstorming. Architecture and development decisions remain with the maintainer. AI-assisted changes are reviewed and tested as part of the development workflow.
+
 ## License
 
 MIT License.
