@@ -33,7 +33,7 @@ endif()
 
 target_include_directories( lua
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
-  PUBLIC $<INSTALL_INTERFACE:"include/${PROJECT_NAME}/externals"> ) 
+  PUBLIC $<INSTALL_INTERFACE:include> )
 
 if( LUA_BUILD_AS_DLL )
     target_compile_options( lua PUBLIC -DLUA_BUILD_AS_DLL -DLUA_USE_LONGJMP) 
@@ -62,7 +62,7 @@ export( TARGETS lua
   NAMESPACE ${PROJECT_NAME}::
   APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
-install_headers( "${SOURCES}" "include/lua" )
+install( FILES ${INCLUDES} DESTINATION include/lua )
 install_library( lua ${PROJECT_NAME}-targets )
 
 message( STATUS "<<< [external : Lua] <<<" )

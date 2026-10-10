@@ -26,7 +26,7 @@ export( TARGETS stb
   NAMESPACE ${PROJECT_NAME}::
   APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
-install_headers( "${INCLUDES}" "include/stb" )
+install( FILES ${INCLUDES} DESTINATION include/stb )
 install( TARGETS stb EXPORT ${PROJECT_NAME}-targets )
 
 message( STATUS "[stb] : target available : stb" )
