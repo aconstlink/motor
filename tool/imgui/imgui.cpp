@@ -523,7 +523,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 
     {
         size_t size = 0 ;
-        for( int n = 0; n < draw_data->CmdListsCount; n++ )
+        for( int n = 0; n < draw_data->CmdLists.Size; n++ )
         {
             const ImDrawList* cmd_list = draw_data->CmdLists[ n ];
             size += cmd_list->CmdBuffer.Size ;
@@ -570,7 +570,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
         size_t ib_off = 0 ;
 
         // Update geometry: Everything is packed into a single vb/ib combo
-        for( int n = 0; n < draw_data->CmdListsCount; n++ )
+        for( int n = 0; n < draw_data->CmdLists.Size; n++ )
         {
             const ImDrawList* cmd_list = draw_data->CmdLists[ n ];
 
@@ -662,7 +662,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     
 
     // Render command lists
-    for( int n = 0; n < draw_data->CmdListsCount; n++ )
+    for( int n = 0; n < draw_data->CmdLists.Size; n++ )
     {
         const ImDrawList* cmd_list = draw_data->CmdLists[ n ];
 
