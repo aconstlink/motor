@@ -21,7 +21,7 @@ if( MOTOR_COMPILER_MSC )
     # C4702 : unreachable code hit in 3rd parties.
     # C4706 : assignment within conditional expression
     set( MOTOR_UNWANTED_COMPILER_OPTIONS 
-	/wd4005 /wd4100 /wd4127 /wd4189 /wd4200 /wd4251 /wd4505 /wd4702 /wd4706 )
+	/wd4005 /wd4100 /wd4127 /wd4189 /wd4200 /wd4251 /wd4505 /wd4702 /wd4706 /wd4855 )
 
     # W4 : Warning level 4, e.g. nearly all warnings
     # WX : all compiler warnings as errors
