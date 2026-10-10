@@ -277,7 +277,7 @@ render_object::safe_variable_set_t render_object::get_safe_variable_set( size_t 
 }
 
 //*****************************************************************************************
-motor::vector< motor::graphics::variable_set_mtr_safe_t > render_object::get_varibale_sets(
+motor::vector< motor::graphics::variable_set_mtr_safe_t > render_object::get_variable_sets(
     void_t ) const noexcept
 {
     motor::vector< motor::graphics::variable_set_mtr_safe_t > ret;
@@ -288,14 +288,14 @@ motor::vector< motor::graphics::variable_set_mtr_safe_t > render_object::get_var
 }
 
 //*****************************************************************************************
-motor::vector< render_object::variable_set_t > & render_object::borrow_varibale_sets(
+motor::vector< render_object::variable_set_t > & render_object::borrow_variable_sets(
     void_t ) noexcept
 {
     return _vars;
 }
 
 //*****************************************************************************************
-motor::vector< render_object::variable_set_t > const & render_object::borrow_varibale_sets(
+motor::vector< render_object::variable_set_t > const & render_object::borrow_variable_sets(
     void_t ) const noexcept
 {
     return _vars;

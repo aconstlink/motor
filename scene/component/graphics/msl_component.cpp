@@ -82,7 +82,7 @@ size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noex
     if( _msl != nullptr )
     {
         _msl->register_listener( motor::share( _comp_lst ) );
-        _vs = _msl->borrow_varibale_sets().size();
+        _vs = _msl->borrow_variable_sets().size();
         _msl->fill_variable_sets( _vs );
     }
 

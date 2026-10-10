@@ -268,24 +268,24 @@ motor::graphics::render_object_t::variable_set_t msl_object::borrow_variable_set
 }
 
 //****************************************************************************
-motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_varibale_sets(
+motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_variable_sets(
     void_t ) const noexcept
 {
-    return _ro->get_varibale_sets();
+    return _ro->get_variable_sets();
 }
 
 //****************************************************************************
 motor::vector< render_object::variable_set_t > & msl_object::borrow_variable_sets(
     void_t ) noexcept
 {
-    return _ro->borrow_varibale_sets();
+    return _ro->borrow_variable_sets();
 }
 
 //****************************************************************************
-motor::vector< render_object::variable_set_t > const & msl_object::borrow_varibale_sets(
+motor::vector< render_object::variable_set_t > const & msl_object::borrow_variable_sets(
     void_t ) const noexcept
 {
-    return _ro->borrow_varibale_sets();
+    return _ro->borrow_variable_sets();
 }
 
 //****************************************************************************
