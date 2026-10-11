@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 message( STATUS ">>> [external] : JoltPhysics" )
 
 # Keep the upstream names local to this integration and expose only JOLT_*.
@@ -90,6 +93,7 @@ function( motor_jolt_target_folders directory )
     get_property( targets DIRECTORY "${directory}" PROPERTY BUILDSYSTEM_TARGETS )
     foreach( target IN LISTS targets )
         set_target_properties( ${target} PROPERTIES FOLDER "motor/externals/JoltPhysics" )
+        message( STATUS ${target})
     endforeach()
 
     get_property( directories DIRECTORY "${directory}" PROPERTY SUBDIRECTORIES )

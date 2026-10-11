@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 
 #pragma once
@@ -40,7 +43,7 @@ namespace motor{ namespace profiling {
 
         void_t swap_data_points( void_t ) noexcept
         {
-            _dp_ridx = (++_dp_ridx) % 2 ;
+            _dp_ridx = (_dp_ridx + 1) % 2 ;
         }
 
     private:

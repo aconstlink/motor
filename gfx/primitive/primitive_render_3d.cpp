@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "primitive_render_3d.h"
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #pragma once
 
@@ -22,6 +25,7 @@ namespace motor
 
             virtual motor::log::result log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept ;
             virtual motor::log::result log( motor::log::log_level const ll, char const * msg ) noexcept ;
+            virtual motor::log::result test( motor::string_cref_t msg, bool_t const passed ) noexcept override ;
         };
     }
 }

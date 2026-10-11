@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 
 #pragma once
@@ -144,9 +147,9 @@ namespace motor
                 this_t::tokenize_all() ;
             }
 
-            document( this_rref_t rhv ) noexcept : _size( rhv._size ), _cur_pos( rhv._cur_pos ),
-                _indent( rhv._indent ), _grow_by( rhv._grow_by ), _lines( std::move( rhv._lines ) ),
-                _tokens( std::move( rhv._tokens) )
+            document( this_rref_t rhv ) noexcept : _cur_pos( rhv._cur_pos ),
+                _grow_by( rhv._grow_by ), _size( rhv._size ), _lines( std::move( rhv._lines ) ),
+                _tokens( std::move( rhv._tokens) ), _indent( rhv._indent )
             {
                 motor::memory::global::dealloc_raw( _doc ) ;
                 _doc = motor::move( rhv._doc ) ;

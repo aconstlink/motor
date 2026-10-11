@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "global.h"
 
@@ -9,10 +12,7 @@ using namespace motor::memory ;
 global::global( void_t ) noexcept {}
 
 //*************************************************************************************
-global::global( this_rref_t rhv ) noexcept 
-{
-    _manager = std::move( rhv._manager ) ;
-}
+global::global( this_rref_t ) noexcept {}
 
 //*************************************************************************************
 global::~global( void_t ) noexcept 

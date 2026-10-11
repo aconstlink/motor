@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "imgui_custom.h"
 
@@ -376,7 +379,7 @@ bool motor::tool::imgui_custom::Selectable(const char* label, bool * p_selected,
         }
         if (g.NavId == id)
         {
-            ImGuiNavRenderCursorFlags nav_render_cursor_flags = ImGuiNavRenderCursorFlags_Compact | ImGuiNavRenderCursorFlags_NoRounding;
+            ImGuiNavRenderCursorFlags nav_render_cursor_flags = ImGuiNavRenderCursorFlags_Compact;
             if (is_multi_select)
                 nav_render_cursor_flags |= ImGuiNavRenderCursorFlags_AlwaysDraw; // Always show the nav rectangle
             RenderNavCursor(bb, id, nav_render_cursor_flags);

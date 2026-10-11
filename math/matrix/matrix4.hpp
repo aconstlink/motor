@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include "protos.hpp"
@@ -93,7 +96,7 @@ namespace motor
 
             //************************************************************************************
             type_t operator()( size_t row, size_t column ) const {
-                return _elem[column*4+row] ;
+                return _elem[row*4+column] ;
             }		
 
             //************************************************************************************

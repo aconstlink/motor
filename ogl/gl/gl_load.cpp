@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 #include "gl_load.h"
 
 #if defined( MOTOR_TARGET_OS_WIN )

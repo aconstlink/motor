@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "tetra.h"
 
@@ -6,7 +9,7 @@
 using namespace motor::geometry ;
 
 //*************************************************************************************
-motor::geometry::result tetra::make( polygon_mesh_ptr_t m_out_ptr, input_params_cref_t ip ) 
+motor::geometry::result tetra::make( polygon_mesh_ptr_t m_out_ptr, input_params_cref_t )
 {
     if( m_out_ptr == nullptr )
         return motor::geometry::invalid_argument ;

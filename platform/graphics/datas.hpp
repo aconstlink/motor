@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #pragma once
 
@@ -54,7 +57,7 @@ namespace motor
             busy_guard( std::atomic< size_t > & w ) noexcept : _what( w )
             {
                 size_t expected = 0 ;
-                while( !_what.compare_exchange_weak( expected, size_t(1) ) ) ;
+                while( !_what.compare_exchange_weak( expected, size_t(1) ) ) expected = 0;
             }
 
             ~busy_guard( void_t ) noexcept

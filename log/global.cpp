@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "global.h"
 
@@ -71,6 +74,19 @@ void_t global::add_logger( motor::log::ilogger_ptr_t ptr ) noexcept
 motor::log::store_logger_cptr_t global::get_store( void_t ) noexcept
 {
     return this_t::get()->__default_log_system->get_store() ;
+}
+
+//*************************************************************************************
+bool_t global::test( motor::string_cref_t msg, bool_t const passed ) noexcept
+{
+    this_t::get()->__default_log_system->test( msg, passed ) ;
+    return passed ;
+}
+
+//*************************************************************************************
+bool_t global::test( char const * msg, bool_t const passed ) noexcept
+{
+    return this_t::test( motor::string_t( msg ), passed ) ;
 }
 
 //*************************************************************************************

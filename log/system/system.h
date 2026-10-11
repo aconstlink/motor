@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #pragma once
 
@@ -37,6 +40,7 @@ namespace motor
             virtual ~system( void_t ) noexcept ;
 
             virtual motor::log::result log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept ;
+            motor::log::result test( motor::string_cref_t msg, bool_t const passed ) noexcept ;
             virtual motor::log::result add_logger( motor::log::ilogger_ptr_t lptr ) noexcept ;
             virtual motor::log::ilogger_ptr_t set_default_logger( motor::log::ilogger_ptr_t lptr ) noexcept ;
 

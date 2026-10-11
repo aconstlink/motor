@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #pragma once
 
@@ -40,7 +43,7 @@ namespace motor
                 ret.mil = milli % 1000 ;
                 ret.sec = sec % 60 ;
                 ret.min = min % 60 ; 
-                ret.hour = hour % 60 ;
+                ret.hour = hour % 24 ;
                 ret.day = day ;
             }
         };

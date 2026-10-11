@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 
 function( install_library LIB_NAME TARGETS_NAME )
 

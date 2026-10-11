@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 #include "../node/node.h"
 #include "../component/code_component.h"
 #include "code_exe_visitor.h"

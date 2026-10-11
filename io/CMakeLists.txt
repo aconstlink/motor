@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 
 
 set( sources 
@@ -41,4 +44,4 @@ target_link_libraries( ${cur_lib_name}
 ###########################################################
 
 install_headers( "${sources}" "include/${PROJECT_NAME}/${cur_lib_name}" )
-#install_library( ${cur_lib_name} ${PROJECT_NAME}-targets )
+install_library( ${cur_lib_name} ${PROJECT_NAME}-targets )

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 
 #include "msl_object.h"
@@ -29,7 +32,7 @@ msl_object::msl_object( motor::string_in_t name, bool_t const managed ) noexcept
 //****************************************************************************
 msl_object::msl_object( this_rref_t rhv ) noexcept
     : object( std::move( rhv ) ), _name( std::move( rhv._name ) ),
-      _datas( std::move( rhv._datas ) ), _ro( motor::move( rhv._ro ) )
+      _ro( motor::move( rhv._ro ) ), _datas( std::move( rhv._datas ) )
 {
     // compilation listeners
     {
@@ -249,37 +252,43 @@ msl_object::this_ref_t msl_object::fill_variable_sets( size_t const idx ) noexce
 }
 
 //****************************************************************************
-motor::graphics::variable_set_mtr_safe_t msl_object::get_varibale_set( size_t const id ) noexcept
+motor::graphics::variable_set_mtr_safe_t msl_object::get_variable_set( size_t const id ) noexcept
 {
     return _ro->get_variable_set( id );
 }
 
 //****************************************************************************
-motor::graphics::render_object_t::variable_set_t msl_object::borrow_varibale_set(
+motor::graphics::variable_set_mtr_safe_t msl_object::get_or_create_variable_set( size_t const id ) noexcept
+{
+    return _ro->get_or_create_variable_set( id ) ;
+}
+
+//****************************************************************************
+motor::graphics::render_object_t::variable_set_t msl_object::borrow_variable_set(
     size_t const id ) const noexcept
 {
     return _ro->borrow_variable_set( id );
 }
 
 //****************************************************************************
-motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_varibale_sets(
+motor::vector< motor::graphics::variable_set_mtr_safe_t > msl_object::get_variable_sets(
     void_t ) const noexcept
 {
-    return _ro->get_varibale_sets();
+    return _ro->get_variable_sets();
 }
 
 //****************************************************************************
-motor::vector< render_object::variable_set_t > & msl_object::borrow_varibale_sets(
+motor::vector< render_object::variable_set_t > & msl_object::borrow_variable_sets(
     void_t ) noexcept
 {
-    return _ro->borrow_varibale_sets();
+    return _ro->borrow_variable_sets();
 }
 
 //****************************************************************************
-motor::vector< render_object::variable_set_t > const & msl_object::borrow_varibale_sets(
+motor::vector< render_object::variable_set_t > const & msl_object::borrow_variable_sets(
     void_t ) const noexcept
 {
-    return _ro->borrow_varibale_sets();
+    return _ro->borrow_variable_sets();
 }
 
 //****************************************************************************

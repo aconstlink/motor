@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 
 #
 # @var_sources pass all files to be processed. the visual studio 

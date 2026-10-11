@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 #include "xlib_module.h"
 
 #include <motor/math/vector/vector2.hpp>

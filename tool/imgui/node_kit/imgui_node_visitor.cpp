@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "imgui_node_visitor.h"
 
@@ -52,7 +55,7 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::group_ptr_t nptr )
     // make tree node
     {
         motor::string_t name = this_t::check_for_name( "Group", nptr ) ;
-        bool_t const open = ImGui::TreeNodeEx( "", node_flags, name.c_str() ) ;
+        bool_t const open = ImGui::TreeNodeEx( "", node_flags, "%s", name.c_str() ) ;
 
         this_t::check_selected_item( nptr ) ;
 
@@ -92,7 +95,7 @@ motor::scene::result imgui_node_visitor::visit( motor::scene::leaf_ptr_t nptr ) 
     // make tree node
     {
         motor::string_t name = this_t::check_for_name( "Leaf", nptr ) ;
-        bool_t const open = ImGui::TreeNodeEx( "", node_flags, name.c_str() ) ;
+        bool_t const open = ImGui::TreeNodeEx( "", node_flags, "%s", name.c_str() ) ;
 
         this_t::check_selected_item( nptr ) ;
 

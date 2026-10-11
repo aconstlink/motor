@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include "api.h"
@@ -48,6 +51,10 @@ namespace motor
             static motor::log::store_logger_cptr_t get_store( void_t ) noexcept ;
 
         public:
+
+            // Always logs the result; returns passed without terminating the application.
+            static bool_t test( motor::string_cref_t msg, bool_t const passed ) noexcept ;
+            static bool_t test( char const * msg, bool_t const passed ) noexcept ;
 
             static void_t message( log_level const level, motor::string_cref_t msg ) noexcept ;
             static bool_t message( bool_t const condition, log_level const level, motor::string_cref_t msg ) noexcept ;

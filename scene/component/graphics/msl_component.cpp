@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "msl_component.h"
 
@@ -5,9 +8,9 @@ using namespace motor::scene;
 
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
-    : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _trafo_vars( std::move( rhv._trafo_vars ) ),
+    : _vs( rhv._vs ), _geo_id( rhv._geo_id ),
       _base_data_set( std::move( rhv._base_data_set ) ), _sub_sets( std::move( rhv._sub_sets ) ),
-      _out_bridge( std::move( rhv._out_bridge ) )
+      _trafo_vars( std::move( rhv._trafo_vars ) ), _out_bridge( std::move( rhv._out_bridge ) )
 {
 #if 0
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
@@ -42,7 +45,7 @@ msl_component::msl_component( motor::graphics::msl_object_mtr_safe_t msl ) noexc
 //*****************************************************************
 msl_component::msl_component(
     motor::graphics::msl_object_mtr_safe_t msl, vs_idx_t const vs, geo_idx_t const geo_id ) noexcept
-    : _msl( motor::move( msl ) ), _vs( vs ), _geo_id( geo_id )
+    : _vs( vs ), _geo_id( geo_id ), _msl( motor::move( msl ) )
 {
 #if 0
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
@@ -82,7 +85,7 @@ size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noex
     if( _msl != nullptr )
     {
         _msl->register_listener( motor::share( _comp_lst ) );
-        _vs = _msl->borrow_varibale_sets().size();
+        _vs = _msl->borrow_variable_sets().size();
         _msl->fill_variable_sets( _vs );
     }
 
@@ -185,7 +188,7 @@ void_t msl_component::update_bindings( void_t ) noexcept
 
             // init base data set
             {
-                auto var_set = _msl->get_varibale_set( _vs );
+                auto var_set = _msl->get_variable_set( _vs );
 
                 // update the base data.
                 _base_data_set.update_bindings( _vs, motor::share( var_set ), sb );
@@ -331,11 +334,11 @@ void_t msl_component::ensure_render_data(
     // check if already connected.
     if( ( _sub_sets[ id ].get_variable_set_idx() == size_t( -1 ) ) )
     {
-        auto [ hash, vs ] = _msl->borrow_varibale_set( _vs );
+        auto [ hash, vs ] = _msl->borrow_variable_set( _vs );
         if( vs != nullptr )
         {
             size_t const idx = _msl->add_empty_variable_set();
-            auto [ hash2, vs_new ] = _msl->borrow_varibale_set( idx );
+            auto [ hash2, vs_new ] = _msl->borrow_variable_set( idx );
             vs_new->clone_from_if_not_exist( vs );
 
             _sub_sets[ id ].update_bindings( idx, motor::share( vs_new ), sb );

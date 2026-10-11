@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 message( STATUS ">>> [external : json] >>>" )
 
 add_subdirectory( json ) 
@@ -9,5 +12,16 @@ export(
     )
 
 install_library( nlohmann_json ${PROJECT_NAME}-targets )
+
+if( NOT JSON_Install )
+    if( JSON_MultipleHeaders )
+        install( DIRECTORY json/include/nlohmann DESTINATION include )
+    else()
+        install( DIRECTORY json/single_include/nlohmann DESTINATION include )
+    endif()
+    if( MSVC )
+        install( FILES json/nlohmann_json.natvis DESTINATION . )
+    endif()
+endif()
 
 message( STATUS "<<< [external : json] <<<" )

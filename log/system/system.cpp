@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "system.h"
 #include "../logger/std_cerr_logger.h"
@@ -49,6 +52,13 @@ void_t system::destroy( this_ptr_t ptr ) noexcept
 motor::log::result system::log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept
 {
     for( auto * logger : _loggers ) logger->log( ll, msg ) ;
+    return motor::log::result::ok ;
+}
+
+//*************************************************************************************
+motor::log::result system::test( motor::string_cref_t msg, bool_t const passed ) noexcept
+{
+    for( auto * logger : _loggers ) logger->test( msg, passed ) ;
     return motor::log::result::ok ;
 }
 

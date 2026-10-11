@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #pragma once
 
@@ -367,7 +370,7 @@ namespace motor
 
             void_t schedule( motor::vector< this_mtr_t > & tasks ) noexcept
             {
-                tasks.reserve( tasks.capacity() + _outs.size() ) ;
+                tasks.reserve( tasks.size() + _outs.size() ) ;
 
                 //for ( auto & t : _outs ) tasks.emplace_back( motor::memory::copy_ptr( t ) ) ;
                 for ( size_t i=0; i<_outs.size(); ++i ) tasks.emplace_back( motor::memory::copy_ptr( _outs[i] ) ) ;
@@ -381,7 +384,7 @@ namespace motor
             // the schedule will pass the resource handle
             // of this task to this function so the
             // executing function could add further tasks
-            bool_t execute( this_ptr_t this_res ) noexcept 
+            bool_t execute( this_ptr_t ) noexcept
             {
                 if( _incomings != 0 ) return false ;
 
@@ -402,7 +405,7 @@ namespace motor
 
             void_t move_out_all( this_t::tasks_t & tasks ) noexcept
             {
-                tasks.reserve( tasks.capacity() + _ins.size() + _outs.size() )  ;
+                tasks.reserve( tasks.size() + _ins.size() + _outs.size() )  ;
                 for ( size_t i=0; i<_ins.size(); ++i ) tasks.push_back( _ins[i] ) ;
                 for ( size_t i=0; i<_outs.size(); ++i ) tasks.push_back( _outs[i] ) ;
                 _incomings = 0 ;

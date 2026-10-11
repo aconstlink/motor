@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "bloom_stage.h"
 
@@ -374,7 +377,7 @@ void_t bloom_stage::render_down(
         motor::graphics::shader_bindings_t sb;
         if( _cl_down->reset_and_successful( sb ) )
         {
-            auto vs = _msl_down->borrow_varibale_set( 0 );
+            auto vs = _msl_down->borrow_variable_set( 0 );
 
             //
             {
@@ -404,7 +407,7 @@ void_t bloom_stage::render_up(
         motor::graphics::shader_bindings_t sb;
         if( _cl_up->reset_and_successful( sb ) )
         {
-            auto vs = _msl_up->borrow_varibale_set( 0 );
+            auto vs = _msl_up->borrow_variable_set( 0 );
 
             // because we have multiple variable set(i.e. one per level)
             // we just get the default values we need from the

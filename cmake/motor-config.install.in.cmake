@@ -1,25 +1,28 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
 
-#
-# motor libraries
-# Automatically generated via CMake's configure_file for the build tree.
-#
+@PACKAGE_INIT@
 
-get_filename_component( _dir "@CMAKE_CURRENT_LIST_FILE@" PATH )
-get_filename_component( _prefix "${_dir}/.." ABSOLUTE )
+include( CMakeFindDependencyMacro )
 
-####################################################################
-# Import targets
-####################################################################
+if( NOT @MOTOR_LIBRARY_BUILD_SHARED@ )
+    find_dependency( OpenAL CONFIG HINTS "${PACKAGE_PREFIX_DIR}" )
+endif()
+if( @MOTOR_GRAPHICS_OPENGL@ )
+    find_dependency( OpenGL )
+endif()
+if( @MOTOR_WINDOW_SYSTEM_XLIB@ AND NOT @MOTOR_LIBRARY_BUILD_SHARED@ )
+    find_dependency( X11 )
+endif()
+
 include( "${CMAKE_CURRENT_LIST_DIR}/motor-targets.cmake" )
+set( motor_VERSION "@MOTOR_VERSION@" )
 
-####################################################################
-# Directories
-####################################################################
-
-set( MOTOR_CONFIGS_DIR 
-    "${_prefix}/cmake/config" )
-
-set( MOTOR_MODULES_DIR 
-    "${_prefix}/cmake/modules"
-    "${_prefix}/cmake/macros"
-    "${_prefix}/cmake/functions")
+foreach( component IN LISTS motor_FIND_COMPONENTS )
+    if( TARGET motor::${component} )
+        set( motor_${component}_FOUND TRUE )
+    else()
+        set( motor_${component}_FOUND FALSE )
+    endif()
+endforeach()
+check_required_components( motor )

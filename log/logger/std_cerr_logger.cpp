@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "std_cerr_logger.h"
 
@@ -27,7 +30,7 @@ using namespace motor::log ;
 
 namespace this_file
 {
-    static int const __log_level_color[] = {
+    static constexpr int __log_level_color[] = {
         WHITE, WHITE, YELLOW, MAGENTA, RED, BLUE
     } ;
 
@@ -39,8 +42,8 @@ namespace this_file
 
     static void_t text_color( int const attr, int const fg, int const bg ) noexcept
     {
-        char buffer[13] ;
-        std::snprintf( buffer, 13, "%c[%d;%d;%dm", 0x1B, attr, fg + 30, bg + 40 ) ;
+        char buffer[64] ;
+        std::snprintf( buffer, sizeof( buffer ), "%c[%d;%d;%dm", 0x1B, attr, fg + 30, bg + 40 ) ;
         printf( "%s", buffer ) ;
     }
 
@@ -83,6 +86,21 @@ motor::log::result std_cerr_logger::log( motor::log::log_level const ll, char co
 motor::log::result std_cerr_logger::log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept
 {
     return std_cerr_logger::log( ll, msg.c_str() ) ;
+}
+
+//*************************************************************************************
+motor::log::result std_cerr_logger::test( motor::string_cref_t msg, bool_t const passed ) noexcept
+{
+    std::lock_guard< std::mutex > lk( _mtx ) ;
+
+    this_file::text_color_reset() ;
+    printf( "%s", motor::log::to_string_short( passed ? log_level::status : log_level::error ) ) ;
+    this_file::text_color( BRIGHT, passed ? GREEN : RED, BLACK ) ;
+    printf( "%s", passed ? "[OK]" : "[FAIL]" ) ;
+    this_file::text_color_reset() ;
+    printf( " %s\n", msg.c_str() ) ;
+
+    return motor::log::result::ok ;
 }
 
 

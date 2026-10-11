@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 message( STATUS ">>> [external : stb] >>>" )
 
 # Used headers
@@ -26,7 +29,7 @@ export( TARGETS stb
   NAMESPACE ${PROJECT_NAME}::
   APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
-install_headers( "${INCLUDES}" "include/stb" )
+install( FILES ${INCLUDES} DESTINATION include/stb )
 install( TARGETS stb EXPORT ${PROJECT_NAME}-targets )
 
 message( STATUS "[stb] : target available : stb" )

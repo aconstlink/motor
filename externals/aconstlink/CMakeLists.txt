@@ -1,13 +1,24 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 #set( RAPIDXML_INSTALL_HEADER_BASE "include/${PROJECT_NAME}/externals" )
 #add_subdirectory( rapidxml )
 
 add_library( rapidxml INTERFACE )
 target_include_directories( rapidxml INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/rapidxml> )
+target_include_directories( rapidxml INTERFACE $<INSTALL_INTERFACE:include/rapidxml> )
 
 export( TARGETS rapidxml 
   NAMESPACE ${PROJECT_NAME}::
   APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
+install( FILES
+    rapidxml/rapidxml.hpp
+    rapidxml/rapidxml_ext.hpp
+    rapidxml/rapidxml_iterators.hpp
+    rapidxml/rapidxml_print.hpp
+    rapidxml/rapidxml_utils.hpp
+    DESTINATION include/rapidxml )
 install_library( rapidxml ${PROJECT_NAME}-targets )
 
 #

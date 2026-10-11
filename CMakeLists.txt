@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required( VERSION 3.20 )
 
 set( MOTOR_MAJOR_VERSION 0 )
@@ -171,7 +174,7 @@ foreach( _subdir ${subdirs_header_only} )
 
     add_subdirectory( ${_subdir} )
     add_library( ${cur_alias_name} ALIAS ${cur_lib_name} )
-
+    
     set_target_properties( ${cur_lib_name} PROPERTIES LINKER_LANGUAGE CXX )
     set_target_properties( ${cur_lib_name} PROPERTIES OUTPUT_NAME ${cur_file_name} )
     #set_target_properties( ${cur_lib_name} PROPERTIES CXX_STANDARD 17 ) #${MOTOR_CXX_STANDARD} )
@@ -213,6 +216,13 @@ foreach( _subdir ${subdirs} )
     unset( LIB_NAME_UPPER )
 
     add_subdirectory( ${_subdir} )
+
+    #target_precompile_headers( ${cur_lib_name} REUSE_FROM core_pch )
+    #target_precompile_headers( ${cur_lib_name} REUSE_FROM math_pch )
+    target_link_libraries( ${cur_lib_name} PRIVATE
+      $<BUILD_INTERFACE:core_pch>
+      $<BUILD_INTERFACE:math_pch>
+      )
 
     set_target_properties( ${cur_lib_name} PROPERTIES LINKER_LANGUAGE CXX )
     set_target_properties( ${cur_lib_name} PROPERTIES OUTPUT_NAME ${cur_file_name} )
@@ -260,8 +270,25 @@ configure_file(
 #
 #  Install tree 
 #
-#install( 
- #   FILES ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-config.cmake 
-  #  DESTINATION cmake )
+install( FILES README.md LICENSE DESTINATION . )
+include( "${MOTOR_SOURCE_DIR}/cmake/install_licenses.cmake" )
 
-#install( EXPORT ${PROJECT_NAME}-targets DESTINATION "cmake" )
+include( CMakePackageConfigHelpers )
+set( motor_package_dir "lib/cmake/motor" )
+configure_package_config_file(
+    "${MOTOR_SOURCE_DIR}/cmake/motor-config.install.in.cmake"
+    "${MOTOR_BINARY_DIR}/install-config/motor-config.cmake"
+    INSTALL_DESTINATION "${motor_package_dir}" )
+write_basic_package_version_file(
+    "${MOTOR_BINARY_DIR}/install-config/motor-config-version.cmake"
+    VERSION "${MOTOR_VERSION}"
+    COMPATIBILITY ExactVersion )
+
+install( TARGETS complete EXPORT motor-targets )
+install( EXPORT motor-targets
+    NAMESPACE motor::
+    DESTINATION "${motor_package_dir}" )
+install( FILES
+    "${MOTOR_BINARY_DIR}/install-config/motor-config.cmake"
+    "${MOTOR_BINARY_DIR}/install-config/motor-config-version.cmake"
+    DESTINATION "${motor_package_dir}" )
