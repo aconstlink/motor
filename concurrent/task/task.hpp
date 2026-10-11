@@ -367,7 +367,7 @@ namespace motor
 
             void_t schedule( motor::vector< this_mtr_t > & tasks ) noexcept
             {
-                tasks.reserve( tasks.capacity() + _outs.size() ) ;
+                tasks.reserve( tasks.size() + _outs.size() ) ;
 
                 //for ( auto & t : _outs ) tasks.emplace_back( motor::memory::copy_ptr( t ) ) ;
                 for ( size_t i=0; i<_outs.size(); ++i ) tasks.emplace_back( motor::memory::copy_ptr( _outs[i] ) ) ;
@@ -402,7 +402,7 @@ namespace motor
 
             void_t move_out_all( this_t::tasks_t & tasks ) noexcept
             {
-                tasks.reserve( tasks.capacity() + _ins.size() + _outs.size() )  ;
+                tasks.reserve( tasks.size() + _ins.size() + _outs.size() )  ;
                 for ( size_t i=0; i<_ins.size(); ++i ) tasks.push_back( _ins[i] ) ;
                 for ( size_t i=0; i<_outs.size(); ++i ) tasks.push_back( _outs[i] ) ;
                 _incomings = 0 ;
