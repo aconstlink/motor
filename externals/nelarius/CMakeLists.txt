@@ -22,7 +22,8 @@ add_library( imnodes ${MOTOR_LIBRARY_BUILD_TYPE} ${SOURCES} )
 # fix the dll-hell. The self provided imconfig.h 
 # sets the IMGUI_API properly for dll export/import
 target_compile_definitions( imnodes 
-  PUBLIC -DIMNODES_USER_CONFIG="../imnodes_config.h"
+  PUBLIC $<BUILD_INTERFACE:IMNODES_USER_CONFIG="../imnodes_config.h">
+  PUBLIC $<INSTALL_INTERFACE:IMNODES_USER_CONFIG="imnodes_config.h">
   #PUBLIC -DIMGUI_DISABLE_INCLUDE_IMCONFIG_H
 )
 
@@ -40,7 +41,7 @@ set_target_properties( imnodes PROPERTIES LINKER_LANGUAGE CXX )
 set_target_properties( imnodes PROPERTIES FOLDER "motor/externals/imgui" )
 target_include_directories( imnodes 
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/imnodes>
-  PUBLIC $<INSTALL_INTERFACE:"include/imnodes"> ) 
+  PUBLIC $<INSTALL_INTERFACE:include/imnodes> )
 
 export( TARGETS imnodes 
   NAMESPACE ${PROJECT_NAME}::
@@ -60,7 +61,7 @@ message( STATUS "[ImNodes] : Target available : imnodes" )
 #set( FOLDER_NAME "${PROJECT_NAME}-${IMGUI_MAJOR_VERSION}.${IMGUI_MINOR_VERSION}.${IMGUI_PATCH_VERSION}")
 #set( BASE_INSTALL_DIR "${IMGUI_INSTALL_HEADER_BASE}/${FOLDER_NAME}" )
 
-install_headers( "${INCLUDES}" "include/imnodes" )
+install( FILES ${INCLUDES} DESTINATION include/imnodes )
 install_library( imnodes ${PROJECT_NAME}-targets )
 
 message( STATUS "<<< [external : ImNodes] <<< " )

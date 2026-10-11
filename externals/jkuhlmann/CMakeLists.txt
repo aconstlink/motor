@@ -8,6 +8,7 @@ set( INCLUDES
 
 add_library( cgltf INTERFACE )
 target_include_directories( cgltf INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/cgltf> )
+target_include_directories( cgltf INTERFACE $<INSTALL_INTERFACE:include/cgltf> )
 
 if( MOTOR_COMPILER_MSC )
   target_compile_options( cgltf INTERFACE /wd4267 /wd4244 /wd4245 /wd4456 /wd4457 /wd4701 /wd4996  )
@@ -19,6 +20,7 @@ export( TARGETS cgltf
   NAMESPACE ${PROJECT_NAME}::
   APPEND FILE ${MOTOR_BINARY_DIR}/${PROJECT_NAME}-external-targets.cmake )
 
+install( FILES ${INCLUDES} DESTINATION include/cgltf )
 install_library( cgltf ${PROJECT_NAME}-targets )
 
 message( STATUS "[cgltf] : target available : cgltf" )

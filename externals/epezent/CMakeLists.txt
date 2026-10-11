@@ -35,7 +35,7 @@ set_target_properties( implot PROPERTIES LINKER_LANGUAGE CXX )
 set_target_properties( implot PROPERTIES FOLDER "motor/externals/imgui" )
 target_include_directories( implot 
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/implot>
-  PUBLIC $<INSTALL_INTERFACE:"include/implot"> ) 
+  PUBLIC $<INSTALL_INTERFACE:include/implot> )
 
 export( TARGETS implot 
   NAMESPACE ${PROJECT_NAME}::
@@ -55,7 +55,7 @@ message( STATUS "[ImPlot] : Target available : implot" )
 #set( FOLDER_NAME "${PROJECT_NAME}-${IMGUI_MAJOR_VERSION}.${IMGUI_MINOR_VERSION}.${IMGUI_PATCH_VERSION}")
 #set( BASE_INSTALL_DIR "${IMGUI_INSTALL_HEADER_BASE}/${FOLDER_NAME}" )
 
-install_headers( "${INCLUDES}" "include/implot" )
+install( FILES ${INCLUDES} DESTINATION include/implot )
 install_library( implot ${PROJECT_NAME}-targets )
 
 message( STATUS "<<< [external : ImPlot] <<< " )

@@ -151,12 +151,12 @@ class MOTOR_GRAPHICS_API render_object : public object
     motor::graphics::variable_set_mtr_safe_t get_variable_set( size_t const i ) noexcept;
     safe_variable_set_t get_safe_variable_set( size_t const i ) noexcept;
 
-    motor::vector< motor::graphics::variable_set_mtr_safe_t > get_varibale_sets(
+    motor::vector< motor::graphics::variable_set_mtr_safe_t > get_variable_sets(
         void_t ) const noexcept;
 
-    motor::vector< render_object::variable_set_t > & borrow_varibale_sets( void_t ) noexcept;
+    motor::vector< render_object::variable_set_t > & borrow_variable_sets( void_t ) noexcept;
 
-    motor::vector< render_object::variable_set_t > const & borrow_varibale_sets(
+    motor::vector< render_object::variable_set_t > const & borrow_variable_sets(
         void_t ) const noexcept;
 
     // fast version for quick access without ref counting

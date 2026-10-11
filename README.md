@@ -70,6 +70,33 @@ git submodule update --init --recursive
 
 Windows is the primary development platform. The engine is also built and tested on Linux for OpenGL-oriented configurations.
 
+## Install Package
+
+Build and install a selected configuration into a separate directory:
+
+```bash
+cmake --build build --config Release
+cmake --install build --config Release --prefix path/to/motor-package
+```
+
+Point `CMAKE_PREFIX_PATH` at that directory when configuring a consuming project.
+The installed package provides individual module targets and `motor::complete`:
+
+```cmake
+find_package(motor 0.0.2 EXACT CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE motor::complete)
+```
+
+For a smaller dependency set, link the required modules, such as `motor::math`
+or `motor::graphics`, instead. The targets propagate their include directories,
+compile definitions, dependencies, and the C++20 requirement.
+
+The package currently uses exact version matching; compatibility between different
+Motor versions is not promised. Binary packages must match the consumer's platform,
+architecture, compiler/runtime, and configuration. Shared libraries must also be
+available to the runtime loader (`bin` on Windows, `lib` on Linux). System graphics
+development dependencies, such as OpenGL, are resolved on the consuming machine.
+
 ## Status
 
 Active development.
@@ -77,6 +104,10 @@ Active development.
 The current work is centered on building polished real-time demos and using them as production-style tests for the engine: Blender scene import, camera sequencing, scene streaming, render passes, shadows, HDR, bloom, and post-processing.
 
 APIs and internal systems are still evolving. The repository is best understood as an engine development project and research runtime, not as a finished SDK.
+
+## AI-Assisted Development
+
+Motor is a long-running, independently developed C++ engine. AI tools are used to assist with code reviews, compiler warning cleanup, bug investigation, test development, documentation, and technical brainstorming. Architecture and development decisions remain with the maintainer. AI-assisted changes are reviewed and tested as part of the development workflow.
 
 ## License
 

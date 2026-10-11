@@ -85,11 +85,14 @@ find_library( D3D_DXGUID_GENERAL
 
 if( D3D11_LIBRARY_GENERAL )
     add_library( d3d11 INTERFACE )
-    target_include_directories( d3d11 INTERFACE ${D3D_INCLUDE_DIRS} )
+    target_include_directories( d3d11 INTERFACE $<BUILD_INTERFACE:${D3D_INCLUDE_DIRS}> )
     target_link_libraries( d3d11 
-      INTERFACE ${D3D11_LIBRARY_GENERAL} 
-      INTERFACE ${D3D_COMPILER_GENERAL} 
-      INTERFACE ${D3D_DXGUID_GENERAL} )
+      INTERFACE $<BUILD_INTERFACE:${D3D11_LIBRARY_GENERAL}>
+      INTERFACE $<BUILD_INTERFACE:${D3D_COMPILER_GENERAL}>
+      INTERFACE $<BUILD_INTERFACE:${D3D_DXGUID_GENERAL}>
+      INTERFACE $<INSTALL_INTERFACE:d3d11.lib>
+      INTERFACE $<INSTALL_INTERFACE:d3dcompiler.lib>
+      INTERFACE $<INSTALL_INTERFACE:dxguid.lib> )
     message( STATUS "[Direct3d] : Target available : d3d11" )
 endif()
 

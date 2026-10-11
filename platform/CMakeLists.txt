@@ -158,7 +158,8 @@ elseif( MOTOR_WINDOW_SYSTEM_XLIB )
     "application/xlib/xlib_carrier.cpp"
     
      )
-    list( APPEND os_libs ${X11_LIBRARIES} )
+    list( APPEND os_libs "$<BUILD_INTERFACE:${X11_LIBRARIES}>"
+      $<INSTALL_INTERFACE:X11::X11> )
 
 else()
     message( FATAL_ERROR "Window System: No Os specified." )
