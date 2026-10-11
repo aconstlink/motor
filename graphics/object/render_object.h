@@ -161,6 +161,7 @@ class MOTOR_GRAPHICS_API render_object : public object
 
     // fast version for quick access without ref counting
     render_object::variable_set_t borrow_variable_set( size_t const i ) const noexcept;
+    render_object::variable_set_t borrow_variable_set( size_t const i ) noexcept;
 
     void_t fill_variable_sets( size_t const idx ) noexcept;
 

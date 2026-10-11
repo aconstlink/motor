@@ -3309,8 +3309,6 @@ public:
             auto const s = config.varset_to_idx[ var_set_idx ].data_idx_begin ;
             auto const e = config.varset_to_idx[ var_set_idx ].data_idx_end ;
 
-            std::string_view name ;
-
             motor::graphics::variable_set_t::data_variable_info_t dvi ;
             for( size_t i=s; i<e; ++i )
             {
@@ -3319,7 +3317,7 @@ public:
                 if( !old_vs->data_variable_name( ptr, dvi ) ) 
                 {
                     motor::log::global::error<1024>( 
-                        "[reconnect] : count not find variable %s", name.data() ) ;
+                        "[reconnect] : count not find variable %s", dvi.name.data() ) ;
                     config.var_sets_data[i].var = nullptr ;
                     continue ;
                 }
@@ -3350,12 +3348,80 @@ public:
             }
         }
 
-        // exchange array and streamout variables
+        // exchange array variables
         {
-            // nothing to do. array do not carry variables but ids.
-            // and we do not need to change the ids
+            _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
+            {
+                auto const s = config.varset_to_idx[var_set_idx].array_idx_begin ;
+                auto const e = config.varset_to_idx[var_set_idx].array_idx_end ;
+
+                for( size_t i=s; i<e; ++i )
+                {
+                    auto & entry = config.var_sets_array[i] ;
+                    auto const & uniform = shd.uniforms[entry.uniform_id] ;
+
+                    auto * var = vs->find_array_variable( uniform.name.c_str() ) ;
+                    if( var == nullptr )
+                    {
+                        motor::log::global::error(
+                            "[reconnect] : array variable missing" ) ;
+                        continue ;
+                    }
+
+                    bool const found = _arrays.access_by_name(
+                        var->get().name(),
+                        [&]( size_t const id, this_t::array_data_ref_t data )
+                        {
+                            entry.buf_id = id ;
+                            entry.tex_id = data.tex_id ;
+                        } ) ;
+
+                    if( !found )
+                    {
+                        motor::log::global::error(
+                            "[reconnect] : array resource missing" ) ;
+                    }
+                }
+            } ) ;
         }
 
+        // exchange streamout variables
+        {
+            _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
+            {
+                auto const s = config.varset_to_idx[var_set_idx].streamout_idx_begin ;
+                auto const e = config.varset_to_idx[var_set_idx].streamout_idx_end ;
+
+                for( size_t i=s; i<e; ++i )
+                {
+                    auto & entry = config.var_sets_streamout[i] ;
+                    auto const & uniform = shd.uniforms[entry.uniform_id] ;
+
+                    auto * var = vs->find_streamout_variable( uniform.name.c_str() ) ;
+                    if( var == nullptr )
+                    {
+                        motor::log::global::error(
+                            "[reconnect] : streamout variable missing" ) ;
+                        continue ;
+                    }
+
+                    bool const found = _feedbacks.access_by_name(
+                        var->get().name(),
+                        [&]( size_t const id, this_t::feedback_data_ref_t data )
+                        {
+                            entry.so_id = id ;
+                            entry.tex_id[0] = data._buffers[0].tids[0] ;
+                            entry.tex_id[1] = data._buffers[1].tids[0] ;
+                        } ) ;
+
+                    if( !found )
+                    {
+                        motor::log::global::error(
+                            "[reconnect] : streamout resource missing" ) ;
+                    }
+                }
+            } ) ;
+        }
 
         {
             motor::release( motor::move( old_vs ) ) ;
@@ -3364,157 +3430,6 @@ public:
             entry.vs = motor::move( vs ) ;
             entry.hash = hash ;
         }
-
-        #if 0
-        // ref count one copy here for all stored items
-        {
-        
-            config.varset_to_idx[ var_set_idx ] = std::move( vtidx_data ) ;
-            config.var_sets[idx] = render_data::variable_set{ hash, /*var_set_idx,*/  motor::move( vs ) } ;
-        }
-
-        _shaders.access( config.shd_id, [&]( this_t::shader_data_ref_t shd )
-        {
-            vs->clone_from_if_not_exist( &shd.default_values ) ;
-
-
-            render_data_t::varset_to_idx_data vtidx_data ;
-            vtidx_data.data_idx_begin = config.var_sets_data.size() ;
-            vtidx_data.data_idx_end = config.var_sets_data.size() ;
-
-            vtidx_data.texture_idx_begin = config.var_sets_texture.size() ;
-            vtidx_data.texture_idx_end = config.var_sets_texture.size() ;
-
-            vtidx_data.array_idx_begin = config.var_sets_array.size() ;
-            vtidx_data.array_idx_end = config.var_sets_array.size() ;
-
-            vtidx_data.streamout_idx_begin = config.var_sets_streamout.size() ;
-            vtidx_data.streamout_idx_end = config.var_sets_streamout.size() ;
-
-            size_t id = 0 ;
-            for( auto & uv : shd.uniforms )
-            {
-                // is it a data uniform variable?
-                if( motor::ogl::uniform_is_data( uv.type ) )
-                {
-                    auto const types = motor::platform::gl3::to_type_type_struct( uv.type ) ;
-                    auto* var = vs->data_variable( uv.name, types.first, types.second ) ;
-                    if( var == nullptr )
-                    {
-                        motor::log::global_t::error( gl4_log( "can not claim variable " + uv.name ) ) ;
-                        continue ;
-                    }
-
-                    this_t::render_data::uniform_variable_link link ;
-                    link.uniform_id = id++ ;
-                    link.var = var ;
-
-                    config.var_sets_data.emplace_back( link ) ;
-
-                    ++vtidx_data.data_idx_end ;
-                }
-                else if( motor::ogl::uniform_is_texture( uv.type ) )
-                {
-                    //auto const types = motor::platform::gl3::to_type_type_struct( uv.type ) ;
-                    auto* var = vs->texture_variable( uv.name ) ;
-
-                    if( var == nullptr )
-                    {
-                        motor::log::global_t::error( gl4_log( "can not claim variable " + uv.name ) ) ;
-                        continue ;
-                    }
-
-                    // looking for image
-                    {
-                        auto const& tx_name = var->get() ;
-
-                        this_t::render_data::uniform_texture_link link ;
-                        link.uniform_id = id++ ;
-                        link.img_hash = var->get().hash() ;
-                        link.var = var ;
-
-                        auto const res = _images.access_by_name( tx_name.name(), [&]( size_t const img_id, this_t::image_data_ref_t d )
-                        {
-                            link.img_id = img_id ;
-                            link.tex_id = d.tex_id ;
-                        } ) ;
-
-                        if( !res ) 
-                        {
-                            motor::log::global_t::error<1024>( "[gl4] : Could not find image [%s]", 
-                                tx_name.name().c_str() ) ;
-                            continue ;
-                        }
-                        config.var_sets_texture.emplace_back( link ) ;
-                        ++vtidx_data.texture_idx_end ;
-                    }
-                }
-                else if( motor::ogl::uniform_is_buffer( uv.type ) )
-                {
-                    motor::string_t tx_name ;
-
-                    {
-                        tx_name = vs->array_variable( uv.name )->get().name() ;
-
-                        if ( tx_name.empty() )
-                            tx_name = vs->array_variable_streamout( uv.name )->get().name() ;
-                    }
-
-                    // looking for data buffer
-                    auto handle_buffer_link = [&]( void_t )
-                    {
-                        this_t::render_data::uniform_array_data_link link ;
-                        
-                        auto const res = _arrays.access_by_name( tx_name, [&]( size_t const id_, this_t::array_data_ref_t d )
-                        {
-                            link.buf_id = id_ ;
-                            link.tex_id = d.tex_id ;
-                        } ) ;
-                        if( !res ) return false ;
-
-                        link.uniform_id = id++ ;
-
-                        config.var_sets_array.emplace_back( link ) ;
-                        ++vtidx_data.array_idx_end ;
-                        return true ;
-                    } ;
-
-                    // looking for streamout/transform feedback
-                    auto handle_feedback_link = [&]( void_t )
-                    {
-                        this_t::render_data::uniform_streamout_link link ;
-                        
-                        auto const res = _feedbacks.access_by_name( tx_name, [&]( size_t const id_, this_t::feedback_data_ref_t d )
-                        {
-                            link.tex_id[0] = d._buffers[0].tids[0] ;
-                            link.tex_id[1] = d._buffers[1].tids[0] ;
-                            link.so_id = id_ ;
-                        } ) ;
-                        if( !res ) return false ; 
-
-                        link.uniform_id = id++ ;
-                        config.var_sets_streamout.emplace_back( link ) ;
-                        ++vtidx_data.streamout_idx_end ;
-                        return true ;
-                    } ;
-
-                    if( !handle_buffer_link() )
-                    {
-                        if( !handle_feedback_link() )
-                        {
-                            motor::log::global_t::error<2048>(  
-                              "[gl4] : Could not find array nor streamout object [%s]", 
-                                tx_name.c_str() ) ;
-                            continue ;
-                        }
-                    }
-                }
-            }
-
-            
-
-        } ) ;
-        #endif
 
         return true ;
     }

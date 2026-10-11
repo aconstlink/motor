@@ -308,6 +308,12 @@ render_object::variable_set_t render_object::borrow_variable_set( size_t const i
 }
 
 //*****************************************************************************************
+render_object::variable_set_t render_object::borrow_variable_set( size_t const i ) noexcept
+{
+    return _vars.size() <= i ? this_t::variable_set{ 0, nullptr } : _vars[ i ];
+}
+
+//*****************************************************************************************
 void_t render_object::fill_variable_sets( size_t const idx ) noexcept
 {
     if( idx < _vars.size() ) return;

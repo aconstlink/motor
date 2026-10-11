@@ -189,7 +189,9 @@ class variable_set
         motor::graphics::type const t, motor::graphics::type_struct const ts ) noexcept
     {
         return this_t::find_data_variable( name.c_str(), t, ts );
-    }
+    }    
+
+  public: // data_variable
 
     //***************************************************************************************
     template < class T >
@@ -201,8 +203,6 @@ class variable_set
         return static_cast< motor::graphics::data_variable< T > * >(
             this_t::find_data_variable( name, type, type_struct ) );
     }
-
-  public: // data_variable
 
     struct data_variable_info
     {
@@ -414,6 +414,7 @@ class variable_set
         return this_t::texture_variable( name.c_str() );
     }
 
+
   private: // array variable
 
     //***************************************************************************************
@@ -425,15 +426,7 @@ class variable_set
         return ( i == _arrays.size() )
                    ? nullptr
                    : static_cast< motor::graphics::array_variable_t * >( _arrays[ i ].var );
-    }
-
-    //***************************************************************************************
-    motor::graphics::array_variable_t * find_array_variable(
-        char const * const name ) const noexcept
-    {
-        motor::concurrent::mrsw_t::reader_lock_t lk( _avar_mtx );
-        return this_t::find_array_variable_us( name );
-    }
+    }    
 
     //***************************************************************************************
     bool_t has_array_variable( motor::string_in_t name ) const noexcept
@@ -448,6 +441,14 @@ class variable_set
     }
 
   public: // array variable
+
+    //***************************************************************************************
+    motor::graphics::array_variable_t * find_array_variable(
+        char const * const name ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock_t lk( _avar_mtx );
+        return this_t::find_array_variable_us( name );
+    }
 
     //***************************************************************************************
     bool_t array_variable_name(
@@ -502,7 +503,28 @@ class variable_set
         return this_t::array_variable( name.c_str() );
     }
 
+    private: // streamout
+
+    //***************************************************************************************
+    motor::graphics::streamout_variable_t * find_streamout_variable_us(
+        char const * const name ) const noexcept
+    {
+        size_t i = size_t( -1 );
+        while( ++i < _streamouts.size() && _streamouts[ i ].name != name );
+        return ( i == _streamouts.size() )
+                   ? nullptr
+                   : static_cast< motor::graphics::streamout_variable_t * >( _streamouts[ i ].var );
+    }   
+
   public: // streamout array vars
+
+    //***************************************************************************************
+    motor::graphics::streamout_variable_t * find_streamout_variable(
+        char const * const name ) const noexcept
+    {
+        motor::concurrent::mrsw_t::reader_lock_t lk( _soutvar_mtx );
+        return this_t::find_streamout_variable_us( name );
+    }
 
     //***************************************************************************************
     bool_t array_variable_streamoutname(
