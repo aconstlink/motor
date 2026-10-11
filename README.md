@@ -8,6 +8,12 @@
 
 The project is developed as a personal engine/runtime environment. It is not meant to compete with large commercial engines. Its purpose is to explore and build the systems behind real-time applications directly: rendering abstraction, resource lifetimes, scene composition, shader workflows, data flow, tooling, and live iteration.
 
+## History
+
+The Motor repository started in 2023. Parts of its code originate from earlier
+engines that Alex Link has been developing since 2011 and has continued to
+rework and evolve into Motor.
+
 ## Focus
 
 `motor` is currently focused on demo and visual application workflows:

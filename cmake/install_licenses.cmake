@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 # Keep the upstream notices with binary release packages.
 set( motor_license_root "${MOTOR_SOURCE_DIR}/externals" )
 

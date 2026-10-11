@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 //------------------------------------------------------------
 // snakeoil (c) Alexis Constantin Link
 // Distributed under the MIT license

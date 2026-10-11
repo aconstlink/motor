@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 #include "imgui.h"
 
 #include <motor/math/camera/3d/orthographic_projection.hpp>

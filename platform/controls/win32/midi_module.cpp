@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 
 #include "midi_module.h"
 #include <motor/controls/midi/device_demuxer.hpp>

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 
 function( install_headers FILE_LIST BASE_PATH )
     #message( "Will install to : " ${BASE_PATH} )

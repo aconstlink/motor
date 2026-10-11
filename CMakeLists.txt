@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 cmake_minimum_required( VERSION 3.20 )
 
 set( MOTOR_MAJOR_VERSION 0 )

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023-2026 Alex Link
+# SPDX-License-Identifier: MIT
+
 #set( RAPIDXML_INSTALL_HEADER_BASE "include/${PROJECT_NAME}/externals" )
 #add_subdirectory( rapidxml )
 
