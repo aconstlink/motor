@@ -213,7 +213,7 @@ namespace motor
             static T* dealloc( T* ptr, size_t const n )
             {
                 if( ptr == nullptr ) return nullptr ;
-                for( size_t i = 0; i < n; ++i ) ( *( ptr + 1 ) ).~T() ;
+                for( size_t i = 0; i < n; ++i ) ( *( ptr + i) ).~T() ;
                 this_t::dealloc_raw<T>( ptr ) ;
                 return nullptr ;
             }
