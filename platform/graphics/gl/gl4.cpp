@@ -2915,26 +2915,21 @@ public:
          return true ;
     }
 
-    bool_t bind_attributes( GLuint const vao, size_t const sid, size_t const gid ) noexcept
+    bool_t bind_attributes( GLuint const vao, size_t const gid, this_t::shader_data_ref_t sd ) noexcept
     {
-        auto const [a,b] = _shaders.access<bool_t>( sid, [&]( this_t::shader_data_ref_t sd )
+        glBindVertexArray( vao ) ;
+        if( gl4_log_error( "glBindVertexArray") )
         {
-            glBindVertexArray( vao ) ;
-            if( gl4_log_error( "glBindVertexArray") )
-            {
-                return false;
-            }
+            return false;
+        }
 
-            //auto & gd = _geometries[ gid ] ;
-            auto const [c,d] = _geometries.access<bool_t>( gid, [&]( motor::string_in_t name, this_t::geo_data_ref_t gd )
-            {
-                return this_t::bind_attributes( name, sd, gd ) ;
-            } ) ;
-            
-            return c && d ;
-            
+        //auto & gd = _geometries[ gid ] ;
+        auto const [c,d] = _geometries.access<bool_t>( gid, [&]( motor::string_in_t name, this_t::geo_data_ref_t gd )
+        {
+            return this_t::bind_attributes( name, sd, gd ) ;
         } ) ;
-        return a && b ;
+            
+        return c && d ;
     }
 
     //****************************************************************************************
@@ -4186,7 +4181,7 @@ public:
                             }
 
                             // bind vertex attributes to shader locations for vao
-                            if( this_t::bind_attributes( vao_id, config.shd_id, gid ) )
+                            if( this_t::bind_attributes( vao_id, gid, sconfig ) )
                                 config.geo_to_vaos.emplace_back( this_t::render_data::geo_to_vao{ gid, vao_id } ) ;
                         }
                         else vao_id = iter->vao ;
