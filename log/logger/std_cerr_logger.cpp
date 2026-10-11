@@ -85,4 +85,19 @@ motor::log::result std_cerr_logger::log( motor::log::log_level const ll, motor::
     return std_cerr_logger::log( ll, msg.c_str() ) ;
 }
 
+//*************************************************************************************
+motor::log::result std_cerr_logger::test( motor::string_cref_t msg, bool_t const passed ) noexcept
+{
+    std::lock_guard< std::mutex > lk( _mtx ) ;
+
+    this_file::text_color_reset() ;
+    printf( "%s", motor::log::to_string_short( passed ? log_level::status : log_level::error ) ) ;
+    this_file::text_color( BRIGHT, passed ? GREEN : RED, BLACK ) ;
+    printf( "%s", passed ? "[OK]" : "[FAIL]" ) ;
+    this_file::text_color_reset() ;
+    printf( " %s\n", msg.c_str() ) ;
+
+    return motor::log::result::ok ;
+}
+
 

@@ -16,6 +16,11 @@ namespace motor
             virtual ~ilogger( void_t ) {}
             virtual motor::log::result log( motor::log::log_level const ll, motor::string_cref_t msg ) noexcept = 0 ;
             virtual motor::log::result log( motor::log::log_level const ll, char const * msg ) noexcept = 0 ;
+            virtual motor::log::result test( motor::string_cref_t msg, bool_t const passed ) noexcept
+            {
+                return this->log( passed ? log_level::status : log_level::error,
+                    motor::string_t( passed ? "[OK] " : "[FAIL] " ) + msg ) ;
+            }
         };
     }
 }

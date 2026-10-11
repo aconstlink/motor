@@ -53,6 +53,13 @@ motor::log::result system::log( motor::log::log_level const ll, motor::string_cr
 }
 
 //*************************************************************************************
+motor::log::result system::test( motor::string_cref_t msg, bool_t const passed ) noexcept
+{
+    for( auto * logger : _loggers ) logger->test( msg, passed ) ;
+    return motor::log::result::ok ;
+}
+
+//*************************************************************************************
 motor::log::result system::add_logger( motor::log::ilogger_ptr_t lptr ) noexcept
 {
     if( lptr == nullptr )

@@ -74,6 +74,19 @@ motor::log::store_logger_cptr_t global::get_store( void_t ) noexcept
 }
 
 //*************************************************************************************
+bool_t global::test( motor::string_cref_t msg, bool_t const passed ) noexcept
+{
+    this_t::get()->__default_log_system->test( msg, passed ) ;
+    return passed ;
+}
+
+//*************************************************************************************
+bool_t global::test( char const * msg, bool_t const passed ) noexcept
+{
+    return this_t::test( motor::string_t( msg ), passed ) ;
+}
+
+//*************************************************************************************
 void_t global::message( log_level const level, motor::string_cref_t msg ) noexcept
 {
     this_t::get()->__default_log_system->log( level, msg ) ;
