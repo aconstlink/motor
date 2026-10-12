@@ -238,7 +238,14 @@ motor::msl::parse::configs_t parser::filter_config_statements( this_t::statement
 
                             for( size_t p=f; p<l; ++p )
                             {
-                                if( token[p] == "__float__" )
+                                if( token[p] == "__bool__" )
+                                {
+                                    motor::string_t const type = "bool_t" ;
+                                    motor::string_t const value = token[p+2] ;
+                                    v.default_value.emplace_back( std::make_pair( type, value ) ) ;
+                                    p += 2 ;
+                                }
+                                else if( token[p] == "__float__" )
                                 {
                                     motor::string_t const type = "float_t" ;
                                     motor::string_t const value = token[p+2] + "." + token[p+4] ;
@@ -552,6 +559,7 @@ parser::statements_t parser::replace_numbers( statements_rref_t ss ) const
 {
     for( auto& s : ss )
     {
+        s = std::regex_replace( s, std::regex( " (true|false) " ), " __bool__ ( $1 ) " ) ;
         s = std::regex_replace( s, std::regex( " ([0-9]+) " ), " __int__ ( $1 ) " ) ;
         s = std::regex_replace( s, std::regex( " ([0-9]+)u+ " ), " __uint__ ( $1 ) " ) ;
         s = std::regex_replace( s, std::regex( " ([0-9]+)\\.([0-9]+)f? " ), " __float__ ( $1 , $2 ) " ) ;
