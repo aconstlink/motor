@@ -18,78 +18,112 @@ struct datas
 {
     motor_this_typedefs( datas< T > );
 
-    class try_guard
-    {
-      public:
-
-        using atomic_t = std::atomic< size_t >;
-
-      private:
-
-        atomic_t & _what;
-        bool_t _accessed = false;
-
-      public:
-
-        try_guard( atomic_t & w ) noexcept : _what( w ) {}
-        ~try_guard( void_t ) noexcept
-        {
-            if( _accessed ) _what = 0;
-        }
-
-        bool_t now( void_t ) noexcept
-        {
-            size_t expected = 0;
-            _accessed = _what.compare_exchange_weak( expected, 1 );
-            return _accessed;
-        }
-    };
-
   private:
 
     struct guard_data
     {
-        motor::concurrent::mrsw_t guard;
-
         std::thread::id tid;
-        bool_t busy = false;
+
+        std::mutex mtx;
+        std::condition_variable cv;
+
         size_t entries = 0;
 
-        void_t enter_write( void_t ) noexcept
+        guard_data( void_t ) noexcept = default;
+        guard_data( guard_data const & ) noexcept = delete;
+        guard_data( guard_data && rhv ) noexcept 
         {
+            tid = std::move( rhv.tid ) ;
+            entries = rhv.entries ;
+        }
+        guard_data & operator = ( guard_data && rhv ) noexcept
+        {
+            assert( entries == 0 ) ;
+            tid = std::move( rhv.tid ) ;
+            entries = rhv.entries ;
+            return *this ;
+        }
+
+        bool_t try_enter( void_t ) noexcept
+        {
+            if( tid == std::this_thread::get_id() && ++entries > 0 ) return true ;
+
+            std::unique_lock< std::mutex > lk( mtx );
+            if( entries > 0 ) return false ;
+
+            tid = std::this_thread::get_id();
+            ++entries;
+            return true ;
+        }
+
+        void_t enter( void_t ) noexcept
+        {
+            if( tid == std::this_thread::get_id() && ++entries > 0 ) return;
+
             {
-                motor::concurrent::mrsw_t::reader_lock_t lk( guard );
-                if( tid == std::this_thread::get_id() )
-                {
-                    entries++;
-                    return;
-                }
+                std::unique_lock< std::mutex > lk( mtx );
+                while( entries ) cv.wait( lk );
+                
+                tid = std::this_thread::get_id();
+                ++entries;
             }
+        }
+
+        bool_t leave( void ) noexcept
+        {
+            if( tid == std::this_thread::get_id() && --entries == 0 )
             {
-                motor::concurrent::mrsw_t::writer_lock lk( guard );
+                tid = std::thread::id();
+                cv.notify_one();
+                return true ;
             }
+            return false ;
         }
     };
 
   public:
 
+    class try_guard
+    {
+      private:
+
+        guard_data & _data;
+        bool_t _accessed = false ;
+
+      public:
+
+        try_guard( guard_data & d ) noexcept : _data( d ) 
+        {   
+            _accessed = _data.try_enter() ;
+        }
+
+        ~try_guard( void_t ) noexcept
+        {
+            if( _accessed ) _data.leave() ;
+        }
+
+        bool_t has_accessed( void_t ) noexcept
+        {
+            return _accessed ;
+        }
+    };
+
     class busy_guard
     {
       private:
 
-        std::atomic< size_t > & _what;
+        guard_data & _data;
 
       public:
 
-        busy_guard( std::atomic< size_t > & w ) noexcept : _what( w )
+        busy_guard( guard_data & d ) noexcept : _data( d )
         {
-            size_t expected = 0;
-            while( !_what.compare_exchange_weak( expected, size_t( 1 ) ) ) expected = 0;
+            _data.enter();
         }
 
         ~busy_guard( void_t ) noexcept
         {
-            _what = 0;
+            _data.leave();
         }
     };
 
@@ -99,7 +133,7 @@ struct datas
     {
         // allow only one entity to access
         // the critical section.
-        std::atomic< size_t > busy = 0;
+        guard_data gd;
 
         bool_t valid = false;
         motor::string_t name;
@@ -107,16 +141,19 @@ struct datas
         T * data = nullptr;
 
         wrapper( void_t ) noexcept {}
+        wrapper( wrapper const & ) = delete ;
 
         wrapper( wrapper && rhv ) noexcept
-            : busy( false ), valid( rhv.valid ), name( std::move( rhv.name ) ),
+            : gd( std::move( rhv.gd ) ), valid( rhv.valid ), name( std::move( rhv.name ) ),
               data( motor::move( rhv.data ) )
         {
         }
-
+        
         wrapper & operator=( wrapper && rhv ) noexcept
         {
-            busy = false;
+            assert( gd.entries == 0 ) ;
+
+            gd = std::move( rhv.gd );
             valid = rhv.valid;
             rhv.valid = false;
             name = std::move( rhv.name );
@@ -171,7 +208,7 @@ struct datas
         {
             motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
-            this_t::busy_guard busy_wait( items[ oid ].busy );
+            this_t::busy_guard busy_wait( items[ oid ].gd );
             return funk( oid, items[ oid ].name, *items[ oid ].data );
         }
 
@@ -216,8 +253,8 @@ struct datas
             if( this_t::check_oid( oid, items ) == size_t( -1 ) )
                 return std::make_pair( false, false );
 
-            this_t::try_guard try_lock( items[ oid ].busy );
-            if( !try_lock.now() ) return std::make_pair( true, false );
+            this_t::try_guard try_lock( items[ oid ].gd );
+            if( !try_lock.has_accessed() ) return std::make_pair( true, false );
 
             funk( items[ oid ] );
         }
@@ -250,8 +287,8 @@ struct datas
 
         if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return std::make_pair( false, R() );
 
-        this_t::try_guard try_lock( items[ oid ].busy );
-        if( !try_lock.now() ) return std::make_pair( true, R() );
+        this_t::try_guard try_lock( items[ oid ].gd );
+        if( !try_lock.has_accessed() ) return std::make_pair( true, R() );
 
         return std::make_pair( true, funk( *items[ oid ].data ) );
     }
@@ -273,7 +310,7 @@ struct datas
 
             if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return false;
 
-            this_t::busy_guard busy_wait( items[ oid ].busy );
+            this_t::busy_guard busy_wait( items[ oid ].gd );
             funk( items[ oid ].name, *items[ oid ].data );
         }
         return true;
@@ -289,7 +326,7 @@ struct datas
 
         if( i == items.size() ) return false;
 
-        this_t::busy_guard busy_wait( items[ i ].busy );
+        this_t::busy_guard busy_wait( items[ i ].gd );
         funk( i, *items[ i ].data );
 
         return true;
@@ -307,7 +344,7 @@ struct datas
 
         if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return std::make_pair( false, R() );
 
-        this_t::busy_guard busy_wait( items[ oid ].busy );
+        this_t::busy_guard busy_wait( items[ oid ].gd );
 
         return std::make_pair( true, funk( items[ oid ].name, *items[ oid ].data ) );
     }
@@ -357,7 +394,6 @@ struct datas
         if( oid == v.size() )
         {
             this_t::wrapper w;
-            w.busy = false;
             w.valid = true;
             w.name = name;
             w.data = motor::memory::global::alloc< T >( typeid( T ).name() );
@@ -393,7 +429,7 @@ struct datas
         {
             if( !i.valid ) continue;
 
-            this_t::busy_guard busy_wait( i.busy );
+            this_t::busy_guard busy_wait( i.gd );
             funk( *i.data );
         }
     }
@@ -405,7 +441,7 @@ struct datas
         {
             if( !items[ i ].valid ) continue;
 
-            this_t::busy_guard busy_wait( items[ i ].busy );
+            this_t::busy_guard busy_wait( items[ i ].gd );
             funk( i, *items[ i ].data );
         }
     }
@@ -417,7 +453,7 @@ struct datas
         {
             if( !i.valid ) continue;
 
-            this_t::busy_guard __( items[ i ].busy );
+            this_t::busy_guard __( items[ i ].gd );
             funk( i.name, *i.data );
         }
     }
@@ -431,7 +467,7 @@ struct datas
         for( auto & i : items )
         {
             if( !i.valid ) continue;
-            this_t::busy_guard __( items[ i ].busy );
+            this_t::busy_guard __( items[ i ].gd );
             if( !funk( *i.data ) ) return true;
         }
         return false;
@@ -443,7 +479,7 @@ struct datas
         for( auto & i : items )
         {
             if( !i.valid ) continue;
-            this_t::busy_guard __( items[ i ].busy );
+            this_t::busy_guard __( items[ i ].gd );
             if( !funk( i.name, *i.data ) ) return true;
         }
         return false;
@@ -455,7 +491,7 @@ struct datas
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
-            this_t::busy_guard __( items[ i ].busy );
+            this_t::busy_guard __( items[ i ].gd );
             if( !funk( i, *items[ i ].data ) ) return true;
         }
         return false;
@@ -468,7 +504,7 @@ struct datas
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
-            this_t::busy_guard __( items[ i ].busy );
+            this_t::busy_guard __( items[ i ].gd );
             if( !funk( i, items[ i ].name, *items[ i ].data ) ) return true;
         }
         return false;
