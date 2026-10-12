@@ -792,6 +792,22 @@ struct d3d11_backend::pimpl
             {
                 if( ivar == 0 ) return 0 ;
 
+                if( t == motor::graphics::type::tbool )
+                {
+                    // HLSL constant buffers store each bool component in 32 bits.
+                    auto const src = static_cast< uint8_t const * >( ivar->data_ptr() ) ;
+                    auto const dst = static_cast< uint8_ptr_t >( dest ) ;
+                    size_t const count = motor::graphics::size_of( ts ) ;
+                    for( size_t i = 0; i < count; ++i )
+                    {
+                        bool_t value ;
+                        std::memcpy( &value, src + i * sizeof( bool_t ), sizeof( bool_t ) ) ;
+                        uint32_t const packed = value ? 1u : 0u ;
+                        std::memcpy( dst + i * sizeof( packed ), &packed, sizeof( packed ) ) ;
+                    }
+                    return sib ;
+                }
+
                 std::memcpy( dest, ivar->data_ptr(), sib ) ;
                 return sib ;
             }
@@ -800,8 +816,7 @@ struct d3d11_backend::pimpl
             {
                 if ( ivar == 0 ) return 0 ;
 
-                std::memcpy( uint8_ptr_t(origin_no_shift)+offset, ivar->data_ptr(), sib ) ;
-                return sib ;
+                return this->do_copy_funk( uint8_ptr_t(origin_no_shift)+offset ) ;
             }
         } ;
         motor_typedef( data_variable ) ;
@@ -2443,7 +2458,13 @@ public: // functions
                     if ( var_.def_val == size_t( -1 ) ) continue ;
 
                     auto * df = res.config.def_values[ var_.def_val ] ;
-                    if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
+                    if ( dynamic_cast<motor::msl::generic_default_value< bool_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< bool_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        default_values.data_variable<bool_t>( var_.name )->set( gdv->get() ) ;
+                    }
+                    else if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::generic_default_value< float_t > * ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
@@ -3722,7 +3743,8 @@ public: // functions
                     {
                         render_data_t::data_variable_t dv ;
                         dv.ivar = vs->data_variable( var.name, var.t, var.ts ) ;
-                        dv.sib = motor::graphics::size_of( var.t ) * motor::graphics::size_of( var.ts ) ;
+                        dv.sib = ( var.t == motor::graphics::type::tbool ? sizeof( uint32_t ) :
+                            motor::graphics::size_of( var.t ) ) * motor::graphics::size_of( var.ts ) ;
                         dv.name = var.name ;
                         dv.t = var.t ;
                         dv.ts = var.ts ;
