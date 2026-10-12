@@ -31,53 +31,52 @@ struct datas
 
         guard_data( void_t ) noexcept = default;
         guard_data( guard_data const & ) noexcept = delete;
-        guard_data( guard_data && rhv ) noexcept 
+        guard_data( guard_data && rhv ) noexcept
         {
-            tid = std::move( rhv.tid ) ;
-            entries = rhv.entries ;
+            tid = std::move( rhv.tid );
+            entries = rhv.entries;
         }
-        guard_data & operator = ( guard_data && rhv ) noexcept
+        guard_data & operator=( guard_data && rhv ) noexcept
         {
-            assert( entries == 0 ) ;
-            tid = std::move( rhv.tid ) ;
-            entries = rhv.entries ;
-            return *this ;
+            assert( entries == 0 );
+            tid = std::move( rhv.tid );
+            entries = rhv.entries;
+            return *this;
         }
 
         bool_t try_enter( void_t ) noexcept
         {
-            if( tid == std::this_thread::get_id() && ++entries > 0 ) return true ;
-
             std::unique_lock< std::mutex > lk( mtx );
-            if( entries > 0 ) return false ;
+            if( tid == std::this_thread::get_id() && ++entries > 0 ) return true;
+            
+            if( entries > 0 ) return false;
 
             tid = std::this_thread::get_id();
             ++entries;
-            return true ;
+            return true;
         }
 
         void_t enter( void_t ) noexcept
         {
+            std::unique_lock< std::mutex > lk( mtx );
             if( tid == std::this_thread::get_id() && ++entries > 0 ) return;
 
-            {
-                std::unique_lock< std::mutex > lk( mtx );
-                while( entries ) cv.wait( lk );
-                
-                tid = std::this_thread::get_id();
-                ++entries;
-            }
+            while( entries ) cv.wait( lk );
+
+            tid = std::this_thread::get_id();
+            ++entries;
         }
 
         bool_t leave( void ) noexcept
         {
+            std::unique_lock< std::mutex > lk( mtx );
             if( tid == std::this_thread::get_id() && --entries == 0 )
             {
                 tid = std::thread::id();
                 cv.notify_one();
-                return true ;
+                return true;
             }
-            return false ;
+            return false;
         }
     };
 
@@ -88,23 +87,23 @@ struct datas
       private:
 
         guard_data & _data;
-        bool_t _accessed = false ;
+        bool_t _accessed = false;
 
       public:
 
-        try_guard( guard_data & d ) noexcept : _data( d ) 
-        {   
-            _accessed = _data.try_enter() ;
+        try_guard( guard_data & d ) noexcept : _data( d )
+        {
+            _accessed = _data.try_enter();
         }
 
         ~try_guard( void_t ) noexcept
         {
-            if( _accessed ) _data.leave() ;
+            if( _accessed ) _data.leave();
         }
 
         bool_t has_accessed( void_t ) noexcept
         {
-            return _accessed ;
+            return _accessed;
         }
     };
 
@@ -141,17 +140,17 @@ struct datas
         T * data = nullptr;
 
         wrapper( void_t ) noexcept {}
-        wrapper( wrapper const & ) = delete ;
+        wrapper( wrapper const & ) = delete;
 
         wrapper( wrapper && rhv ) noexcept
             : gd( std::move( rhv.gd ) ), valid( rhv.valid ), name( std::move( rhv.name ) ),
               data( motor::move( rhv.data ) )
         {
         }
-        
+
         wrapper & operator=( wrapper && rhv ) noexcept
         {
-            assert( gd.entries == 0 ) ;
+            assert( gd.entries == 0 );
 
             gd = std::move( rhv.gd );
             valid = rhv.valid;
