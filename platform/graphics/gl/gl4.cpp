@@ -4484,7 +4484,6 @@ public:
     void_t end_frame( void_t ) 
     {
         glFlush() ;
-        glFinish() ;
 
         _state_stack.pop() ;
 
