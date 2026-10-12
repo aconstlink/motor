@@ -2574,7 +2574,13 @@ public:
                     if ( var_.def_val == size_t( -1 ) ) continue ;
 
                     auto * df = res.config.def_values[ var_.def_val ] ;
-                    if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
+                    if ( dynamic_cast<motor::msl::generic_default_value< bool_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< bool_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        default_values.data_variable<bool_t>( var_.name )->set( gdv->get() ) ;
+                    }
+                    else if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::generic_default_value< float_t > * ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
