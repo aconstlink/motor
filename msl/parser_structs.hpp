@@ -312,7 +312,12 @@ namespace motor
 
             motor::msl::idefault_value_mtr_t ret = nullptr ;
 
-            if ( t == motor::msl::type::as_float() && values.size() >= 1 )
+            if ( t == motor::msl::type::as_bool() && values.size() >= 1 )
+            {
+                std::memcpy( buffer[0], values[0].second.c_str(), values[0].second.size() );
+                ret = motor::shared( motor::msl::generic_default_value< bool_t >( bool_t( !strcmp( buffer[0],"true") ) ) ) ;
+            }
+            else if ( t == motor::msl::type::as_float() && values.size() >= 1 )
             {
                 std::memcpy( buffer[0], values[0].second.c_str(), values[0].second.size() );
                 ret = motor::shared( motor::msl::generic_default_value< float_t >( float_t( std::atof( buffer[0] ) ) ) ) ;
