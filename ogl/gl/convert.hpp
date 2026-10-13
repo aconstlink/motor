@@ -224,6 +224,54 @@ namespace motor
             switch( e )
             {
 
+            case GL_BOOL: return [=] ( GLuint loc, GLuint /*count*/, void_ptr_t p )
+            { glUniform1f( loc, *(bool_ptr_t)p ? 1.0f : 0.0f ); } ;
+
+            case GL_BOOL_VEC2: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
+            {
+                assert( count == 1 ) ;
+
+                auto const * src = static_cast< bool_t const * >( p ) ;
+                GLint const values[2] =
+                {
+                    src[0] ? 1 : 0,
+                    src[1] ? 1 : 0
+                } ;
+
+                glUniform2iv( loc, 1, values ) ;
+            } ;
+
+            case GL_BOOL_VEC3: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
+            {
+                assert( count == 1 ) ;
+
+                auto const * src = static_cast< bool_t const * >( p ) ;
+                GLint const values[3] =
+                {
+                    src[0] ? 1 : 0,
+                    src[1] ? 1 : 0,
+                    src[2] ? 1 : 0
+                } ;
+
+                glUniform3iv( loc, 1, values ) ;
+            } ;
+
+            case GL_BOOL_VEC4: return [=] ( GLuint loc, GLuint count, void_ptr_t p )
+            {
+                assert( count == 1 ) ;
+
+                auto const * src = static_cast< bool_t const * >( p ) ;
+                GLint const values[4] =
+                {
+                    src[0] ? 1 : 0,
+                    src[1] ? 1 : 0,
+                    src[2] ? 1 : 0,
+                    src[3] ? 1 : 0
+                } ;
+
+                glUniform4iv( loc, 1, values ) ;
+            } ;
+
                 //************************************************************
 
             case GL_FLOAT: return [=] ( GLuint loc, GLuint /*count*/, void_ptr_t p )
