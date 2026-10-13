@@ -87,13 +87,14 @@ list( APPEND sources "network/network_module_creator.hpp" )
 
 if( MOTOR_GRAPHICS_OPENGL )
 list( APPEND sources 
-    "graphics/gl/gl4_log.h"
-    "graphics/gl/gl4.h"
-    "graphics/gl/gl4.cpp"
-    "graphics/gl/gl4_independent.h"
-    "graphics/gl/gl4_convert.h"
+    "graphics/gl4/gl4_log.h"
+    "graphics/gl4/gl4.h"
+    "graphics/gl4/gl4.cpp"
+    "graphics/gl4/gl4_independent.h"
+    "graphics/gl4/gl4_convert.h"
     "graphics/gl/gl_context.h"
-    "graphics/gl/gl4_pimpl_data.h"
+    "graphics/gl4/gl4_pimpl_data.h"
+    "graphics/gl4/gl4_support_thread.hpp"
 )
 endif()
 if( MOTOR_GRAPHICS_OPENGLES )

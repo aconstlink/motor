@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
+#pragma once
+
 #include "gl4.h"
 #include "gl4_convert.h"
 #include "gl4_pimpl_data.h"
@@ -16,17 +18,28 @@
 #include <motor/std/string_split.hpp>
 #include <motor/std/hash_map>
 
+#include <variant>
+
 using namespace motor::platform::gen4;
 using namespace motor::ogl;
 
-#define gl4_log( text ) "[GL4] : " text
-#define gl4_log_error( text ) motor::ogl::error::check_and_log( "[GL4] : " text )
-#define gl4_log_error2( text, name ) motor::ogl::error::check_and_log( "[GL4] : " text, name )
-#define gl4_log_error3( text, obj )                                                                \
-    motor::ogl::error::check_and_log< decltype( obj ) >( "[GL4] : " text, obj )
-
 struct gl4_independent
 {
+    struct compilation_result
+    {
+        bool_t success = false;
+
+        // safe reference. hold ref count
+        motor::graphics::msl_object_mtr_t object = nullptr;
+
+        motor::graphics::shader_object_t shader;
+        pimpl_data::shader_data_t data;
+    };
+    struct release_result
+    {
+    };
+    using backward_message = std::variant< compilation_result, release_result >;
+
     motor_this_typedefs( gl4_independent );
 
     //****************************************************************************************
@@ -319,6 +332,7 @@ struct gl4_independent
         }
     }
 
+    //****************************************************************************************
     static bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj,
         pimpl_data::shader_data_out_t constructed ) noexcept
     {
@@ -577,5 +591,148 @@ struct gl4_independent
             }
         }
         return false;
+    }
+
+    //****************************************************************************************
+    // call from support thread
+    static std::tuple< bool_t, motor::graphics::shader_object_t, pimpl_data::shader_data_t >
+    construct_shader_from_msl_data_st(
+        motor::graphics::msl_object_ref_t msl_obj_in, motor::msl::database_ref_t mdb ) noexcept
+    {
+        motor::vector< motor::msl::symbol_t > config_symbols;
+
+        size_t parsing_milli = 0;
+
+        {
+            auto tp_begin = std::chrono::high_resolution_clock::now();
+            msl_obj_in.for_each_msl( motor::graphics::msl_api_type::msl_4_0,
+                [ & ]( motor::string_in_t code )
+            {
+                motor::msl::post_parse::document_t doc =
+                    motor::msl::parser_t( "gl4" ).process( code );
+
+                mdb.insert( std::move( doc ), config_symbols );
+            } );
+
+            {
+                parsing_milli = std::chrono::duration_cast< std::chrono::milliseconds >(
+                    std::chrono::high_resolution_clock::now() - tp_begin )
+                                    .count();
+            }
+        }
+
+        if( config_symbols.size() > 1 )
+        {
+            motor_warning2( 1024, "[gl4::construct_msl_data] : "
+                                  "library shader recompilation disabled" );
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+        }
+
+        if( config_symbols.size() == 0 )
+        {
+            motor_warning2( 1024, "[gl4::construct_msl_data] : no shader submitted" );
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+        }
+
+        auto const & c = config_symbols[ 0 ];
+        auto const c_exp = c.expand();
+
+        motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &mdb, c );
+        if( res.missing.size() != 0 )
+        {
+            motor::log::global_t::warning( "[gl4] : We have missing symbols for " + c_exp + " :" );
+            for( auto const & s : res.missing )
+            {
+                motor::log::global_t::status( s.expand() );
+            }
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+        }
+
+        motor::graphics::variable_set_t default_values;
+
+        // inject default variable values into the
+        // variable sets
+        for( auto & shd_ : res.config.shaders )
+        {
+            for( auto & var_ : shd_.variables )
+            {
+                if( var_.def_val == size_t( -1 ) ) continue;
+
+                auto * df = res.config.def_values[ var_.def_val ];
+                if( dynamic_cast< motor::msl::generic_default_value< bool_t > * >( df ) != nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< bool_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< bool_t >( var_.name )->set( gdv->get() );
+                }
+                else if( dynamic_cast< motor::msl::generic_default_value< float_t > * >( df ) !=
+                         nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< float_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< float_t >( var_.name )->set( gdv->get() );
+                }
+                else if( dynamic_cast<
+                             motor::msl::generic_default_value< motor::math::vec3f_t > * >( df ) !=
+                         nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< motor::math::vec3f_t >( var_.name )
+                        ->set( gdv->get() );
+                }
+                else if( dynamic_cast<
+                             motor::msl::generic_default_value< motor::math::vec4f_t > * >( df ) !=
+                         nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< motor::math::vec4f_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< motor::math::vec4f_t >( var_.name )
+                        ->set( gdv->get() );
+                }
+                else if( dynamic_cast< motor::msl::texture_dv_ptr_t >( df ) != nullptr )
+                {
+                    using ptr_t = motor::msl::texture_dv_ptr_t;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.texture_variable( var_.name )->set( gdv->get().name );
+                }
+            }
+        }
+
+        motor::graphics::shader_object_t so( c_exp );
+
+        // generate code
+        {
+            auto tp_begin = std::chrono::high_resolution_clock::now();
+
+            motor::msl::generator_t gen( std::move( res ) );
+            auto const code = gen.generate< motor::msl::glsl::glsl4_generator_t >();
+            motor::graphics::msl_bridge::create_by_api_type(
+                motor::graphics::shader_api_type::glsl_4_0, code, so );
+
+            {
+                size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >(
+                    std::chrono::high_resolution_clock::now() - tp_begin )
+                                         .count();
+
+                motor::log::global_t::status< 2048 >( "[gl4] : msl %s shader took [%zu|%zu] ms",
+                    c_exp.c_str(), parsing_milli, milli );
+            }
+        }
+
+        pimpl_data::shader_data_t new_shader_data;
+        if( !gl4_independent::construct_shader_data( so, new_shader_data ) )
+        {
+            new_shader_data.invalidate();
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+        }
+
+        new_shader_data.default_values = std::move( default_values );
+
+        return std::make_tuple( true, std::move( so ), std::move( new_shader_data ) );
     }
 };

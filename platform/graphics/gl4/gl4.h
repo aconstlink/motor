@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "gl_context.h"
+#include "../gl/gl_context.h"
 #include <motor/graphics/backend/gen4/backend.h>
 
 namespace motor

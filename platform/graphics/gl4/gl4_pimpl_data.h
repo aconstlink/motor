@@ -1,6 +1,9 @@
 
 #pragma once
 
+#include "gl4_log.h"
+
+
 #include <motor/msl/symbol.hpp>
 #include <motor/msl/database.hpp>
 #include <motor/msl/parser.h>

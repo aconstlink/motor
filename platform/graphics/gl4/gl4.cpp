@@ -5,6 +5,8 @@
 #include "gl4_convert.h"
 #include "../datas.hpp"
 
+#include "gl4_support_thread.hpp"
+
 #include <motor/msl/symbol.hpp>
 #include <motor/msl/database.hpp>
 #include <motor/msl/parser.h>
@@ -33,56 +35,10 @@
 #include "gl4_independent.h"
 #include "gl4_pimpl_data.h"
 
+#include <tuple>
+
 using namespace motor::platform::gen4;
 using namespace motor::ogl;
-
-namespace local_gl4
-{
-template < typename T >
-struct work_item_deduction;
-
-struct work_item
-{
-    enum class work_type
-    {
-        configure,
-        release
-    };
-
-    enum class obj_type
-    {
-        unknown,
-        msl
-    };
-
-    work_type wt;
-    obj_type ot;
-    void_ptr_t ptr;
-
-    template < typename T >
-    static work_item make_item( work_type const t, motor::core::mtr_safe< T > obj ) noexcept
-    {
-        return work_item{ t, work_item_deduction< T >::deduce( obj.mtr() ),
-            static_cast< void_ptr_t >( obj.mtr() ) };
-    }
-};
-motor_typedef( work_item );
-
-template < typename T >
-struct work_item_deduction
-{
-    static work_item::obj_type deduce( T * ptr ) noexcept;
-};
-
-template <>
-struct work_item_deduction< motor::graphics::msl_object >
-{
-    static work_item::obj_type deduce( motor::graphics::msl_object * ptr ) noexcept
-    {
-        return work_item::obj_type::msl;
-    }
-};
-} // namespace local_gl4
 
 struct gl4_backend::pimpl
 {
@@ -117,8 +73,6 @@ struct gl4_backend::pimpl
     using msls_t = motor::platform::datas< pimpl_data::msl_data_t >;
     msls_t _msls;
 
-    motor::msl::database_t _mdb;
-
     GLsizei vp_width = 0;
     GLsizei vp_height = 0;
 
@@ -134,149 +88,10 @@ struct gl4_backend::pimpl
 
   private: // support thread
 
-    // for the support thread
-    struct shared_data
-    {
-        bool_t running = false;
-        bool_t has_work = false;
-        this_ptr_t owner = nullptr;
-        motor::platform::opengl::rendering_context_ptr_t ctx;
+    using shared_data_t = motor::graphics::gl4::support_thread< this_t >::shared_data_t;
+    shared_data_t * _ctsd = nullptr;
 
-        std::mutex mtx;
-        std::condition_variable cv;
-
-        motor::vector< local_gl4::work_item > items;
-
-        void_t add_item( local_gl4::work_item_rref_t item ) noexcept
-        {
-            std::unique_lock< std::mutex > lk( mtx );
-
-            if( items.size() == items.capacity() ) items.reserve( items.size() + 50 );
-
-            items.emplace_back( std::move( item ) );
-
-            has_work = true;
-        }
-
-        void_t notify_thread( void_t ) noexcept
-        {
-            if( has_work ) cv.notify_one();
-        }
-    };
-    motor_typedef( shared_data );
-
-    shared_data_ptr_t _ctsd = nullptr;
-    std::thread _support_thread;
-
-    void_t start_support_thread( void_t ) noexcept
-    {
-        assert( _ctsd == nullptr && "Just start/stop the thread." );
-
-        if( _ctsd == nullptr )
-        {
-            _ctsd = motor::memory::global::alloc< shared_data >( "support thread shared data" );
-            _ctsd->running = true;
-            _ctsd->owner = this;
-            _ctsd->ctx = _shd_ctx;
-        }
-
-        auto * ctsd = _ctsd;
-
-        _support_thread = std::thread( [ ctsd ]( void_t )
-        {
-            motor::log::global_t::status( "[gl4] : support thread started" );
-
-            motor::vector< local_gl4::work_item_t > items;
-            items.reserve( 50 );
-
-            // activate shared context
-            {
-                auto const res = ctsd->ctx->activate();
-                if( res != motor::platform::result::ok )
-                {
-                    motor::log::global::error( "[gl4] : unable to activate shared context" );
-                    ctsd->running = false;
-                }
-            }
-
-            // just testing the shared context
-            {
-                glClearColor( 1.0f, 1.0f, 0.0f, 1.0f );
-                auto err = glGetError();
-                assert( err == GL_NO_ERROR );
-                glClear( GL_COLOR_BUFFER_BIT );
-                err = glGetError();
-                assert( err == GL_NO_ERROR );
-            }
-
-            while( ctsd->running )
-            {
-                // wait for some work and
-                // swap the items buffer
-                {
-                    std::unique_lock< std::mutex > lk( ctsd->mtx );
-                    while( !ctsd->has_work && ctsd->running ) ctsd->cv.wait( lk );
-
-                    auto tmp = std::move( items );
-                    items = std::move( ctsd->items );
-                    ctsd->items = std::move( tmp );
-
-                    ctsd->has_work = false;
-                }
-
-                for( auto & item : items )
-                {
-                    switch( item.ot )
-                    {
-                    case local_gl4::work_item::obj_type::msl: {
-                        auto * msl = static_cast< motor::graphics::msl_object_ptr_t >( item.ptr );
-                        switch( item.wt )
-                        {
-                        case local_gl4::work_item::work_type::configure:
-                            ctsd->owner->construct_msl_data_st( msl );
-                            break;
-                        case local_gl4::work_item::work_type::release:
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                    break;
-                    default:
-                        break;
-                    }
-
-                    if( !ctsd->running ) break;
-                }
-
-                for( auto & item : items )
-                {
-                    auto obj_ptr = static_cast< motor::graphics::object * >( item.ptr );
-                    motor::release( motor::move( obj_ptr ) );
-                }
-                items.clear();
-            }
-            ctsd->ctx->deactivate();
-
-            motor_status( "[gl4] : support thread shut down" );
-        } );
-    }
-    void_t stop_support_thread( void_t ) noexcept
-    {
-        if( _ctsd == nullptr ) return;
-
-        if( _ctsd->running )
-        {
-            {
-                std::unique_lock< std::mutex > lk( _ctsd->mtx );
-                _ctsd->running = false;
-            }
-            _ctsd->cv.notify_one();
-            if( _support_thread.joinable() ) _support_thread.join();
-        }
-
-        motor::memory::global::dealloc< shared_data >( motor::move( _ctsd ) );
-    }
+    motor::graphics::gl4::support_thread< this_t > _support_thread;
 
   public:
 
@@ -306,13 +121,16 @@ struct gl4_backend::pimpl
 
             /*size_t const oid =*/this_t::construct_state( obj );
         }
-        this_t::start_support_thread();
+        _ctsd = _support_thread.start_support_thread( this, _shd_ctx );
     }
 
     //****************************************************************************************
-    pimpl( this_rref_t rhv ) noexcept : _shd_ctx( motor::move( rhv._shd_ctx ) )
+    pimpl( this_rref_t rhv ) noexcept
+        : _shd_ctx( motor::move( rhv._shd_ctx ) ),
+          _support_thread( std::move( rhv._support_thread ) )
     {
-        rhv.stop_support_thread();
+        _ctsd = motor::move( rhv._ctsd );
+        _ctsd->owner = this;
 
         _shaders = std::move( rhv._shaders );
         _renders = std::move( rhv._renders );
@@ -332,16 +150,12 @@ struct gl4_backend::pimpl
         _ctx = motor::move( rhv._ctx );
         _tf_active_id = rhv._tf_active_id;
         _bid = rhv._bid;
-
-        _mdb = std::move( rhv._mdb );
-
-        this_t::start_support_thread();
     }
 
     //****************************************************************************************
     ~pimpl( void_t ) noexcept
     {
-        this_t::stop_support_thread();
+        _support_thread.stop_support_thread();
         motor::release( motor::move( _shd_ctx ) );
 
         this_t::release_and_clear_all_geometry_data( false );
@@ -359,7 +173,7 @@ struct gl4_backend::pimpl
     // the context probably is already gone.
     void_t on_context_destruction( void_t ) noexcept
     {
-        this_t::stop_support_thread();
+        _support_thread.stop_support_thread();
         motor::release( motor::move( _shd_ctx ) );
 
         this_t::release_and_clear_all_shader_data( false );
@@ -875,16 +689,11 @@ struct gl4_backend::pimpl
         return true;
     }
 
-    //****************************************************************************************
-    bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj ) noexcept
+//****************************************************************************************
+#if 1
+    bool_t install_shader_data( motor::graphics::shader_object_ref_t obj,
+        pimpl_data::shader_data_ref_t new_shader_data ) noexcept
     {
-        pimpl_data::shader_data_t new_shader_data;
-        if( !gl4_independent::construct_shader_data( obj, new_shader_data ) )
-        {
-            new_shader_data.invalidate();
-            return false;
-        }
-
         size_t oid = obj.get_oid( _bid );
         auto const shd_res = _shaders.access( oid, obj.name(),
             [ & ]( motor::string_in_t shd_name, pimpl_data::shader_data_ref_t sd )
@@ -896,7 +705,6 @@ struct gl4_backend::pimpl
         if( !shd_res ) return false;
 
         obj.set_oid( _bid, oid );
-
 
         // if the shader is redone, all render objects using
         // the shader need to be updated
@@ -937,6 +745,21 @@ struct gl4_backend::pimpl
         }
 
         return true;
+    }
+#else
+
+#endif
+
+    bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj ) noexcept
+    {
+        pimpl_data::shader_data_t new_shader_data;
+        if( !gl4_independent::construct_shader_data( obj, new_shader_data ) )
+        {
+            new_shader_data.invalidate();
+            return false;
+        }
+
+        return this_t::install_shader_data( obj, new_shader_data );
     }
 
     //****************************************************************************************
@@ -1184,15 +1007,16 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     void_t send_configure_to_st( motor::graphics::msl_object_mtr_t obj ) noexcept
     {
-        obj->set_oid( _bid, size_t( -2 ) );
-        _ctsd->add_item( local_gl4::work_item::make_item(
-            local_gl4::work_item::work_type::configure, motor::share( obj ) ) );
+        // obj->set_oid( _bid, size_t( -2 ) );
+        _ctsd->add_forward_item( motor::graphics::local_gl4::work_item::make_item(
+            motor::graphics::local_gl4::work_item::work_type::compile, motor::share( obj ) ) );
     }
 
     //****************************************************************************************
-    // call from support thread
+    // call from support thread - old
     bool_t construct_msl_data_st( motor::graphics::msl_object_ptr_t obj_in ) noexcept
     {
+#if 0
         auto & obj = *obj_in;
 
         motor::vector< motor::msl::symbol_t > config_symbols;
@@ -1317,7 +1141,6 @@ struct gl4_backend::pimpl
                 }
             }
 
-            auto * ro = obj.borrow_render_object();
             motor::graphics::shader_object_t so( c_exp );
 
             // generate code
@@ -1341,6 +1164,7 @@ struct gl4_backend::pimpl
                 }
             }
 
+            auto * ro = obj.borrow_render_object();
             {
                 ro->link_shader( c_exp );
             }
@@ -1428,13 +1252,92 @@ struct gl4_backend::pimpl
         }
 
         return is_valid_msl;
+#endif
     }
 
     //****************************************************************************************
-    // This is obsolete I think
-    bool_t construct_msl_data( motor::graphics::msl_object_ref_t obj_ ) noexcept
+    bool_t construct_msl_data( gl4_independent::compilation_result && cr ) noexcept
     {
-        return this_t::construct_msl_data_st( &obj_ );
+        if( !cr.success )
+        {
+            assert( false && "need to release data coming in" );
+            motor::release( motor::move( cr.object ) );
+            return false;
+        }
+
+        auto & obj = *cr.object;
+        auto so = std::move( cr.shader );
+        auto sd = std::move( cr.data );
+
+        auto * ro = obj.borrow_render_object();
+        {
+            ro->link_shader( so.name() );
+        }
+
+        size_t oid = obj.get_oid( _bid );
+
+        auto const success = _msls.access( oid, obj.name(), [ & ]( pimpl_data::msl_data_ref_t msl )
+        {
+            {
+                if( !this_t::install_shader_data( so, sd ) )
+                {
+                    // construction/compilation failed
+                    // @todo return here.
+                    return false;
+                }
+
+                if( !this_t::construct_render_data( *ro ) )
+                {
+                    return false;
+                }
+            }
+
+            // render object
+            {
+                msl.ro_id = ro->get_oid( this_t::_bid );
+            }
+
+            // shader object
+            {
+                // reflect compilation result to the user
+                _shaders.access( so.get_oid( _bid ), [ & ]( pimpl_data::shader_data_ref_t shd )
+                {
+                    obj.for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
+                    {
+                        auto const s =
+                            shd.is_linkage_ok
+                                ? motor::graphics::compilation_listener::state::successful
+                                : motor::graphics::compilation_listener::state::failed;
+
+                        lst->set( s, so.shader_bindings() );
+                    } );
+                } );
+
+                {
+                    msl.so = std::move( so );
+                }
+            }
+
+            return true;
+        } );
+
+        if( success )
+        {
+            motor::graphics::object_t::data_manipulator mani( cr.object, this_t::_bid );
+            mani.reset_in_transit();
+            mani.change_to_ready( motor::graphics::result::ok );
+        }
+        else
+        {
+            motor::graphics::object_t::data_manipulator mani( cr.object, this_t::_bid );
+            mani.reset_in_transit();
+            mani.change_to_ready( motor::graphics::result::failed );
+        }
+
+        cr.object->set_oid( _bid, oid );
+        motor::release( motor::move( cr.object ) );
+
+        return true;
     }
 
     //****************************************************************************************
@@ -3220,6 +3123,23 @@ struct gl4_backend::pimpl
     {
         glFlush();
 
+        _ctsd->for_each( [ & ]( gl4_independent::backward_message & item )
+        {
+            std::visit( [ this ]( auto && arg )
+            {
+                using T = std::decay_t< decltype( arg ) >;
+                if constexpr( std::is_same_v< T, gl4_independent::compilation_result > )
+                {
+                    this_t::construct_msl_data( std::move( arg ) );
+                }
+                else if constexpr( std::is_same_v< T, gl4_independent::release_result > )
+                {
+                }
+                else
+                    static_assert( false, "non-exhaustive visitor!" );
+            }, item );
+        } );
+
         _state_stack.pop();
 
         _ctsd->notify_thread();
@@ -3279,6 +3199,7 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
         return motor::graphics::result::invalid_argument;
     }
 
+#if 0
     auto const oid = obj->get_oid( this_t::get_bid() );
 
     // is it in transit
@@ -3286,6 +3207,7 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
     {
         return motor::graphics::result::in_transit;
     }
+#endif
 
     _pimpl->send_configure_to_st( obj );
     return motor::graphics::result::in_transit;
