@@ -14,6 +14,7 @@ set( sources
     "cpu_id.cpp"
 
     "graphics/datas.hpp"
+    "graphics/datas_diagnostics.hpp"
     )
 
 set( unwanted_compiler_options )
