@@ -111,6 +111,14 @@ void_t light_pass_render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) 
                 {
                     auto * ll = dynamic_cast< motor::gfx::directional_light_ptr_t >( _light );
                     comp->set_light_direction( _render_data_id, ll->get_direction() );
+                    comp->set_is_point_light( _render_data_id, false) ;
+                }
+                else if( _light != nullptr &&
+                    _light->get_light_type() == motor::gfx::light_type::point )
+                {
+                    auto * ll = dynamic_cast< motor::gfx::point_light_ptr_t >( _light );
+                    comp->set_light_position( _render_data_id, ll->get_position() );
+                    comp->set_is_point_light( _render_data_id, true ) ;
                 }
 
                 // copy shadow data into the variable sets.

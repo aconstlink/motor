@@ -21,6 +21,9 @@ enum class binding_point
     camera_position,   // vec3( x, y, z )
     camera_clip,       // vec4( n, f, 1/n, 1/f )
     light_direction,   // vec3( x, y, z )
+    light_position,     // vec3( x, y, z )
+    light_intensity,   // float
+    light_color,        // vec3( x, y, z )
     light_projection,  // mat4
     light_view,        // mat4
     light_shadow_map,  // tex2d -> try shadow texture(depth texture)
@@ -31,6 +34,7 @@ namespace detail
 {
 static char const * const __binding_point_names[] = { "undefined", "projection_matrix",
     "view_matrix", "camera_matrix", "camera_position", "camera_clip", "light_direction",
+    "light_position", "light_intensity","light_color",
     "light_projection", "light_view", "light_shadow_map", "viewport_dimension" };
 }
 

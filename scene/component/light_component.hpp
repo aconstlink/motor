@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #pragma once
 
 #include "icomponent.h"
@@ -17,39 +16,62 @@ class light_component : public icomponent
 
   private:
 
-    motor::gfx::light_mtr_t _light = nullptr;
+    motor::vector< motor::gfx::light_mtr_t > _lights;
 
   public:
 
-    light_component( motor::gfx::light_mtr_safe_t l ) noexcept : _light( l ) {}
+    light_component( void_t ) noexcept{}
+    light_component( motor::gfx::light_mtr_safe_t l ) noexcept
+    {
+        this_t::add_light( motor::move( l ) );
+    }
+
     light_component( this_cref_t rhv ) noexcept = delete;
-    light_component( this_rref_t rhv ) noexcept : _light( motor::move( rhv._light ) ) {}
-    virtual ~light_component( void_t ) noexcept {}
-
-    motor::gfx::light_mtr_safe_t get_light( void_t ) const noexcept
+    light_component( this_rref_t rhv ) noexcept : _lights( std::move( rhv._lights ) ) {}
+    virtual ~light_component( void_t ) noexcept
     {
-        return motor::share( _light );
+        for( auto * light : _lights )
+        {
+            motor::release( motor::move( light ) );
+        }
     }
 
-    motor::gfx::light_mtr_t borrow_light( void_t ) const noexcept
+    std::pair< bool_t, motor::gfx::light_mtr_safe_t > get_light( size_t const i ) const noexcept
     {
-        return _light;
+        if( _lights.size() <= i ) return std::make_pair( false, nullptr );
+        return std::make_pair( true, motor::share( _lights[ i ] ) );
     }
 
-    motor::gfx::light_type get_light_type( void_t ) const noexcept
+    std::pair< bool_t, motor::gfx::light_mtr_t > borrow_light( size_t const i ) const noexcept
     {
-        if( _light ) return _light->get_light_type();
+        if( _lights.size() <= i ) return std::make_pair( false, nullptr );
+        return std::make_pair( true, _lights[ i ] );
+    }
+
+    motor::gfx::light_type get_light_type( size_t const i ) const noexcept
+    {
+        if( _lights.size() > i ) return _lights[ i ]->get_light_type();
         return motor::gfx::light_type::invalid;
     }
 
+    void_t add_light( motor::gfx::light_mtr_safe_t l ) noexcept
+    {
+        _lights.emplace_back( motor::move( l ) );
+    }
 
+    using for_each_borrowed_light_funk_t = std::function< void_t ( motor::gfx::light_mtr_t ) > ;
+    void_t for_each_light( for_each_borrowed_light_funk_t f )
+    {
+        for( auto * l : _lights ) f( l ) ;
+    }
 
     // use:
     // auto [a, b] = comp->borrow_light<...>() ;
     template < typename T >
-    std::pair< bool_t, T * > borrow_cast_light( void_t ) const noexcept
+    std::pair< bool_t, T * > borrow_cast_light( size_t const i ) const noexcept
     {
-        if( auto * ptr = dynamic_cast< T * >( _light ); ptr != nullptr )
+        T * ptr = dynamic_cast< T * >( _lights[ i ] );
+        if( _lights.size() > i && ptr != nullptr )
         {
             return std::make_pair( true, ptr );
         }
@@ -58,14 +80,15 @@ class light_component : public icomponent
     }
 
     template < typename T >
-    std::pair< bool_t, motor::core::mtr_safe<T> > get_cast_light( void_t ) const noexcept
+    std::pair< bool_t, motor::core::mtr_safe< T > > get_cast_light( size_t const i ) const noexcept
     {
-        if( auto * ptr = dynamic_cast< T * >( _light ); ptr != nullptr )
+        T * ptr = dynamic_cast< T * >( _lights[ i ] );
+        if( _lights.size() > i && ptr != nullptr )
         {
             return std::make_pair( true, motor::share( ptr ) );
         }
 
-        return std::make_pair( true, nullptr );
+        return std::make_pair( false, nullptr );
     }
 };
 motor_typedef( light_component );

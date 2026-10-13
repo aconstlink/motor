@@ -1,16 +1,15 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #include "msl_component.h"
 
 using namespace motor::scene;
 
 //*****************************************************************
 msl_component::msl_component( this_rref_t rhv ) noexcept
-    : _vs( rhv._vs ), _geo_id( rhv._geo_id ),
-      _base_data_set( std::move( rhv._base_data_set ) ), _sub_sets( std::move( rhv._sub_sets ) ),
-      _trafo_vars( std::move( rhv._trafo_vars ) ), _out_bridge( std::move( rhv._out_bridge ) )
+    : _vs( rhv._vs ), _geo_id( rhv._geo_id ), _base_data_set( std::move( rhv._base_data_set ) ),
+      _sub_sets( std::move( rhv._sub_sets ) ), _trafo_vars( std::move( rhv._trafo_vars ) ),
+      _out_bridge( std::move( rhv._out_bridge ) )
 {
 #if 0
     std::memcpy( reinterpret_cast< void * >( &_cam_vars ),
@@ -159,7 +158,7 @@ void_t msl_component::update_bindings( size_t const render_id ) noexcept
         }
     }
 
-    // get the values from the output slots 
+    // get the values from the output slots
     // and push exchanged values to the shader variables.
     _sub_sets[ render_id ].variable_bridge().exchange_and_push();
 }
@@ -219,7 +218,7 @@ void_t msl_component::update_bindings( void_t ) noexcept
 
     // 2. update the output bridge from the shader variables
     // so every connected subset is also updated with the new values.
-    _out_bridge.pull_data() ;
+    _out_bridge.pull_data();
 }
 
 //*****************************************************************
@@ -248,11 +247,74 @@ void_t msl_component::set_light_direction( motor::math::vec3f_cref_t dir ) noexc
 }
 
 //*****************************************************************
-void_t msl_component::set_light_direction( size_t const render_id, motor::math::vec3f_cref_t dir ) noexcept
+void_t msl_component::set_light_direction(
+    size_t const render_id, motor::math::vec3f_cref_t dir ) noexcept
 {
     if( this_t::ensure_render_data( render_id ) )
     {
-        _sub_sets[ render_id ].set_light_direction( dir ) ;
+        _sub_sets[ render_id ].set_light_direction( dir );
+    }
+}
+
+//*****************************************************************
+void_t msl_component::set_light_position( motor::math::vec3f_cref_t dir ) noexcept
+{
+    _base_data_set.set_light_position( dir );
+}
+
+//*****************************************************************
+void_t msl_component::set_light_position(
+    size_t const render_id, motor::math::vec3f_cref_t dir ) noexcept
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_light_position( dir );
+    }
+}
+
+//*****************************************************************
+void_t msl_component::set_light_intensity( float_t const v ) noexcept
+{
+    _base_data_set.set_light_intensity( v );
+}
+
+//*****************************************************************
+void_t msl_component::set_light_intensity( size_t const render_id, float_t const v ) noexcept
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_light_intensity( v );
+    }
+}
+
+//*****************************************************************
+void_t msl_component::set_light_color( motor::math::vec3f_cref_t v ) noexcept
+{
+    _base_data_set.set_light_color( v );
+}
+
+//*****************************************************************
+void_t msl_component::set_light_color(
+    size_t const render_id, motor::math::vec3f_cref_t v ) noexcept
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_light_color( v );
+    }
+}
+
+//*****************************************************************
+void_t msl_component::set_is_point_light( bool_t const v ) noexcept 
+{
+    _base_data_set.set_is_point_light( v );
+}
+
+//*****************************************************************
+void_t msl_component::set_is_point_light( size_t const render_id, bool_t const v ) noexcept 
+{
+    if( this_t::ensure_render_data( render_id ) )
+    {
+        _sub_sets[ render_id ].set_is_point_light( v );
     }
 }
 
@@ -263,11 +325,12 @@ void_t msl_component::set_light_projection( motor::math::mat4f_cref_t mat ) noex
 }
 
 //*****************************************************************
-void_t msl_component::set_light_projection( size_t const render_id, motor::math::mat4f_cref_t mat ) noexcept
+void_t msl_component::set_light_projection(
+    size_t const render_id, motor::math::mat4f_cref_t mat ) noexcept
 {
     if( this_t::ensure_render_data( render_id ) )
     {
-        _sub_sets[ render_id ].set_light_projection( mat ) ;
+        _sub_sets[ render_id ].set_light_projection( mat );
     }
 }
 
@@ -278,11 +341,12 @@ void_t msl_component::set_light_view( motor::math::mat4f_cref_t mat ) noexcept
 }
 
 //*****************************************************************
-void_t msl_component::set_light_view( size_t const render_id, motor::math::mat4f_cref_t mat ) noexcept
+void_t msl_component::set_light_view(
+    size_t const render_id, motor::math::mat4f_cref_t mat ) noexcept
 {
     if( this_t::ensure_render_data( render_id ) )
     {
-        _sub_sets[ render_id ].set_light_view( mat ) ;
+        _sub_sets[ render_id ].set_light_view( mat );
     }
 }
 
@@ -293,11 +357,12 @@ void_t msl_component::set_light_shadow_map( motor::string_cref_t name ) noexcept
 }
 
 //*****************************************************************
-void_t msl_component::set_light_shadow_map( size_t const render_id, motor::string_cref_t n ) noexcept
+void_t msl_component::set_light_shadow_map(
+    size_t const render_id, motor::string_cref_t n ) noexcept
 {
     if( this_t::ensure_render_data( render_id ) )
     {
-        _sub_sets[ render_id ].set_light_shadow_map( n ) ;
+        _sub_sets[ render_id ].set_light_shadow_map( n );
     }
 }
 
@@ -361,10 +426,8 @@ void_t msl_component::connect_output_to_input( size_t const id )
 //*****************************************************************
 void_t msl_component::sync_inputs( void_t ) noexcept
 {
-    _base_data_set.variable_bridge().exchange_and_push() ;
+    _base_data_set.variable_bridge().exchange_and_push();
 }
 
 //*****************************************************************
-void_t msl_component::sync_outputs( void_t ) noexcept
-{
-}
+void_t msl_component::sync_outputs( void_t ) noexcept {}

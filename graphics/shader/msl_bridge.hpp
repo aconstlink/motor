@@ -370,6 +370,18 @@ class msl_bridge
                     {
                         bp = motor::graphics::binding_point::light_direction;
                     }
+                    else if( v.binding == motor::msl::binding::light_position )
+                    {
+                        bp = motor::graphics::binding_point::light_position;
+                    }
+                    else if( v.binding == motor::msl::binding::light_intensity )
+                    {
+                        bp = motor::graphics::binding_point::light_intensity;
+                    }
+                    else if( v.binding == motor::msl::binding::light_color )
+                    {
+                        bp = motor::graphics::binding_point::light_color;
+                    }
                     else if( v.binding == motor::msl::binding::light_projection )
                     {
                         bp = motor::graphics::binding_point::light_projection;
