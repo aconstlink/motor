@@ -15,18 +15,17 @@
 #include <motor/profiling/probe_guard.hpp>
 #include <motor/profiling/scoped_timer.hpp>
 
-#include <motor/ogl/gl/gl.h>
-#include <motor/ogl/gl/convert.hpp>
-#include <motor/ogl/gl/error.hpp>
-#include <motor/memory/global.h>
-#include <motor/memory/malloc_guard.hpp>
-#include <motor/std/vector>
-#include <motor/std/stack>
-#include <motor/std/string_split.hpp>
-#include <motor/std/hash_map>
+struct gl4_detail
+{
+    static motor::graphics::gen4::backend_type const bt = motor::graphics::gen4::backend_type::gl4;
+    static motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::glsl_4_0;
+};
 
 namespace pimpl_data
 {
+using namespace motor::core::types;
+using namespace motor::ogl;
+
 //********************************************************************************
 // transform feedback buffers
 struct feedback_data
@@ -122,7 +121,7 @@ struct feedback_data
         return _buffers[ this_t::write_index() ];
     }
 
-    void_t invalidate( motor::string_in_t name ) noexcept
+    void_t invalidate( std::string_view const & name ) noexcept
     {
         for( size_t rw = 0; rw < 2; ++rw )
         {
@@ -131,14 +130,14 @@ struct feedback_data
             if( buffer.qid != GLuint( -1 ) )
             {
                 glDeleteQueries( 1, &buffer.qid );
-                gl4_log_error2( "glDeleteQueries", name.c_str() );
+                gl4_log_error2( "glDeleteQueries", name.data() );
                 buffer.qid = GLuint( -1 );
             }
 
             if( buffer.tfid != GLuint( -1 ) )
             {
                 glDeleteTransformFeedbacks( 1, &buffer.tfid );
-                gl4_log_error2( "glDeleteTransformFeedbacks", name.c_str() );
+                gl4_log_error2( "glDeleteTransformFeedbacks", name.data() );
                 buffer.tfid = GLuint( -1 );
             }
 
@@ -146,7 +145,7 @@ struct feedback_data
             if( buffer.tids[ 0 ] != GLuint( -1 ) )
             {
                 glDeleteTextures( feedback_data::buffer::max_buffers, buffer.tids );
-                gl4_log_error2( "glDeleteTextures", name.c_str() );
+                gl4_log_error2( "glDeleteTextures", name.data() );
             }
         }
     }
@@ -211,7 +210,7 @@ struct geo_data
         rd_ids.push_back( rid );
     }
 
-    void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+    void_t invalidate( std::string_view const & /*name*/ ) noexcept
     {
         elements.clear();
         ib_elem_sib = 0;
@@ -240,30 +239,19 @@ motor_typedef( geo_data );
 //********************************************************************************
 struct shader_data
 {
-    // the default shader variable values.
-    motor::graphics::variable_set_t default_values;
-
-    GLuint vs_id = GLuint( -1 );
-    GLuint gs_id = GLuint( -1 );
-    GLuint ps_id = GLuint( -1 );
-    GLuint pg_id = GLuint( -1 );
-
-    bool_t is_linkage_ok = false;
+    motor_this_typedefs( shader_data );
 
     struct vertex_input_binding
     {
         motor::graphics::vertex_attribute va;
         motor::string_t name;
     };
-    motor::vector< vertex_input_binding > vertex_inputs;
 
     struct vertex_output_binding
     {
         motor::graphics::vertex_attribute va;
         motor::string_t name;
     };
-    motor::vector< vertex_output_binding > vertex_outputs;
-    char const ** output_names = nullptr;
 
     bool_t find_vertex_input_binding_by_name(
         motor::string_cref_t name_, motor::graphics::vertex_attribute & va ) const noexcept
@@ -280,11 +268,12 @@ struct shader_data
     bool_t find_vertex_output_binding_by_name(
         motor::string_cref_t name_, motor::graphics::vertex_attribute & va ) const noexcept
     {
-        auto iter = std::find_if( vertex_outputs.begin(), vertex_outputs.end(),
-            [ & ]( vertex_output_binding const & b ) { return b.name == name_; } );
-        if( iter == vertex_outputs.end() ) return false;
+        size_t i = size_t(-1) ;
+        while( ++i < vertex_outputs.size() && vertex_outputs[i].name != name_ ) ;
 
-        va = iter->va;
+        if( i == vertex_outputs.size() ) return false ;
+
+        va = vertex_outputs[i].va ;
 
         return true;
     }
@@ -297,8 +286,6 @@ struct shader_data
         GLenum type;
     };
     motor_typedef( attribute_variable );
-
-    motor::vector< attribute_variable_t > attributes;
 
     struct uniform_variable
     {
@@ -323,21 +310,45 @@ struct shader_data
     };
     motor_typedef( uniform_variable );
 
+  public: // variables    
+
+    GLuint vs_id = GLuint( -1 );
+    GLuint gs_id = GLuint( -1 );
+    GLuint ps_id = GLuint( -1 );
+    GLuint pg_id = GLuint( -1 );
+
+    bool_t is_linkage_ok = false;
+
+    char const ** output_names = nullptr;
+
+    motor::vector< vertex_input_binding > vertex_inputs;
+    motor::vector< vertex_output_binding > vertex_outputs;
+    motor::vector< attribute_variable_t > attributes;
     motor::vector< uniform_variable > uniforms;
+
+    // the default shader variable values.
+    motor::graphics::variable_set_t default_values;
 
   public:
 
-    //*******************************************************
-    void_t delete_all_variables( void_t )
+    shader_data( void_t ) noexcept = default;
+    shader_data( this_cref_t ) noexcept = delete;
+    shader_data( this_rref_t rhv ) noexcept
+        : vs_id( rhv.vs_id ), gs_id( rhv.gs_id ), ps_id( rhv.ps_id ), pg_id( rhv.pg_id ),
+          is_linkage_ok( rhv.is_linkage_ok ), default_values( std::move( rhv.default_values ) ),
+          vertex_inputs( std::move( rhv.vertex_inputs ) ), vertex_outputs( rhv.vertex_outputs ),
+          output_names( motor::move( rhv.output_names ) ),
+          attributes( std::move( rhv.attributes ) ), uniforms( std::move( rhv.uniforms ) )
     {
-        vertex_inputs.clear();
+        rhv.vs_id = GLuint( -1 );
+        rhv.gs_id = GLuint( -1 );
+        rhv.ps_id = GLuint( -1 );
+        rhv.pg_id = GLuint( -1 );
+    }
 
-        // for( auto & v : config.attributes )
-        {
-            // delete memory
-        }
-        attributes.clear();
-        uniforms.clear();
+    ~shader_data( void_t ) noexcept
+    {
+        this_t::invalidate();
     }
 
     //*******************************************************
@@ -397,7 +408,7 @@ struct shader_data
   public:
 
     //*******************************************************
-    void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+    void_t invalidate( std::string_view const & = "" ) noexcept
     {
         is_linkage_ok = false;
 
@@ -414,6 +425,40 @@ struct shader_data
         attributes.clear();
 
         default_values.clear();
+
+        output_names = nullptr ;
+    }
+
+    this_ref_t operator=( this_cref_t rhv ) = delete;
+    this_ref_t operator=( this_rref_t rhv ) noexcept
+    {
+        this_t::invalidate();
+
+        // the default shader variable values.
+        default_values = std::move( rhv.default_values );
+
+        vs_id = rhv.vs_id;
+        rhv.vs_id = GLuint( -1 );
+
+        gs_id = rhv.gs_id;
+        rhv.gs_id = GLuint( -1 );
+
+        ps_id = rhv.ps_id;
+        rhv.ps_id = GLuint( -1 );
+
+        pg_id = rhv.pg_id;
+        rhv.pg_id = GLuint( -1 );
+
+        is_linkage_ok = rhv.is_linkage_ok;
+        rhv.is_linkage_ok = false;
+
+        vertex_inputs = std::move( rhv.vertex_inputs );
+        vertex_outputs = std::move( rhv.vertex_outputs );
+        output_names = motor::move( rhv.output_names );
+        attributes = std::move( rhv.attributes );
+        uniforms = std::move( rhv.uniforms );
+
+        return *this;
     }
 };
 motor_typedef( shader_data );
@@ -423,7 +468,7 @@ struct state_data
 {
     motor::vector< motor::graphics::render_state_sets_t > states;
 
-    void_t invalidate( motor::string_in_t ) {}
+    void_t invalidate( std::string_view const & ) {}
 };
 motor_typedef( state_data );
 
@@ -613,7 +658,7 @@ struct render_data
         }
     }
 
-    void_t invalidate( motor::string_in_t name ) noexcept
+    void_t invalidate( std::string_view const & name ) noexcept
     {
         // need to clear geometry connections before!
         // I am trying to remove those connections.
@@ -631,7 +676,7 @@ struct render_data
         for( auto & d : geo_to_vaos )
         {
             glDeleteVertexArrays( 1, &d.vao );
-            gl4_log_error2( "glDeleteVertexArrays", name );
+            gl4_log_error2( "glDeleteVertexArrays", name.data() );
         }
 
         geo_to_vaos.clear();
@@ -668,14 +713,14 @@ struct image_data
 
     // sampler ids for gl>=3.3
 
-    void_t invalidate( motor::string_in_t name ) noexcept
+    void_t invalidate( std::string_view const & name ) noexcept
     {
         type = GL_NONE;
 
         if( tex_id != GLuint( -1 ) )
         {
             glDeleteTextures( 1, &tex_id );
-            gl4_log_error2( "glDeleteTextures", name );
+            gl4_log_error2( "glDeleteTextures", name.data() );
             tex_id = GLuint( -1 );
         }
 
@@ -692,19 +737,19 @@ struct array_data
 
     GLuint sib = 0;
 
-    void_t invalidate( motor::string_in_t name ) noexcept
+    void_t invalidate( std::string_view const & name ) noexcept
     {
         if( buf_id != GLuint( -1 ) )
         {
             glDeleteBuffers( 1, &buf_id );
-            gl4_log_error2( "glDeleteBuffers", name );
+            gl4_log_error2( "glDeleteBuffers", name.data() );
             buf_id = GLuint( -1 );
         }
 
         if( tex_id != GLuint( -1 ) )
         {
             glDeleteTextures( 1, &tex_id );
-            gl4_log_error2( "glDeleteTextures", name );
+            gl4_log_error2( "glDeleteTextures", name.data() );
             tex_id = GLuint( -1 );
         }
 
@@ -735,7 +780,7 @@ struct framebuffer_data
         depth = GLuint( -1 );
     }
 
-    void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+    void_t invalidate( std::string_view const & /*name*/ ) noexcept
     {
         if( gl_id != GLuint( -1 ) )
         {
@@ -769,7 +814,7 @@ struct msl_data
     size_t ro_id;
     motor::graphics::shader_object_t so;
 
-    void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+    void_t invalidate( std::string_view const & /*name*/ ) noexcept
     {
         ro_id = size_t( -1 );
     }
