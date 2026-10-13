@@ -5,21 +5,18 @@
 
 #include "../typedefs.h"
 #include <motor/concurrent/mrsw.hpp>
-#include "datas_diagnostics.hpp"
 
 #include <atomic>
-#include <type_traits>
 
 namespace motor
 {
 namespace platform
 {
 //*******************************************************************************************
-template < typename T, bool Measure = false >
+template < typename T >
 struct datas
 {
-    using self_type = datas< T, Measure >;
-    motor_this_typedefs( self_type );
+    motor_this_typedefs( datas< T > );
 
   private:
 
@@ -49,19 +46,10 @@ struct datas
 
         bool_t try_enter( void_t ) noexcept
         {
-            diagnostic::scope<Measure> measure( diagnostic::region::entry );
             std::unique_lock< std::mutex > lk( mtx );
-            if( tid == std::this_thread::get_id() && ++entries > 0 )
-            {
-                if constexpr( Measure ) if( diagnostic::local.recording != diagnostic::mode::off ) ++diagnostic::local.recursive;
-                return true;
-            }
+            if( tid == std::this_thread::get_id() && ++entries > 0 ) return true;
             
-            if( entries > 0 )
-            {
-                if constexpr( Measure ) if( diagnostic::local.recording != diagnostic::mode::off ) ++diagnostic::local.failed_try;
-                return false;
-            }
+            if( entries > 0 ) return false;
 
             tid = std::this_thread::get_id();
             ++entries;
@@ -70,13 +58,8 @@ struct datas
 
         void_t enter( void_t ) noexcept
         {
-            diagnostic::scope<Measure> measure( diagnostic::region::entry );
             std::unique_lock< std::mutex > lk( mtx );
-            if( tid == std::this_thread::get_id() && ++entries > 0 )
-            {
-                if constexpr( Measure ) if( diagnostic::local.recording != diagnostic::mode::off ) ++diagnostic::local.recursive;
-                return;
-            }
+            if( tid == std::this_thread::get_id() && ++entries > 0 ) return;
 
             while( entries ) cv.wait( lk );
 
@@ -179,12 +162,6 @@ struct datas
     };
 
     using items_t = motor::vector< wrapper >;
-    using reader_lock = std::conditional_t<Measure,
-        diagnostic::measured_lock<motor::concurrent::mrsw_t::reader_lock_t, true, diagnostic::region::reader>,
-        motor::concurrent::mrsw_t::reader_lock_t>;
-    using writer_lock = std::conditional_t<Measure,
-        diagnostic::measured_lock<motor::concurrent::mrsw_t::writer_lock_t, true, diagnostic::region::writer>,
-        motor::concurrent::mrsw_t::writer_lock_t>;
 
     mutable motor::concurrent::mrsw_t mtx;
     items_t items;
@@ -214,25 +191,23 @@ struct datas
     {
         // #1 quick check if id is still valid
         {
-            reader_lock lk( mtx );
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
             oid = this_t::check_oid( oid, items );
         }
 
         // #2 if new or invalid, create new oid
         if( oid == size_t( -1 ) )
         {
-            writer_lock lk( mtx );
+            motor::concurrent::mrsw_t::writer_lock_t lk( mtx );
             oid = this_t::determine_oid( oid, name, items );
         }
 
         // #3 oid is safe, can access now.
         if( oid != size_t( -1 ) )
         {
-            reader_lock lk( mtx );
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
             this_t::busy_guard busy_wait( items[ oid ].gd );
-
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             return funk( oid, items[ oid ].name, *items[ oid ].data );
         }
 
@@ -272,7 +247,7 @@ struct datas
         if( oid == size_t( -1 ) ) return std::make_pair( false, false );
 
         {
-            reader_lock lk( mtx );
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
             if( this_t::check_oid( oid, items ) == size_t( -1 ) )
                 return std::make_pair( false, false );
@@ -280,7 +255,6 @@ struct datas
             this_t::try_guard try_lock( items[ oid ].gd );
             if( !try_lock.has_accessed() ) return std::make_pair( true, false );
 
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             funk( items[ oid ] );
         }
         return std::make_pair( false, true );
@@ -308,14 +282,13 @@ struct datas
     {
         if( oid == size_t( -1 ) ) return std::make_pair( false, R() );
 
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
         if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return std::make_pair( false, R() );
 
         this_t::try_guard try_lock( items[ oid ].gd );
         if( !try_lock.has_accessed() ) return std::make_pair( true, R() );
 
-        diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
         return std::make_pair( true, funk( *items[ oid ].data ) );
     }
 
@@ -332,13 +305,11 @@ struct datas
         if( oid == size_t( -1 ) ) return false;
 
         {
-            reader_lock lk( mtx );
+            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
             if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return false;
 
             this_t::busy_guard busy_wait( items[ oid ].gd );
-
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             funk( items[ oid ].name, *items[ oid ].data );
         }
         return true;
@@ -347,7 +318,7 @@ struct datas
     bool_t access_by_name(
         motor::string_in_t name, std::function< void_t( size_t const, T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
         auto i = size_t( -1 );
         while( ++i < items.size() && items[ i ].name != name );
@@ -355,8 +326,6 @@ struct datas
         if( i == items.size() ) return false;
 
         this_t::busy_guard busy_wait( items[ i ].gd );
-
-        diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
         funk( i, *items[ i ].data );
 
         return true;
@@ -370,13 +339,11 @@ struct datas
     {
         if( oid == size_t( -1 ) ) return std::make_pair( false, R() );
 
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
         if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return std::make_pair( false, R() );
 
         this_t::busy_guard busy_wait( items[ oid ].gd );
-
-        diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
 
         return std::make_pair( true, funk( items[ oid ].name, *items[ oid ].data ) );
     }
@@ -447,7 +414,7 @@ struct datas
     {
         if( name.empty() ) return size_t( -1 );
 
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
 
         size_t i = size_t( -1 );
         while( ++i < items.size() && items[ i ].name != name );
@@ -456,42 +423,36 @@ struct datas
 
     void_t for_each( std::function< void_t( T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         for( auto & i : items )
         {
             if( !i.valid ) continue;
 
             this_t::busy_guard busy_wait( i.gd );
-
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             funk( *i.data );
         }
     }
 
     void_t for_each( std::function< void_t( size_t const, T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
 
             this_t::busy_guard busy_wait( items[ i ].gd );
-
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             funk( i, *items[ i ].data );
         }
     }
 
     void_t for_each( std::function< void_t( motor::string_in_t, T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         for( auto & i : items )
         {
             if( !i.valid ) continue;
 
             this_t::busy_guard __( items[ i ].gd );
-
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             funk( i.name, *i.data );
         }
     }
@@ -501,12 +462,11 @@ struct datas
     // this function return true if the loop broke
     bool_t for_each_with_break( std::function< bool_t( T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         for( auto & i : items )
         {
             if( !i.valid ) continue;
             this_t::busy_guard __( items[ i ].gd );
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             if( !funk( *i.data ) ) return true;
         }
         return false;
@@ -514,12 +474,11 @@ struct datas
 
     bool_t for_each_with_break( std::function< bool_t( motor::string_in_t, T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         for( auto & i : items )
         {
             if( !i.valid ) continue;
             this_t::busy_guard __( items[ i ].gd );
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             if( !funk( i.name, *i.data ) ) return true;
         }
         return false;
@@ -527,12 +486,11 @@ struct datas
 
     bool_t for_each_with_break( std::function< bool_t( size_t const id, T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
             this_t::busy_guard __( items[ i ].gd );
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             if( !funk( i, *items[ i ].data ) ) return true;
         }
         return false;
@@ -541,12 +499,11 @@ struct datas
     bool_t for_each_with_break(
         std::function< bool_t( size_t const id, motor::string_in_t, T & ) > funk ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
             this_t::busy_guard __( items[ i ].gd );
-            diagnostic::scope<Measure> callback_measure( diagnostic::region::callback );
             if( !funk( i, items[ i ].name, *items[ i ].data ) ) return true;
         }
         return false;
@@ -578,7 +535,7 @@ struct datas
     // invalidate a particular item
     bool_t invalidate( size_t const oid ) noexcept
     {
-        reader_lock lk( mtx );
+        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
         if( oid >= items.size() ) return false;
         items[ oid ].data->invalidate( items[ oid ].name );
         items[ oid ].valid = false;
