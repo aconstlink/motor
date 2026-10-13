@@ -2078,7 +2078,7 @@ public:
     }
 
     //****************************************************************************************
-    bool_t compile_shader( GLuint const id, motor::string_cref_t code )
+    static bool_t compile_shader( GLuint const id, motor::string_cref_t code )
     {
         if( code.empty() ) return false ;
 

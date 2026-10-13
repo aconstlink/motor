@@ -56,7 +56,7 @@ class light
   private:
 
     float_t _intensity = 1.0f;
-    motor::math::vec4f_t _color = motor::math::vec4f_t( 1.0f );
+    motor::math::vec3f_t _color = motor::math::vec3f_t( 1.0f );
 
     motor::gfx::ishadow_data_mtr_t _shadow_data = nullptr;
 
@@ -93,7 +93,7 @@ class light
         return _intensity;
     }
 
-    motor::math::vec4f_cref_t color( void_t ) const noexcept
+    motor::math::vec3f_cref_t color( void_t ) const noexcept
     {
         return _color;
     }
