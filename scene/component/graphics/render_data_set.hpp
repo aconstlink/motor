@@ -54,6 +54,11 @@ class render_data_set
     struct light_variables
     {
         motor::graphics::data_variable< motor::math::vec3f_t > * light_dir;
+        motor::graphics::data_variable< motor::math::vec3f_t > * light_pos;
+        motor::graphics::data_variable< float_t > * light_intensity;
+        motor::graphics::data_variable< motor::math::vec3f_t > * light_color;
+        motor::graphics::data_variable< bool_t > * light_is_point;
+
         motor::graphics::data_variable< motor::math::mat4f_t > * light_proj;
         motor::graphics::data_variable< motor::math::mat4f_t > * light_view;
         motor::graphics::texture_variable_t * light_shadow_map;
@@ -61,9 +66,13 @@ class render_data_set
         void_t clear( void_t ) noexcept
         {
             light_dir = nullptr;
+            light_pos = nullptr;
+            light_intensity = nullptr;
+            light_color = nullptr;
             light_proj = nullptr;
             light_view = nullptr;
             light_shadow_map = nullptr;
+            light_is_point = nullptr;
         }
     };
 
@@ -140,6 +149,38 @@ class render_data_set
         if( _light_vars.light_dir )
         {
             _light_vars.light_dir->set( dir );
+        }
+    }
+
+    void_t set_light_position( motor::math::vec3f_cref_t v ) noexcept
+    {
+        if( _light_vars.light_pos )
+        {
+            _light_vars.light_pos->set( v );
+        }
+    }
+
+    void_t set_light_intensity( float_t const v ) noexcept
+    {
+        if( _light_vars.light_intensity )
+        {
+            _light_vars.light_intensity->set( v );
+        }
+    }
+
+    void_t set_light_color( motor::math::vec3f_cref_t v ) noexcept
+    {
+        if( _light_vars.light_color )
+        {
+            _light_vars.light_color->set( v );
+        }
+    }
+
+    void_t set_is_point_light( bool_t const v ) noexcept
+    {
+        if( _light_vars.light_is_point )
+        {
+            _light_vars.light_is_point->set( v );
         }
     }
 
@@ -260,6 +301,35 @@ class render_data_set
                 }
 
                 if( sb.has_variable_binding(
+                        motor::graphics::binding_point::light_position, name ) )
+                {
+                    auto * var = _var_set->data_variable< motor::math::vec3f_t >( name );
+                    if( var != nullptr )
+                    {
+                        _light_vars.light_pos = var;
+                    }
+                }
+
+                if( sb.has_variable_binding(
+                        motor::graphics::binding_point::light_intensity, name ) )
+                {
+                    auto * var = _var_set->data_variable< float_t >( name );
+                    if( var != nullptr )
+                    {
+                        _light_vars.light_intensity = var;
+                    }
+                }
+
+                if( sb.has_variable_binding( motor::graphics::binding_point::light_color, name ) )
+                {
+                    auto * var = _var_set->data_variable< motor::math::vec3f_t >( name );
+                    if( var != nullptr )
+                    {
+                        _light_vars.light_color = var;
+                    }
+                }
+
+                if( sb.has_variable_binding(
                         motor::graphics::binding_point::light_projection, name ) )
                 {
                     auto * var = _var_set->data_variable< motor::math::mat4f_t >( name );
@@ -294,6 +364,14 @@ class render_data_set
                     if( var != nullptr )
                     {
                         _trafo_vars.world = var;
+                    }
+                }
+
+                {
+                    auto * var = _var_set->data_variable< bool_t >( "is_point_light" );
+                    if( var != nullptr )
+                    {
+                        _light_vars.light_is_point = var;
                     }
                 }
             }

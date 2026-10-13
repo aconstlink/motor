@@ -184,6 +184,7 @@ class wire_variable_input_bridge
             _vs->for_each_data_variable(
                 [ & ]( motor::string_in_t name, motor::graphics::ivariable_ptr_t var )
             {
+                if( this_t::make_binding< bool_t >( name, var ) ) return;
                 if( this_t::make_binding< int_t >( name, var ) ) return;
                 if( this_t::make_binding< float_t >( name, var ) ) return;
                 if( this_t::make_binding< uint_t >( name, var ) ) return;
@@ -215,6 +216,7 @@ class wire_variable_input_bridge
             _inputs.for_each_slot(
                 [ & ]( motor::string_in_t name, motor::wire::iinput_slot_mtr_t s )
             {
+                if( this_t::make_binding< bool_t >( name, s ) ) return;
                 if( this_t::make_binding< int_t >( name, s ) ) return;
                 if( this_t::make_binding< float_t >( name, s ) ) return;
                 if( this_t::make_binding< uint_t >( name, s ) ) return;

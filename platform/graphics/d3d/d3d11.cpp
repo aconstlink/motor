@@ -792,6 +792,22 @@ struct d3d11_backend::pimpl
             {
                 if( ivar == 0 ) return 0 ;
 
+                if( t == motor::graphics::type::tbool )
+                {
+                    // HLSL constant buffers store each bool component in 32 bits.
+                    auto const src = static_cast< uint8_t const * >( ivar->data_ptr() ) ;
+                    auto const dst = static_cast< uint8_ptr_t >( dest ) ;
+                    size_t const count = motor::graphics::size_of( ts ) ;
+                    for( size_t i = 0; i < count; ++i )
+                    {
+                        bool_t value ;
+                        std::memcpy( &value, src + i * sizeof( bool_t ), sizeof( bool_t ) ) ;
+                        uint32_t const packed = value ? 1u : 0u ;
+                        std::memcpy( dst + i * sizeof( packed ), &packed, sizeof( packed ) ) ;
+                    }
+                    return sib ;
+                }
+
                 std::memcpy( dest, ivar->data_ptr(), sib ) ;
                 return sib ;
             }
@@ -800,8 +816,7 @@ struct d3d11_backend::pimpl
             {
                 if ( ivar == 0 ) return 0 ;
 
-                std::memcpy( uint8_ptr_t(origin_no_shift)+offset, ivar->data_ptr(), sib ) ;
-                return sib ;
+                return this->do_copy_funk( uint8_ptr_t(origin_no_shift)+offset ) ;
             }
         } ;
         motor_typedef( data_variable ) ;
@@ -2443,7 +2458,13 @@ public: // functions
                     if ( var_.def_val == size_t( -1 ) ) continue ;
 
                     auto * df = res.config.def_values[ var_.def_val ] ;
-                    if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
+                    if ( dynamic_cast<motor::msl::generic_default_value< bool_t >*> ( df ) != nullptr )
+                    {
+                        using ptr_t = motor::msl::generic_default_value< bool_t > * ;
+                        ptr_t gdv = static_cast<ptr_t>( df ) ;
+                        default_values.data_variable<bool_t>( var_.name )->set( gdv->get() ) ;
+                    }
+                    else if ( dynamic_cast<motor::msl::generic_default_value< float_t >*> ( df ) != nullptr )
                     {
                         using ptr_t = motor::msl::generic_default_value< float_t > * ;
                         ptr_t gdv = static_cast<ptr_t>( df ) ;
@@ -2584,126 +2605,138 @@ public: // functions
     }
 
     //************************************************************************************************************
-    size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj )
+    size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj ) noexcept
     {
         auto const res = _geos.access( oid, obj.name(), [&]( this_t::geo_data_ref_t config )
         {
-            config.pt = obj.primitive_type() ;
-
-            // vertex buffer object
-            {
-                config.elements.clear() ;
-
-                obj.vertex_buffer().for_each_layout_element(
-                    [&] ( motor::graphics::vertex_buffer_t::data_cref_t d )
-                {
-                    this_t::geo_data::layout_element le ;
-                    le.va = d.va ;
-                    le.type = d.type ;
-                    le.type_struct = d.type_struct ;
-                    config.elements.push_back( le ) ;
-                } ) ;
-
-                config.stride = UINT( obj.vertex_buffer().get_layout_sib() ) ;
-
-                // = number of vertices * sizeof( vertex )
-                // if there are vertices already setup, take the numbers
-                size_t const byte_width = obj.vertex_buffer().get_sib() ;
-
-                D3D11_BUFFER_DESC bd = {} ;
-                bd.Usage = D3D11_USAGE_DYNAMIC ;
-                // using max of 1 sib so empty vbs will create and will 
-                // be resized in the update function. Important for now
-                // is that the buffer will be NOT nullptr.
-                bd.ByteWidth = UINT( std::max( byte_width, size_t( 1 ) ) ) ;
-                bd.BindFlags = D3D11_BIND_VERTEX_BUFFER ;
-                bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
-
-                motor::memory::global_t::dealloc_raw( config.vb_mem ) ;
-                config.vb_mem = motor::memory::global_t::alloc_raw< uint8_t >(
-                    byte_width, "[d3d11] : vertex buffer memory" ) ;
-
-                if ( config.vb != nullptr )
-                {
-                    config.vb->Release() ;
-                    config.vb = nullptr ;
-                }
-
-                if ( byte_width != 0 )
-                {
-                    D3D11_SUBRESOURCE_DATA init_data = {} ;
-                    init_data.pSysMem = (void_cptr_t) config.vb_mem ;
-
-                    std::memcpy( config.vb_mem, obj.vertex_buffer().data(), byte_width ) ;
-
-                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.vb ) ;
-                    if ( FAILED( hr ) )
-                    {
-                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
-                    }
-                }
-                else
-                {
-                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.vb ) ;
-                    if ( FAILED( hr ) )
-                    {
-                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
-                    }
-                }
-            }
-
-            // index buffer object
-            if ( obj.index_buffer().get_num_elements() != 0 )
-            {
-                // = number of vertices * sizeof( index_t )
-                size_t const byte_width = obj.index_buffer().get_sib() ;
-
-                D3D11_BUFFER_DESC bd = {} ;
-                bd.Usage = D3D11_USAGE_DYNAMIC ;
-                // using max of 1 sib so empty ibs will create and will 
-                // be resized in the update function. Important for now
-                // is that the buffer will be NOT nullptr.
-                bd.ByteWidth = uint_t( std::max( byte_width, size_t( 1 ) ) ) ;
-                bd.BindFlags = D3D11_BIND_INDEX_BUFFER ;
-                bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
-
-                motor::memory::global_t::dealloc_raw( config.ib_mem ) ;
-                config.ib_mem = motor::memory::global_t::alloc_raw< uint8_t >(
-                    byte_width, "[d3d11] : index buffer memory" ) ;
-
-                if ( config.ib != nullptr )
-                {
-                    config.ib->Release() ;
-                    config.ib = nullptr ;
-                }
-
-                if ( byte_width != 0 )
-                {
-                    D3D11_SUBRESOURCE_DATA init_data = {} ;
-                    init_data.pSysMem = (void_cptr_t) config.ib_mem ;
-
-                    std::memcpy( config.ib_mem, obj.index_buffer().data(), byte_width ) ;
-
-                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.ib ) ;
-                    if ( FAILED( hr ) )
-                    {
-                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
-                    }
-                }
-                else
-                {
-                    HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.ib ) ;
-                    if ( FAILED( hr ) )
-                    {
-                        motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
-                    }
-                }
-            }
-
-            return true ;
+            return this_t::construct_geo( obj, config ) ;
         } ) ;
 
         return oid ;
+    }
+
+    //************************************************************************************************************
+    bool_t construct_geo( motor::graphics::geometry_object_ref_t obj, this_t::geo_data_ref_t config ) noexcept
+    { 
+        bool_t res = true ;
+
+        config.pt = obj.primitive_type() ;
+
+        // vertex buffer object
+        {
+            config.elements.clear() ;
+
+            obj.vertex_buffer().for_each_layout_element(
+                [&] ( motor::graphics::vertex_buffer_t::data_cref_t d )
+            {
+                this_t::geo_data::layout_element le ;
+                le.va = d.va ;
+                le.type = d.type ;
+                le.type_struct = d.type_struct ;
+                config.elements.push_back( le ) ;
+            } ) ;
+
+            config.stride = UINT( obj.vertex_buffer().get_layout_sib() ) ;
+
+            // = number of vertices * sizeof( vertex )
+            // if there are vertices already setup, take the numbers
+            size_t const byte_width = obj.vertex_buffer().get_sib() ;
+
+            D3D11_BUFFER_DESC bd = {} ;
+            bd.Usage = D3D11_USAGE_DYNAMIC ;
+            // using max of 1 sib so empty vbs will create and will 
+            // be resized in the update function. Important for now
+            // is that the buffer will be NOT nullptr.
+            bd.ByteWidth = UINT( std::max( byte_width, size_t( 1 ) ) ) ;
+            bd.BindFlags = D3D11_BIND_VERTEX_BUFFER ;
+            bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
+
+            motor::memory::global_t::dealloc_raw( config.vb_mem ) ;
+            config.vb_mem = motor::memory::global_t::alloc_raw< uint8_t >(
+                byte_width, "[d3d11] : vertex buffer memory" ) ;
+
+            if ( config.vb != nullptr )
+            {
+                config.vb->Release() ;
+                config.vb = nullptr ;
+            }
+
+            if ( byte_width != 0 )
+            {
+                D3D11_SUBRESOURCE_DATA init_data = {} ;
+                init_data.pSysMem = (void_cptr_t) config.vb_mem ;
+
+                std::memcpy( config.vb_mem, obj.vertex_buffer().data(), byte_width ) ;
+
+                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.vb ) ;
+                if ( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    res = false ;
+                }
+            }
+            else
+            {
+                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.vb ) ;
+                if ( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_VERTEX_BUFFER" ) ) ;
+                    res = false ;
+                }
+            }
+        }
+
+        // index buffer object
+        if ( obj.index_buffer().get_num_elements() != 0 )
+        {
+            // = number of vertices * sizeof( index_t )
+            size_t const byte_width = obj.index_buffer().get_sib() ;
+
+            D3D11_BUFFER_DESC bd = {} ;
+            bd.Usage = D3D11_USAGE_DYNAMIC ;
+            // using max of 1 sib so empty ibs will create and will 
+            // be resized in the update function. Important for now
+            // is that the buffer will be NOT nullptr.
+            bd.ByteWidth = uint_t( std::max( byte_width, size_t( 1 ) ) ) ;
+            bd.BindFlags = D3D11_BIND_INDEX_BUFFER ;
+            bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE ;
+
+            motor::memory::global_t::dealloc_raw( config.ib_mem ) ;
+            config.ib_mem = motor::memory::global_t::alloc_raw< uint8_t >(
+                byte_width, "[d3d11] : index buffer memory" ) ;
+
+            if ( config.ib != nullptr )
+            {
+                config.ib->Release() ;
+                config.ib = nullptr ;
+            }
+
+            if ( byte_width != 0 )
+            {
+                D3D11_SUBRESOURCE_DATA init_data = {} ;
+                init_data.pSysMem = (void_cptr_t) config.ib_mem ;
+
+                std::memcpy( config.ib_mem, obj.index_buffer().data(), byte_width ) ;
+
+                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.ib ) ;
+                if ( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
+                    res = false ;
+                }
+            }
+            else
+            {
+                HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, nullptr, config.ib ) ;
+                if ( FAILED( hr ) )
+                {
+                    motor::log::global_t::error( d3d11_backend_log( "D3D11_BIND_INDEX_BUFFER" ) ) ;
+                    res = false ;
+                }
+            }
+        }
+
+        return res ;
     }
 
     //************************************************************************************************************
@@ -2724,7 +2757,7 @@ public: // functions
         {
             if( geo->index_buffer().get_num_elements() != 0 && config.ib == nullptr )
             {
-                this_t::construct_geo( id, *geo ) ;
+                this_t::construct_geo( *geo, config ) ;
             }
 
             // vb: check memory space
@@ -3710,7 +3743,8 @@ public: // functions
                     {
                         render_data_t::data_variable_t dv ;
                         dv.ivar = vs->data_variable( var.name, var.t, var.ts ) ;
-                        dv.sib = motor::graphics::size_of( var.t ) * motor::graphics::size_of( var.ts ) ;
+                        dv.sib = ( var.t == motor::graphics::type::tbool ? sizeof( uint32_t ) :
+                            motor::graphics::size_of( var.t ) ) * motor::graphics::size_of( var.ts ) ;
                         dv.name = var.name ;
                         dv.t = var.t ;
                         dv.ts = var.ts ;
@@ -4114,10 +4148,14 @@ public: // functions
                 config.geo_ids.emplace_back( render_data::geo_id_data{gid, ro.get_geometry_link(geo_idx).hash} ) ;
                 //_geos.access( gid, [&]( this_t::geo_data_ref_t d ){ d.add_render_data_id( new_id ) ; } ) ;
                 
+                #if 1 
+                auto const res = this_t::bind_vertex_inputs( config, ro ) ;
+                #else
                 auto const res = _renders.access( oid, ro.name(), [&]( this_t::render_data_ref_t rd )
                 {
                     return this_t::bind_vertex_inputs( rd, ro ) ;
                 } ) ;
+                #endif
             }
             else if( config.geo_ids[geo_idx].hash != ro.get_geometry_link(geo_idx).hash )
             {
@@ -4139,10 +4177,14 @@ public: // functions
 
                             // at this point, the geometry needs to be rebound
                             // to the shader inputs.
+                            #if 1
+                            auto const res = this_t::bind_vertex_inputs( config, ro, geo_idx ) ;
+                            #else
                             auto const res = _renders.access( oid, ro.name(), [&]( this_t::render_data_ref_t rd )
                             {
                                 return this_t::bind_vertex_inputs( rd, ro, geo_idx ) ;
                             } ) ;
+                            #endif
                         }
                     }
 
@@ -4163,7 +4205,7 @@ public: // functions
             return true ;
          } ) ;
 
-         return true ;
+         return res ;
     }
 
     //************************************************************************************************************

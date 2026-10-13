@@ -55,14 +55,26 @@ class light
 
   private:
 
-    motor::math::vec4f_t _color;
-    float_t _intensity;
+    float_t _intensity = 1.0f;
+    motor::math::vec3f_t _color = motor::math::vec3f_t( 1.0f );
 
     motor::gfx::ishadow_data_mtr_t _shadow_data = nullptr;
 
   public:
 
     light( void_t ) noexcept {}
+    light( float_t intensity, motor::math::vec4f_in_t color ) noexcept
+        : _intensity( intensity ), _color( color )
+    {
+    }
+
+    light( this_cref_t rhv ) noexcept : _intensity( rhv._intensity ), _color( rhv._color ) {}
+
+    light( this_rref_t rhv ) noexcept
+        : _intensity( rhv._intensity ), _color( std::move( rhv._color ) )
+    {
+    }
+
     virtual ~light( void_t ) noexcept
     {
         motor::release( motor::move( _shadow_data ) );
@@ -74,6 +86,16 @@ class light
     T * borrow_shader_data( void_t ) noexcept
     {
         return dynamic_cast< T * >( _shadow_data );
+    }
+
+    float_t intensity( void_t ) const noexcept
+    {
+        return _intensity;
+    }
+
+    motor::math::vec3f_cref_t color( void_t ) const noexcept
+    {
+        return _color;
     }
 };
 motor_typedef( light );
@@ -90,7 +112,19 @@ class directional_light : public light
   public:
 
     directional_light( void_t ) noexcept {}
+    directional_light( this_cref_t rhv ) noexcept : light( rhv ), _direction( rhv._direction ) {}
+    directional_light( this_rref_t rhv ) noexcept
+        : light( std::move( rhv ) ), _direction( std::move( rhv._direction ) )
+    {
+    }
     directional_light( motor::math::vec3f_in_t dir ) noexcept : _direction( dir ) {}
+
+    directional_light( float_t const intensity, motor::math::vec4f_in_t color,
+        motor::math::vec3f_in_t dir ) noexcept
+        : light( intensity, color ), _direction( dir )
+    {
+    }
+
     virtual ~directional_light( void_t ) noexcept {}
 
     static light_type get_light_type_static( void_t ) noexcept
@@ -128,8 +162,9 @@ class point_light : public light
   public:
 
     point_light( void_t ) noexcept {}
-    point_light( motor::math::vec3f_in_t pos, float_t const radius ) noexcept
-        : _position( pos ), _radius( radius )
+    point_light( float_t const intensity, motor::math::vec4f_in_t color,
+        motor::math::vec3f_in_t pos, float_t const radius ) noexcept
+        : light( intensity, color ), _position( pos ), _radius( radius )
     {
     }
 

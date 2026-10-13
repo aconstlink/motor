@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
-
 #include "light_pass_render_visitor.h"
 
 #include "../../component/graphics/msl_component.h"
@@ -29,7 +27,6 @@ light_pass_render_visitor::light_pass_render_visitor( this_rref_t rhv ) noexcept
       _fe( motor::move( rhv._fe ) ), _cam( motor::move( rhv._cam ) ),
       _light( motor::move( rhv._light ) ), _cast_shadow_data( std::move( _cast_shadow_data ) )
 {
-    
 }
 
 //*****************************************************************************************
@@ -105,16 +102,33 @@ void_t light_pass_render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) 
             {
                 size_t const used_vs_idx = comp->render_update( _render_data_id, _cam );
 
-                // @todo do the same callback as done for shadow data.
-                if( _light != nullptr &&
-                    _light->get_light_type() == motor::gfx::light_type::directional )
+                if( _light != nullptr )
                 {
-                    auto * ll = dynamic_cast< motor::gfx::directional_light_ptr_t >( _light );
-                    comp->set_light_direction( _render_data_id, ll->get_direction() );
+                    comp->set_light_intensity( _render_data_id, _light->intensity() );
+                    comp->set_light_color( _render_data_id, _light->color() );
+
+                    auto const type = _light->get_light_type();
+
+                    switch( type )
+                    {
+                    case motor::gfx::light_type::directional: {
+                        auto * ll = dynamic_cast< motor::gfx::directional_light_ptr_t >( _light );
+                        comp->set_light_direction( _render_data_id, ll->get_direction() );
+                        comp->set_is_point_light( _render_data_id, false );
+                    }
+                    break;
+
+                    case motor::gfx::light_type::point: {
+                        auto * ll = dynamic_cast< motor::gfx::point_light_ptr_t >( _light );
+                        comp->set_light_position( _render_data_id, ll->get_position() );
+                        comp->set_is_point_light( _render_data_id, true );
+                    }
+                    break;
+                    }
                 }
 
                 // copy shadow data into the variable sets.
-                _cast_shadow_data( _render_data_id, comp ) ;
+                _cast_shadow_data( _render_data_id, comp );
 
                 auto msl = comp->borrow_msl();
 
