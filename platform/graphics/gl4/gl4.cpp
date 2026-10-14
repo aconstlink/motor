@@ -174,7 +174,7 @@ struct gl4_backend::pimpl
     void_t on_context_destruction( void_t ) noexcept
     {
         _support_thread.stop_support_thread();
-        _ctsd = nullptr ;
+        _ctsd = nullptr;
 
         this_t::release_and_clear_all_shader_data( false );
         this_t::release_and_clear_all_geometry_data( false );
@@ -956,8 +956,8 @@ struct gl4_backend::pimpl
         auto const [ a, b ] =
             _renders.access< bool_t >( rid, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
         {
-            auto const [ a, b ] = _shaders.access< bool_t >(
-                rd.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t sd ) { return sd.is_linkage_ok; } );
+            auto const [ a, b ] = _shaders.access< bool_t >( rd.shd_id,
+                [ & ]( gl4_pimpl_data::shader_data_ref_t sd ) { return sd.is_linkage_ok; } );
 
             return a && b;
         } );
@@ -1044,7 +1044,8 @@ struct gl4_backend::pimpl
 
         size_t oid = obj.get_oid( _bid );
 
-        auto const success = _msls.access( oid, obj.name(), [ & ]( gl4_pimpl_data::msl_data_ref_t msl )
+        auto const success =
+            _msls.access( oid, obj.name(), [ & ]( gl4_pimpl_data::msl_data_ref_t msl )
         {
             if( !this_t::install_shader_data( so, sd ) ) return false;
             if( !this_t::construct_render_data( *ro ) ) return false;
@@ -1164,8 +1165,8 @@ struct gl4_backend::pimpl
                     }
                     config.geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
                         gid, rc.get_geometry_link( i ).hash } );
-                    _geometries.access( gid,
-                        [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( new_id ); } );
+                    _geometries.access( gid, [ & ]( gl4_pimpl_data::geo_data_ref_t d )
+                    { d.add_render_data_id( new_id ); } );
                 }
             }
 
@@ -1403,7 +1404,8 @@ struct gl4_backend::pimpl
         size_t & oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
         motor_status2( 1024, "[gl4] : construct geometry %s", name.c_str() );
-        auto const res = _geometries.access( oid, name, [ & ]( gl4_pimpl_data::geo_data_ref_t config )
+        auto const res =
+            _geometries.access( oid, name, [ & ]( gl4_pimpl_data::geo_data_ref_t config )
         {
             // vertex buffer
             if( config.vb_id == GLuint( -1 ) )
@@ -1464,8 +1466,8 @@ struct gl4_backend::pimpl
             {
                 if( id == size_t( -1 ) ) continue;
 
-                _renders.access(
-                    id, [ & ]( gl4_pimpl_data::render_data_ref_t d ) { d.remove_geometry_id( oid ); } );
+                _renders.access( id,
+                    [ & ]( gl4_pimpl_data::render_data_ref_t d ) { d.remove_geometry_id( oid ); } );
             }
             g.rd_ids.clear();
         } );
@@ -1670,8 +1672,8 @@ struct gl4_backend::pimpl
     // at the moment, just really call if you know if a reconnect is happening.
     // a reconnection could happen, if a variable set is still there, but on the user side
     // the variable set has been replaced so the hash values differ.
-    bool_t reconnect( gl4_pimpl_data::render_data & config, size_t const var_set_idx, size_t const hash,
-        motor::graphics::variable_set_mtr_safe_t vs )
+    bool_t reconnect( gl4_pimpl_data::render_data & config, size_t const var_set_idx,
+        size_t const hash, motor::graphics::variable_set_mtr_safe_t vs )
     {
         // enforce description - see function desc
         assert( config.varset_to_idx.size() > var_set_idx );
@@ -1811,8 +1813,8 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( gl4_pimpl_data::render_data & config, size_t const var_set_idx, size_t const hash,
-        motor::graphics::variable_set_mtr_safe_t vs )
+    bool_t connect( gl4_pimpl_data::render_data & config, size_t const var_set_idx,
+        size_t const hash, motor::graphics::variable_set_mtr_safe_t vs )
     {
         // gl4_pimpl_data::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
         _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
@@ -1982,7 +1984,8 @@ struct gl4_backend::pimpl
     bool_t construct_array_data( motor::graphics::array_object_ref_t obj ) noexcept
     {
         size_t oid = obj.get_oid( _bid );
-        auto const res = _arrays.access( oid, obj.name(), [ & ]( gl4_pimpl_data::array_data_ref_t data )
+        auto const res =
+            _arrays.access( oid, obj.name(), [ & ]( gl4_pimpl_data::array_data_ref_t data )
         {
             // buffer
             if( data.buf_id == GLuint( -1 ) )
@@ -2110,7 +2113,8 @@ struct gl4_backend::pimpl
 
                 // we just always gen max buffers tex ids
                 {
-                    glGenTextures( gl4_pimpl_data::feedback_data::buffer::max_buffers, buffer.tids );
+                    glGenTextures(
+                        gl4_pimpl_data::feedback_data::buffer::max_buffers, buffer.tids );
                     if( gl4_log_error3( "glGenTextures", obj ) ) return false;
                 }
 
@@ -2286,8 +2290,8 @@ struct gl4_backend::pimpl
                 {
                     if( buffer.bids[ i ] == GLuint( -1 ) ) break;
 
-                    _geometries.access(
-                        buffer.gids[ i ], [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.pt = gpt; } );
+                    _geometries.access( buffer.gids[ i ],
+                        [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.pt = gpt; } );
                 }
 
                 glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid );
@@ -2451,7 +2455,8 @@ struct gl4_backend::pimpl
                             }
                             else
                             {
-                                _images.access( img_idx, [ & ]( gl4_pimpl_data::image_data_ref_t id )
+                                _images.access( img_idx,
+                                    [ & ]( gl4_pimpl_data::image_data_ref_t id )
                                 {
                                     link.img_hash = link.var->get().hash();
                                     link.img_id = img_idx;
