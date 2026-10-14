@@ -103,7 +103,7 @@ class support_thread
         std::mutex mtx;
         std::condition_variable cv;
 
-        std::mutex mtx_backward ;
+        std::mutex mtx_backward;
 
         motor::vector< local_gl4::work_item > forward_items;
         motor::vector< gl4_independent::backward_message > backward_items;
@@ -245,7 +245,7 @@ class support_thread
                                     *msl, ctsd->mdb );
                             ctsd->add_backward_item( gl4_independent::compilation_result{
                                 res, motor::move( msl ), std::move( so ), std::move( sd ) } );
-                                item.ptr = nullptr ;
+                            item.ptr = nullptr;
                         }
 
                         break;
@@ -270,6 +270,31 @@ class support_thread
                 }
                 items.clear();
             }
+
+            for( auto & item : ctsd->forward_items )
+            {
+                motor::release( motor::move( static_cast<motor::graphics::object_ptr_t>(item.ptr) ) );
+            }
+            ctsd->forward_items.clear() ;
+
+            for( auto & item : ctsd->backward_items )
+            {
+                std::visit( []( auto && arg )
+                {
+                    using T = std::decay_t< decltype( arg ) >;
+                    if constexpr( std::is_same_v< T, gl4_independent::compilation_result > )
+                    {
+                        motor::release( motor::move( arg.object ) );
+                    }
+                    else if constexpr( std::is_same_v< T, gl4_independent::release_result > )
+                    {
+                    }
+                    else
+                        static_assert( false, "non-exhaustive visitor!" );
+                }, item );
+            }
+            ctsd->backward_items.clear() ;
+
             ctsd->ctx->deactivate();
 
             motor_status( "[gl4] : support thread shut down" );

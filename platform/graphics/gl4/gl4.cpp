@@ -750,6 +750,8 @@ struct gl4_backend::pimpl
 
 #endif
 
+    // this function compiles the shader. It is not yet in the support thread.
+    // @todo put in support thread
     bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj ) noexcept
     {
         pimpl_data::shader_data_t new_shader_data;
@@ -1013,254 +1015,20 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    // call from support thread - old
-    bool_t construct_msl_data_st( motor::graphics::msl_object_ptr_t obj_in ) noexcept
-    {
-#if 0
-        auto & obj = *obj_in;
-
-        motor::vector< motor::msl::symbol_t > config_symbols;
-
-        obj.for_each_msl( motor::graphics::msl_api_type::msl_4_0, [ & ]( motor::string_in_t code )
-        {
-            motor::msl::post_parse::document_t doc = motor::msl::parser_t( "gl4" ).process( code );
-
-            _mdb.insert( std::move( doc ), config_symbols );
-        } );
-
-        // cases:
-        // obj.oid == -1 && obj.name.empty() : library/config shader
-        // obj.oid == -1 && !obj.name.empty() : initial configuration
-
-        // obj.oid != -1 && obj.name.empty() : invalid
-        // obj.oid != -1 && !obj.name.empty() : was already configured
-
-        // if the incoming msl shader is a library shader for example,
-        // it does not need to have a associated background object
-        size_t oid = obj.get_oid( _bid );
-
-        // if -1, it is probably a library shader or some tmp
-        // msl object. So do not return any valid is below.
-        bool_t const is_valid_msl = oid != size_t( -1 );
-
-        bool_t success = true;
-
-        for( auto const & c : config_symbols )
-        {
-            auto const c_exp = c.expand();
-
-// this most likely came from a library dependency.
-// need to figure out the msl object associated
-// with this render configuration/object.
-// the msl object is required in order to reconstruct
-// the render_object and the shader_object.
-
-// 1. find the msl object associated to c
-// 2. use the found oid for further processing
-#if 0
-            if ( oid == size_t( -1 ) )
-            {
-                auto [i, o] = this_t::find_pair_by_ro_name( c_exp, _msls ) ;
-                oid = i ;
-                obj = o ;
-            }
-#endif
-
-            // msl database contains render configuration
-            // which has not been configured by the user...
-            if( oid == size_t( -1 ) )
-            {
-                motor_warning2( 1024,
-                    "[gl4::construct_msl_data] : "
-                    "render configuration not found : %s",
-                    c_exp.c_str() );
-                continue;
-            }
-
-            motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &_mdb, c );
-            if( res.missing.size() != 0 )
-            {
-                motor::log::global_t::warning(
-                    "[gl4] : We have missing symbols for " + c_exp + " :" );
-                for( auto const & s : res.missing )
-                {
-                    motor::log::global_t::status( s.expand() );
-                }
-                continue;
-            }
-
-            motor::graphics::variable_set_t default_values;
-
-            // inject default variable values into the
-            // variable sets
-            for( auto & shd_ : res.config.shaders )
-            {
-                for( auto & var_ : shd_.variables )
-                {
-                    if( var_.def_val == size_t( -1 ) ) continue;
-
-                    auto * df = res.config.def_values[ var_.def_val ];
-                    if( dynamic_cast< motor::msl::generic_default_value< bool_t > * >( df ) !=
-                        nullptr )
-                    {
-                        using ptr_t = motor::msl::generic_default_value< bool_t > *;
-                        ptr_t gdv = static_cast< ptr_t >( df );
-                        default_values.data_variable< bool_t >( var_.name )->set( gdv->get() );
-                    }
-                    else if( dynamic_cast< motor::msl::generic_default_value< float_t > * >( df ) !=
-                             nullptr )
-                    {
-                        using ptr_t = motor::msl::generic_default_value< float_t > *;
-                        ptr_t gdv = static_cast< ptr_t >( df );
-                        default_values.data_variable< float_t >( var_.name )->set( gdv->get() );
-                    }
-                    else if( dynamic_cast<
-                                 motor::msl::generic_default_value< motor::math::vec3f_t > * >(
-                                 df ) != nullptr )
-                    {
-                        using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > *;
-                        ptr_t gdv = static_cast< ptr_t >( df );
-                        default_values.data_variable< motor::math::vec3f_t >( var_.name )
-                            ->set( gdv->get() );
-                    }
-                    else if( dynamic_cast<
-                                 motor::msl::generic_default_value< motor::math::vec4f_t > * >(
-                                 df ) != nullptr )
-                    {
-                        using ptr_t = motor::msl::generic_default_value< motor::math::vec4f_t > *;
-                        ptr_t gdv = static_cast< ptr_t >( df );
-                        default_values.data_variable< motor::math::vec4f_t >( var_.name )
-                            ->set( gdv->get() );
-                    }
-                    else if( dynamic_cast< motor::msl::texture_dv_ptr_t >( df ) != nullptr )
-                    {
-                        using ptr_t = motor::msl::texture_dv_ptr_t;
-                        ptr_t gdv = static_cast< ptr_t >( df );
-                        default_values.texture_variable( var_.name )->set( gdv->get().name );
-                    }
-                }
-            }
-
-            motor::graphics::shader_object_t so( c_exp );
-
-            // generate code
-            {
-                auto tp_begin = std::chrono::high_resolution_clock::now();
-
-                motor::msl::generator_t gen( std::move( res ) );
-                auto const code = gen.generate< motor::msl::glsl::glsl4_generator_t >();
-                motor::graphics::msl_bridge::create_by_api_type(
-                    motor::graphics::shader_api_type::glsl_4_0, code, so );
-
-                {
-                    size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >(
-                        std::chrono::high_resolution_clock::now() - tp_begin )
-                                             .count();
-
-                    char buffer[ 2048 ];
-                    std::snprintf(
-                        buffer, 2048, "[gl4] : generating glsl shader took %zu ms", milli );
-                    motor::log::global_t::status( buffer );
-                }
-            }
-
-            auto * ro = obj.borrow_render_object();
-            {
-                ro->link_shader( c_exp );
-            }
-
-            auto const access_res =
-                _msls.access( oid, obj.name(), [ & ]( pimpl_data::msl_data_ref_t msl )
-            {
-                {
-                    if( !this_t::construct_shader_data( so ) )
-                    {
-                        // construction/compilation failed
-                        // @todo return here.
-                        return false;
-                    }
-
-                    _shaders.access( so.get_oid( _bid ), [ & ]( pimpl_data::shader_data_ref_t shd )
-                    { shd.default_values = std::move( default_values ); } );
-
-                    if( !this_t::construct_render_data( *ro ) )
-                    {
-                        return false;
-                    }
-                }
-
-                // render object
-                {
-                    msl.ro_id = ro->get_oid( this_t::_bid );
-                }
-
-                // shader object
-                {
-                    // reflect compilation result to the user
-                    _shaders.access( so.get_oid( _bid ), [ & ]( pimpl_data::shader_data_ref_t shd )
-                    {
-                        obj.for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
-                        {
-                            auto const s =
-                                shd.is_linkage_ok
-                                    ? motor::graphics::compilation_listener::state::successful
-                                    : motor::graphics::compilation_listener::state::failed;
-
-                            lst->set( s, so.shader_bindings() );
-                        } );
-                    } );
-
-                    {
-                        msl.so = std::move( so );
-                    }
-                }
-
-                // msl.msl_obj = std::move( obj ) ;
-
-                return true;
-            } );
-
-            if( !access_res )
-            {
-                // compilation failed?
-                success = false;
-            }
-        }
-
-        if( success )
-        {
-            motor::graphics::object_t::data_manipulator mani( obj_in, this_t::_bid );
-            mani.reset_in_transit();
-            mani.change_to_ready( motor::graphics::result::ok );
-        }
-        else
-        {
-            motor::graphics::object_t::data_manipulator mani( obj_in, this_t::_bid );
-            mani.reset_in_transit();
-            mani.change_to_ready( motor::graphics::result::failed );
-        }
-
-        // true: was msl object. so the id
-        // needs to go back to the caller
-        if( is_valid_msl )
-        {
-            obj_in->set_oid( _bid, oid );
-        }
-        else
-        {
-            obj_in->set_oid( _bid, size_t( -1 ) );
-        }
-
-        return is_valid_msl;
-#endif
-    }
-
-    //****************************************************************************************
     bool_t construct_msl_data( gl4_independent::compilation_result && cr ) noexcept
     {
+        motor::graphics::object_t::data_manipulator mani( cr.object, this_t::_bid );
+
         if( !cr.success )
         {
-            assert( false && "need to release data coming in" );
+            mani.reset_in_transit();
+            mani.change_to_raw( motor::graphics::result::failed );
+            cr.object->for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
+            {
+                lst->set( motor::graphics::compilation_listener::state::failed,
+                    motor::graphics::shader_bindings() );
+            } );
+
             motor::release( motor::move( cr.object ) );
             return false;
         }
@@ -1323,13 +1091,11 @@ struct gl4_backend::pimpl
 
         if( success )
         {
-            motor::graphics::object_t::data_manipulator mani( cr.object, this_t::_bid );
             mani.reset_in_transit();
             mani.change_to_ready( motor::graphics::result::ok );
         }
         else
         {
-            motor::graphics::object_t::data_manipulator mani( cr.object, this_t::_bid );
             mani.reset_in_transit();
             mani.change_to_ready( motor::graphics::result::failed );
         }
@@ -3140,6 +2906,8 @@ struct gl4_backend::pimpl
             }, item );
         } );
 
+        glFlush();
+
         _state_stack.pop();
 
         _ctsd->notify_thread();
@@ -3240,6 +3008,8 @@ motor::graphics::result gl4_backend::configure( motor::graphics::render_object_m
 }
 
 //******************************************************************************************************
+// compiles directly. Do not use at run-time. Application initialization is ok though
+// @todo put shader compilation in support thread.
 motor::graphics::result gl4_backend::configure( motor::graphics::shader_object_mtr_t obj ) noexcept
 {
     auto const res = _pimpl->construct_shader_data( *obj );
