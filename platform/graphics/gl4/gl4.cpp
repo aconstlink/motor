@@ -1009,7 +1009,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     void_t send_configure_to_st( motor::graphics::msl_object_mtr_t obj ) noexcept
     {
-        // obj->set_oid( _bid, size_t( -2 ) );
+        motor::graphics::object_t::data_manipulator( obj, _bid ).change_to_in_transit();
         _ctsd->add_forward_item( motor::graphics::local_gl4::work_item::make_item(
             motor::graphics::local_gl4::work_item::work_type::compile, motor::share( obj ) ) );
     }
@@ -2961,16 +2961,6 @@ motor::graphics::result gl4_backend::configure( motor::graphics::msl_object_mtr_
         return motor::graphics::result::invalid_argument;
     }
 
-#if 0
-    auto const oid = obj->get_oid( this_t::get_bid() );
-
-    // is it in transit
-    if( oid == size_t( -2 ) )
-    {
-        return motor::graphics::result::in_transit;
-    }
-#endif
-
     _pimpl->send_configure_to_st( obj );
     return motor::graphics::result::in_transit;
 }
@@ -3474,11 +3464,6 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
     {
         motor::log::global_t::error( gl4_log( "invalid id" ) );
         return motor::graphics::result::failed;
-    }
-
-    if( oid == size_t( -2 ) )
-    {
-        return motor::graphics::result::in_transit;
     }
 
     auto const [ a, b ] = _pimpl->_msls.try_access< motor::graphics::result >( oid,
