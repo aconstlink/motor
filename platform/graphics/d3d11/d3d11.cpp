@@ -136,7 +136,7 @@ struct d3d11_backend::pimpl
             assert( res );
         }
 
-        _ctsd = _support_thread.start_support_thread( this );
+        _ctsd = _support_thread.start_support_thread( this, ctx );
     }
 
     //************************************************************************************************************
@@ -1231,7 +1231,7 @@ struct d3d11_backend::pimpl
                         [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
                     { shd.default_values = std::move( default_values ); } );
 
-                    if( !this_t::construct_render_config( *ro ) )
+                    if( !this_t::construct_render_data( *ro ) )
                     {
                         return false;
                     }
@@ -1555,23 +1555,141 @@ struct d3d11_backend::pimpl
         } );
     }
 
+    //****************************************************************************************
+    bool_t construct_msl_data( d3d11_independent::compilation_result && cr ) noexcept
+    {
+        motor::graphics::object_t::data_manipulator mani( cr.object, this_t::_bid );
+
+        if( !cr.success )
+        {
+            mani.reset_in_transit();
+            mani.change_to_raw( motor::graphics::result::failed );
+            cr.object->for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
+            {
+                lst->set( motor::graphics::compilation_listener::state::failed,
+                    motor::graphics::shader_bindings() );
+            } );
+
+            motor::release( motor::move( cr.object ) );
+            return false;
+        }
+
+        auto & obj = *cr.object;
+        auto so = std::move( cr.shader );
+        auto sd = std::move( cr.data );
+
+        auto * ro = obj.borrow_render_object();
+        {
+            ro->link_shader( so.name() );
+        }
+
+        size_t oid = obj.get_oid( _bid );
+
+        auto const success =
+            _msls.access( oid, obj.name(), [ & ]( d3d11_pimpl_data::msl_data_ref_t msl )
+        {
+            if( !this_t::install_shader_data( so, sd ) ) return false;
+            if( !this_t::construct_render_data( *ro ) ) return false;
+
+            // render object
+            {
+                msl.ro_id = ro->get_oid( this_t::_bid );
+            }
+
+            // shader object
+            {
+                // reflect compilation result to the user
+                _shaders.access( so.get_oid( _bid ),
+                    [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
+                {
+                    obj.for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
+                    {
+                        auto const s =
+                            shd.compiled ? motor::graphics::compilation_listener::state::successful
+                                         : motor::graphics::compilation_listener::state::failed;
+
+                        lst->set( s, so.shader_bindings() );
+                    } );
+                } );
+
+                {
+                    msl.so = std::move( so );
+                }
+            }
+
+            return true;
+        } );
+
+        if( success )
+        {
+            mani.reset_in_transit();
+            mani.change_to_ready( motor::graphics::result::ok );
+        }
+        else
+        {
+            mani.reset_in_transit();
+            mani.change_to_ready( motor::graphics::result::failed );
+
+            cr.object->for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
+            {
+                lst->set( motor::graphics::compilation_listener::state::failed,
+                    motor::graphics::shader_bindings() );
+            } );
+        }
+
+        cr.object->set_oid( _bid, oid );
+        motor::release( motor::move( cr.object ) );
+
+        return success;
+    }
+
     //************************************************************************************************************
+    bool_t install_shader_data( motor::graphics::shader_object_ref_t obj,
+        d3d11_pimpl_data::shader_data_ref_t new_shader_data ) noexcept
+    {
+        size_t oid = obj.get_oid( _bid );
+        auto const shd_res = _shaders.access( oid, obj.name(),
+            [ & ]( motor::string_in_t shd_name, d3d11_pimpl_data::shader_data_ref_t sd )
+        {
+            sd.invalidate( std::nullopt );
+            sd = std::move( new_shader_data );
+            return true;
+        } );
+
+        if( !shd_res ) return false;
+
+        obj.set_oid( _bid, oid );
+
+        return true;
+    }
+
+    //************************************************************************************************************
+    // this function compiles the shader. It is not yet in the support thread.
+    // @todo put in support thread
+    bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj ) noexcept
+    {
+        d3d11_pimpl_data::shader_data_t new_shader_data;
+        if( !d3d11_independent::construct_shader_data( obj, new_shader_data, _ctx ) )
+        {
+            new_shader_data.invalidate( std::nullopt );
+            return false;
+        }
+
+        return this_t::install_shader_data( obj, new_shader_data );
+    }
+
+    //************************************************************************************************************
+    // this one compiles and installs the shader when called.
+    // @note do not use this function at run-time. shaders should be
+    // compiled through the support thread.
     bool_t construct_shader_config( motor::graphics::shader_object_ref_t obj )
     {
         size_t oid = obj.get_oid( _bid );
 
         d3d11_pimpl_data::shader_data_t new_shader;
-        if( d3d11_detail::d3d11_independent::construct_shader_data( obj, new_shader, _ctx ) )
+        if( d3d11_independent::construct_shader_data( obj, new_shader, _ctx ) )
         {
-            auto const res =
-                _shaders.access( oid, obj.name(), [ & ]( d3d11_pimpl_data::shader_data_ref_t sd )
-            {
-                sd.invalidate( "" );
-                sd = std::move( new_shader );
-                return true;
-            } );
-            obj.set_oid( _bid, oid );
-            return res;
+            return this_t::install_shader_data( obj, new_shader );
         }
 
         // compilation failed.
@@ -1591,8 +1709,8 @@ struct d3d11_backend::pimpl
 
     //************************************************************************************************************
     // @param sid shader oid if known
-    bool_t construct_render_config(
-        motor::graphics::render_object_ref_t obj, size_t const sid = size_t( -1 ) )
+    bool_t construct_render_data(
+        motor::graphics::render_object_ref_t obj )
     {
         size_t oid = obj.get_oid( _bid );
         auto const res =
@@ -2654,8 +2772,8 @@ struct d3d11_backend::pimpl
                             // ok, geometry changed
                             config.geo_ids[ geo_idx ].id = gid;
 
-// at this point, the geometry needs to be rebound
-// to the shader inputs.
+                            // at this point, the geometry needs to be rebound
+                            // to the shader inputs.
                             auto const res = this_t::bind_vertex_inputs( config, ro, geo_idx );
                         }
                     }
@@ -3543,7 +3661,6 @@ struct d3d11_backend::pimpl
                 }
             } );
             //_states[ ids_new.first ].states[ ids_new.second ].view_s.ss.vp = vp ;
-
         }
 
         {
@@ -3557,6 +3674,23 @@ struct d3d11_backend::pimpl
     //************************************************************************************************************
     void_t end_frame( void_t )
     {
+        _ctsd->for_each( [ & ]( d3d11_independent::backward_message & item )
+        {
+            std::visit( [ this ]( auto && arg )
+            {
+                using T = std::decay_t< decltype( arg ) >;
+                if constexpr( std::is_same_v< T, d3d11_independent::compilation_result > )
+                {
+                    this_t::construct_msl_data( std::move( arg ) );
+                }
+                else if constexpr( std::is_same_v< T, d3d11_independent::release_result > )
+                {
+                }
+                else
+                    static_assert( false, "non-exhaustive visitor!" );
+            }, item );
+        } );
+
         auto const ids_new = std::make_pair( size_t( 0 ), size_t( 0 ) );
 
         assert( _state_stack.size() == 1 );
@@ -3668,7 +3802,7 @@ motor::graphics::result d3d11_backend::configure(
         return motor::graphics::result::invalid_argument;
     }
 
-    if( _pimpl->construct_render_config( *obj ) )
+    if( _pimpl->construct_render_data( *obj ) )
     {
     }
 

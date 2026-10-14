@@ -22,13 +22,12 @@
 #include <d3d11shader.h>
 #include <directxcolors.h>
 
-namespace d3d11_detail
-{
-
 using namespace motor::core::types;
 
 struct d3d11_independent
 {
+    
+
     motor_this_typedefs( d3d11_independent );
 
     static motor::graphics::gen4::backend_type const bt =
@@ -690,5 +689,3 @@ struct d3d11_independent
         return std::make_tuple( true, std::move( so ), std::move( new_shader_data ) );
     }
 };
-
-} // namespace d3d11_detail

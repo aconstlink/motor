@@ -690,7 +690,7 @@ struct gl4_backend::pimpl
     }
 
 //****************************************************************************************
-#if 1
+
     bool_t install_shader_data( motor::graphics::shader_object_ref_t obj,
         gl4_pimpl_data::shader_data_ref_t new_shader_data ) noexcept
     {
@@ -746,9 +746,6 @@ struct gl4_backend::pimpl
 
         return true;
     }
-#else
-
-#endif
 
     // this function compiles the shader. It is not yet in the support thread.
     // @todo put in support thread
@@ -1087,7 +1084,13 @@ struct gl4_backend::pimpl
         else
         {
             mani.reset_in_transit();
-            mani.change_to_ready( motor::graphics::result::failed );
+            mani.change_to_raw( motor::graphics::result::failed );
+
+            cr.object->for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
+            {
+                lst->set( motor::graphics::compilation_listener::state::failed,
+                    motor::graphics::shader_bindings() );
+            } );
         }
 
         cr.object->set_oid( _bid, oid );

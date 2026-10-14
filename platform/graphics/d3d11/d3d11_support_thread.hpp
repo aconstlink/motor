@@ -73,13 +73,18 @@ class support_thread
 
         motor::msl::database_t mdb;
 
+        motor::platform::d3d11::rendering_context_mtr_t ctx = nullptr;
+
         std::mutex mtx;
         std::condition_variable cv;
 
         std::mutex mtx_backward;
 
+        
         motor::vector< d3d11_detail::work_item > forward_items;
-        motor::vector< d3d11_detail::d3d11_independent::backward_message > backward_items;
+        motor::vector< d3d11_independent::backward_message > backward_items;
+
+        
 
         void_t add_forward_item( d3d11_detail::work_item_rref_t item ) noexcept
         {
@@ -93,7 +98,7 @@ class support_thread
             has_work = true;
         }
 
-        void_t add_backward_item( d3d11_detail::d3d11_independent::backward_message && item ) noexcept
+        void_t add_backward_item( d3d11_independent::backward_message && item ) noexcept
         {
             std::unique_lock< std::mutex > lk( mtx_backward );
 
@@ -104,7 +109,7 @@ class support_thread
         }
 
         using for_each_backward_item_funk_t =
-            std::function< void_t( d3d11_detail::d3d11_independent::backward_message & ) >;
+            std::function< void_t( d3d11_independent::backward_message & ) >;
 
         // must be called in-sync
         void_t for_each( for_each_backward_item_funk_t f ) noexcept
@@ -147,13 +152,14 @@ class support_thread
         assert( _ctsd == nullptr );
     }
 
-    this_t::shared_data_ptr_t start_support_thread( owner_ptr_t owner ) noexcept
+    this_t::shared_data_ptr_t start_support_thread( owner_ptr_t owner, motor::platform::d3d11::rendering_context_mtr_t ctx ) noexcept
     {
         assert( _ctsd == nullptr && "Just start/stop the thread." );
 
         if( _ctsd == nullptr )
         {
             _ctsd = motor::memory::global::alloc< shared_data >( "[d3d11] support thread shared data" );
+            _ctsd->ctx = ctx ;
             _ctsd->running = true;
             _ctsd->owner = owner;
         }
@@ -192,13 +198,13 @@ class support_thread
                         {
 
                         case d3d11_detail::work_item::work_type::compile: {
-#if 1
+#if 0
                             ctsd->owner->construct_msl_data_st( msl ) ;
 #else
                             auto [ res, so, sd ] =
                                 d3d11_independent::construct_shader_from_msl_data_st(
-                                    *msl, ctsd->mdb );
-                            ctsd->add_backward_item( gl4_independent::compilation_result{
+                                    *msl, ctsd->mdb, ctsd->ctx );
+                            ctsd->add_backward_item( d3d11_independent::compilation_result{
                                 res, motor::move( msl ), std::move( so ), std::move( sd ) } );
                             item.ptr = nullptr;
 #endif

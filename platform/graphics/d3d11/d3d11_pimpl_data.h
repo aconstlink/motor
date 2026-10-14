@@ -196,7 +196,7 @@ struct so_data
     }
     ~so_data( void_t ) noexcept
     {
-        invalidate( "" );
+        invalidate( std::nullopt );
     }
 
     DXGI_FORMAT get_format_from_element( motor::graphics::vertex_attribute const va ) const noexcept
@@ -238,7 +238,7 @@ struct so_data
         return UINT( ret );
     }
 
-    void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+    void_t invalidate( std::optional< std::string_view > const & ) noexcept
     {
         elements.clear();
 
@@ -339,7 +339,7 @@ motor_typedef( so_data );
 
         ~geo_data( void_t ) noexcept
         {
-            invalidate("") ;
+            invalidate(std::nullopt) ;
         }
 
         DXGI_FORMAT get_format_from_element( motor::graphics::vertex_attribute const va ) const noexcept
@@ -395,7 +395,7 @@ motor_typedef( so_data );
             return UINT( ret ) ;
         }
 
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
             motor::memory::global_t::dealloc_raw( vb_mem ) ;
             motor::memory::global_t::dealloc_raw( ib_mem ) ;
@@ -615,7 +615,7 @@ motor_typedef( so_data );
             return *this ;
         }
 
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
             view = guard< ID3D11ShaderResourceView >() ;
             texture = guard< ID3D11Texture2D >() ;
@@ -650,7 +650,7 @@ motor_typedef( so_data );
             return *this ;
         }
 
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
             buffer = guard< ID3D11Buffer >() ;
             view = guard< ID3D11ShaderResourceView >() ;
@@ -687,7 +687,7 @@ motor_typedef( so_data );
             //invalidate() ;
         }
         
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
             rss = motor::graphics::render_state_sets_t() ;
             depth_stencil_state = guard< ID3D11DepthStencilState >() ;
@@ -711,7 +711,7 @@ motor_typedef( so_data );
     {
         motor::vector< motor::graphics::render_state_sets_t > states ;
 
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {}
     } ;
     motor_typedef( state_data ) ;
@@ -979,7 +979,7 @@ motor_typedef( so_data );
 
         ~render_data( void_t ) noexcept
         {
-            invalidate("") ;
+            invalidate(std::nullopt) ;
         }
 
         render_data & operator = ( render_data && rhv ) noexcept
@@ -1012,7 +1012,7 @@ motor_typedef( so_data );
             return *this ;
         }
 
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
             shd_id = size_t( -1 ) ;
 
@@ -1157,7 +1157,7 @@ motor_typedef( so_data );
         size_t ro_id ;
         motor::graphics::shader_object_t so ;
         
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
             ro_id = size_t(-1) ;
         }
@@ -1187,7 +1187,7 @@ motor_typedef( so_data );
 
         ID3D11DepthStencilView * ds_view = nullptr ;
 
-        void_t invalidate( motor::string_in_t ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
             for( size_t i=0; i<9; ++i ) image_ids[i] = size_t( -1 ) ;
             for( size_t i=0; i<8; ++i ) if( rt_view[i] ) 
