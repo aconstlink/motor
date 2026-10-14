@@ -44,33 +44,33 @@ struct gl4_backend::pimpl
 {
     motor_this_typedefs( pimpl );
 
-    using feedbacks_t = motor::platform::datas< pimpl_data::feedback_data_t >;
+    using feedbacks_t = motor::platform::datas< gl4_pimpl_data::feedback_data_t >;
     feedbacks_t _feedbacks;
 
-    using geo_datas_t = motor::platform::datas< pimpl_data::geo_data_t >;
+    using geo_datas_t = motor::platform::datas< gl4_pimpl_data::geo_data_t >;
     geo_datas_t _geometries;
 
-    using shader_datas_t = motor::platform::datas< pimpl_data::shader_data_t >;
+    using shader_datas_t = motor::platform::datas< gl4_pimpl_data::shader_data_t >;
     shader_datas_t _shaders;
 
-    using states_t = motor::platform::datas< pimpl_data::state_data >;
+    using states_t = motor::platform::datas< gl4_pimpl_data::state_data >;
     states_t _states;
 
     motor::stack< motor::graphics::render_state_sets_t, 10 > _state_stack;
 
-    using render_datas_t = motor::platform::datas< pimpl_data::render_data >;
+    using render_datas_t = motor::platform::datas< gl4_pimpl_data::render_data >;
     render_datas_t _renders;
 
-    using image_datas_t = motor::platform::datas< pimpl_data::image_data_t >;
+    using image_datas_t = motor::platform::datas< gl4_pimpl_data::image_data_t >;
     image_datas_t _images;
 
-    using arrays_t = motor::platform::datas< pimpl_data::array_data_t >;
+    using arrays_t = motor::platform::datas< gl4_pimpl_data::array_data_t >;
     arrays_t _arrays;
 
-    using framebuffer_datas_t = motor::platform::datas< pimpl_data::framebuffer_data_t >;
+    using framebuffer_datas_t = motor::platform::datas< gl4_pimpl_data::framebuffer_data_t >;
     framebuffer_datas_t _framebuffers;
 
-    using msls_t = motor::platform::datas< pimpl_data::msl_data_t >;
+    using msls_t = motor::platform::datas< gl4_pimpl_data::msl_data_t >;
     msls_t _msls;
 
     GLsizei vp_width = 0;
@@ -174,7 +174,7 @@ struct gl4_backend::pimpl
     void_t on_context_destruction( void_t ) noexcept
     {
         _support_thread.stop_support_thread();
-        motor::release( motor::move( _shd_ctx ) );
+        _ctsd = nullptr ;
 
         this_t::release_and_clear_all_shader_data( false );
         this_t::release_and_clear_all_geometry_data( false );
@@ -192,7 +192,7 @@ struct gl4_backend::pimpl
     {
         size_t oid = obj.get_oid( _bid );
         auto const res =
-            _states.access( oid, obj.name(), [ & ]( pimpl_data::state_data_ref_t states )
+            _states.access( oid, obj.name(), [ & ]( gl4_pimpl_data::state_data_ref_t states )
         {
             states.states.resize( obj.size() );
 
@@ -215,7 +215,7 @@ struct gl4_backend::pimpl
         assert( oid < _states.size() );
         if( !obj.check_and_reset_changed( _bid ) ) return false;
 
-        auto const res = _states.access( oid, [ & ]( pimpl_data::state_data_ref_t s )
+        auto const res = _states.access( oid, [ & ]( gl4_pimpl_data::state_data_ref_t s )
         {
             obj.for_each( [ & ]( size_t const i, motor::graphics::render_state_sets_cref_t rs )
             {
@@ -391,7 +391,7 @@ struct gl4_backend::pimpl
         {
             auto new_id = std::make_pair( oid, rs_id );
 
-            _states.access( new_id.first, [ & ]( pimpl_data::state_data_ref_t s )
+            _states.access( new_id.first, [ & ]( gl4_pimpl_data::state_data_ref_t s )
             { _state_stack.push( _state_stack.top() + s.states[ new_id.second ] ); } );
             this_t::handle_render_state( _state_stack.top(), false );
         }
@@ -402,7 +402,7 @@ struct gl4_backend::pimpl
     {
         size_t oid = obj.get_oid( _bid );
         auto const res = _framebuffers.access( oid, obj.name(),
-            [ & ]( motor::string_in_t fb_name, pimpl_data::framebuffer_data_ref_t fb )
+            [ & ]( motor::string_in_t fb_name, gl4_pimpl_data::framebuffer_data_ref_t fb )
         {
             if( fb.gl_id == GLuint( -1 ) )
             {
@@ -555,7 +555,7 @@ struct gl4_backend::pimpl
                 {
                     size_t new_iid = size_t( -1 );
                     motor::string_t name = fb_name + "." + motor::to_string( i );
-                    _images.access( new_iid, name, [ & ]( pimpl_data::image_data_ref_t id )
+                    _images.access( new_iid, name, [ & ]( gl4_pimpl_data::image_data_ref_t id )
                     {
                         id.tex_id = fb.colors[ i ];
                         id.type = GL_TEXTURE_2D;
@@ -579,7 +579,7 @@ struct gl4_backend::pimpl
             {
                 size_t new_iid = size_t( -1 );
                 motor::string_t name = fb_name + ".depth";
-                _images.access( new_iid, name, [ & ]( pimpl_data::image_data_ref_t id )
+                _images.access( new_iid, name, [ & ]( gl4_pimpl_data::image_data_ref_t id )
                 {
                     id.tex_id = fb.depth;
                     id.type = GL_TEXTURE_2D;
@@ -610,9 +610,9 @@ struct gl4_backend::pimpl
     bool_t release_framebuffer( size_t const oid ) noexcept
     {
         // #1 clear the images buffers, i.e remove references
-        _framebuffers.access( oid, [ & ]( pimpl_data::framebuffer_data_ref_t fbd )
+        _framebuffers.access( oid, [ & ]( gl4_pimpl_data::framebuffer_data_ref_t fbd )
         {
-            _images.for_each( [ & ]( pimpl_data::image_data_ref_t id )
+            _images.for_each( [ & ]( gl4_pimpl_data::image_data_ref_t id )
             {
                 // try all colors
                 for( size_t i = 0; i < 8; ++i )
@@ -644,7 +644,7 @@ struct gl4_backend::pimpl
     bool_t activate_framebuffer( size_t const oid ) noexcept
     {
         auto const [ a, b ] =
-            _framebuffers.access< bool_t >( oid, [ & ]( pimpl_data::framebuffer_data_ref_t fb )
+            _framebuffers.access< bool_t >( oid, [ & ]( gl4_pimpl_data::framebuffer_data_ref_t fb )
         {
             // bind
             {
@@ -692,11 +692,11 @@ struct gl4_backend::pimpl
 //****************************************************************************************
 #if 1
     bool_t install_shader_data( motor::graphics::shader_object_ref_t obj,
-        pimpl_data::shader_data_ref_t new_shader_data ) noexcept
+        gl4_pimpl_data::shader_data_ref_t new_shader_data ) noexcept
     {
         size_t oid = obj.get_oid( _bid );
         auto const shd_res = _shaders.access( oid, obj.name(),
-            [ & ]( motor::string_in_t shd_name, pimpl_data::shader_data_ref_t sd )
+            [ & ]( motor::string_in_t shd_name, gl4_pimpl_data::shader_data_ref_t sd )
         {
             sd = std::move( new_shader_data );
             return true;
@@ -709,7 +709,7 @@ struct gl4_backend::pimpl
         // if the shader is redone, all render objects using
         // the shader need to be updated
         {
-            _renders.for_each( [ & ]( pimpl_data::render_data_ref_t rd )
+            _renders.for_each( [ & ]( gl4_pimpl_data::render_data_ref_t rd )
             {
                 if( rd.shd_id != oid ) return;
 
@@ -731,7 +731,7 @@ struct gl4_backend::pimpl
                     this_t::connect( rd, i, vs.hash, motor::move( vs.vs ) );
                 }
 
-                _shaders.access( rd.shd_id, [ & ]( pimpl_data::shader_data_ref_t sd )
+                _shaders.access( rd.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t sd )
                 {
                     this_t::render_object_variable_memory( rd, sd );
                     return true;
@@ -754,7 +754,7 @@ struct gl4_backend::pimpl
     // @todo put in support thread
     bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj ) noexcept
     {
-        pimpl_data::shader_data_t new_shader_data;
+        gl4_pimpl_data::shader_data_t new_shader_data;
         if( !gl4_independent::construct_shader_data( obj, new_shader_data ) )
         {
             new_shader_data.invalidate();
@@ -770,7 +770,7 @@ struct gl4_backend::pimpl
     {
         if( !with_gl )
         {
-            _msls.for_each( [ & ]( pimpl_data::msl_data_ref_t d ) {} );
+            _msls.for_each( [ & ]( gl4_pimpl_data::msl_data_ref_t d ) {} );
         }
 
         _msls.invalidate_and_clear();
@@ -782,7 +782,7 @@ struct gl4_backend::pimpl
     {
         if( !with_gl )
         {
-            _feedbacks.for_each( [ & ]( pimpl_data::feedback_data_ref_t d )
+            _feedbacks.for_each( [ & ]( gl4_pimpl_data::feedback_data_ref_t d )
             {
                 for( size_t rw = 0; rw < 2; ++rw )
                 {
@@ -804,7 +804,7 @@ struct gl4_backend::pimpl
         // #1 first, reset the gl ids
         if( !with_gl )
         {
-            _arrays.for_each( [ & ]( pimpl_data::array_data_ref_t d )
+            _arrays.for_each( [ & ]( gl4_pimpl_data::array_data_ref_t d )
             {
                 d.buf_id = GLuint( -1 );
                 d.tex_id = GLuint( -1 );
@@ -822,7 +822,7 @@ struct gl4_backend::pimpl
         if( !with_gl )
         {
             _framebuffers.for_each(
-                [ & ]( pimpl_data::framebuffer_data_ref_t d ) { d.reset_gl_ids(); } );
+                [ & ]( gl4_pimpl_data::framebuffer_data_ref_t d ) { d.reset_gl_ids(); } );
         }
 
         _framebuffers.invalidate_and_clear();
@@ -835,7 +835,7 @@ struct gl4_backend::pimpl
         if( !with_gl )
         {
             _images.for_each(
-                [ & ]( pimpl_data::image_data_ref_t d ) { d.tex_id = GLuint( -1 ); } );
+                [ & ]( gl4_pimpl_data::image_data_ref_t d ) { d.tex_id = GLuint( -1 ); } );
         }
 
         _images.invalidate_and_clear();
@@ -848,7 +848,7 @@ struct gl4_backend::pimpl
         if( !with_gl )
         {
             _renders.for_each(
-                [ & ]( pimpl_data::render_data_ref_t rd ) { rd.geo_to_vaos.clear(); } );
+                [ & ]( gl4_pimpl_data::render_data_ref_t rd ) { rd.geo_to_vaos.clear(); } );
         }
 
         _renders.invalidate_and_clear();
@@ -862,7 +862,7 @@ struct gl4_backend::pimpl
         // => no gl calls will be made
         if( !with_gl )
         {
-            _shaders.for_each( [ & ]( pimpl_data::shader_data_ref_t shd )
+            _shaders.for_each( [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
             {
                 shd.pg_id = GLuint( -1 );
                 shd.vs_id = GLuint( -1 );
@@ -881,14 +881,14 @@ struct gl4_backend::pimpl
         // => no gl calls will be made
         if( !with_gl )
         {
-            _geometries.for_each( [ & ]( pimpl_data::geo_data_ref_t gd )
+            _geometries.for_each( [ & ]( gl4_pimpl_data::geo_data_ref_t gd )
             {
                 gd.ib_id = GLuint( -1 );
                 gd.vb_id = GLuint( -1 );
             } );
         }
 
-        _renders.for_each( [ & ]( pimpl_data::render_data_ref_t rd ) { rd.geo_ids.clear(); } );
+        _renders.for_each( [ & ]( gl4_pimpl_data::render_data_ref_t rd ) { rd.geo_ids.clear(); } );
 
         _geometries.invalidate_and_clear();
     }
@@ -908,7 +908,7 @@ struct gl4_backend::pimpl
     //************************************************************************************************************
     void_t release_msl_data( size_t const oid ) noexcept
     {
-        _msls.access( oid, [ & ]( pimpl_data::msl_data & data )
+        _msls.access( oid, [ & ]( gl4_pimpl_data::msl_data & data )
         {
             // we do not need the name, the id should suffice because
             // we have the id internally so it must be valid.
@@ -938,7 +938,7 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    void_t delete_all_variables( pimpl_data::shader_data & config )
+    void_t delete_all_variables( gl4_pimpl_data::shader_data & config )
     {
         config.vertex_inputs.clear();
 
@@ -954,10 +954,10 @@ struct gl4_backend::pimpl
     bool_t check_link_status( size_t const rid ) noexcept
     {
         auto const [ a, b ] =
-            _renders.access< bool_t >( rid, [ & ]( pimpl_data::render_data_ref_t rd )
+            _renders.access< bool_t >( rid, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
         {
             auto const [ a, b ] = _shaders.access< bool_t >(
-                rd.shd_id, [ & ]( pimpl_data::shader_data_ref_t sd ) { return sd.is_linkage_ok; } );
+                rd.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t sd ) { return sd.is_linkage_ok; } );
 
             return a && b;
         } );
@@ -969,7 +969,7 @@ struct gl4_backend::pimpl
     {
         size_t oid = config.get_oid( _bid );
         auto const res =
-            _images.access( oid, config.name(), [ & ]( pimpl_data::image_data_ref_t img )
+            _images.access( oid, config.name(), [ & ]( gl4_pimpl_data::image_data_ref_t img )
         {
             // sampler
             if( img.tex_id == GLuint( -1 ) )
@@ -1044,7 +1044,7 @@ struct gl4_backend::pimpl
 
         size_t oid = obj.get_oid( _bid );
 
-        auto const success = _msls.access( oid, obj.name(), [ & ]( pimpl_data::msl_data_ref_t msl )
+        auto const success = _msls.access( oid, obj.name(), [ & ]( gl4_pimpl_data::msl_data_ref_t msl )
         {
             if( !this_t::install_shader_data( so, sd ) ) return false;
             if( !this_t::construct_render_data( *ro ) ) return false;
@@ -1057,7 +1057,7 @@ struct gl4_backend::pimpl
             // shader object
             {
                 // reflect compilation result to the user
-                _shaders.access( so.get_oid( _bid ), [ & ]( pimpl_data::shader_data_ref_t shd )
+                _shaders.access( so.get_oid( _bid ), [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
                 {
                     obj.for_each( [ & ]( motor::graphics::compilation_listener_mtr_t lst )
                     {
@@ -1122,17 +1122,17 @@ struct gl4_backend::pimpl
     bool_t release_render_data( size_t oid, motor::string_in_t name ) noexcept
     {
         // #1 break connections BEFORE invalidating the item
-        auto const res = _renders.access( oid, name, [ & ]( pimpl_data::render_data_ref_t rd )
+        auto const res = _renders.access( oid, name, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
         {
             for( auto const & item : rd.geo_ids )
             {
                 _geometries.access( item.id,
-                    [ & ]( pimpl_data::geo_data_ref_t d ) { d.remove_render_data_id( oid ); } );
+                    [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.remove_render_data_id( oid ); } );
             }
 
             for( auto const id : rd.tf_ids )
             {
-                _feedbacks.access( id, [ & ]( pimpl_data::feedback_data_ref_t d )
+                _feedbacks.access( id, [ & ]( gl4_pimpl_data::feedback_data_ref_t d )
                 { d.remove_render_data_id( oid ); } );
             }
             return true;
@@ -1147,7 +1147,7 @@ struct gl4_backend::pimpl
     {
         size_t oid = rc.get_oid( _bid );
         auto const res = _renders.access( oid, rc.name(),
-            [ & ]( size_t const new_id, pimpl_data::render_data_ref_t config )
+            [ & ]( size_t const new_id, gl4_pimpl_data::render_data_ref_t config )
         {
             // handle geometry links
             {
@@ -1162,10 +1162,10 @@ struct gl4_backend::pimpl
                             rc.get_geometry_link( i ).name.c_str(), rc.name().c_str() );
                         continue;
                     }
-                    config.geo_ids.emplace_back( pimpl_data::render_data::geo_id_data{
+                    config.geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
                         gid, rc.get_geometry_link( i ).hash } );
                     _geometries.access( gid,
-                        [ & ]( pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( new_id ); } );
+                        [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( new_id ); } );
                 }
             }
 
@@ -1222,7 +1222,7 @@ struct gl4_backend::pimpl
                 for( auto & v : vars ) motor::release( motor::move( v.vs ) );
             }
 
-            _shaders.access( config.shd_id, [ & ]( pimpl_data::shader_data_ref_t shd )
+            _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
             { this_t::render_object_variable_memory( config, shd ); } );
 
             return true;
@@ -1237,7 +1237,7 @@ struct gl4_backend::pimpl
     {
         size_t oid = ro.get_oid( _bid );
         auto const res = _renders.access( oid, ro.name(),
-            [ & ]( size_t const new_id, pimpl_data::render_data_ref_t config )
+            [ & ]( size_t const new_id, gl4_pimpl_data::render_data_ref_t config )
         {
             // do full binding
             if( config.geo_ids.size() <= geo_idx )
@@ -1251,10 +1251,10 @@ struct gl4_backend::pimpl
                         ro.get_geometry_link( geo_idx ).name.c_str(), ro.name().c_str() );
                     return false;
                 }
-                config.geo_ids.emplace_back( pimpl_data::render_data::geo_id_data{
+                config.geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
                     gid, ro.get_geometry_link( geo_idx ).hash } );
                 _geometries.access( gid,
-                    [ & ]( pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( new_id ); } );
+                    [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( new_id ); } );
             }
             else if( config.geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
             {
@@ -1303,7 +1303,7 @@ struct gl4_backend::pimpl
     }
 
     bool_t bind_attributes(
-        GLuint const vao, size_t const gid, pimpl_data::shader_data_ref_t sd ) noexcept
+        GLuint const vao, size_t const gid, gl4_pimpl_data::shader_data_ref_t sd ) noexcept
     {
         glBindVertexArray( vao );
         if( gl4_log_error( "glBindVertexArray" ) )
@@ -1313,7 +1313,7 @@ struct gl4_backend::pimpl
 
         // auto & gd = _geometries[ gid ] ;
         auto const [ c, d ] = _geometries.access< bool_t >( gid,
-            [ & ]( motor::string_in_t name, pimpl_data::geo_data_ref_t gd )
+            [ & ]( motor::string_in_t name, gl4_pimpl_data::geo_data_ref_t gd )
         { return gl4_independent::bind_attributes( name, sd, gd ); } );
 
         return c && d;
@@ -1321,7 +1321,7 @@ struct gl4_backend::pimpl
 
     //****************************************************************************************
     void_t render_object_variable_memory(
-        pimpl_data::render_data & rd, pimpl_data::shader_data & shader )
+        gl4_pimpl_data::render_data & rd, gl4_pimpl_data::shader_data & shader )
     {
         auto & config = rd;
 
@@ -1403,7 +1403,7 @@ struct gl4_backend::pimpl
         size_t & oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
         motor_status2( 1024, "[gl4] : construct geometry %s", name.c_str() );
-        auto const res = _geometries.access( oid, name, [ & ]( pimpl_data::geo_data_ref_t config )
+        auto const res = _geometries.access( oid, name, [ & ]( gl4_pimpl_data::geo_data_ref_t config )
         {
             // vertex buffer
             if( config.vb_id == GLuint( -1 ) )
@@ -1431,7 +1431,7 @@ struct gl4_backend::pimpl
                 config.elements.clear();
                 vb.for_each_layout_element( [ & ]( motor::graphics::vertex_buffer_t::data_cref_t d )
                 {
-                    pimpl_data::geo_data::layout_element le;
+                    gl4_pimpl_data::geo_data::layout_element le;
                     le.va = d.va;
                     le.type = d.type;
                     le.type_struct = d.type_struct;
@@ -1458,14 +1458,14 @@ struct gl4_backend::pimpl
     bool_t release_geometry( size_t const oid ) noexcept
     {
         // #1 have to deal with external references first
-        _geometries.access( oid, [ & ]( pimpl_data::geo_data_ref_t g )
+        _geometries.access( oid, [ & ]( gl4_pimpl_data::geo_data_ref_t g )
         {
             for( auto const id : g.rd_ids )
             {
                 if( id == size_t( -1 ) ) continue;
 
                 _renders.access(
-                    id, [ & ]( pimpl_data::render_data_ref_t d ) { d.remove_geometry_id( oid ); } );
+                    id, [ & ]( gl4_pimpl_data::render_data_ref_t d ) { d.remove_geometry_id( oid ); } );
             }
             g.rd_ids.clear();
         } );
@@ -1479,7 +1479,7 @@ struct gl4_backend::pimpl
     {
         size_t const id = geo->get_oid( _bid );
         auto const [ a, b ] =
-            _geometries.access< bool_t >( id, [ & ]( pimpl_data::geo_data_ref_t config )
+            _geometries.access< bool_t >( id, [ & ]( gl4_pimpl_data::geo_data_ref_t config )
         {
             {
                 config.num_elements_ib = geo->index_buffer().get_num_elements();
@@ -1547,7 +1547,7 @@ struct gl4_backend::pimpl
                 // force rebind of vertex attributes. Layout may have changed.
                 for( auto const & rid : config.rd_ids )
                 {
-                    _renders.access( rid, [ & ]( pimpl_data::render_data_ref_t rd )
+                    _renders.access( rid, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
                     {
                         if( rd.shd_id == size_t( -1 ) ) return false;
 
@@ -1579,11 +1579,11 @@ struct gl4_backend::pimpl
     //          This param should be true if an image is configured or re-configured.
     bool_t update( motor::graphics::image_object_ref_t confin, bool_t const is_config = false )
     {
-        // pimpl_data::image_data_ref_t config = _images[ id ] ;
+        // gl4_pimpl_data::image_data_ref_t config = _images[ id ] ;
         size_t const id = confin.get_oid( _bid );
 
         auto const [ a, b ] =
-            _images.access< bool_t >( id, [ & ]( pimpl_data::image_data_ref_t config )
+            _images.access< bool_t >( id, [ & ]( gl4_pimpl_data::image_data_ref_t config )
         {
             glBindTexture( config.type, config.tex_id );
             if( gl4_log_error( "glBindTexture" ) ) return false;
@@ -1670,7 +1670,7 @@ struct gl4_backend::pimpl
     // at the moment, just really call if you know if a reconnect is happening.
     // a reconnection could happen, if a variable set is still there, but on the user side
     // the variable set has been replaced so the hash values differ.
-    bool_t reconnect( pimpl_data::render_data & config, size_t const var_set_idx, size_t const hash,
+    bool_t reconnect( gl4_pimpl_data::render_data & config, size_t const var_set_idx, size_t const hash,
         motor::graphics::variable_set_mtr_safe_t vs )
     {
         // enforce description - see function desc
@@ -1681,7 +1681,7 @@ struct gl4_backend::pimpl
 
         auto * old_vs = config.via_indirection( var_set_idx ).vs;
 
-        _shaders.access( config.shd_id, [ & ]( pimpl_data::shader_data_ref_t shd )
+        _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
         { vs->clone_from_if_not_exist( &shd.default_values ); } );
 
         // exchange data variables
@@ -1732,7 +1732,7 @@ struct gl4_backend::pimpl
 
         // exchange array variables
         {
-            _shaders.access( config.shd_id, [ & ]( pimpl_data::shader_data_ref_t shd )
+            _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
             {
                 auto const s = config.varset_to_idx[ var_set_idx ].array_idx_begin;
                 auto const e = config.varset_to_idx[ var_set_idx ].array_idx_end;
@@ -1750,7 +1750,7 @@ struct gl4_backend::pimpl
                     }
 
                     bool const found = _arrays.access_by_name( var->get().name(),
-                        [ & ]( size_t const id, pimpl_data::array_data_ref_t data )
+                        [ & ]( size_t const id, gl4_pimpl_data::array_data_ref_t data )
                     {
                         entry.buf_id = id;
                         entry.tex_id = data.tex_id;
@@ -1766,7 +1766,7 @@ struct gl4_backend::pimpl
 
         // exchange streamout variables
         {
-            _shaders.access( config.shd_id, [ & ]( pimpl_data::shader_data_ref_t shd )
+            _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
             {
                 auto const s = config.varset_to_idx[ var_set_idx ].streamout_idx_begin;
                 auto const e = config.varset_to_idx[ var_set_idx ].streamout_idx_end;
@@ -1784,7 +1784,7 @@ struct gl4_backend::pimpl
                     }
 
                     bool const found = _feedbacks.access_by_name( var->get().name(),
-                        [ & ]( size_t const id, pimpl_data::feedback_data_ref_t data )
+                        [ & ]( size_t const id, gl4_pimpl_data::feedback_data_ref_t data )
                     {
                         entry.so_id = id;
                         entry.tex_id[ 0 ] = data._buffers[ 0 ].tids[ 0 ];
@@ -1811,15 +1811,15 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( pimpl_data::render_data & config, size_t const var_set_idx, size_t const hash,
+    bool_t connect( gl4_pimpl_data::render_data & config, size_t const var_set_idx, size_t const hash,
         motor::graphics::variable_set_mtr_safe_t vs )
     {
-        // pimpl_data::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
-        _shaders.access( config.shd_id, [ & ]( pimpl_data::shader_data_ref_t shd )
+        // gl4_pimpl_data::shader_data_ref_t shd = _shaders[ config.shd_id ] ;
+        _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
         {
             vs->clone_from_if_not_exist( &shd.default_values );
 
-            pimpl_data::render_data_t::varset_to_idx_data vtidx_data;
+            gl4_pimpl_data::render_data_t::varset_to_idx_data vtidx_data;
             vtidx_data.data_idx_begin = config.var_sets_data.size();
             vtidx_data.data_idx_end = config.var_sets_data.size();
 
@@ -1847,7 +1847,7 @@ struct gl4_backend::pimpl
                         continue;
                     }
 
-                    pimpl_data::render_data::uniform_variable_link link;
+                    gl4_pimpl_data::render_data::uniform_variable_link link;
                     link.uniform_id = id++;
                     link.var = var;
 
@@ -1871,13 +1871,13 @@ struct gl4_backend::pimpl
                     {
                         auto const & tx_name = var->get();
 
-                        pimpl_data::render_data::uniform_texture_link link;
+                        gl4_pimpl_data::render_data::uniform_texture_link link;
                         link.uniform_id = id++;
                         link.img_hash = var->get().hash();
                         link.var = var;
 
                         auto const res = _images.access_by_name( tx_name.name(),
-                            [ & ]( size_t const img_id, pimpl_data::image_data_ref_t d )
+                            [ & ]( size_t const img_id, gl4_pimpl_data::image_data_ref_t d )
                         {
                             link.img_id = img_id;
                             link.tex_id = d.tex_id;
@@ -1907,10 +1907,10 @@ struct gl4_backend::pimpl
                     // looking for data buffer
                     auto handle_buffer_link = [ & ]( void_t )
                     {
-                        pimpl_data::render_data::uniform_array_data_link link;
+                        gl4_pimpl_data::render_data::uniform_array_data_link link;
 
                         auto const res = _arrays.access_by_name( tx_name,
-                            [ & ]( size_t const id_, pimpl_data::array_data_ref_t d )
+                            [ & ]( size_t const id_, gl4_pimpl_data::array_data_ref_t d )
                         {
                             link.buf_id = id_;
                             link.tex_id = d.tex_id;
@@ -1927,10 +1927,10 @@ struct gl4_backend::pimpl
                     // looking for streamout/transform feedback
                     auto handle_feedback_link = [ & ]( void_t )
                     {
-                        pimpl_data::render_data::uniform_streamout_link link;
+                        gl4_pimpl_data::render_data::uniform_streamout_link link;
 
                         auto const res = _feedbacks.access_by_name( tx_name,
-                            [ & ]( size_t const id_, pimpl_data::feedback_data_ref_t d )
+                            [ & ]( size_t const id_, gl4_pimpl_data::feedback_data_ref_t d )
                         {
                             link.tex_id[ 0 ] = d._buffers[ 0 ].tids[ 0 ];
                             link.tex_id[ 1 ] = d._buffers[ 1 ].tids[ 0 ];
@@ -1970,7 +1970,7 @@ struct gl4_backend::pimpl
                 vtidx_data.idx = idx;
 
                 config.varset_to_idx[ var_set_idx ] = std::move( vtidx_data );
-                config.var_sets[ idx ] = pimpl_data::render_data::variable_set{
+                config.var_sets[ idx ] = gl4_pimpl_data::render_data::variable_set{
                     hash, /*var_set_idx,*/ motor::move( vs ) };
             }
         } );
@@ -1982,7 +1982,7 @@ struct gl4_backend::pimpl
     bool_t construct_array_data( motor::graphics::array_object_ref_t obj ) noexcept
     {
         size_t oid = obj.get_oid( _bid );
-        auto const res = _arrays.access( oid, obj.name(), [ & ]( pimpl_data::array_data_ref_t data )
+        auto const res = _arrays.access( oid, obj.name(), [ & ]( gl4_pimpl_data::array_data_ref_t data )
         {
             // buffer
             if( data.buf_id == GLuint( -1 ) )
@@ -2018,7 +2018,7 @@ struct gl4_backend::pimpl
     bool_t update( motor::graphics::array_object_ref_t obj, bool_t const is_config = false )
     {
         auto const [ a, b ] = _arrays.access< bool_t >( obj.get_oid( _bid ),
-            [ & ]( pimpl_data::array_data_ref_t data )
+            [ & ]( gl4_pimpl_data::array_data_ref_t data )
         {
             // do buffer
             {
@@ -2072,10 +2072,10 @@ struct gl4_backend::pimpl
     {
         size_t oid = obj.get_oid( _bid );
         auto const res =
-            _feedbacks.access( oid, obj.name(), [ & ]( pimpl_data::feedback_data_ref_t data )
+            _feedbacks.access( oid, obj.name(), [ & ]( gl4_pimpl_data::feedback_data_ref_t data )
         {
             size_t const req_buffers =
-                std::min( obj.num_buffers(), pimpl_data::feedback_data::buffer::max_buffers );
+                std::min( obj.num_buffers(), gl4_pimpl_data::feedback_data::buffer::max_buffers );
 
             // rw : read/write - ping pong buffers
             for( size_t rw = 0; rw < 2; ++rw )
@@ -2105,16 +2105,16 @@ struct gl4_backend::pimpl
                     buffer.sibs[ i ] = 0;
 
                     _geometries.access( gid,
-                        [ & ]( pimpl_data::geo_data_ref_t d ) { buffer.bids[ i ] = d.vb_id; } );
+                        [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { buffer.bids[ i ] = d.vb_id; } );
                 }
 
                 // we just always gen max buffers tex ids
                 {
-                    glGenTextures( pimpl_data::feedback_data::buffer::max_buffers, buffer.tids );
+                    glGenTextures( gl4_pimpl_data::feedback_data::buffer::max_buffers, buffer.tids );
                     if( gl4_log_error3( "glGenTextures", obj ) ) return false;
                 }
 
-                for( size_t i = req_buffers; i < pimpl_data::feedback_data::buffer::max_buffers;
+                for( size_t i = req_buffers; i < gl4_pimpl_data::feedback_data::buffer::max_buffers;
                      ++i )
                 {
                     if( buffer.gids[ i ] == size_t( -1 ) ) break;
@@ -2146,13 +2146,13 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t release_tf_data( size_t const oid ) noexcept
     {
-        _feedbacks.access( oid, [ & ]( pimpl_data::feedback_data_ref_t d )
+        _feedbacks.access( oid, [ & ]( gl4_pimpl_data::feedback_data_ref_t d )
         {
             for( size_t rw = 0; rw < 2; ++rw )
             {
                 auto & buffer = d._buffers[ rw ];
 
-                for( GLuint i = 0; i < pimpl_data::feedback_data_t::buffer::max_buffers; ++i )
+                for( GLuint i = 0; i < gl4_pimpl_data::feedback_data_t::buffer::max_buffers; ++i )
                 {
                     if( buffer.gids[ i ] == size_t( -1 ) ) break;
 
@@ -2170,7 +2170,7 @@ struct gl4_backend::pimpl
     bool_t update( motor::graphics::streamout_object_ref_t obj, bool_t const is_config = false )
     {
         auto const [ a, b ] = _feedbacks.access< bool_t >( obj.get_oid( _bid ),
-            [ & ]( pimpl_data::feedback_data_ref_t data )
+            [ & ]( gl4_pimpl_data::feedback_data_ref_t data )
         {
             for( size_t rw = 0; rw < 2; ++rw )
             {
@@ -2232,7 +2232,7 @@ struct gl4_backend::pimpl
 
                 // bind buffers
                 {
-                    for( size_t i = 0; i < pimpl_data::feedback_data::buffer::max_buffers; ++i )
+                    for( size_t i = 0; i < gl4_pimpl_data::feedback_data::buffer::max_buffers; ++i )
                     {
                         auto const bid = buffer.bids[ i ];
                         auto const sib = buffer.sibs[ i ];
@@ -2270,7 +2270,7 @@ struct gl4_backend::pimpl
         if( _tf_active_id == size_t( -1 ) ) return;
 
         auto const res =
-            _feedbacks.access( _tf_active_id, [ & ]( pimpl_data::feedback_data_ref_t data )
+            _feedbacks.access( _tf_active_id, [ & ]( gl4_pimpl_data::feedback_data_ref_t data )
         {
             auto const wrt_idx = data.write_index();
             auto & buffer = data._buffers[ wrt_idx ];
@@ -2282,12 +2282,12 @@ struct gl4_backend::pimpl
             // bind transform feedback object and update primitive type for
             // rendering the transform feedback data.
             {
-                for( size_t i = 0; i < pimpl_data::feedback_data::buffer::max_buffers; ++i )
+                for( size_t i = 0; i < gl4_pimpl_data::feedback_data::buffer::max_buffers; ++i )
                 {
                     if( buffer.bids[ i ] == GLuint( -1 ) ) break;
 
                     _geometries.access(
-                        buffer.gids[ i ], [ & ]( pimpl_data::geo_data_ref_t d ) { d.pt = gpt; } );
+                        buffer.gids[ i ], [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.pt = gpt; } );
                 }
 
                 glBindTransformFeedback( GL_TRANSFORM_FEEDBACK, buffer.tfid );
@@ -2329,7 +2329,7 @@ struct gl4_backend::pimpl
         // swap the indices of the ping-pong buffers
         {
             _feedbacks.access(
-                _tf_active_id, [ & ]( pimpl_data::feedback_data_ref_t d ) { d.swap_index(); } );
+                _tf_active_id, [ & ]( gl4_pimpl_data::feedback_data_ref_t d ) { d.swap_index(); } );
         }
 
 // I believe this is for testing purposes.
@@ -2352,7 +2352,7 @@ struct gl4_backend::pimpl
     {
         size_t oid = ro.get_oid( this_t::_bid );
         auto const [ a, b ] =
-            _renders.access< bool_t >( oid, [ & ]( pimpl_data::render_data_ref_t rd )
+            _renders.access< bool_t >( oid, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
         {
             auto [ hash, vs ] = ro.borrow_variable_set( varset_id );
 
@@ -2364,7 +2364,7 @@ struct gl4_backend::pimpl
             {
                 this_t::connect( rd, varset_id, hash, motor::share( vs ) );
 
-                _shaders.access( rd.shd_id, [ & ]( pimpl_data::shader_data_ref_t sd )
+                _shaders.access( rd.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t sd )
                 {
                     this_t::render_object_variable_memory( rd, sd );
                     return true;
@@ -2381,18 +2381,18 @@ struct gl4_backend::pimpl
     bool_t update_variables( size_t const oid, size_t const varset_id ) noexcept
     {
         auto const [ a, b ] =
-            _renders.access< bool_t >( oid, [ & ]( pimpl_data::render_data_ref_t rd )
+            _renders.access< bool_t >( oid, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
         { return this_t::update_variables( rd, varset_id ); } );
         return a && b;
     }
 
     //****************************************************************************************
-    bool_t update_variables( pimpl_data::render_data & config, size_t const varset_id ) noexcept
+    bool_t update_variables( gl4_pimpl_data::render_data & config, size_t const varset_id ) noexcept
     {
-        pimpl_data::render_data_t::varset_to_idx_data entry;
+        gl4_pimpl_data::render_data_t::varset_to_idx_data entry;
         if( !config.get_vs_to_idx_entry( varset_id, entry ) ) return false;
 
-        _shaders.access( config.shd_id, [ & ]( pimpl_data::shader_data_ref_t sconfig )
+        _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t sconfig )
         {
             {
                 glUseProgram( sconfig.pg_id );
@@ -2446,12 +2446,12 @@ struct gl4_backend::pimpl
                                     link.var->get().name().c_str() );
 
                                 _images.access( link.img_id, [ & ]( motor::string_in_t id_name,
-                                                                 pimpl_data::image_data_ref_t )
+                                                                 gl4_pimpl_data::image_data_ref_t )
                                 { link.var->set( id_name ); } );
                             }
                             else
                             {
-                                _images.access( img_idx, [ & ]( pimpl_data::image_data_ref_t id )
+                                _images.access( img_idx, [ & ]( gl4_pimpl_data::image_data_ref_t id )
                                 {
                                     link.img_hash = link.var->get().hash();
                                     link.img_id = img_idx;
@@ -2510,9 +2510,9 @@ struct gl4_backend::pimpl
         MOTOR_PROBE( "Graphics", "[gl4] : render" );
 
         auto const [ a, b ] = _renders.try_access( id,
-            [ & ]( motor::string_in_t name, pimpl_data::render_data_ref_t config )
+            [ & ]( motor::string_in_t name, gl4_pimpl_data::render_data_ref_t config )
         {
-            _shaders.access( config.shd_id, [ & ]( pimpl_data::shader_data_ref_t sconfig )
+            _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t sconfig )
             {
                 size_t gid = size_t( -1 );
                 size_t tfid = size_t( -1 );
@@ -2523,7 +2523,7 @@ struct gl4_backend::pimpl
                     tfid = config.tf_ids[ 0 ];
                     if( feed_from_tf )
                     {
-                        _feedbacks.access( tfid, [ & ]( pimpl_data::feedback_data_ref_t d )
+                        _feedbacks.access( tfid, [ & ]( gl4_pimpl_data::feedback_data_ref_t d )
                         { gid = d.read_buffer().gids[ 0 ]; } );
                     }
                     else
@@ -2551,7 +2551,7 @@ struct gl4_backend::pimpl
                     {
                         auto iter =
                             std::find_if( config.geo_to_vaos.begin(), config.geo_to_vaos.end(),
-                                [ & ]( pimpl_data::render_data::geo_to_vao const & d )
+                                [ & ]( gl4_pimpl_data::render_data::geo_to_vao const & d )
                         { return d.gid == gid; } );
 
                         if( iter == config.geo_to_vaos.end() )
@@ -2566,7 +2566,7 @@ struct gl4_backend::pimpl
                             // bind vertex attributes to shader locations for vao
                             if( this_t::bind_attributes( vao_id, gid, sconfig ) )
                                 config.geo_to_vaos.emplace_back(
-                                    pimpl_data::render_data::geo_to_vao{ gid, vao_id } );
+                                    gl4_pimpl_data::render_data::geo_to_vao{ gid, vao_id } );
                         }
                         else
                             vao_id = iter->vao;
@@ -2640,7 +2640,7 @@ struct gl4_backend::pimpl
                                 gl4_log_error( "glActiveTexture" );
 
                                 _images.access( link.img_id,
-                                    [ & ]( pimpl_data::image_data_ref_t ic )
+                                    [ & ]( gl4_pimpl_data::image_data_ref_t ic )
                                 {
                                     glBindTexture( ic.type, link.tex_id );
                                     gl4_log_error( "glBindTexture" );
@@ -2705,7 +2705,7 @@ struct gl4_backend::pimpl
                                 // auto const & tfd = _feedbacks[ link.so_id ] ;
                                 auto const [ a, b ] = _feedbacks.access< bool_t >( link.so_id,
                                     [ & ]( motor::string_in_t name,
-                                        pimpl_data::feedback_data_ref_t tfd )
+                                        gl4_pimpl_data::feedback_data_ref_t tfd )
                                 {
                                     GLuint const tid = link.tex_id[ tfd.read_index() ];
 
@@ -2742,10 +2742,10 @@ struct gl4_backend::pimpl
                     gl4_log_error( "glEnable : GL_RASTERIZER_DISCARD" );
                 }
 
-                // pimpl_data::geo_data & gconfig = _geometries[ gid ] ;
+                // gl4_pimpl_data::geo_data & gconfig = _geometries[ gid ] ;
 
                 auto const [ gres, g_pt ] = _geometries.access< GLenum >(
-                    gid, [ & ]( pimpl_data::geo_data_ref_t d ) { return d.pt; } );
+                    gid, [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { return d.pt; } );
 
                 {
                     this_t::activate_transform_feedback( g_pt );
@@ -2759,7 +2759,7 @@ struct gl4_backend::pimpl
 
                     if( tfid != size_t( -1 ) )
                     {
-                        _feedbacks.access( tfid, [ & ]( pimpl_data::feedback_data_ref_t tfd )
+                        _feedbacks.access( tfid, [ & ]( gl4_pimpl_data::feedback_data_ref_t tfd )
                         {
 #if 0 // this is gl 3.x
                             GLuint num_prims = 0 ;
@@ -2777,7 +2777,7 @@ struct gl4_backend::pimpl
                     }
                     else
                     {
-                        _geometries.access( gid, [ & ]( pimpl_data::geo_data_ref_t gconfig )
+                        _geometries.access( gid, [ & ]( gl4_pimpl_data::geo_data_ref_t gconfig )
                         {
                             if( gconfig.num_elements_ib > 0 )
                             {
@@ -2832,7 +2832,7 @@ struct gl4_backend::pimpl
             int pb = 0;
         }
 
-        // pimpl_data::shader_data & sconfig = _shaders[ config.shd_id ] ;
+        // gl4_pimpl_data::shader_data & sconfig = _shaders[ config.shd_id ] ;
 
         return true;
     }
@@ -2844,7 +2844,7 @@ struct gl4_backend::pimpl
         {
             auto const ids_new = std::make_pair( size_t( 0 ), size_t( 0 ) );
 
-            _states.access( ids_new.first, [ & ]( pimpl_data::state_data_ref_t s )
+            _states.access( ids_new.first, [ & ]( gl4_pimpl_data::state_data_ref_t s )
             {
                 // set the viewport to the default new state,
                 // so the correct viewport is set automatically.
@@ -3477,7 +3477,7 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
     }
 
     auto const [ a, b ] = _pimpl->_msls.try_access< motor::graphics::result >( oid,
-        [ & ]( pimpl_data::msl_data_ref_t msl )
+        [ & ]( gl4_pimpl_data::msl_data_ref_t msl )
     { return this_t::render( obj->borrow_render_object(), detail ); } );
 
     return ( a && b == motor::graphics::result::ok ) ? b : motor::graphics::result::failed;

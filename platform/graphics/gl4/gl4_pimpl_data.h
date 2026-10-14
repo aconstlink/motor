@@ -26,7 +26,7 @@ struct gl4_detail
     static motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::glsl_4_0;
 };
 
-namespace pimpl_data
+namespace gl4_pimpl_data
 {
 using namespace motor::core::types;
 using namespace motor::ogl;

@@ -8,7 +8,7 @@
 
 #include <d3d11.h>
 
-namespace pimpl_data
+namespace d3d11_pimpl_data
 {
 using namespace motor::core::types;
 

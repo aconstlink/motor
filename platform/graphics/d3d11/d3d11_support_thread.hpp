@@ -1,2 +1,276 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include "d3d11.h"
+#include "d3d11_independent.h"
+
+#include <motor/msl/database.hpp>
+
+namespace d3d11_detail
+{
+template < typename T >
+struct work_item_deduction;
+
+struct work_item
+{
+    enum class work_type
+    {
+        compile,
+        compiled,
+        release
+    };
+
+    enum class obj_type
+    {
+        unknown,
+        msl
+    };
+
+    work_type wt;
+    obj_type ot;
+    void_ptr_t ptr;
+
+    template < typename T >
+    static work_item make_item( work_type const t, motor::core::mtr_safe< T > obj ) noexcept
+    {
+        return work_item{ t, work_item_deduction< T >::deduce( obj.mtr() ),
+            static_cast< void_ptr_t >( obj.mtr() ) };
+    }
+};
+motor_typedef( work_item );
+
+template < typename T >
+struct work_item_deduction
+{
+    static work_item::obj_type deduce( T * ptr ) noexcept;
+};
+
+template <>
+struct work_item_deduction< motor::graphics::msl_object >
+{
+    static work_item::obj_type deduce( motor::graphics::msl_object * ptr ) noexcept
+    {
+        return work_item::obj_type::msl;
+    }
+};
+
+template < typename O >
+class support_thread
+{
+    motor_this_typedefs( support_thread );
+    motor_typedefs( O, owner );
+
+  public:
+
+    // for the support thread
+    struct shared_data
+    {
+        bool_t running = false;
+        bool_t has_work = false;
+        owner_ptr_t owner = nullptr;
+
+        motor::msl::database_t mdb;
+
+        std::mutex mtx;
+        std::condition_variable cv;
+
+        std::mutex mtx_backward;
+
+        motor::vector< d3d11_detail::work_item > forward_items;
+        motor::vector< d3d11_detail::d3d11_independent::backward_message > backward_items;
+
+        void_t add_forward_item( d3d11_detail::work_item_rref_t item ) noexcept
+        {
+            std::unique_lock< std::mutex > lk( mtx );
+
+            if( forward_items.size() == forward_items.capacity() )
+                forward_items.reserve( forward_items.size() + 50 );
+
+            forward_items.emplace_back( std::move( item ) );
+
+            has_work = true;
+        }
+
+        void_t add_backward_item( d3d11_detail::d3d11_independent::backward_message && item ) noexcept
+        {
+            std::unique_lock< std::mutex > lk( mtx_backward );
+
+            if( backward_items.size() == backward_items.capacity() )
+                backward_items.reserve( backward_items.size() + 50 );
+
+            backward_items.emplace_back( std::move( item ) );
+        }
+
+        using for_each_backward_item_funk_t =
+            std::function< void_t( d3d11_detail::d3d11_independent::backward_message & ) >;
+
+        // must be called in-sync
+        void_t for_each( for_each_backward_item_funk_t f ) noexcept
+        {
+            std::unique_lock< std::mutex > lk( mtx_backward );
+
+            for( auto & item : backward_items )
+            {
+                f( item );
+            }
+            backward_items.clear();
+        }
+
+      public:
+
+        void_t notify_thread( void_t ) noexcept
+        {
+            if( has_work ) cv.notify_one();
+        }
+    };
+    motor_typedef( shared_data );
+
+  private:
+
+    motor::concurrent::thread_t _thread;
+    this_t::shared_data_ptr_t _ctsd = nullptr;
+
+  public:
+
+    support_thread( void_t ) noexcept {}
+
+    support_thread( this_cref_t ) = delete;
+    support_thread( this_rref_t rhv ) noexcept
+    {
+        _thread = std::move( rhv._thread );
+        _ctsd = motor::move( rhv._ctsd );
+    }
+    ~support_thread( void_t ) noexcept
+    {
+        assert( _ctsd == nullptr );
+    }
+
+    this_t::shared_data_ptr_t start_support_thread( owner_ptr_t owner ) noexcept
+    {
+        assert( _ctsd == nullptr && "Just start/stop the thread." );
+
+        if( _ctsd == nullptr )
+        {
+            _ctsd = motor::memory::global::alloc< shared_data >( "[d3d11] support thread shared data" );
+            _ctsd->running = true;
+            _ctsd->owner = owner;
+        }
+
+        auto * ctsd = _ctsd;
+
+        _thread = std::thread( [ ctsd ]( void_t )
+        {
+            motor::log::global_t::status( "[d3d11] : support thread started" );
+
+            motor::vector< d3d11_detail::work_item_t > items;
+            items.reserve( 50 );
+
+            while( ctsd->running )
+            {
+                // wait for some work and
+                // swap the items buffer
+                {
+                    std::unique_lock< std::mutex > lk( ctsd->mtx );
+                    while( !ctsd->has_work && ctsd->running ) ctsd->cv.wait( lk );
+
+                    auto tmp = std::move( items );
+                    items = std::move( ctsd->forward_items );
+                    ctsd->forward_items = std::move( tmp );
+
+                    ctsd->has_work = false;
+                }
+
+                for( auto & item : items )
+                {
+                    switch( item.ot )
+                    {
+                    case d3d11_detail::work_item::obj_type::msl: {
+                        auto * msl = static_cast< motor::graphics::msl_object_ptr_t >( item.ptr );
+                        switch( item.wt )
+                        {
+
+                        case d3d11_detail::work_item::work_type::compile: {
+#if 1
+                            ctsd->owner->construct_msl_data_st( msl ) ;
+#else
+                            auto [ res, so, sd ] =
+                                d3d11_independent::construct_shader_from_msl_data_st(
+                                    *msl, ctsd->mdb );
+                            ctsd->add_backward_item( gl4_independent::compilation_result{
+                                res, motor::move( msl ), std::move( so ), std::move( sd ) } );
+                            item.ptr = nullptr;
+#endif
+                        }
+
+                        break;
+                        case d3d11_detail::work_item::work_type::release:
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                    break;
+                    default:
+                        break;
+                    }
+
+                    if( !ctsd->running ) break;
+                }
+
+                for( auto & item : items )
+                {
+                    auto obj_ptr = static_cast< motor::graphics::object * >( item.ptr );
+                    motor::release( motor::move( obj_ptr ) );
+                }
+                items.clear();
+            }
+
+            for( auto & item : ctsd->forward_items )
+            {
+                motor::release(
+                    motor::move( static_cast< motor::graphics::object_ptr_t >( item.ptr ) ) );
+            }
+            ctsd->forward_items.clear();
+
+            for( auto & item : ctsd->backward_items )
+            {
+                std::visit( []( auto && arg )
+                {
+                    using T = std::decay_t< decltype( arg ) >;
+                    if constexpr( std::is_same_v< T, d3d11_independent::compilation_result > )
+                    {
+                        motor::release( motor::move( arg.object ) );
+                    }
+                    else if constexpr( std::is_same_v< T, d3d11_independent::release_result > )
+                    {
+                    }
+                    else
+                        static_assert( false, "non-exhaustive visitor!" );
+                }, item );
+            }
+            ctsd->backward_items.clear();
+
+            motor_status( "[d3d11] : support thread shut down" );
+        } );
+
+        return _ctsd;
+    }
+
+    void_t stop_support_thread( void_t ) noexcept
+    {
+        if( _ctsd == nullptr ) return;
+
+        {
+            std::unique_lock< std::mutex > lk( _ctsd->mtx );
+            _ctsd->running = false;
+        }
+        _ctsd->cv.notify_one();
+        if( _thread.joinable() ) _thread.join();
+
+        motor::memory::global::dealloc< shared_data >( motor::move( _ctsd ) );
+    }
+};
+
+} // namespace d3d11_detail

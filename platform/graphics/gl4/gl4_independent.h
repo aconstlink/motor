@@ -33,7 +33,7 @@ struct gl4_independent
         motor::graphics::msl_object_mtr_t object = nullptr;
 
         motor::graphics::shader_object_t shader;
-        pimpl_data::shader_data_t data;
+        gl4_pimpl_data::shader_data_t data;
     };
     struct release_result
     {
@@ -80,7 +80,7 @@ struct gl4_independent
     }
 
     //****************************************************************************************
-    static void_t post_link_attributes( pimpl_data::shader_data & config ) noexcept
+    static void_t post_link_attributes( gl4_pimpl_data::shader_data & config ) noexcept
     {
         GLuint const program_id = config.pg_id;
 
@@ -121,7 +121,7 @@ struct gl4_independent
 
             motor::string_t const variable_name = motor::string_t( (const char *)buffer );
 
-            pimpl_data::shader_data::attribute_variable_t vd;
+            gl4_pimpl_data::shader_data::attribute_variable_t vd;
             vd.name = std::move( variable_name );
             vd.loc = location_id;
             vd.type = gl_attrib_type;
@@ -148,8 +148,8 @@ struct gl4_independent
     }
 
     //****************************************************************************************
-    static bool_t bind_attributes( motor::string_in_t shd_name, pimpl_data::shader_data & sconfig,
-        pimpl_data::geo_data & gconfig ) noexcept
+    static bool_t bind_attributes( motor::string_in_t shd_name, gl4_pimpl_data::shader_data & sconfig,
+        gl4_pimpl_data::geo_data & gconfig ) noexcept
     {
         // bind vertex buffer
         {
@@ -197,7 +197,7 @@ struct gl4_independent
             uiOffset = e.sib();
 
             auto iter = std::find_if( sconfig.attributes.begin(), sconfig.attributes.end(),
-                [ & ]( pimpl_data::shader_data::attribute_variable_cref_t av )
+                [ & ]( gl4_pimpl_data::shader_data::attribute_variable_cref_t av )
             { return av.va == e.va; } );
 
             GLuint loc = 0;
@@ -240,7 +240,7 @@ struct gl4_independent
     }
 
     //****************************************************************************************
-    static void_t post_link_uniforms( pimpl_data::shader_data & config ) noexcept
+    static void_t post_link_uniforms( gl4_pimpl_data::shader_data & config ) noexcept
     {
         GLuint const program_id = config.pg_id;
 
@@ -281,7 +281,7 @@ struct gl4_independent
 
             motor::string_t const variable_name = motor::string_t( char_cptr_t( buffer ) );
 
-            pimpl_data::shader_data::uniform_variable_t vd;
+            gl4_pimpl_data::shader_data::uniform_variable_t vd;
             vd.name = std::move( variable_name );
             vd.loc = location_id;
             vd.type = gl_uniform_type;
@@ -292,7 +292,7 @@ struct gl4_independent
     }
 
     //****************************************************************************************
-    static void_t post_link_uniform_blocks( pimpl_data::shader_data & config ) noexcept
+    static void_t post_link_uniform_blocks( gl4_pimpl_data::shader_data & config ) noexcept
     {
         GLuint const program_id = config.pg_id;
 
@@ -334,7 +334,7 @@ struct gl4_independent
 
     //****************************************************************************************
     static bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj,
-        pimpl_data::shader_data_out_t constructed ) noexcept
+        gl4_pimpl_data::shader_data_out_t constructed ) noexcept
     {
         //
         // SECTION: Pre-Compilation
@@ -458,7 +458,7 @@ struct gl4_independent
             gl4_log_error( "glAttachShader : pixel shader" );
         }
 
-        pimpl_data::shader_data_t sd;
+        gl4_pimpl_data::shader_data_t sd;
 
         {
             sd.pg_id = scomp.pg_id;
@@ -480,7 +480,7 @@ struct gl4_independent
                     [ & ]( size_t const, motor::graphics::vertex_attribute const va,
                         motor::string_cref_t name ) {
                     sd.vertex_inputs.emplace_back(
-                        pimpl_data::shader_data::vertex_input_binding{ va, name } );
+                        gl4_pimpl_data::shader_data::vertex_input_binding{ va, name } );
                 } );
             }
 
@@ -495,7 +495,7 @@ struct gl4_independent
                         motor::graphics::ctype const, motor::string_cref_t name )
                 {
                     sd.vertex_outputs.emplace_back(
-                        pimpl_data::shader_data::vertex_output_binding{ va, name } );
+                        gl4_pimpl_data::shader_data::vertex_output_binding{ va, name } );
                     sd.output_names[ i ] = name.c_str();
                 } );
 
@@ -595,7 +595,7 @@ struct gl4_independent
 
     //****************************************************************************************
     // call from support thread
-    static std::tuple< bool_t, motor::graphics::shader_object_t, pimpl_data::shader_data_t >
+    static std::tuple< bool_t, motor::graphics::shader_object_t, gl4_pimpl_data::shader_data_t >
     construct_shader_from_msl_data_st(
         motor::graphics::msl_object_ref_t msl_obj_in, motor::msl::database_ref_t mdb ) noexcept
     {
@@ -626,14 +626,14 @@ struct gl4_independent
             motor_warning2( 1024, "[gl4::construct_msl_data] : "
                                   "library shader recompilation disabled" );
             return std::make_tuple(
-                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+                false, motor::graphics::shader_object_t(), gl4_pimpl_data::shader_data_t() );
         }
 
         if( config_symbols.size() == 0 )
         {
             motor_warning2( 1024, "[gl4::construct_msl_data] : no shader submitted" );
             return std::make_tuple(
-                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+                false, motor::graphics::shader_object_t(), gl4_pimpl_data::shader_data_t() );
         }
 
         auto const & c = config_symbols[ 0 ];
@@ -648,7 +648,7 @@ struct gl4_independent
                 motor::log::global_t::status( s.expand() );
             }
             return std::make_tuple(
-                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+                false, motor::graphics::shader_object_t(), gl4_pimpl_data::shader_data_t() );
         }
 
         motor::graphics::variable_set_t default_values;
@@ -723,12 +723,12 @@ struct gl4_independent
             }
         }
 
-        pimpl_data::shader_data_t new_shader_data;
+        gl4_pimpl_data::shader_data_t new_shader_data;
         if( !gl4_independent::construct_shader_data( so, new_shader_data ) )
         {
             new_shader_data.invalidate();
             return std::make_tuple(
-                false, motor::graphics::shader_object_t(), pimpl_data::shader_data_t() );
+                false, motor::graphics::shader_object_t(), gl4_pimpl_data::shader_data_t() );
         }
 
         new_shader_data.default_values = std::move( default_values );
