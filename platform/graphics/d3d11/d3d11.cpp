@@ -42,8 +42,6 @@
 #include "d3d11_pimpl_data.h"
 #include "d3d11_support_thread.hpp"
 
-
-
 using namespace motor::platform;
 using namespace motor::platform::gen4;
 
@@ -65,7 +63,6 @@ struct d3d11_backend::pimpl
     using shader_datas_t = datas< d3d11_pimpl_data::shader_data_t >;
     shader_datas_t _shaders;
 
-    // typedef motor::vector< this_t::image_data > image_datas_t ;
     using image_datas_t = datas< d3d11_pimpl_data::image_data_t >;
     image_datas_t _images;
 
@@ -82,7 +79,6 @@ struct d3d11_backend::pimpl
 
   public: // framebuffer
 
-    // typedef motor::vector< this_t::framebuffer_data > framebuffer_datas_t ;
     using framebuffers_t = datas< d3d11_pimpl_data::framebuffer_data_t >;
     framebuffers_t _framebuffers;
     size_t _cur_fb_active = size_t( -1 );
@@ -93,7 +89,6 @@ struct d3d11_backend::pimpl
     motor::graphics::shader_api_type const sapi = motor::graphics::shader_api_type::hlsl_5_0;
     motor::platform::d3d11::rendering_context_mtr_t _ctx;
 
-    // typedef motor::vector< d3d11_pimpl_data::state_data_t > states_t ;
     using states_t = datas< d3d11_pimpl_data::state_data_t >;
     states_t _states;
 
@@ -189,12 +184,6 @@ struct d3d11_backend::pimpl
     //************************************************************************************************************
     bool_t construct_state( motor::graphics::state_object_ref_t obj ) noexcept
     {
-#if 0
-        oid = determine_oid( obj.get_oid(_bid), obj.name(), _states ) ;
-
-        auto& states = _states[ oid ] ;
-#endif
-
         size_t oid = obj.get_oid( _bid );
         auto const res =
             _states.access( oid, obj.name(), [ & ]( d3d11_pimpl_data::state_data_ref_t states )
@@ -1566,8 +1555,6 @@ struct d3d11_backend::pimpl
         } );
     }
 
-    
-
     //************************************************************************************************************
     bool_t construct_shader_config( motor::graphics::shader_object_ref_t obj )
     {
@@ -2645,15 +2632,9 @@ struct d3d11_backend::pimpl
                 config.geo_ids.emplace_back( d3d11_pimpl_data::render_data_t::geo_id_data{
                     gid, ro.get_geometry_link( geo_idx ).hash } );
                 //_geos.access( gid, [&]( d3d11_pimpl_data::geo_data_ref_t d ){
-                //d.add_render_data_id( new_id ) ; } ) ;
+                // d.add_render_data_id( new_id ) ; } ) ;
 
-#if 1
                 auto const res = this_t::bind_vertex_inputs( config, ro );
-#else
-                auto const res =
-                    _renders.access( oid, ro.name(), [ & ]( d3d11_pimpl_data::render_data_ref_t rd )
-                { return this_t::bind_vertex_inputs( rd, ro ); } );
-#endif
             }
             else if( config.geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
             {
@@ -2675,13 +2656,7 @@ struct d3d11_backend::pimpl
 
 // at this point, the geometry needs to be rebound
 // to the shader inputs.
-#if 1
                             auto const res = this_t::bind_vertex_inputs( config, ro, geo_idx );
-#else
-                            auto const res = _renders.access( oid, ro.name(),
-                                [ & ]( d3d11_pimpl_data::render_data_ref_t rd )
-                            { return this_t::bind_vertex_inputs( rd, ro, geo_idx ); } );
-#endif
                         }
                     }
 
@@ -3060,11 +3035,6 @@ struct d3d11_backend::pimpl
         size_t const id, motor::graphics::render_object_ref_t obj, size_t const varset_id )
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update render object" );
-
-#if 0
-        d3d11_pimpl_data::render_data_ref_t rnd = _renders[ id ] ;
-        if( !rnd.valid ) return false ;
-#endif
 
         auto const res = _renders.access( id, [ & ]( d3d11_pimpl_data::render_data_ref_t rnd )
         {
@@ -3574,18 +3544,6 @@ struct d3d11_backend::pimpl
             } );
             //_states[ ids_new.first ].states[ ids_new.second ].view_s.ss.vp = vp ;
 
-#if 0
-            {
-                d3d11_pimpl_data::render_state_sets rss ;
-                rss.rss = _states[ ids_new.first ].states[ ids_new.second ] ;
-                _state_stack.push( rss ) ;
-                this->handle_render_state( rss, false ) ;
-
-                // rss is filled in handle_render_state, so repush that one
-                _state_stack.pop() ;
-                _state_stack.push( rss  ) ;
-            }
-#endif
         }
 
         {
@@ -3610,12 +3568,6 @@ struct d3d11_backend::pimpl
 
         _ctsd->notify_thread();
     }
-
-    
-
-    
-
-    
 };
 
 //************************************************************************************************
@@ -3737,17 +3689,6 @@ motor::graphics::result d3d11_backend::configure(
         _pimpl->construct_shader_config( *obj );
     }
 
-#if 0
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    {
-        auto const res = _pimpl->update( oid, *config ) ;
-        if( !res )
-        {
-            return motor::graphics::result::failed ;
-        }
-    }
-#endif
     return motor::graphics::result::ok;
 }
 
@@ -3973,28 +3914,6 @@ motor::graphics::result d3d11_backend::release(
     return motor::graphics::result::ok;
 }
 
-#if 0
-//************************************************************************************************************
-motor::graphics::result d3d11_backend::connect( motor::graphics::render_object_mtr_t config, motor::graphics::variable_set_mtr_t vs ) noexcept
-{
-#if 0
-    if( id->is_not_valid( this_t::get_bid() ) )
-    {
-        motor::log::global_t::error( d3d11_backend_log( "invalid render configuration id" ) ) ;
-        return motor::graphics::result::failed ;
-    }
-
-    size_t const oid = id->get_oid( this_t::get_bid() ) ;
-
-    auto const res = _pimpl->connect( oid, vs ) ;
-    motor::log::global_t::error( motor::graphics::is_not( res ), 
-        d3d11_backend_log( "connect variable set" ) ) ;
-
-#endif
-
-    return motor::graphics::result::ok ;
-}
-#endif
 //************************************************************************************************************
 motor::graphics::result d3d11_backend::update( motor::graphics::geometry_object_mtr_t obj ) noexcept
 {
