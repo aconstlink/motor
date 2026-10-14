@@ -106,10 +106,15 @@ list( APPEND sources_
 endif()
 if( MOTOR_GRAPHICS_DIRECT3D )
 list( APPEND sources 
-    "graphics/d3d/d3d11.h"
-    "graphics/d3d/d3d11.cpp"
-    "graphics/d3d/d3d11_context.h"
-    "graphics/d3d/d3d11_convert.h"
+    "graphics/d3d11/d3d11.h"
+    "graphics/d3d11/d3d11.cpp"
+    "graphics/d3d11/d3d11_context.h"
+    "graphics/d3d11/d3d11_convert.h"
+
+    "graphics/d3d11/d3d11_pimpl_data.h"
+    "graphics/d3d11/d3d11_independent.h"
+    "graphics/d3d11/d3d11_support_thread.hpp"
+    "graphics/d3d11/d3d11_log.h"
 )
 endif()
 
