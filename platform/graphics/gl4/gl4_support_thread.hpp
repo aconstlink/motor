@@ -28,7 +28,7 @@
 
 namespace motor
 {
-namespace graphics
+namespace platform
 {
 namespace local_gl4
 {

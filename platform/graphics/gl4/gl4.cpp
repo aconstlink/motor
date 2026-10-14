@@ -88,10 +88,10 @@ struct gl4_backend::pimpl
 
   private: // support thread
 
-    using shared_data_t = motor::graphics::gl4::support_thread< this_t >::shared_data_t;
+    using shared_data_t = motor::platform::gl4::support_thread< this_t >::shared_data_t;
     shared_data_t * _ctsd = nullptr;
 
-    motor::graphics::gl4::support_thread< this_t > _support_thread;
+    motor::platform::gl4::support_thread< this_t > _support_thread;
 
   public:
 
@@ -1010,8 +1010,8 @@ struct gl4_backend::pimpl
     void_t send_configure_to_st( motor::graphics::msl_object_mtr_t obj ) noexcept
     {
         motor::graphics::object_t::data_manipulator( obj, _bid ).change_to_in_transit();
-        _ctsd->add_forward_item( motor::graphics::local_gl4::work_item::make_item(
-            motor::graphics::local_gl4::work_item::work_type::compile, motor::share( obj ) ) );
+        _ctsd->add_forward_item( motor::platform::local_gl4::work_item::make_item(
+            motor::platform::local_gl4::work_item::work_type::compile, motor::share( obj ) ) );
     }
 
     //****************************************************************************************
