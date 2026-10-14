@@ -1046,19 +1046,8 @@ struct gl4_backend::pimpl
 
         auto const success = _msls.access( oid, obj.name(), [ & ]( pimpl_data::msl_data_ref_t msl )
         {
-            {
-                if( !this_t::install_shader_data( so, sd ) )
-                {
-                    // construction/compilation failed
-                    // @todo return here.
-                    return false;
-                }
-
-                if( !this_t::construct_render_data( *ro ) )
-                {
-                    return false;
-                }
-            }
+            if( !this_t::install_shader_data( so, sd ) ) return false;
+            if( !this_t::construct_render_data( *ro ) ) return false;
 
             // render object
             {
