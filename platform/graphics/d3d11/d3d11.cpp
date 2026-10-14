@@ -1049,7 +1049,6 @@ struct d3d11_backend::pimpl
     //****************************************************************************************
     void_t send_configure_to_st( motor::graphics::msl_object_mtr_t obj ) noexcept
     {
-        obj->set_oid( _bid, size_t( -2 ) );
         _ctsd->add_forward_item( d3d11_detail::work_item::make_item(
             d3d11_detail::work_item::work_type::compile, motor::share( obj ) ) );
     }
