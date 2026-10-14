@@ -6,6 +6,15 @@
 #include "d3d11_log.h"
 #include "d3d11_pimpl_data.h"
 
+#include <motor/msl/symbol.hpp>
+#include <motor/msl/database.hpp>
+#include <motor/msl/parser.h>
+#include <motor/msl/dependency_resolver.hpp>
+#include <motor/msl/generators/generator.h>
+#include <motor/msl/generators/hlsl5_generator.h>
+
+#include <motor/graphics/shader/msl_bridge.hpp>
+
 #include <variant>
 
 #include <d3d11.h>
@@ -261,7 +270,8 @@ struct d3d11_independent
 
     //************************************************************************************************************
     static bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj,
-        d3d11_pimpl_data::shader_data_inout_t shd, motor::platform::d3d11::rendering_context_ptr_t ctx ) noexcept
+        d3d11_pimpl_data::shader_data_inout_t shd,
+        motor::platform::d3d11::rendering_context_ptr_t ctx ) noexcept
     {
         auto tp_begin = std::chrono::high_resolution_clock::now();
 
@@ -536,6 +546,148 @@ struct d3d11_independent
         }
 
         return true;
+    }
+
+    static std::tuple< bool_t, motor::graphics::shader_object_t, d3d11_pimpl_data::shader_data_t >
+    construct_shader_from_msl_data_st(
+        motor::graphics::msl_object_ref_t msl_obj_in, motor::msl::database_ref_t mdb,
+        motor::platform::d3d11::rendering_context_ptr_t ctx ) noexcept
+    {
+        motor::vector< motor::msl::symbol_t > config_symbols;
+
+        size_t parsing_milli = 0;
+
+        {
+            auto tp_begin = std::chrono::high_resolution_clock::now();
+            msl_obj_in.for_each_msl( motor::graphics::msl_api_type::msl_4_0,
+                [ & ]( motor::string_in_t code )
+            {
+                motor::msl::post_parse::document_t doc =
+                    motor::msl::parser_t( "d3d11" ).process( code );
+
+                mdb.insert( std::move( doc ), config_symbols );
+            } );
+
+            {
+                parsing_milli = std::chrono::duration_cast< std::chrono::milliseconds >(
+                    std::chrono::high_resolution_clock::now() - tp_begin )
+                                    .count();
+            }
+        }
+
+        if( config_symbols.size() > 1 )
+        {
+            motor_warning2( 1024, "[d3d11::construct_msl_data] : "
+                                  "library shader recompilation disabled" );
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), d3d11_pimpl_data::shader_data_t() );
+        }
+
+        if( config_symbols.size() == 0 )
+        {
+            motor_warning2( 1024, "[d3d11::construct_msl_data] : no shader submitted" );
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), d3d11_pimpl_data::shader_data_t() );
+        }
+
+        auto const & c = config_symbols[ 0 ];
+        auto const c_exp = c.expand();
+
+        motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &mdb, c );
+        if( res.missing.size() != 0 )
+        {
+            motor::log::global_t::warning( "[d3d11] : We have missing symbols for " + c_exp + " :" );
+            for( auto const & s : res.missing )
+            {
+                motor::log::global_t::status( s.expand() );
+            }
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), d3d11_pimpl_data::shader_data_t() );
+        }
+
+        motor::graphics::variable_set_t default_values;
+
+        // inject default variable values into the
+        // variable sets
+        for( auto & shd_ : res.config.shaders )
+        {
+            for( auto & var_ : shd_.variables )
+            {
+                if( var_.def_val == size_t( -1 ) ) continue;
+
+                auto * df = res.config.def_values[ var_.def_val ];
+                if( dynamic_cast< motor::msl::generic_default_value< bool_t > * >( df ) != nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< bool_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< bool_t >( var_.name )->set( gdv->get() );
+                }
+                else if( dynamic_cast< motor::msl::generic_default_value< float_t > * >( df ) !=
+                         nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< float_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< float_t >( var_.name )->set( gdv->get() );
+                }
+                else if( dynamic_cast<
+                             motor::msl::generic_default_value< motor::math::vec3f_t > * >( df ) !=
+                         nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< motor::math::vec3f_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< motor::math::vec3f_t >( var_.name )
+                        ->set( gdv->get() );
+                }
+                else if( dynamic_cast<
+                             motor::msl::generic_default_value< motor::math::vec4f_t > * >( df ) !=
+                         nullptr )
+                {
+                    using ptr_t = motor::msl::generic_default_value< motor::math::vec4f_t > *;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.data_variable< motor::math::vec4f_t >( var_.name )
+                        ->set( gdv->get() );
+                }
+                else if( dynamic_cast< motor::msl::texture_dv_ptr_t >( df ) != nullptr )
+                {
+                    using ptr_t = motor::msl::texture_dv_ptr_t;
+                    ptr_t gdv = static_cast< ptr_t >( df );
+                    default_values.texture_variable( var_.name )->set( gdv->get().name );
+                }
+            }
+        }
+
+        motor::graphics::shader_object_t so( c_exp );
+
+        // generate code
+        {
+            auto tp_begin = std::chrono::high_resolution_clock::now();
+
+            motor::msl::generator_t gen( std::move( res ) );
+            auto const code = gen.generate< motor::msl::hlsl::hlsl5_generator_t >();
+            motor::graphics::msl_bridge::create_by_api_type(
+                motor::graphics::shader_api_type::hlsl_5_0, code, so );
+
+            {
+                size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >(
+                    std::chrono::high_resolution_clock::now() - tp_begin )
+                                         .count();
+
+                motor::log::global_t::status< 2048 >( "[d3d11] : msl %s shader took [%zu|%zu] ms",
+                    c_exp.c_str(), parsing_milli, milli );
+            }
+        }
+
+        d3d11_pimpl_data::shader_data_t new_shader_data;
+        if( !d3d11_independent::construct_shader_data( so, new_shader_data, ctx ) )
+        {
+            new_shader_data.invalidate( std::nullopt );
+            return std::make_tuple(
+                false, motor::graphics::shader_object_t(), d3d11_pimpl_data::shader_data_t() );
+        }
+
+        new_shader_data.default_values = std::move( default_values );
+
+        return std::make_tuple( true, std::move( so ), std::move( new_shader_data ) );
     }
 };
 

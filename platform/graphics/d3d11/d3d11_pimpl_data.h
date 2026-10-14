@@ -8,6 +8,8 @@
 
 #include <d3d11.h>
 
+#include <optional>
+
 namespace d3d11_pimpl_data
 {
 using namespace motor::core::types;
@@ -547,7 +549,7 @@ motor_typedef( so_data );
             return *this ;
         }
 
-        void_t invalidate( motor::string_in_t /*name*/ ) noexcept
+        void_t invalidate( std::optional< std::string_view > const & /*name*/ ) noexcept
         {
             compiled = false ;
 
