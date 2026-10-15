@@ -1114,7 +1114,7 @@ struct d3d11_backend::pimpl
             // which has not been configured by the user...
             if( oid == size_t( -1 ) )
             {
-                motor_warning2( 1024,
+                motor::log::global::warning<1024>( 
                     "[d3d11::construct_msl_data] : "
                     "render configuration not found : %s",
                     c_exp.c_str() );

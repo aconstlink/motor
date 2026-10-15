@@ -299,7 +299,7 @@ class support_thread
 
             ctsd->ctx->deactivate();
 
-            motor_status( "[gl4] : support thread shut down" );
+            motor::log::global::status<1024>( "[gl4] : support thread shut down" );
         } );
 
         return _ctsd;

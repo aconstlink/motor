@@ -26,7 +26,6 @@ using namespace motor::core::types;
 
 struct d3d11_independent
 {
-    
 
     motor_this_typedefs( d3d11_independent );
 
@@ -531,7 +530,8 @@ struct d3d11_independent
             } );
         }
 
-        motor_status2( 1024, "[D3D11] : Compilation Successful : [%s]", obj.name().c_str() );
+        motor::log::global::status< 1024 >(
+            "[D3D11] : Compilation Successful : [%s]", obj.name().c_str() );
 
         shd.compiled = true;
 
@@ -540,16 +540,16 @@ struct d3d11_independent
                 std::chrono::high_resolution_clock::now() - tp_begin )
                                      .count();
 
-            motor_status2(
-                2048, "[d3d11] : shader compilation %zu ms [%s]", milli, obj.name().c_str() );
+            motor::log::global::status< 1024 >(
+                "[d3d11] : shader compilation %zu ms [%s]", milli, obj.name().c_str() );
         }
 
         return true;
     }
 
     static std::tuple< bool_t, motor::graphics::shader_object_t, d3d11_pimpl_data::shader_data_t >
-    construct_shader_from_msl_data_st(
-        motor::graphics::msl_object_ref_t msl_obj_in, motor::msl::database_ref_t mdb,
+    construct_shader_from_msl_data_st( motor::graphics::msl_object_ref_t msl_obj_in,
+        motor::msl::database_ref_t mdb,
         motor::platform::d3d11::rendering_context_ptr_t ctx ) noexcept
     {
         motor::vector< motor::msl::symbol_t > config_symbols;
@@ -576,7 +576,7 @@ struct d3d11_independent
 
         if( config_symbols.size() > 1 )
         {
-            motor_warning2( 1024, "[d3d11::construct_msl_data] : "
+            motor::log::global::warning<1024>( "[d3d11::construct_msl_data] : "
                                   "library shader recompilation disabled" );
             return std::make_tuple(
                 false, motor::graphics::shader_object_t(), d3d11_pimpl_data::shader_data_t() );
@@ -584,7 +584,7 @@ struct d3d11_independent
 
         if( config_symbols.size() == 0 )
         {
-            motor_warning2( 1024, "[d3d11::construct_msl_data] : no shader submitted" );
+            motor::log::global::warning<1024>( "[d3d11::construct_msl_data] : no shader submitted" );
             return std::make_tuple(
                 false, motor::graphics::shader_object_t(), d3d11_pimpl_data::shader_data_t() );
         }
@@ -595,7 +595,8 @@ struct d3d11_independent
         motor::msl::generatable_t res = motor::msl::dependency_resolver_t().resolve( &mdb, c );
         if( res.missing.size() != 0 )
         {
-            motor::log::global_t::warning( "[d3d11] : We have missing symbols for " + c_exp + " :" );
+            motor::log::global_t::warning(
+                "[d3d11] : We have missing symbols for " + c_exp + " :" );
             for( auto const & s : res.missing )
             {
                 motor::log::global_t::status( s.expand() );

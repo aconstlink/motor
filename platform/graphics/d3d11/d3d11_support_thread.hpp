@@ -258,7 +258,7 @@ class support_thread
             }
             ctsd->backward_items.clear();
 
-            motor_status( "[d3d11] : support thread shut down" );
+            motor::log::global::status<1024>( "[d3d11] : support thread shut down" );
         } );
 
         return _ctsd;

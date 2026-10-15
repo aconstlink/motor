@@ -381,7 +381,7 @@ struct gl4_backend::pimpl
         {
             if( _state_stack.size() == 1 )
             {
-                motor_error( "no more render states to pop" );
+                motor::log::global::error< 1024 >( "no more render states to pop" );
                 return;
             }
             auto const popped = _state_stack.pop();
@@ -689,7 +689,7 @@ struct gl4_backend::pimpl
         return true;
     }
 
-//****************************************************************************************
+    //****************************************************************************************
 
     bool_t install_shader_data( motor::graphics::shader_object_ref_t obj,
         gl4_pimpl_data::shader_data_ref_t new_shader_data ) noexcept
@@ -1406,7 +1406,7 @@ struct gl4_backend::pimpl
     bool_t construct_geo(
         size_t & oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
     {
-        motor_status2( 1024, "[gl4] : construct geometry %s", name.c_str() );
+        motor::log::global::status< 1024 >( "[gl4] : construct geometry %s", name.c_str() );
         auto const res =
             _geometries.access( oid, name, [ & ]( gl4_pimpl_data::geo_data_ref_t config )
         {
@@ -2101,7 +2101,7 @@ struct gl4_backend::pimpl
 
                     if( !res )
                     {
-                        motor_warning2( 2048,
+                        motor::log::global::status< 1024 >(
                             "[gl4] : unable to create geometry for transform feedback [%s]",
                             obj.name().c_str() );
                         continue;

@@ -194,9 +194,11 @@ namespace motor
     }
 }
 
+#if 0
 #define motor_status( t ) motor::log::global::status( t ) ;
 #define motor_status2( n, t, ... ) motor::log::global::status<n>( t, __VA_ARGS__)
 #define motor_warning( t ) motor::log::global::warning( t ) ;
 #define motor_warning2( n, t, ... ) motor::log::global::warning<n>( t, __VA_ARGS__)
 #define motor_error( t ) motor::log::global::error( t ) ;
 #define motor_error2( n, t, ... ) motor::log::global::error<n>( t, __VA_ARGS__)
+#endif
