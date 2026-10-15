@@ -7,7 +7,7 @@
 #include "../../result.h"
 
 #include "../../graphics/gl/gl_context.h"
-#include "../../graphics/gl/gl4.h"
+#include "../../graphics/gl4/gl4.h"
 
 #include <motor/application/gl_info.h>
 #include <motor/math/vector/vector4.hpp>
