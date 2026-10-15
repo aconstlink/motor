@@ -364,7 +364,8 @@ struct gl4_independent
 
         // pre-compile all the shaders
         {
-            motor::log::global::status<1024>( "[gl4] : start shader compilation %s", obj.name().c_str() );
+            motor::log::global::status< 1024 >(
+                "[gl4] : start shader compilation %s", obj.name().c_str() );
             motor::profiling::scoped_timer time_this( "[gl4] : compilation done in" );
 
             // Compile Vertex Shader
@@ -527,7 +528,8 @@ struct gl4_independent
                     return false;
                 }
                 sd.is_linkage_ok = true;
-                motor::log::global::status<1024>( "[GL4] : Compilation Successful : [%s]", obj.name().c_str() );
+                motor::log::global::status< 1024 >(
+                    "[GL4] : Compilation Successful : [%s]", obj.name().c_str() );
             }
 
             {
@@ -624,15 +626,17 @@ struct gl4_independent
 
         if( config_symbols.size() > 1 )
         {
-            motor::log::global::warning<1024>( "[gl4::construct_msl_data] : "
-                                  "library shader recompilation disabled" );
+            motor::log::global::warning< 1024 >( "[gl4::construct_msl_data] : "
+                                                 "library shader recompilation disabled" );
             return std::make_tuple(
                 false, motor::graphics::shader_object_t(), gl4_pimpl_data::shader_data_t() );
         }
 
         if( config_symbols.size() == 0 )
         {
-            motor::log::global::warning<1024>( "[gl4::construct_msl_data] : no shader submitted" );
+            motor::log::global::warning< 1024 >(
+                "[gl4::construct_msl_data] : no shader submitted for %s",
+                msl_obj_in.name().c_str() );
             return std::make_tuple(
                 false, motor::graphics::shader_object_t(), gl4_pimpl_data::shader_data_t() );
         }

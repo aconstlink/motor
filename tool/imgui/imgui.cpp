@@ -532,7 +532,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
             size += cmd_list->CmdBuffer.Size ;
         }
 
-        if( _rs->size() < size )
+        //if( _rs->size() < size )
         {
             _rs->resize( size ) ;
             motor::graphics::render_state_sets_t rss ;
