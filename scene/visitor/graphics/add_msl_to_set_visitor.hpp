@@ -95,10 +95,12 @@ class add_msl_to_set_visitor : public default_visitor
                 msl->unlink_geometry( geo_idx );
                 msl->drop_variable_set( vs_idx );
 
+                _vsf( name, vs );
+
                 _msl->link_geometry( geo_name );
                 _msl->add_variable_set( motor::move( vs ) );
 
-                _vsf( name, vs );
+                
 
                 msl_comp->set_msl( motor::share( _msl ) );
             }

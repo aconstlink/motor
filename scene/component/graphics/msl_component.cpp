@@ -187,7 +187,7 @@ void_t msl_component::update_bindings( void_t ) noexcept
 
             // init base data set
             {
-                auto var_set = _msl->get_variable_set( _vs );
+                auto var_set = _msl->get_or_create_variable_set( _vs );
 
                 // update the base data.
                 _base_data_set.update_bindings( _vs, motor::share( var_set ), sb );
@@ -420,7 +420,10 @@ void_t msl_component::connect_output_to_input( size_t const id )
 
     _out_bridge.borrow_outputs().for_each_slot(
         [ & ]( motor::string_in_t name, motor::wire::ioutput_slot_ptr_t os )
-    { iss.borrow( name )->connect( motor::share( os ) ); } );
+    { 
+        auto * ptr = iss.borrow( name ) ;
+        if( ptr == nullptr )  return ;
+        ptr->connect( motor::share( os ) ); } );
 }
 
 //*****************************************************************

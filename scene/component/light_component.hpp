@@ -90,6 +90,11 @@ class light_component : public icomponent
 
         return std::make_pair( false, nullptr );
     }
+
+    void_t apply_transformation( motor::math::m3d::trafof_cref_t trafo ) noexcept
+    {
+        
+    }
 };
 motor_typedef( light_component );
 } // namespace scene

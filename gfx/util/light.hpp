@@ -60,18 +60,24 @@ class light
 
     motor::gfx::ishadow_data_mtr_t _shadow_data = nullptr;
 
+    motor::math::m3d::trafof_t _trafo;
+
   public:
 
     light( void_t ) noexcept {}
-    light( float_t intensity, motor::math::vec4f_in_t color ) noexcept
+    light( float_t intensity, motor::math::vec3f_in_t color ) noexcept
         : _intensity( intensity ), _color( color )
     {
     }
 
-    light( this_cref_t rhv ) noexcept : _intensity( rhv._intensity ), _color( rhv._color ) {}
+    light( this_cref_t rhv ) noexcept
+        : _intensity( rhv._intensity ), _color( rhv._color ), _trafo( rhv._trafo )
+    {
+    }
 
     light( this_rref_t rhv ) noexcept
-        : _intensity( rhv._intensity ), _color( std::move( rhv._color ) )
+        : _intensity( rhv._intensity ), _color( std::move( rhv._color ) ),
+          _trafo( std::move( rhv._trafo ) )
     {
     }
 
@@ -83,7 +89,7 @@ class light
     virtual light_type get_light_type( void_t ) const noexcept = 0;
 
     template < typename T >
-    T * borrow_shader_data( void_t ) noexcept
+    T * borrow_shadow_data( void_t ) noexcept
     {
         return dynamic_cast< T * >( _shadow_data );
     }
@@ -96,6 +102,31 @@ class light
     motor::math::vec3f_cref_t color( void_t ) const noexcept
     {
         return _color;
+    }
+
+    void_t set_intensity( float_t const intensity ) noexcept
+    {
+        _intensity = intensity;
+    }
+
+    void_t set_color( motor::math::vec3f_cref_t color ) noexcept
+    {
+        _color = color;
+    }
+
+    void_t set( motor::math::m3d::trafof_cref_t trafo ) noexcept
+    {
+        _trafo = trafo;
+    }
+
+    void_t set_transformation( motor::math::m3d::trafof_cref_t trafo ) noexcept
+    {
+        _trafo = trafo ;
+    }
+
+    motor::math::m3d::trafof_cref_t transformation( void_t ) const noexcept
+    {
+        return _trafo;
     }
 };
 motor_typedef( light );
@@ -119,7 +150,7 @@ class directional_light : public light
     }
     directional_light( motor::math::vec3f_in_t dir ) noexcept : _direction( dir ) {}
 
-    directional_light( float_t const intensity, motor::math::vec4f_in_t color,
+    directional_light( float_t const intensity, motor::math::vec3f_in_t color,
         motor::math::vec3f_in_t dir ) noexcept
         : light( intensity, color ), _direction( dir )
     {
@@ -135,6 +166,11 @@ class directional_light : public light
     virtual light_type get_light_type( void_t ) const noexcept
     {
         return this_t::get_light_type_static();
+    }
+
+    motor::math::vec3f_t get_transformed_direction( void_t ) const noexcept
+    {
+        return light::transformation() * _direction;
     }
 
     motor::math::vec3f_cref_t get_direction( void_t ) const noexcept
@@ -162,9 +198,14 @@ class point_light : public light
   public:
 
     point_light( void_t ) noexcept {}
-    point_light( float_t const intensity, motor::math::vec4f_in_t color,
+    point_light( float_t const intensity, motor::math::vec3f_in_t color,
         motor::math::vec3f_in_t pos, float_t const radius ) noexcept
         : light( intensity, color ), _position( pos ), _radius( radius )
+    {
+    }
+
+    point_light( this_rref_t rhv ) noexcept
+        : light( std::move( rhv ) ), _position( std::move( rhv._position ) ), _radius( rhv._radius )
     {
     }
 
@@ -198,6 +239,11 @@ class point_light : public light
     void_t set_position( motor::math::vec3f_in_t position ) noexcept
     {
         _position = position;
+    }
+
+    motor::math::vec3f_t get_transformed_position( void_t ) const noexcept
+    {
+        return (light::transformation() * motor::math::vec4f_t( _position, 1.0f )).xyz() ;
     }
 };
 motor_typedef( point_light );

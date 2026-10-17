@@ -75,9 +75,14 @@ class light_collector_visitor : public default_visitor
         }
     }
 
+    size_t get_num_lights( void_t ) const noexcept
+    {
+        return _lights.size() ;
+    }
+
     void_t clear_lights( void_t ) noexcept
     {
-        _lights.clear() ;
+        _lights.clear();
     }
 };
 motor_typedef( light_collector_visitor );
