@@ -8,6 +8,7 @@
 
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
+#include <motor/math/utility/3d/transformation.hpp>
 
 namespace motor
 {
