@@ -428,6 +428,11 @@ namespace motor
                     return _trafo * v ;
                 }
 
+                vec4_t operator * ( vec4_cref_t v ) const
+                {
+                    return _trafo * v ;
+                }
+
                 /// transform from right!
                 /// this = this * rhv 
                 this_ref_t operator *= ( this_cref_t rhv ) noexcept

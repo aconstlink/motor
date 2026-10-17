@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
-
 #include "cgltf_module.h"
 #include "../module_registry.hpp"
 
@@ -16,6 +14,7 @@
 #include <motor/scene/component/name_component.hpp>
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/component/camera_component.h>
+#include <motor/scene/component/light_component.hpp>
 #include <motor/scene/component/graphics/msl_component.h>
 #include <motor/scene/component/graphics/msl_set_component.hpp>
 #include <motor/scene/component/graphics/config_graphics_component.h>
@@ -26,6 +25,8 @@
 #include <motor/wire/kit/trafo3_composer.hpp>
 #include <motor/wire/kit/time_node.hpp>
 #include <motor/wire/slot/input_slot.h>
+
+#include <motor/gfx/util/light.hpp>
 
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
@@ -363,6 +364,56 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
         // going through the files' data
         {
+            // this is 1:1 aligned with the cgltf lights
+            motor::vector< motor::gfx::light_mtr_t > lights;
+
+            // extension
+            {
+                for( size_t ex_idx = 0; ex_idx < data->extensions_used_count; ++ex_idx )
+                {
+                    char const * const ext_name = data->extensions_used[ ex_idx ];
+                    motor::log::global::status< 2048 >( "[gltf] : Extension used %s", ext_name );
+                }
+
+                for( size_t lidx = 0; lidx < data->lights_count; ++lidx )
+                {
+                    auto & light = data->lights[ lidx ];
+
+                    switch( light.type )
+                    {
+                    case cgltf_light_type::cgltf_light_type_directional: //
+                    {
+                        float_t const intensity = light.intensity;
+                        motor::math::vec3f_t const color( light.color );
+                        motor::gfx::directional_light dl(
+                            intensity, color, motor::math::vec3f_t( 0.0f, 0.0f, -1.0f ) );
+
+                        motor::gfx::light_mtr_safe_t gfx_light = motor::shared( std::move( dl ) );
+                        lights.emplace_back( motor::move( gfx_light ) );
+                    }
+                    break;
+                    case cgltf_light_type::cgltf_light_type_point: //
+                    {
+                        float_t const intensity = light.intensity;
+                        motor::math::vec3f_t const color( light.color );
+                        motor::math::vec3f_t const pos;
+                        float_t const radius = light.range;
+
+                        motor::gfx::point_light pl(
+                            intensity, color, motor::math::vec3f_t( 0.0f, 0.0f, 0.0f ), radius );
+
+                        motor::gfx::light_mtr_safe_t gfx_light = motor::shared( std::move( pl ) );
+                        lights.emplace_back( motor::move( gfx_light ) );
+                    }
+                    break;
+                    case cgltf_light_type::cgltf_light_type_spot:
+                        motor::log::global::status< 2048 >( "[gltf] : spot light not supported." );
+                        lights.emplace_back( nullptr );
+                        break;
+                    }
+                }
+            }
+
             using geos_t = motor::vector< motor::vector< motor::graphics::geometry_object_mtr_t > >;
             // geos[cgltf_mesh_id] = vector( primitive geometry )
             geos_t geos( data->meshes_count );
@@ -956,13 +1007,15 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // do default inputs
                                 if( prim.material != nullptr )
                                 {
-                                    using vec4_is_t = motor::wire::input_slot< motor::math::vec4f_t >;
+                                    using vec4_is_t =
+                                        motor::wire::input_slot< motor::math::vec4f_t >;
 
                                     auto const mat_idx =
                                         cgltf_material_index( data, prim.material );
 
                                     comp.borrow_shader_inputs().borrow_or_add( "base_color",
-                                        motor::shared( vec4_is_t( ret.materials[ mat_idx ].base_color ) ) );
+                                        motor::shared(
+                                            vec4_is_t( ret.materials[ mat_idx ].base_color ) ) );
                                 }
 
                                 auto set_comp = motor::scene::msl_set_component_t(
@@ -1135,6 +1188,40 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             break;
                         }
                     }
+                }
+            }
+
+            // add light component and lights
+            {
+                for( size_t i = 0; i < nn_vec.size(); ++i )
+                {
+                    auto * node = nn_vec[ i ];
+                    auto const & gltf_node = data->nodes[ i ];
+
+                    if( gltf_node.light == nullptr ) continue;
+
+                    auto const lidx = cgltf_light_index( data, gltf_node.light );
+
+                    auto light = lights[ lidx ];
+
+                    motor::scene::light_component_mtr_t ptr;
+                    if( !node->has_component_and_borrow< motor::scene::light_component_t >( ptr ) )
+                    {
+                        auto const res = node->add_component< motor::scene::light_component_t >(
+                            motor::shared( motor::scene::light_component_t() ) );
+
+                        if( !res )
+                        {
+                            motor::log::global_t::error< 1024 >(
+                                "[gltf_module] : can not add light component" );
+                            continue;
+                        }
+
+                        ptr = node->borrow_component< motor::scene::light_component_t >();
+                    }
+
+                    // add light here.
+                    ptr->add_light( motor::share( light ) );
                 }
             }
 
@@ -1506,6 +1593,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 for( auto i : nn_vec )
                 {
                     motor::release( motor::move( i ) );
+                }
+
+
+                for( auto * mtr : lights ) 
+                {
+                    motor::release( motor::move( mtr ) ) ;
                 }
             }
         }

@@ -7,8 +7,8 @@
 #include "../../typedefs.h"
 #include "../../result.h"
 
-#include "../../graphics/d3d/d3d11_context.h"
-#include "../../graphics/d3d/d3d11.h"
+#include "../../graphics/d3d11/d3d11_context.h"
+#include "../../graphics/d3d11/d3d11.h"
 
 #include <motor/application/d3d_info.h>
 

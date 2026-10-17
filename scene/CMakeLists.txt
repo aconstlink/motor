@@ -33,8 +33,7 @@ set( sources
     
     "visitor/trafo_visitor.h"
     "visitor/trafo_visitor.cpp"
-    "visitor/variable_update_visitor.h"
-    "visitor/variable_update_visitor.cpp"
+    "visitor/variable_update_visitor.hpp"
     "visitor/default_visitor.h"
     "visitor/default_visitor.cpp"
     "visitor/search_by_name_visitor.hpp"

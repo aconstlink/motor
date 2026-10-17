@@ -87,10 +87,14 @@ list( APPEND sources "network/network_module_creator.hpp" )
 
 if( MOTOR_GRAPHICS_OPENGL )
 list( APPEND sources 
-    "graphics/gl/gl4.h"
-    "graphics/gl/gl4.cpp"
-    "graphics/gl/gl4_convert.h"
+    "graphics/gl4/gl4_log.h"
+    "graphics/gl4/gl4.h"
+    "graphics/gl4/gl4.cpp"
+    "graphics/gl4/gl4_independent.h"
+    "graphics/gl4/gl4_convert.h"
     "graphics/gl/gl_context.h"
+    "graphics/gl4/gl4_pimpl_data.h"
+    "graphics/gl4/gl4_support_thread.hpp"
 )
 endif()
 if( MOTOR_GRAPHICS_OPENGLES )
@@ -102,10 +106,15 @@ list( APPEND sources_
 endif()
 if( MOTOR_GRAPHICS_DIRECT3D )
 list( APPEND sources 
-    "graphics/d3d/d3d11.h"
-    "graphics/d3d/d3d11.cpp"
-    "graphics/d3d/d3d11_context.h"
-    "graphics/d3d/d3d11_convert.h"
+    "graphics/d3d11/d3d11.h"
+    "graphics/d3d11/d3d11.cpp"
+    "graphics/d3d11/d3d11_context.h"
+    "graphics/d3d11/d3d11_convert.h"
+
+    "graphics/d3d11/d3d11_pimpl_data.h"
+    "graphics/d3d11/d3d11_independent.h"
+    "graphics/d3d11/d3d11_support_thread.hpp"
+    "graphics/d3d11/d3d11_log.h"
 )
 endif()
 

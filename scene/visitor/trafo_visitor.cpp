@@ -7,6 +7,7 @@
 
 #include "../component/trafo3d_component.h"
 #include "../component/camera_component.h"
+#include "../component/light_component.hpp"
 #include "../component/graphics/msl_component.h"
 #include "../component/graphics/msl_set_component.hpp"
 
@@ -71,6 +72,19 @@ void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
             {
                 ptr->set_transformation( _trafos.top() );
             }
+        }
+    }
+
+    // light
+    {
+        auto * comp = nptr->borrow_component< motor::scene::light_component_t >();
+        if( comp != nullptr )
+        {
+            comp->for_each_light( [&, this ]( motor::gfx::light_mtr_t l )
+            {
+                l->set_transformation( _trafos.top() ) ;
+            } ) ;
+            
         }
     }
 
