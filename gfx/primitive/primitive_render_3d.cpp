@@ -4,6 +4,8 @@
 
 #include "primitive_render_3d.h"
 
+#include <cmath>
+
 using namespace motor::gfx;
 
 //*****************************************************************
@@ -79,6 +81,73 @@ void_t primitive_render_3d::draw_circle( motor::math::mat3f_cref_t o, motor::mat
 }
 
 //*****************************************************************
+void_t primitive_render_3d::draw_wire_circle( motor::math::vec3f_cref_t center,
+    motor::math::vec3f_cref_t right, motor::math::vec3f_cref_t up, float_t const radius,
+    motor::math::vec4f_cref_t color, size_t const num_segments ) noexcept
+{
+    if( num_segments < 3 || !( radius > 0.0f ) || !std::isfinite( radius ) ) return;
+
+    float_t const step = 6.283185307f / float_t( num_segments );
+    this_t::draw_lines( num_segments, [ = ]( size_t const i )
+    {
+        float_t const a = float_t( i ) * step;
+        float_t const b = float_t( ( i + 1 ) % num_segments ) * step;
+        auto const p0 = center + ( right * std::cos( a ) + up * std::sin( a ) ) * radius;
+        auto const p1 = center + ( right * std::cos( b ) + up * std::sin( b ) ) * radius;
+        return motor::gfx::line_render_3d_t::draw_line_data_t{ { p0, p1 }, color };
+    } );
+}
+
+//*****************************************************************
+void_t primitive_render_3d::draw_wire_circle( motor::math::mat3f_cref_t orientation,
+    motor::math::vec3f_cref_t center, float_t const radius,
+    motor::math::vec4f_cref_t color, size_t const num_segments ) noexcept
+{
+    this_t::draw_wire_circle( center, orientation * motor::math::vec3f_t( 1.0f, 0.0f, 0.0f ),
+        orientation * motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ), radius, color, num_segments );
+}
+
+//*****************************************************************
+void_t primitive_render_3d::draw_wire_sphere( motor::math::vec3f_cref_t center, float_t const radius,
+    motor::math::vec4f_cref_t color, size_t const num_segments ) noexcept
+{
+    motor::math::vec3f_t const x( 1.0f, 0.0f, 0.0f ), y( 0.0f, 1.0f, 0.0f ), z( 0.0f, 0.0f, 1.0f );
+    this_t::draw_wire_circle( center, x, y, radius, color, num_segments );
+    this_t::draw_wire_circle( center, x, z, radius, color, num_segments );
+    this_t::draw_wire_circle( center, y, z, radius, color, num_segments );
+}
+
+//*****************************************************************
+void_t primitive_render_3d::draw_arrow( motor::math::vec3f_cref_t origin,
+    motor::math::vec3f_cref_t direction, float_t const length, motor::math::vec4f_cref_t color,
+    float_t const head_length, float_t const head_radius ) noexcept
+{
+    auto const direction_length = direction.length();
+    if( !( length > 0.0f ) || !std::isfinite( length ) ||
+        !( direction_length > 0.0f ) || !std::isfinite( direction_length ) ||
+        !( head_length >= 0.0f ) || !std::isfinite( head_length ) ||
+        !( head_radius >= 0.0f ) || !std::isfinite( head_radius ) ) return;
+
+    auto const d = direction / direction_length;
+    auto const end = origin + d * length;
+    if( head_length == 0.0f || head_radius == 0.0f )
+    {
+        this_t::draw_line( origin, end, color );
+        return;
+    }
+
+    auto const side = d.crossed( std::abs( d.y() ) < 0.95f ?
+        motor::math::vec3f_t( 0.0f, 1.0f, 0.0f ) : motor::math::vec3f_t( 1.0f, 0.0f, 0.0f ) ).normalized();
+    auto const base = end - d * ( head_length < length ? head_length : length );
+    this_t::draw_lines( 3, [ = ]( size_t const i )
+    {
+        if( i == 0 ) return motor::gfx::line_render_3d_t::draw_line_data_t{ { origin, end }, color };
+        auto const wing = base + side * ( i == 1 ? head_radius : -head_radius );
+        return motor::gfx::line_render_3d_t::draw_line_data_t{ { end, wing }, color };
+    } );
+}
+
+//*****************************************************************
 void_t primitive_render_3d::draw_spline(
     motor::math::linear_bezier_spline< motor::math::vec3f_t > const & spline,
     motor::math::vec4f_cref_t color ) noexcept
@@ -123,12 +192,12 @@ void_t primitive_render_3d::draw_frustum(
     // 4-7 : back plane
     motor::math::vec3f_t points[ 8 ];
 
-    // auto const nf = cam->get_near_far() ;
-    auto const nf = motor::math::vec2f_t( 50.0f, 1000.0f );
+    auto const nf = cam.get_near_far() ;
+    //auto const nf = motor::math::vec2f_t( 50.0f, 1000.0f );
 
     auto const cs = cam.near_far_plane_half_dims( nf );
     {
-        motor::math::vec3f_t const scale( cs.x(), cs.y(), nf.x() );
+        motor::math::vec3f_t const scale( cs.x(), cs.y(), -nf.x() );
         points[ 0 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale;
         points[ 1 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale;
         points[ 2 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale;
@@ -136,7 +205,7 @@ void_t primitive_render_3d::draw_frustum(
     }
 
     {
-        motor::math::vec3f_t const scale( cs.z(), cs.w(), nf.y() );
+        motor::math::vec3f_t const scale( cs.z(), cs.w(), -nf.y() );
         points[ 4 ] = motor::math::vec3f_t( -1.0f, -1.0f, 1.0f ) * scale;
         points[ 5 ] = motor::math::vec3f_t( -1.0f, +1.0f, 1.0f ) * scale;
         points[ 6 ] = motor::math::vec3f_t( +1.0f, +1.0f, 1.0f ) * scale;

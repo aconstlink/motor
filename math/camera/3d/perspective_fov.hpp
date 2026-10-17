@@ -140,6 +140,8 @@ struct perspective
     {
         auto const t = tanf( fov * 0.5f );
 
+        // Replace the entire projection, including a previous identity or orthographic matrix.
+        m = mat4_t();
         m[ 0 ] = 1.0f / ( aspect * t );
         m[ 5 ] = 1.0f / t;
         m[ 10 ] = -( ( f + n ) / ( f - n ) );

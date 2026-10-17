@@ -269,11 +269,17 @@ motor::math::vec4f_t generic_camera::near_far_plane_half_dims( void_t ) const no
 //******************************************************************************************
 motor::math::vec4f_t generic_camera::near_far_plane_half_dims( motor::math::vec2f_in_t nf ) const noexcept
 {
+    if( this_t::is_orthographic() )
+    {
+        auto const half_dims = _sensor_dims * 0.5f;
+        return motor::math::vec4f_t( half_dims.x(), half_dims.y(), half_dims.x(), half_dims.y() );
+    }
+
     auto const nl = motor::math::m3d::detail::perspective_projection< float_t >::get_half_length_for( _fov, nf.x() );
     auto const fl = motor::math::m3d::detail::perspective_projection< float_t >::get_half_length_for( _fov, nf.y() );
 
-    auto const aspect = this_t::aspect_h_w();
-    return motor::math::vec4f_t( nl, nl * aspect, fl, fl * aspect );
+    auto const aspect = this_t::aspect_w_h();
+    return motor::math::vec4f_t( nl * aspect, nl, fl * aspect, fl );
 }
 
 //******************************************************************************************
