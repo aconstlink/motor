@@ -20,6 +20,7 @@ namespace motor
         public:
 
             motor_typedefs( motor::vector< motor::concurrent::task_mtr_t >, tasks ) ;
+            using notify_funk_t = std::function< void_t ( void_t ) > ;
 
         private:
 
@@ -43,19 +44,24 @@ namespace motor
             motor::concurrent::mutex_t _mtx_f ;
             motor::vector< std::future<void_t> > _futures ;
 
+            motor::concurrent::mutex_t _mtx_notifies ;
+            motor::vector< notify_funk_t > _notifies ;
+
         public:
 
             loose_thread_scheduler( void_t ) noexcept
             {}
 
             loose_thread_scheduler( this_cref_t ) = delete ;
-            loose_thread_scheduler( this_rref_t rhv ) noexcept
+            loose_thread_scheduler( this_rref_t rhv ) noexcept : 
+                _notifies(std::move( rhv._notifies ) )
             {
+                if( rhv._sd )
                 {
                     motor::concurrent::lock_t lk(rhv._sd->mtx) ;
                     rhv._sd->owner = this ;
+                    _sd = motor::move( rhv._sd ) ;
                 }
-                motor_move_member_ptr( _sd, rhv ) ;
                 _tasks = std::move( rhv._tasks ) ;
             }
 
@@ -107,6 +113,20 @@ namespace motor
                 for( auto & t : _tasks ) motor::memory::release_ptr( t ) ;
             }
 
+            size_t register_work_notify( notify_funk_t f ) noexcept
+            {
+                std::lock_guard< std::mutex > lk( _mtx_notifies ) ;
+                _notifies.emplace_back( std::move( f ) ) ;
+                return _notifies.size() -1 ;
+            }
+
+            void_t unregister_work_notify( size_t const id ) noexcept
+            {
+                std::lock_guard< std::mutex > lk( _mtx_notifies ) ;
+                if( _notifies.size() <= id ) return ;
+                _notifies[id] = nullptr ;
+            }
+
         private:
 
             void_t place_future( std::future< void_t > && f_ ) noexcept
@@ -148,6 +168,15 @@ namespace motor
                 }
             }
 
+            void_t notify_work( void_t ) noexcept
+            {
+                std::lock_guard <std::mutex > lk( _mtx_notifies ) ;
+                for( auto & n : _notifies ) 
+                {
+                    if( n ) n() ;
+                }
+            }
+
         public:
 
             // the schedule takes over the pointer
@@ -155,6 +184,7 @@ namespace motor
             {
                 motor::concurrent::lock_t lk( _mtx ) ;
                 _tasks.emplace_back( std::move( t ) ) ;
+                this_t::notify_work() ;
             }
 
             // the schedule takes over the pointers
@@ -165,6 +195,7 @@ namespace motor
                 {
                     _tasks.emplace_back( std::move( t ) ) ;
                 }
+                this_t::notify_work() ;
             }
 
         private:
@@ -186,6 +217,10 @@ namespace motor
                 for( auto & t : tasks )
                 {
                     this_t::execute( std::move( t ) ) ;
+                }
+                {
+                    motor::concurrent::lock_t lk( _mtx ) ;
+                    if( !_tasks.empty() ) this_t::notify_work() ;
                 }
             }
 

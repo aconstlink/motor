@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #pragma once
 
 #include "api.h"
@@ -24,12 +23,15 @@ class MOTOR_GRAPHICS_API render_engine
 
   public:
 
+    using notify_funk_t = std::function< void_t ( void_t ) > ;
+
     struct command
     {
         using funk_t = std::function< void_t( void_t ) >;
 
         funk_t exec_funk;
-        funk_t cancel_funk = []( void_t ){};
+        funk_t cancel_funk = []( void_t ) {
+        };
     };
     motor_typedef( command );
 
@@ -43,6 +45,8 @@ class MOTOR_GRAPHICS_API render_engine
 
     // execute commands
     motor::vector< command_t > _coms_ex;
+
+    notify_funk_t _notify_has_work ;
 
   public:
 
@@ -76,6 +80,10 @@ class MOTOR_GRAPHICS_API render_engine
 
     // !not thread safe! Only use within enter_frame/leave_frame
     void_t send_execute( this_t::command_t c ) noexcept;
+
+  public:
+    
+    void_t set_work_notify( notify_funk_t ) noexcept ;
 
   private: // has commands specific
 

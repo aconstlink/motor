@@ -25,12 +25,13 @@ namespace motor
                 using base_t = motor::application::carrier_t ;
                 motor_this_typedefs( win32_carrier ) ;
 
-                using _clock_t = std::chrono::high_resolution_clock ;
+                using _clock_t = std::chrono::steady_clock ;
 
             private:
 
-                bool_t _done = false ;
-                                
+                std::atomic<bool> _done = false ;
+                HANDLE _work_event = NULL ;
+
                 motor::platform::win32::rawinput_module_mtr_t _rawinput = nullptr ;
                 motor::platform::win32::xinput_module_mtr_t _xinput  = nullptr ;
                 motor::platform::win32::midi_module_mtr_t _midi = nullptr ;

@@ -98,6 +98,12 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 {
     _clock_t::time_point tp_begin = _clock_t::now() ;
 
+    _work_event = CreateEventW( nullptr, FALSE, FALSE, nullptr ) ;
+    size_t const concurrnt_id = motor::concurrent::global_t::register_work_event_notify([ event = _work_event ]( void_t )
+    {
+        SetEvent( event ) ;
+    } ) ;
+
     while( !_done )
     {
         // should be called in the main carrier!
@@ -226,6 +232,9 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                                 d.micro_rnd = std::chrono::duration_cast< std::chrono::microseconds >( 
                                     _clock_t::now() - d.rnd_beg ).count() ;
                                 d.rnd_beg = _clock_t::now() ;
+
+                                motor::application::app_t::carrier_accessor ca( this_t::borrow_app() ) ;
+                                ca.notify_update() ;
                             }
                             else
                             {
@@ -292,13 +301,9 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             d.ptr->ctx.deactivate() ;
 
                             d.frame_miss = 0 ;
-                        }
-                        // if this is not done, it will completely halt the whole computer!
-                        // at some frame misses, e.g. user did not do any rendering, the loop 
-                        // needs to go to sleep for a while.
-                        else if( ++d.frame_miss > 5 )
-                        {
-                            std::this_thread::sleep_for( std::chrono::microseconds(10) ) ;
+
+                            motor::application::app_t::carrier_accessor ca( this_t::borrow_app() ) ;
+                            ca.notify_update() ;
                         }
                     }
 
@@ -386,6 +391,11 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                              _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
                             _wgl_windows.emplace_back( wgl_window_data({ hwnd, pimpl, _clock_t::now() }) )  ;
+
+                            pimpl->re.set_work_notify( [ event = _work_event ]( void_t )
+                            {
+                                SetEvent( event ) ;
+                            } ) ;
                         }
                         else
                         {
@@ -420,6 +430,11 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             _win32_windows.back().wnd->set_renderable( &pimpl->re, pimpl->fe ) ;
 
                             _d3d11_windows.emplace_back( d3d11_window_data({ hwnd, pimpl, this_t::_clock_t::now(), 0, 0 }) )  ;
+
+                            pimpl->re.set_work_notify( [ event = _work_event ]( void_t )
+                            {
+                                SetEvent( event ) ;
+                            } ) ;
                         }
                         else
                         {
@@ -438,6 +453,23 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                 _queue.clear() ;
             }
         }
+
+        if( _done ) break ;
+
+        // any work ready
+        {
+            std::lock_guard< std::mutex > lk ( _mtx_queue ) ;
+            if( _queue.size() > 0  ) continue ;
+        }
+
+        DWORD const result = MsgWaitForMultipleObjectsEx(
+            1, &_work_event, INFINITE, QS_ALLINPUT, MWMO_INPUTAVAILABLE ) ;
+
+        if( result == WAIT_FAILED )
+        {
+            motor::log::global_t::error( "[MsgWaitForMultipleObjectsEx] : Waiting for messages failed" ) ;
+            break ;
+        }
     }
 
     // in case while broke earlier.
@@ -449,6 +481,10 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
         while( !this_t::handle_destroyed_hwnd( d.hwnd ) ) ;
     }
 
+    motor::concurrent::global_t::unregister_work_event_notify( concurrnt_id ) ;
+
+    CloseHandle( _work_event ) ;
+
     return motor::application::result::ok ;
 }
 
@@ -456,6 +492,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
 motor::application::result win32_carrier::close( void_t ) noexcept
 {
     _done = true ;
+    SetEvent( _work_event ) ;
     return motor::application::result::ok ;
 }
 
@@ -506,6 +543,8 @@ motor::application::iwindow_mtr_safe_t win32_carrier::create_window( motor::appl
         std::lock_guard< std::mutex > lk( _mtx_queue ) ;
         _queue.emplace_back( this_t::window_queue_msg_t{info, wnd, lsn} ) ;
     }
+
+    SetEvent( _work_event ) ;
 
     return motor::unique( motor::memory::copy_ptr(wnd) )  ;
 }
@@ -1056,6 +1095,7 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
 
     if ( states.close_changed )
     {
+        SetEvent( _work_event ) ;
         CloseWindow( d.hwnd ) ;
         DestroyWindow( d.hwnd ) ;
     }

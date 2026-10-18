@@ -18,8 +18,13 @@ namespace motor
         {
             motor_this_typedefs( global ) ;
 
+        public:
+
+            using notify_funk_t = std::function< void_t ( void_t ) > ;
+
         private:
 
+            
             struct singleton_data ;
             static singleton_data * _dptr ;
             static mutex_t _mtx ;
@@ -29,6 +34,9 @@ namespace motor
             static singleton_data * init( void_t ) noexcept ;
 
         public: 
+
+            static size_t register_work_event_notify( notify_funk_t ) noexcept ;
+            static void_t unregister_work_event_notify( size_t const ) noexcept ;
 
             static void_t deinit( void_t ) noexcept ;
             static void_t update( void_t ) noexcept ;
