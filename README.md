@@ -10,9 +10,9 @@ The project is developed as a personal engine/runtime environment. It is not mea
 
 ## History
 
-The Motor repository started in 2023. Parts of its code originate from earlier
-engines that I have been developing since 2011 and has continued to
-rework and evolve into Motor.
+The motor repository started in 2023. Parts of its code originate from earlier
+engines that I have been developing since 2011 and have continued to
+rework and evolve into motor.
 
 ## Focus
 
@@ -98,7 +98,7 @@ or `motor::graphics`, instead. The targets propagate their include directories,
 compile definitions, dependencies, and the C++20 requirement.
 
 The package currently uses exact version matching; compatibility between different
-Motor versions is not promised. Binary packages must match the consumer's platform,
+motor versions is not promised. Binary packages must match the consumer's platform,
 architecture, compiler/runtime, and configuration. Shared libraries must also be
 available to the runtime loader (`bin` on Windows, `lib` on Linux). System graphics
 development dependencies, such as OpenGL, are resolved on the consuming machine.
@@ -113,7 +113,7 @@ APIs and internal systems are still evolving. The repository is best understood 
 
 ## AI-Assisted Development
 
-Motor is a long-running, independently developed C++ engine. AI tools are used to assist with code reviews, compiler warning cleanup, bug investigation, test development, documentation, and technical brainstorming. Architecture and development decisions remain with the maintainer. AI-assisted changes are reviewed and tested as part of the development workflow.
+motor is a long-running, independently developed C++ engine. AI tools are used to assist with code reviews, compiler warning cleanup, bug investigation, test development, documentation, and technical brainstorming. Architecture and development decisions remain with the maintainer. AI-assisted changes are reviewed and tested as part of the development workflow.
 
 ## License
 
