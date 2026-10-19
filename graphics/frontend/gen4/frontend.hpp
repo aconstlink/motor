@@ -74,7 +74,7 @@ class frontend : public motor::graphics::ifrontend
             if( !res ) return false;
         }
 
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             auto const res = _be->configure( o );
 
@@ -99,7 +99,7 @@ class frontend : public motor::graphics::ifrontend
             if( !res ) return false;
         }
 
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             auto const res = _be->release( o );
 
@@ -135,7 +135,7 @@ class frontend : public motor::graphics::ifrontend
             }
         }
 
-        _re->send_execute( { [ =, this, mtr = o.mtr() ]( void_t )
+        _re->send_update( { [ =, this, mtr = o.mtr() ]( void_t )
         {
             auto const res = _be->release( mtr );
 
@@ -150,7 +150,7 @@ class frontend : public motor::graphics::ifrontend
 
     this_ref_t update( motor::graphics::geometry_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             _be->update( o );
         } } );
@@ -160,7 +160,7 @@ class frontend : public motor::graphics::ifrontend
 
     this_ref_t update( motor::graphics::array_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             _be->update( o );
         } } );
@@ -170,7 +170,7 @@ class frontend : public motor::graphics::ifrontend
 
     this_ref_t update( motor::graphics::streamout_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             _be->update( o );
         } } );
@@ -180,7 +180,7 @@ class frontend : public motor::graphics::ifrontend
 
     this_ref_t update( motor::graphics::image_object_borrow_t::mtr_t o ) noexcept
     {
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             _be->update( o );
         } } );
@@ -191,7 +191,7 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t update(
         motor::graphics::render_object_borrow_t::mtr_t o, size_t const varset ) noexcept
     {
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             _be->update( o, varset );
         } } );
@@ -202,7 +202,7 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t update_geometry_link(
         motor::graphics::msl_object_borrow_t::mtr_t msl, size_t const idx ) noexcept
     {
-        _re->send_execute( { [ =, this ]( void_t )
+        _re->send_update( { [ =, this ]( void_t )
         {
             _be->update_geometry_link( msl, idx );
         } } );
@@ -289,12 +289,26 @@ class frontend : public motor::graphics::ifrontend
         } } );
     }
 
-    using fence_funk_t = std::function< void_t( void_t ) >;
+    enum class fence_phase
+    {
+        invalid,
+        update,
+        // commit,
+        execute
+    };
+    using fence_funk_t = std::function< void_t( fence_phase const ) >;
     void_t fence( fence_funk_t funk ) noexcept
     {
-        _re->send_execute( { [ = ]( void_t ) { funk(); }, [ = ]( void_t )
+        _re->send_update( { [ = ]( void_t )
+        { funk( motor::graphics::gen4::frontend::fence_phase::update ); }, [ = ]( void_t )
         {
-            funk();
+            funk( motor::graphics::gen4::frontend::fence_phase::update );
+        } } );
+
+        _re->send_execute( { [ = ]( void_t )
+        { funk( motor::graphics::gen4::frontend::fence_phase::execute ); }, [ = ]( void_t )
+        {
+            funk( motor::graphics::gen4::frontend::fence_phase::execute );
         } } );
     }
 

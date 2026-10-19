@@ -43,8 +43,8 @@ class render_engine
     mutable std::mutex _mtx_has_commands;
     bool_t _has_commands = false;
 
-    // prepare commands
-    motor::vector< command_t > _coms_prep;
+    // update commands
+    motor::vector< command_t > _coms_update;
 
     // execute (like rendering, compute) commands
     motor::vector< command_t > _coms_exec;
@@ -61,7 +61,7 @@ class render_engine
     render_engine( void_t ) noexcept {}
     render_engine( this_cref_t ) = delete;
     render_engine( this_rref_t rhv ) noexcept
-        : _has_commands( rhv._has_commands ), _coms_prep( std::move( rhv._coms_prep ) ),
+        : _has_commands( rhv._has_commands ), _coms_update( std::move( rhv._coms_update ) ),
           _coms_exec( std::move( rhv._coms_exec ) ),
           _notify_has_work( std::move( rhv._notify_has_work ) ),
           _commit_snapshot( std::move( rhv._commit_snapshot ) )
@@ -75,7 +75,7 @@ class render_engine
         {
             c.cancel_funk();
         }
-        _coms_prep.clear();
+        _coms_update.clear();
         _coms_exec.clear();
         _has_commands = false;
     }
@@ -91,7 +91,7 @@ class render_engine
         {
             c.cancel_funk();
         }
-        _coms_prep.clear();
+        _coms_update.clear();
         _coms_exec.clear();
         _has_commands = false;
     }
@@ -108,11 +108,11 @@ class render_engine
         assert( _has_commands == true );
 
         // 1. execute prepare commands
-        for( auto & c : _coms_prep )
+        for( auto & c : _coms_update )
         {
             c.exec_funk();
         }
-        _coms_prep.clear();
+        _coms_update.clear();
 
         // 2. commit all data, i.e. frame snapshot
         _commit_snapshot() ;
@@ -157,9 +157,9 @@ class render_engine
     }
 
     // !not thread safe! Only use within enter_frame/leave_frame
-    void_t send_prepare( this_t::command_t c ) noexcept
+    void_t send_update( this_t::command_t c ) noexcept
     {
-        _coms_prep.emplace_back( std::move( c ) );
+        _coms_update.emplace_back( std::move( c ) );
     }
 
     // !not thread safe! Only use within enter_frame/leave_frame
