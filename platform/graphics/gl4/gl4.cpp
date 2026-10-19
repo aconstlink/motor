@@ -3493,3 +3493,8 @@ void_t gl4_backend::on_context_destruction( void_t ) noexcept
 {
     _pimpl->on_context_destruction();
 }
+
+//*************************************************************************************
+void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept 
+{
+}

@@ -62,6 +62,8 @@ namespace motor
 
             virtual void_t render_begin( void_t ) noexcept ;
             virtual void_t render_end( void_t ) noexcept ;
+
+            void_t commit_frame_snapshot( void_t ) noexcept {}
         };
         motor_typedef( null_backend ) ;
     }

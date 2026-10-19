@@ -11,8 +11,7 @@ set( sources
     "object.h"
     "object.cpp"
 
-    "render_engine.h"
-    "render_engine.cpp"
+    "render_engine.hpp"
 
     "state/render_states.h"
     "state/state_set.h"

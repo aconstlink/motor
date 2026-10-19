@@ -4,7 +4,7 @@
 #include "win32_carrier.h"
 #include "../../cpu_id.h"
 
-#include <motor/graphics/render_engine.h>
+#include <motor/graphics/render_engine.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include <motor/log/global.h>

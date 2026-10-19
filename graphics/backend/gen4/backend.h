@@ -117,6 +117,8 @@ namespace motor
                     return motor::graphics::render_state_sets_t() ;
                 }
 
+                virtual void_t commit_frame_snapshot( void_t ) noexcept = 0 ;
+
             public:
                 
                 backend( void_t ) noexcept : _bid( motor::graphics::bid_gen.generate() ) {}

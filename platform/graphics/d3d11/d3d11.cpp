@@ -4305,3 +4305,5 @@ void_t d3d11_backend::report_live_device_objects( D3D11_RLDO_FLAGS const flags )
     if( _context != nullptr ) _context->debug()->ReportLiveDeviceObjects( flags );
 #endif
 }
+
+void_t d3d11_backend::commit_frame_snapshot( void_t ) noexcept {}

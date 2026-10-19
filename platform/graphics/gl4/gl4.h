@@ -82,6 +82,8 @@ namespace motor
                 // made current...
                 void_t on_context_destruction( void_t ) noexcept ;
 
+                void_t commit_frame_snapshot( void_t ) noexcept ;
+
             private:
 
                 //
