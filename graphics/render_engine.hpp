@@ -87,11 +87,17 @@ class render_engine
     {
         std::lock_guard< std::mutex > lk( _mtx_has_commands );
 
+        for( auto & c : _coms_update )
+        {
+            c.cancel_funk() ;
+        }
+        _coms_update.clear();
+
         for( auto & c : _coms_exec )
         {
             c.cancel_funk();
         }
-        _coms_update.clear();
+        
         _coms_exec.clear();
         _has_commands = false;
     }
@@ -114,7 +120,8 @@ class render_engine
         }
         _coms_update.clear();
 
-        // 2. commit all data, i.e. frame snapshot
+        // 2. commit all data, i.e. 
+        // do the frame snapshot
         _commit_snapshot() ;
 
         // 3. execute "execute" commands

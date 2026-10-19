@@ -3495,6 +3495,4 @@ void_t gl4_backend::on_context_destruction( void_t ) noexcept
 }
 
 //*************************************************************************************
-void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept 
-{
-}
+void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept {}
