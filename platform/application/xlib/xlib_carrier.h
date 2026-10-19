@@ -42,6 +42,9 @@ namespace motor
                 motor::platform::xlib::xlib_module_mtr_t _device_module = nullptr ;
             
                 std::atomic< bool_t > _done { false } ;
+                int_t _work_event = -1 ;
+
+                void_t notify_update( void_t ) noexcept ;
 
             private:
 

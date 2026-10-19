@@ -16,6 +16,12 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
+#include <sys/eventfd.h>
+#include <poll.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cerrno>
+
 #if MOTOR_GRAPHICS_GLX
 #include <motor/ogl/glx/glx.h>
 #include "../glx/glx_config.h"
@@ -23,6 +29,72 @@
 
 using namespace motor::platform ;
 using namespace motor::platform::xlib ;
+
+namespace
+{
+    using namespace motor::core::types ;
+
+    void_t signal_work( int_t const fd ) noexcept
+    {
+        uint64_t const value = 1 ;
+        ssize_t result ;
+        do { result = ::write( fd, &value, sizeof(value) ) ; }
+        while( result < 0 && errno == EINTR ) ;
+        // EAGAIN means that the event is already signalled.
+    }
+
+    class notifying_window final : public motor::application::window
+    {
+        using base_t = motor::application::window ;
+        int_t _event = -1 ;
+
+    public:
+        explicit notifying_window( int_t const event ) noexcept :
+            _event( ::fcntl( event, F_DUPFD_CLOEXEC, 0 ) )
+        {
+            if( motor::log::global_t::error( _event < 0,
+                "[xlib_carrier] : duplicating work event failed" ) ) exit( EXIT_FAILURE ) ;
+        }
+
+        notifying_window( notifying_window && rhv ) noexcept :
+            base_t( std::move(rhv) ), _event(rhv._event)
+        {
+            rhv._event = -1 ;
+        }
+
+        ~notifying_window( void_t ) noexcept override
+        {
+            if( _event >= 0 ) ::close( _event ) ;
+        }
+
+        void_t send_message( motor::application::show_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::resize_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::create_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::close_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::screen_dpi_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::screen_size_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::vsync_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::fullscreen_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::cursor_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+        void_t send_message( motor::application::mouse_message_cref_t msg ) noexcept override
+        { base_t::send_message( msg ) ; signal_work( _event ) ; }
+
+        void_t return_borrowed( motor::graphics::ifrontend_ptr_t ptr ) noexcept override
+        {
+            base_t::return_borrowed( ptr ) ;
+            signal_work( _event ) ;
+        }
+    } ;
+}
 
 #if MOTOR_GRAPHICS_GLX
 struct xlib_carrier::glx_pimpl
@@ -72,6 +144,9 @@ void_t xlib_carrier::disconnect_display( void_t ) noexcept
 //**********************************************************************
 xlib_carrier::xlib_carrier( void_t ) noexcept
 {
+    _work_event = ::eventfd( 0, EFD_NONBLOCK | EFD_CLOEXEC ) ;
+    if( motor::log::global_t::error( _work_event < 0,
+        "[xlib_carrier] : eventfd failed" ) ) exit( EXIT_FAILURE ) ;
     connect_display() ;
 
     this_t::create_and_register_device_modules() ;
@@ -81,6 +156,9 @@ xlib_carrier::xlib_carrier( void_t ) noexcept
 //***********************************************************************
 xlib_carrier::xlib_carrier( motor::application::app_mtr_safe_t app ) noexcept : base_t( std::move( app ) )
 {
+    _work_event = ::eventfd( 0, EFD_NONBLOCK | EFD_CLOEXEC ) ;
+    if( motor::log::global_t::error( _work_event < 0,
+        "[xlib_carrier] : eventfd failed" ) ) exit( EXIT_FAILURE ) ;
     connect_display() ;
     this_t::create_and_register_device_modules() ;
     this_t::create_and_register_network_modules() ;
@@ -98,6 +176,8 @@ xlib_carrier::xlib_carrier( this_rref_t rhv ) noexcept : base_t( std::move( rhv 
     _display_use_count = rhv._display_use_count ;
     rhv._display_use_count = 0 ;
     _done = rhv._done.load() ;
+    _work_event = rhv._work_event ;
+    rhv._work_event = -1 ;
 }
 
 //**********************************************************************
@@ -105,16 +185,34 @@ xlib_carrier::~xlib_carrier( void_t ) noexcept
 {
     this_t::disconnect_display() ;
     motor::memory::release_ptr( _device_module ) ;
+    if( _work_event >= 0 ) ::close( _work_event ) ;
+}
+
+//********************************************************************
+void_t xlib_carrier::notify_update( void_t ) noexcept
+{
+    if( auto * app = this_t::borrow_app(); app != nullptr )
+        motor::application::app_t::carrier_accessor( app ).notify_update() ;
 }
 
 //********************************************************************
 motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 {
-    using _clock_t = std::chrono::high_resolution_clock ;
+    using _clock_t = std::chrono::steady_clock ;
     _clock_t::time_point tp_begin = _clock_t::now() ;
+
+    size_t const notify_id = motor::concurrent::global_t::register_work_event_notify(
+        [ event = _work_event ]( void_t ) { signal_work( event ) ; } ) ;
 
     while( !_done )
     {
+        // Consume the wakeup BEFORE processing work. Notifications during processing
+        // remain pending for the next iteration, including the race before poll().
+        uint64_t pending ;
+        ssize_t read_result ;
+        do { read_result = ::read( _work_event, &pending, sizeof(pending) ) ; }
+        while( read_result < 0 && errno == EINTR ) ;
+
         // should be called in the main carrier!
         // but that requires a different handling of the while loop.
         motor::concurrent::global_t::update() ;
@@ -125,11 +223,13 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
         size_t const milli = std::chrono::duration_cast< std::chrono::milliseconds >( dur ).count() ;
 
         int_t num_events = 0 ;
+        bool_t had_events = false ;
 
         while( (num_events = XPending(_display)) != 0 )
         {
             XEvent event ;
             XNextEvent( _display, &event ) ;
+            had_events = true ;
 
             for( auto & wd : _xlib_windows )
             {
@@ -198,6 +298,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
             _device_module->handle_input_event( event ) ;
             //XSync( _display, True ) ;
         }
+        if( had_events ) this_t::notify_update() ;
 
         for( auto & wd : _xlib_windows ) this_t::handle_messages( wd ) ;
 
@@ -248,11 +349,7 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                             d.ptr->ctx.deactivate() ;
                         }
                         else d.ptr->re.force_clear() ;
-                    }
-                    // required for now, otherwise the application stalls.
-                    else if( milli == 0 )
-                    {
-                        std::this_thread::sleep_for( std::chrono::milliseconds(1) ) ;
+                        this_t::notify_update() ;
                     }
                     
                 }
@@ -336,6 +433,11 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         this_t::glx_pimpl * pimpl = motor::memory::global_t::alloc(
                             this_t::glx_pimpl( { std::move(ctx) } ), "[xlib_carrier] : glx context") ;
 
+                            pimpl->re.set_work_notify( [ event = _work_event ]( void_t )
+                            {
+                                signal_work( event ) ;
+                            } ) ;
+
                             pimpl->fe = motor::memory::global_t::alloc( motor::graphics::gen4::frontend_t( &pimpl->re, pimpl->ctx.borrow_backend() ),
                                 "[xlib_carrier] : gen4 frontend") ;
                             pimpl->ctx.deactivate() ;
@@ -361,7 +463,21 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
             }
             _queue.clear() ;
         }
+
+        if( _done ) break ;
+        // Xlib can already hold events even when its socket is no longer readable.
+        if( XPending( _display ) != 0 ) continue ;
+
+        pollfd fds[] = { { ConnectionNumber(_display), POLLIN, 0 },
+            { _work_event, POLLIN, 0 } } ;
+        int_t const result = ::poll( fds, 2, -1 ) ;
+        if( result < 0 && errno == EINTR ) continue ;
+        if( motor::log::global_t::error( result < 0 ||
+            ((fds[0].revents | fds[1].revents) & (POLLERR | POLLHUP | POLLNVAL)) != 0,
+            "[xlib_carrier] : waiting for work failed" ) ) break ;
     }
+
+    motor::concurrent::global_t::unregister_work_event_notify( notify_id ) ;
 
     while( !_xlib_windows.empty() )
     {
@@ -376,14 +492,16 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
 motor::application::result xlib_carrier::close( void_t ) noexcept
 {
     _done = true ;
+    signal_work( _work_event ) ;
     return motor::application::result::ok ;
 }
 
 //********************************************************************
 motor::application::iwindow_mtr_safe_t xlib_carrier::create_window( motor::application::window_info_cref_t info ) noexcept  
 {
-    motor::application::window_mtr_t wnd = motor::memory::create_ptr<motor::application::window_t>(
-        "[xlib_carrier] : window handle" ) ;
+    // A duplicated descriptor keeps late window messages safe after carrier teardown.
+    motor::application::window_mtr_t wnd = motor::memory::create_ptr(
+        notifying_window( _work_event ), "[xlib_carrier] : window handle" ) ;
 
     motor::application::window_message_listener_mtr_t lsn = motor::memory::create_ptr<
         motor::application::window_message_listener_t>("[xlib_carrier] : window message listener") ;
@@ -394,6 +512,7 @@ motor::application::iwindow_mtr_safe_t xlib_carrier::create_window( motor::appli
         std::lock_guard< std::mutex > lk( _mtx_queue ) ;
         _queue.emplace_back( this_t::window_queue_msg_t{info, wnd, lsn} ) ;
     }
+    signal_work( _work_event ) ;
 
     return motor::share( wnd )  ;
 }
@@ -578,6 +697,7 @@ void_t xlib_carrier::send_destroy( xlib_window_data_in_t d ) noexcept
     {
         l->on_message( motor::application::close_message_t{true} ) ;
     } ) ;
+    this_t::notify_update() ;
 }
 
 //*******************************************************************************************
@@ -587,6 +707,7 @@ void_t xlib_carrier::send_create( xlib_window_data_in_t d ) noexcept
     {
         l->on_message( motor::application::create_message_t() ) ;
     } ) ;
+    this_t::notify_update() ;
 }
 
 //*******************************************************************************************
@@ -606,6 +727,7 @@ void_t xlib_carrier::send_resize( xlib_window_data_in_t d ) noexcept
     {
         l->on_message( rm ) ;
     } ) ;
+    this_t::notify_update() ;
 }
 
 //*******************************************************************************************
