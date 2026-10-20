@@ -167,7 +167,11 @@ struct datas
         this_t::invalidate_and_clear();
     }
 
-  public: // the handle api!
+  public: 
+
+    ////////////////////////////////////////////////////////////////////////////
+    // NEW API with handles
+    ////////////////////////////////////////////////////////////////////////////
 
     // will create an entry with the name, if non exist. if the oid is wrong
     // the oid will be set to the oid holding the name

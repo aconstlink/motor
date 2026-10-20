@@ -243,6 +243,98 @@ struct gl4_independent
     }
 
     //****************************************************************************************
+    static bool_t bind_attributes( gl4_pimpl_data::shader_datas_t::checked_handle_t shd,
+        gl4_pimpl_data::geo_datas_t::checked_handle_t gd ) noexcept
+    {
+        // bind vertex buffer
+        {
+            glBindBuffer( GL_ARRAY_BUFFER, gd->vb_id );
+            if( motor::ogl::error::check_and_log( gl4_log( "glBindBuffer(GL_ARRAY_BUFFER)" ) ) )
+                return false;
+        }
+
+        // bind index buffer
+        {
+            GLint const id_ = gd->ib_elem_sib == 0 ? 0 : gd->ib_id;
+            glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, id_ );
+            if( motor::ogl::error::check_and_log(
+                    gl4_log( "glBindBuffer(GL_ELEMENT_ARRAY_BUFFER)" ) ) )
+                return false;
+        }
+
+        // disable old locations
+        for( size_t i = 0; i < shd->attributes.size(); ++i )
+        {
+            glDisableVertexAttribArray( shd->attributes[ i ].loc );
+            motor::ogl::error::check_and_log( gl4_log( "glDisableVertexAttribArray" ) );
+        }
+
+        GLuint uiStride = gd->stride;
+        GLuint uiBegin = 0;
+        GLuint uiOffset = 0;
+
+        // sometimes some shader input attributes might not be used but
+        // are defined in the vertex layout. So a new location need to be
+        // figured out so that those vertex buffer attributes could
+        // be bound to the shader.
+        GLuint max_loc = 0;
+        if( shd->attributes.size() != gd->elements.size() )
+        {
+            for( auto const & a : shd->attributes )
+            {
+                max_loc = std::max( max_loc, a.loc );
+            }
+        }
+
+        for( auto & e : gd->elements )
+        {
+            uiBegin += uiOffset;
+            uiOffset = e.sib();
+
+            auto iter = std::find_if( shd->attributes.begin(), shd->attributes.end(),
+                [ & ]( gl4_pimpl_data::shader_data::attribute_variable_cref_t av )
+            { return av.va == e.va; } );
+
+            GLuint loc = 0;
+            GLenum type = GL_NONE;
+
+            if( iter == shd->attributes.end() )
+            {
+                loc = ++max_loc;
+                type = motor::platform::gl3::convert( e.type );
+
+                motor::log::global_t::warning(
+                    gl4_log( "Vertex attribute (" + motor::graphics::to_string( e.va ) +
+                             ") in shader (" + shd.name() +
+                             ") not used."
+                             "Will bind geometry (" +
+                             shd.name() + ") layout attribute to custom location (" +
+                             motor::to_string( uint_t( loc ) ) + ")." ) );
+            }
+            else
+            {
+                loc = iter->loc;
+                type = iter->type;
+            }
+
+            glEnableVertexAttribArray( loc );
+            motor::ogl::error::check_and_log( gl4_log( "glEnableVertexAttribArray" ) );
+
+            glVertexAttribPointer( loc, GLint( motor::graphics::size_of( e.type_struct ) ),
+                motor::ogl::complex_to_simple_type( type ), GL_FALSE, (GLsizei)uiStride,
+                (const GLvoid *)(size_t)uiBegin );
+
+            motor::ogl::error::check_and_log( gl4_log( "glVertexAttribPointer" ) );
+        }
+
+        {
+            glBindVertexArray( 0 );
+            if( motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) ) return false;
+        }
+        return true;
+    }
+
+    //****************************************************************************************
     static bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj,
         gl4_pimpl_data::shader_data_out_t constructed ) noexcept
     {

@@ -71,8 +71,6 @@ class MOTOR_PLATFORM_API gl4_backend : public motor::graphics::gen4::backend
     virtual motor::graphics::result update( motor::graphics::image_object_mtr_t ) noexcept override;
     virtual motor::graphics::result update(
         motor::graphics::render_object_mtr_t, size_t const varset ) noexcept;
-    virtual motor::graphics::result update_geometry_link(
-        motor::graphics::msl_object_mtr_t, size_t const idx ) noexcept;
 
     virtual motor::graphics::result use( motor::graphics::framebuffer_object_mtr_t ) noexcept;
     virtual motor::graphics::result use( motor::graphics::streamout_object_mtr_t ) noexcept;

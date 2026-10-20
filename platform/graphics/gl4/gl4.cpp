@@ -1285,128 +1285,15 @@ struct gl4_backend::pimpl
         return true;
     }
 
-//****************************************************************************************
-#if 1
-    //****************************************************************************************
-    static bool_t bind_attributes( gl4_pimpl_data::shader_datas_t::checked_handle_t shd,
-        gl4_pimpl_data::geo_datas_t::checked_handle_t gd ) noexcept
-    {
-        // bind vertex buffer
-        {
-            glBindBuffer( GL_ARRAY_BUFFER, gd->vb_id );
-            if( motor::ogl::error::check_and_log( gl4_log( "glBindBuffer(GL_ARRAY_BUFFER)" ) ) )
-                return false;
-        }
-
-        // bind index buffer
-        {
-            GLint const id_ = gd->ib_elem_sib == 0 ? 0 : gd->ib_id;
-            glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, id_ );
-            if( motor::ogl::error::check_and_log(
-                    gl4_log( "glBindBuffer(GL_ELEMENT_ARRAY_BUFFER)" ) ) )
-                return false;
-        }
-
-        // disable old locations
-        for( size_t i = 0; i < shd->attributes.size(); ++i )
-        {
-            glDisableVertexAttribArray( shd->attributes[ i ].loc );
-            motor::ogl::error::check_and_log( gl4_log( "glDisableVertexAttribArray" ) );
-        }
-
-        GLuint uiStride = gd->stride;
-        GLuint uiBegin = 0;
-        GLuint uiOffset = 0;
-
-        // sometimes some shader input attributes might not be used but
-        // are defined in the vertex layout. So a new location need to be
-        // figured out so that those vertex buffer attributes could
-        // be bound to the shader.
-        GLuint max_loc = 0;
-        if( shd->attributes.size() != gd->elements.size() )
-        {
-            for( auto const & a : shd->attributes )
-            {
-                max_loc = std::max( max_loc, a.loc );
-            }
-        }
-
-        for( auto & e : gd->elements )
-        {
-            uiBegin += uiOffset;
-            uiOffset = e.sib();
-
-            auto iter = std::find_if( shd->attributes.begin(), shd->attributes.end(),
-                [ & ]( gl4_pimpl_data::shader_data::attribute_variable_cref_t av )
-            { return av.va == e.va; } );
-
-            GLuint loc = 0;
-            GLenum type = GL_NONE;
-
-            if( iter == shd->attributes.end() )
-            {
-                loc = ++max_loc;
-                type = motor::platform::gl3::convert( e.type );
-
-                motor::log::global_t::warning(
-                    gl4_log( "Vertex attribute (" + motor::graphics::to_string( e.va ) +
-                             ") in shader (" + shd.name() +
-                             ") not used."
-                             "Will bind geometry (" +
-                             shd.name() + ") layout attribute to custom location (" +
-                             motor::to_string( uint_t( loc ) ) + ")." ) );
-            }
-            else
-            {
-                loc = iter->loc;
-                type = iter->type;
-            }
-
-            glEnableVertexAttribArray( loc );
-            motor::ogl::error::check_and_log( gl4_log( "glEnableVertexAttribArray" ) );
-
-            glVertexAttribPointer( loc, GLint( motor::graphics::size_of( e.type_struct ) ),
-                motor::ogl::complex_to_simple_type( type ), GL_FALSE, (GLsizei)uiStride,
-                (const GLvoid *)(size_t)uiBegin );
-
-            motor::ogl::error::check_and_log( gl4_log( "glVertexAttribPointer" ) );
-        }
-
-        {
-            glBindVertexArray( 0 );
-            if( motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) ) return false;
-        }
-        return true;
-    }
-#else
-    bool_t bind_attributes(
-        GLuint const vao, size_t const gid, gl4_pimpl_data::shader_data_ref_t sd ) noexcept
-    {
-        glBindVertexArray( vao );
-        if( gl4_log_error( "glBindVertexArray" ) )
-        {
-            return false;
-        }
-
-        // auto & gd = _geometries[ gid ] ;
-        auto const [ c, d ] = _geometries.access< bool_t >( gid,
-            [ & ]( motor::string_in_t name, gl4_pimpl_data::geo_data_ref_t gd )
-        { return gl4_independent::bind_attributes( name, sd, gd ); } );
-
-        return c && d;
-    }
-#endif
-
     //****************************************************************************************
     bool_t bind_attributes( GLuint const vao, geo_datas_t::checked_handle_t gd,
         shader_datas_t::checked_handle_t sd ) noexcept
     {
         glBindVertexArray( vao );
         if( gl4_log_error( "glBindVertexArray" ) ) return false;
-        return this_t::bind_attributes( sd, gd );
+        return gl4_independent::bind_attributes( sd, gd );
     }
 
-#if 1
     //****************************************************************************************
     bool_t construct_geometry( geo_datas_t::handle_t geod, motor::graphics::vertex_buffer_in_t vb )
     {
@@ -1468,64 +1355,6 @@ struct gl4_backend::pimpl
         if( res ) obj.set_oid( _bid, geod.oid() );
         return std::make_pair( res, std::move( geod ) );
     }
-#else
-    //****************************************************************************************
-    bool_t construct_geo(
-        size_t & oid, motor::string_in_t name, motor::graphics::vertex_buffer_in_t vb ) noexcept
-    {
-        motor::log::global::status< 1024 >( "[gl4] : construct geometry %s", name.c_str() );
-        auto const res =
-            _geometries.access( oid, name, [ & ]( gl4_pimpl_data::geo_data_ref_t config )
-        {
-            // vertex buffer
-            if( config.vb_id == GLuint( -1 ) )
-            {
-                GLuint id = GLuint( -1 );
-                glGenBuffers( 1, &id );
-                if( gl4_log_error( "glGenBuffers : vertex buffer" ) ) return false;
-
-                config.vb_id = id;
-            }
-
-            // index buffer
-            if( config.ib_id == GLuint( -1 ) )
-            {
-                GLuint id = GLuint( -1 );
-                glGenBuffers( 1, &id );
-                if( gl4_log_error( "glGenBuffers : index buffer" ) ) return false;
-
-                config.ib_id = id;
-            }
-
-            {
-                config.stride = GLuint( vb.get_layout_sib() );
-
-                config.elements.clear();
-                vb.for_each_layout_element( [ & ]( motor::graphics::vertex_buffer_t::data_cref_t d )
-                {
-                    gl4_pimpl_data::geo_data::layout_element le;
-                    le.va = d.va;
-                    le.type = d.type;
-                    le.type_struct = d.type_struct;
-                    config.elements.push_back( le );
-                } );
-            }
-
-            return true;
-        } );
-
-        return res;
-    }
-
-    //****************************************************************************************
-    bool_t construct_geo( motor::graphics::geometry_object_ref_t obj ) noexcept
-    {
-        size_t oid = obj.get_oid( _bid );
-        auto const res = this_t::construct_geo( oid, obj.name(), obj.vertex_buffer() );
-        if( res ) obj.set_oid( _bid, oid );
-        return res;
-    }
-#endif
 
     //****************************************************************************************
     bool_t release_geometry( size_t const oid ) noexcept
@@ -2112,8 +1941,13 @@ struct gl4_backend::pimpl
         _tf_active_id = size_t( -1 );
     }
 
+
+    //
+    // Update Variables
+    // 
+
     //****************************************************************************************
-    bool_t update_variables(
+    bool_t check_variable_connectivity(
         motor::graphics::render_object_ref_t ro, size_t const varset_id ) noexcept
     {
         if( auto rd = _renders.access( ro.get_oid( this_t::_bid ) ); rd )
@@ -2144,7 +1978,6 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t update_variables( size_t const oid, size_t const varset_id ) noexcept
     {
-#if 1
         if( auto rd = render_datas_t::handle_t( oid, _renders ); rd )
         {
             if( auto shd = shader_datas_t::handle_t( rd->shd_id, _shaders ); shd )
@@ -2154,13 +1987,6 @@ struct gl4_backend::pimpl
             }
         }
         return false;
-
-#else
-        auto const [ a, b ] =
-            _renders.access< bool_t >( oid, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
-        { return this_t::update_variables( rd, varset_id ); } );
-        return a && b;
-#endif
     }
 
     //****************************************************************************************
@@ -2265,13 +2091,15 @@ struct gl4_backend::pimpl
         return true;
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////
+
     //****************************************************************************************
     // helper function requires context:
     // you need to know if a variable set is reconnecting.
     // at the moment, just really call if you know if a reconnect is happening.
     // a reconnection could happen, if a variable set is still there, but on the user side
     // the variable set has been replaced so the hash values differ.
-    bool_t reconnect( render_datas_t::checked_handle_t rd /*config*/,
+    bool_t reconnect( render_datas_t::checked_handle_t rd,
         shader_datas_t::checked_handle_t shd, size_t const var_set_idx, size_t const hash,
         motor::graphics::variable_set_mtr_safe_t vs )
     {
@@ -2333,7 +2161,6 @@ struct gl4_backend::pimpl
 
         // exchange array variables
         {
-
             auto const s = rd->varset_to_idx[ var_set_idx ].array_idx_begin;
             auto const e = rd->varset_to_idx[ var_set_idx ].array_idx_end;
 
@@ -2407,7 +2234,7 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( render_datas_t::checked_handle_t rd /*config*/,
+    bool_t connect( render_datas_t::checked_handle_t rd,
         shader_datas_t::checked_handle_t shd, size_t const var_set_idx, size_t const hash,
         motor::graphics::variable_set_mtr_safe_t vs )
     {
@@ -3440,21 +3267,6 @@ motor::graphics::result gl4_backend::update(
 }
 
 //*******************************************************************************************
-motor::graphics::result gl4_backend::update_geometry_link(
-    motor::graphics::msl_object_mtr_t obj, size_t const idx ) noexcept
-{
-    size_t const oid = obj->get_oid( this_t::get_bid() );
-    if( oid == size_t( -1 ) )
-    {
-        return motor::graphics::result::invalid_argument;
-    }
-
-    auto const res = _pimpl->update_geometry_link( *obj->borrow_render_object(), idx );
-
-    return res ? motor::graphics::result::ok : motor::graphics::result::failed;
-}
-
-//*******************************************************************************************
 motor::graphics::result gl4_backend::use( motor::graphics::framebuffer_object_mtr_t obj ) noexcept
 {
     if( obj == nullptr )
@@ -3562,7 +3374,7 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
 
     // handle dynamic variable sets
     {
-        auto const res = _pimpl->update_variables( *obj, detail.varset );
+        auto const res = _pimpl->check_variable_connectivity( *obj, detail.varset );
         if( !res ) return motor::graphics::result::failed;
     }
 

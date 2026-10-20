@@ -4123,21 +4123,6 @@ motor::graphics::result d3d11_backend::update(
     return motor::graphics::result::ok;
 }
 
-//*******************************************************************************************
-motor::graphics::result d3d11_backend::update_geometry_link(
-    motor::graphics::msl_object_mtr_t obj, size_t const idx ) noexcept
-{
-    size_t const oid = obj->get_oid( this_t::get_bid() );
-    if( oid == size_t( -1 ) )
-    {
-        return motor::graphics::result::invalid_argument;
-    }
-
-    auto const res = _pimpl->update_geometry_link( *obj->borrow_render_object(), idx );
-
-    return res ? motor::graphics::result::ok : motor::graphics::result::failed;
-}
-
 //************************************************************************************************************
 motor::graphics::result d3d11_backend::use( motor::graphics::framebuffer_object_mtr_t obj ) noexcept
 {
