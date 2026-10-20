@@ -20,6 +20,8 @@ struct datas
 
     class handle
     {
+        motor_this_typedefs( handle );
+
       private:
 
         size_t _oid = size_t( -1 );
@@ -30,10 +32,10 @@ struct datas
         handle( datas< T > & owner ) noexcept : _owner( owner ) {}
         handle( size_t const oid, datas< T > & owner ) noexcept : _oid( oid ), _owner( owner ) {}
 
-        handle( handle const & rhv ) noexcept : _oid( rhv._oid ), _owner( rhv._owner ){}
-        handle( handle && rhv ) noexcept : _oid( rhv._oid ), _owner( rhv._owner )
+        handle( this_cref_t rhv ) noexcept : _oid( rhv._oid ), _owner( rhv._owner ) {}
+        handle( this_rref_t rhv ) noexcept : _oid( rhv._oid ), _owner( rhv._owner )
         {
-            rhv._oid = size_t( -1 );
+            if( &rhv != this ) rhv._oid = size_t( -1 );
         }
 
         ~handle( void_t ) noexcept {}
@@ -64,13 +66,57 @@ struct datas
         {
             return *_owner.items[ _oid ].data;
         }
-        
+
         operator bool( void_t ) const noexcept
         {
-            return _oid != size_t( -1 ) && _owner.items[ _oid ].valid;
+            return check_valid( _oid );
+        }
+
+        bool_t check_valid( size_t const oid ) const noexcept
+        {
+            return oid < _owner.items.size() && _owner.items[ oid ].valid;
         }
     };
-    using handle_t = handle ;
+    motor_typedef( handle );
+
+    class checked_handle
+    {
+        motor_this_typedefs( checked_handle );
+
+      private:
+
+        handle _handle;
+
+      public:
+
+        explicit checked_handle( handle const & hnd ) noexcept : _handle( hnd )
+        {
+            assert( hnd && "handle must be valid" );
+        }
+
+        checked_handle( checked_handle const & ) noexcept = default;
+
+        motor::string_cref_t name( void_t ) const noexcept
+        {
+            return _handle.name() ;
+        }
+
+        T * operator->( void_t ) noexcept
+        {
+            return _handle.operator->();
+        }
+
+        T & operator*( void_t ) noexcept
+        {
+            return *_handle;
+        }
+
+        size_t oid( void_t ) const noexcept
+        {
+            return _handle.oid();
+        }
+    };
+    motor_typedef( checked_handle );
 
     friend class handle_t;
 
@@ -141,18 +187,18 @@ struct datas
         // #3 oid is safe, can access now.
         if( oid != size_t( -1 ) )
         {
-            return this_t::handle( oid, *this );
+            return this_t::handle_t( oid, *this );
         }
 
-        return this_t::handle( *this );
+        return this_t::handle_t( *this );
     }
 
     // will try accessing the resource with oid. if it does not
     // exist, the function returns an invalid handle.
     this_t::handle_t access( size_t const oid ) noexcept
-    {   
-        auto const cond = oid == size_t( -1 ) || this_t::check_oid( oid, items ) == size_t( -1 ) ;        
-        return cond ? this_t::handle( *this ) : this_t::handle( oid, *this );
+    {
+        auto const cond = oid == size_t( -1 ) || this_t::check_oid( oid, items ) == size_t( -1 );
+        return cond ? this_t::handle_t( *this ) : this_t::handle_t( oid, *this );
     }
 
   public: // read and write access

@@ -400,281 +400,286 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     size_t construct_framebuffer( motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
-        size_t oid = obj.get_oid( _bid );
-        auto const res = _framebuffers.access( oid, obj.name(),
-            [ & ]( motor::string_in_t fb_name, gl4_pimpl_data::framebuffer_data_ref_t fb )
+        auto fbd = _framebuffers.access( obj.get_oid( _bid ), obj.name() );
+
+        if( fbd->gl_id == GLuint( -1 ) )
         {
-            if( fb.gl_id == GLuint( -1 ) )
+            glGenFramebuffers( 1, &fbd->gl_id );
+            if( gl4_log_error3( "glGenFramebuffers", obj ) ) return false;
+        }
+
+        // bind
+        {
+            glBindFramebuffer( GL_FRAMEBUFFER, fbd->gl_id );
+            if( gl4_log_error3( "glBindFramebuffer", obj ) ) return false;
+        }
+
+        size_t const nt = obj.get_num_color_targets();
+        auto const ctt = obj.get_color_target();
+        auto const dst = obj.get_depth_target();
+        motor::math::vec2ui_t dims = obj.get_dims();
+
+        // fix dims
+        {
+            dims.x( dims.x() + dims.x() % 2 );
+            dims.y( dims.y() + dims.y() % 2 );
+        }
+
+        bool_t const requires_store = fbd->colors[ 0 ] == GLuint( -1 );
+
+        {
+            if( fbd->colors[ 0 ] == GLuint( -1 ) )
             {
-                glGenFramebuffers( 1, &fb.gl_id );
-                if( gl4_log_error3( "glGenFramebuffers", obj ) ) return false;
+                glGenTextures( GLsizei( 8 ), fbd->colors );
+                if( gl4_log_error3( "glGenTextures : color buffers", obj ) ) return false;
             }
 
-            // bind
+            if( fbd->depth == GLuint( -1 ) )
             {
-                glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id );
-                if( gl4_log_error3( "glBindFramebuffer", obj ) ) return false;
+                glGenTextures( GLsizei( 1 ), &fbd->depth );
+                if( gl4_log_error3( "glGenTextures : depth buffer", obj ) ) return false;
             }
+        }
 
-            size_t const nt = obj.get_num_color_targets();
-            auto const ctt = obj.get_color_target();
-            auto const dst = obj.get_depth_target();
-            motor::math::vec2ui_t dims = obj.get_dims();
-
-            // fix dims
+        // construct color textures
+        {
+            for( size_t i = 0; i < nt; ++i )
             {
-                dims.x( dims.x() + dims.x() % 2 );
-                dims.y( dims.y() + dims.y() % 2 );
-            }
+                GLuint const tid = fbd->colors[ i ];
 
-            bool_t const requires_store = fb.colors[ 0 ] == GLuint( -1 );
+                glBindTexture( GL_TEXTURE_2D, tid );
+                if( gl4_log_error3( "glBindTexture : color buffer", obj ) ) continue;
 
-            {
-                if( fb.colors[ 0 ] == GLuint( -1 ) )
-                {
-                    glGenTextures( GLsizei( 8 ), fb.colors );
-                    if( gl4_log_error3( "glGenTextures : color buffers", obj ) ) return false;
-                }
-
-                if( fb.depth == GLuint( -1 ) )
-                {
-                    glGenTextures( GLsizei( 1 ), &fb.depth );
-                    if( gl4_log_error3( "glGenTextures : depth buffer", obj ) ) return false;
-                }
-            }
-
-            // construct color textures
-            {
-                for( size_t i = 0; i < nt; ++i )
-                {
-                    GLuint const tid = fb.colors[ i ];
-
-                    glBindTexture( GL_TEXTURE_2D, tid );
-                    if( gl4_log_error3( "glBindTexture : color buffer", obj ) ) continue;
-
-                    GLenum const target = GL_TEXTURE_2D;
-                    GLint const level = 0;
-                    GLsizei const width = dims.x();
-                    GLsizei const height = dims.y();
-                    GLenum const format = GL_RGBA;
-                    GLenum const type = motor::platform::gl3::to_pixel_type( ctt );
-                    GLint const border = 0;
-                    GLint const internal_format = motor::platform::gl3::to_gl_format( ctt );
+                GLenum const target = GL_TEXTURE_2D;
+                GLint const level = 0;
+                GLsizei const width = dims.x();
+                GLsizei const height = dims.y();
+                GLenum const format = GL_RGBA;
+                GLenum const type = motor::platform::gl3::to_pixel_type( ctt );
+                GLint const border = 0;
+                GLint const internal_format = motor::platform::gl3::to_gl_format( ctt );
 
 // maybe required for memory allocation
 // at the moment, render targets do not have system memory.
 #if 0
                     size_t const sib = motor::platform::gl3::calc_sib( dims.x(), dims.y(), ctt ) ;
 #endif
-                    void_cptr_t data = nullptr;
+                void_cptr_t data = nullptr;
 
-                    glTexImage2D(
-                        target, level, internal_format, width, height, border, format, type, data );
-                    gl4_log_error3( "glTexImage2D : color buffer", obj );
-                }
-
-                // attach
-                for( size_t i = 0; i < nt; ++i )
-                {
-                    GLuint const tid = fb.colors[ i ];
-                    GLenum const att = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i );
-                    glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 );
-                    gl4_log_error3( "glFramebufferTexture2D : color buffer", obj );
-                }
+                glTexImage2D(
+                    target, level, internal_format, width, height, border, format, type, data );
+                gl4_log_error3( "glTexImage2D : color buffer", obj );
             }
 
-            // depth/stencil
-            if( dst != motor::graphics::depth_stencil_target_type::unknown )
+            // attach
+            for( size_t i = 0; i < nt; ++i )
             {
-                {
-                    GLuint const tid = fb.depth;
+                GLuint const tid = fbd->colors[ i ];
+                GLenum const att = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i );
+                glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 );
+                gl4_log_error3( "glFramebufferTexture2D : color buffer", obj );
+            }
+        }
 
-                    glBindTexture( GL_TEXTURE_2D, tid );
-                    if( !gl4_log_error3( "glBindTexture : depth buffer", obj ) )
-                    {
-                        GLenum const target = GL_TEXTURE_2D;
-                        GLint const level = 0;
-                        GLsizei const width = dims.x();
-                        GLsizei const height = dims.y();
-                        GLenum const format = motor::platform::gl3::to_gl_format( dst );
-                        GLenum const type = motor::platform::gl3::to_gl_type( dst );
-                        GLint const border = 0;
-                        GLint const internal_format = motor::platform::gl3::to_gl_format( dst );
+        // depth/stencil
+        if( dst != motor::graphics::depth_stencil_target_type::unknown )
+        {
+            {
+                GLuint const tid = fbd->depth;
+
+                glBindTexture( GL_TEXTURE_2D, tid );
+                if( !gl4_log_error3( "glBindTexture : depth buffer", obj ) )
+                {
+                    GLenum const target = GL_TEXTURE_2D;
+                    GLint const level = 0;
+                    GLsizei const width = dims.x();
+                    GLsizei const height = dims.y();
+                    GLenum const format = motor::platform::gl3::to_gl_format( dst );
+                    GLenum const type = motor::platform::gl3::to_gl_type( dst );
+                    GLint const border = 0;
+                    GLint const internal_format = motor::platform::gl3::to_gl_format( dst );
 
 // maybe required for memory allocation
 // at the moment, render targets do not have system memory.
 #if 0
                         size_t const sib = motor::platform::gl3::calc_sib( dims.x(), dims.y(), ctt ) ;
 #endif
-                        void_cptr_t data = nullptr;
+                    void_cptr_t data = nullptr;
 
-                        glTexImage2D( target, level, internal_format, width, height, border, format,
-                            type, data );
-                        gl4_log_error3( "glTexImage2D : depth buffer", obj );
-                    }
-                }
-
-                // attach
-                {
-                    GLuint const tid = fb.depth;
-                    GLenum const att = motor::platform::gl3::to_gl_attachment( dst );
-                    glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 );
-                    gl4_log_error3( "glFramebufferTexture2D : depth buffer", obj );
+                    glTexImage2D(
+                        target, level, internal_format, width, height, border, format, type, data );
+                    gl4_log_error3( "glTexImage2D : depth buffer", obj );
                 }
             }
 
-            GLenum status = 0;
-            // validate
+            // attach
             {
-                status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
-                gl4_log_error3( "glCheckFramebufferStatus", obj );
-
-                if( motor::log::global_t::warning_if< 2048 >( status != GL_FRAMEBUFFER_COMPLETE,
-                        "Incomplete framebuffer : [%s]", obj.name().c_str() ) )
-                    return false;
+                GLuint const tid = fbd->depth;
+                GLenum const att = motor::platform::gl3::to_gl_attachment( dst );
+                glFramebufferTexture2D( GL_FRAMEBUFFER, att, GL_TEXTURE_2D, tid, 0 );
+                gl4_log_error3( "glFramebufferTexture2D : depth buffer", obj );
             }
+        }
 
-            // unbind
-            {
-                glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-                gl4_log_error3( "glBindFramebuffer", obj );
-            }
+        GLenum status = 0;
+        // validate
+        {
+            status = glCheckFramebufferStatus( GL_FRAMEBUFFER );
+            gl4_log_error3( "glCheckFramebufferStatus", obj );
 
-            // remember data
-            if( status == GL_FRAMEBUFFER_COMPLETE )
-            {
-                // color type maybe?
-                fb.nt = nt;
-                fb.dims = dims;
-            }
+            if( motor::log::global_t::warning_if< 2048 >( status != GL_FRAMEBUFFER_COMPLETE,
+                    "Incomplete framebuffer : [%s]", obj.name().c_str() ) )
+                return false;
+        }
 
-            // store images
-            if( requires_store )
-            {
-                for( size_t i = 0; i < nt; ++i )
-                {
-                    size_t new_iid = size_t( -1 );
-                    motor::string_t name = fb_name + "." + motor::to_string( i );
-                    _images.access( new_iid, name, [ & ]( gl4_pimpl_data::image_data_ref_t id )
-                    {
-                        id.tex_id = fb.colors[ i ];
-                        id.type = GL_TEXTURE_2D;
-                        for( size_t j = 0; j < (size_t)motor::graphics::texture_wrap_mode::size;
-                             ++j )
-                        {
-                            id.wrap_types[ j ] = GL_CLAMP_TO_BORDER;
-                        }
-                        for( size_t j = 0; j < (size_t)motor::graphics::texture_filter_mode::size;
-                             ++j )
-                        {
-                            id.filter_types[ j ] = GL_LINEAR;
-                        }
-                        return true;
-                    } );
-                }
-            }
+        // unbind
+        {
+            glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+            gl4_log_error3( "glBindFramebuffer", obj );
+        }
 
-            // store depth/stencil
-            if( requires_store )
+        // remember data
+        if( status == GL_FRAMEBUFFER_COMPLETE )
+        {
+            // color type maybe?
+            fbd->nt = nt;
+            fbd->dims = dims;
+        }
+
+        // store images
+        if( requires_store )
+        {
+            for( size_t i = 0; i < nt; ++i )
             {
                 size_t new_iid = size_t( -1 );
-                motor::string_t name = fb_name + ".depth";
+                motor::string_t name = fbd.name() + "." + motor::to_string( i );
                 _images.access( new_iid, name, [ & ]( gl4_pimpl_data::image_data_ref_t id )
                 {
-                    id.tex_id = fb.depth;
+                    id.tex_id = fbd->colors[ i ];
                     id.type = GL_TEXTURE_2D;
-
                     for( size_t j = 0; j < (size_t)motor::graphics::texture_wrap_mode::size; ++j )
                     {
-                        id.wrap_types[ j ] = GL_REPEAT;
+                        id.wrap_types[ j ] = GL_CLAMP_TO_BORDER;
                     }
-
                     for( size_t j = 0; j < (size_t)motor::graphics::texture_filter_mode::size; ++j )
                     {
-                        id.filter_types[ j ] = GL_NEAREST;
+                        id.filter_types[ j ] = GL_LINEAR;
                     }
-
                     return true;
                 } );
             }
+        }
 
-            return true;
-        } );
+        // store depth/stencil
+        if( requires_store )
+        {
+            size_t new_iid = size_t( -1 );
+            motor::string_t name = fbd.name() + ".depth";
+            _images.access( new_iid, name, [ & ]( gl4_pimpl_data::image_data_ref_t id )
+            {
+                id.tex_id = fbd->depth;
+                id.type = GL_TEXTURE_2D;
 
-        if( res ) obj.set_oid( _bid, oid );
+                for( size_t j = 0; j < (size_t)motor::graphics::texture_wrap_mode::size; ++j )
+                {
+                    id.wrap_types[ j ] = GL_REPEAT;
+                }
 
-        return res;
+                for( size_t j = 0; j < (size_t)motor::graphics::texture_filter_mode::size; ++j )
+                {
+                    id.filter_types[ j ] = GL_NEAREST;
+                }
+
+                return true;
+            } );
+        }
+
+        obj.set_oid( _bid, fbd.oid() );
+        return true;
     }
 
     //****************************************************************************************
     bool_t release_framebuffer( size_t const oid ) noexcept
     {
-        // #1 clear the images buffers, i.e remove references
-        _framebuffers.access( oid, [ & ]( gl4_pimpl_data::framebuffer_data_ref_t fbd )
+        auto fbd = _framebuffers.access( oid );
+        if( !fbd )
         {
-            _images.for_each( [ & ]( gl4_pimpl_data::image_data_ref_t id )
-            {
-                // try all colors
-                for( size_t i = 0; i < 8; ++i )
-                {
-                    if( fbd.colors[ i ] == GLuint( -1 ) ) continue;
-                    if( id.tex_id != fbd.colors[ i ] ) continue;
+            motor::log::global_t::error< 1024 >(
+                "[gl4] : can not find framebuffer with oid %d", oid );
+            return false;
+        }
 
+        return this_t::release_framebuffer( framebuffer_datas_t::checked_handle_t( fbd ) );
+    }
+
+    //****************************************************************************************
+    bool_t release_framebuffer( framebuffer_datas_t::checked_handle_t fbd ) noexcept
+    {
+        // #1 clear the images buffers, i.e remove references
+        _images.for_each( [ & ]( gl4_pimpl_data::image_data_ref_t id )
+        {
+            // try all colors
+            for( size_t i = 0; i < 8; ++i )
+            {
+                if( fbd->colors[ i ] == GLuint( -1 ) ) continue;
+                if( id.tex_id != fbd->colors[ i ] ) continue;
+
+                // remove id before invalidate
+                id.tex_id = GLuint( -1 );
+                return;
+            }
+
+            if( fbd->depth != GLuint( -1 ) )
+            {
+                if( id.tex_id == fbd->depth )
+                {
                     // remove id before invalidate
                     id.tex_id = GLuint( -1 );
-                    return;
                 }
-
-                if( fbd.depth != GLuint( -1 ) )
-                {
-                    if( id.tex_id == fbd.depth )
-                    {
-                        // remove id before invalidate
-                        id.tex_id = GLuint( -1 );
-                    }
-                }
-            } );
+            }
         } );
 
         // #2 now we can invalidate
-        return _framebuffers.invalidate( oid );
+        return _framebuffers.invalidate( fbd.oid() );
     }
 
     //****************************************************************************************
     bool_t activate_framebuffer( size_t const oid ) noexcept
     {
-        auto const [ a, b ] =
-            _framebuffers.access< bool_t >( oid, [ & ]( gl4_pimpl_data::framebuffer_data_ref_t fb )
+        auto fbd = _framebuffers.access( oid );
+        if( !fbd )
         {
-            // bind
+            motor::log::global_t::error< 1024 >(
+                "[gl4] : can not find framebuffer with oid %d", oid );
+            return false;
+        }
+
+        return pimpl::activate_framebuffer( framebuffer_datas_t::checked_handle_t( fbd ) );
+    }
+
+    //****************************************************************************************
+    bool_t activate_framebuffer( framebuffer_datas_t::checked_handle_t fbd ) noexcept
+    {
+        // bind
+        {
+            glBindFramebuffer( GL_FRAMEBUFFER, fbd->gl_id );
+            if( gl4_log_error( "glBindFramebuffer" ) ) return false;
+        }
+
+        // setup color
+        {
+            GLenum attachments[ 15 ];
+            size_t const num_color = fbd->nt;
+
+            for( size_t i = 0; i < num_color; ++i )
             {
-                glBindFramebuffer( GL_FRAMEBUFFER, fb.gl_id );
-                if( gl4_log_error( "glBindFramebuffer" ) )
-                {
-                    return false;
-                }
+                attachments[ i ] = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i );
             }
 
-            // setup color
-            {
-                GLenum attachments[ 15 ];
-                size_t const num_color = fb.nt;
-
-                for( size_t i = 0; i < num_color; ++i )
-                {
-                    attachments[ i ] = GLenum( size_t( GL_COLOR_ATTACHMENT0 ) + i );
-                }
-
-                glDrawBuffers( GLsizei( num_color ), attachments );
-                if( gl4_log_error( "glDrawBuffers" ) )
-                {
-                    return false;
-                }
-            }
-            return true;
-        } );
-
-        return a && b;
+            glDrawBuffers( GLsizei( num_color ), attachments );
+            if( gl4_log_error( "glDrawBuffers" ) ) return false;
+        }
+        return true;
     }
 
     //****************************************************************************************
@@ -690,7 +695,6 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-
     bool_t install_shader_data( motor::graphics::shader_object_ref_t obj,
         gl4_pimpl_data::shader_data_ref_t new_shader_data ) noexcept
     {
@@ -909,7 +913,8 @@ struct gl4_backend::pimpl
         {
             // we do not need the name, the id should suffice because
             // we have the id internally so it must be valid.
-            this_t::release_render_data( data.ro_id, "" );
+            this_t::release_render_data(
+                render_datas_t::checked_handle_t( _renders.access( data.ro_id ) ) );
             this_t::release_shader_data( data.so.get_oid( _bid ) );
 
             data.ro_id = size_t( -1 );
@@ -950,51 +955,47 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t check_link_status( size_t const rid ) noexcept
     {
-        auto const [ a, b ] =
-            _renders.access< bool_t >( rid, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
+        if( auto rd = _renders.access( rid ); rd )
         {
-            auto const [ a, b ] = _shaders.access< bool_t >( rd.shd_id,
-                [ & ]( gl4_pimpl_data::shader_data_ref_t sd ) { return sd.is_linkage_ok; } );
+            if( auto shd = _shaders.access( rd->shd_id ); shd )
+            {
+                return shd->is_linkage_ok;
+            }
+        }
 
-            return a && b;
-        } );
-        return a && b;
+        return false;
     }
 
     //****************************************************************************************
     bool_t construct_image_config( motor::graphics::image_object_ref_t config ) noexcept
     {
-        size_t oid = config.get_oid( _bid );
-        auto const res =
-            _images.access( oid, config.name(), [ & ]( gl4_pimpl_data::image_data_ref_t img )
+        auto imgd = _images.access( config.get_oid( _bid ), config.name() );
+
+        // sampler
+        if( imgd->tex_id == GLuint( -1 ) )
         {
-            // sampler
-            if( img.tex_id == GLuint( -1 ) )
-            {
-                GLuint id = GLuint( -1 );
-                glGenTextures( 1, &id );
-                if( gl4_log_error( "glGenTextures" ) ) return false;
+            GLuint id = GLuint( -1 );
+            glGenTextures( 1, &id );
+            if( gl4_log_error( "glGenTextures" ) ) return false;
 
-                img.tex_id = id;
-            }
+            imgd->tex_id = id;
+        }
 
-            img.type = motor::platform::gl3::convert( config.get_type() );
-            for( size_t j = 0; j < (size_t)motor::graphics::texture_wrap_mode::size; ++j )
-            {
-                img.wrap_types[ j ] = motor::platform::gl3::convert(
-                    config.get_wrap( (motor::graphics::texture_wrap_mode)j ) );
-            }
+        imgd->type = motor::platform::gl3::convert( config.get_type() );
+        for( size_t j = 0; j < (size_t)motor::graphics::texture_wrap_mode::size; ++j )
+        {
+            imgd->wrap_types[ j ] = motor::platform::gl3::convert(
+                config.get_wrap( (motor::graphics::texture_wrap_mode)j ) );
+        }
 
-            for( size_t j = 0; j < (size_t)motor::graphics::texture_filter_mode::size; ++j )
-            {
-                img.filter_types[ j ] = motor::platform::gl3::convert(
-                    config.get_filter( (motor::graphics::texture_filter_mode)j ) );
-            }
-            return true;
-        } );
+        for( size_t j = 0; j < (size_t)motor::graphics::texture_filter_mode::size; ++j )
+        {
+            imgd->filter_types[ j ] = motor::platform::gl3::convert(
+                config.get_filter( (motor::graphics::texture_filter_mode)j ) );
+        }
 
-        if( res ) config.set_oid( _bid, oid );
-        return res;
+        config.set_oid( _bid, imgd.oid() );
+        return true;
     }
 
     //****************************************************************************************
@@ -1118,190 +1119,190 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t release_render_data( motor::graphics::render_object_ref_t obj ) noexcept
     {
-        size_t oid = obj.get_oid( _bid );
-        return this_t::release_render_data( oid, obj.name() );
+        auto rd = _renders.access( obj.get_oid( _bid ) );
+        if( !rd )
+        {
+            motor::log::global_t::error< 1024 >(
+                "[gl4] : Unknown render object id %d", obj.get_oid( _bid ) );
+            return false;
+        }
+
+        return this_t::release_render_data( render_datas_t::checked_handle_t( rd ) );
     }
 
     //****************************************************************************************
-    bool_t release_render_data( size_t oid, motor::string_in_t name ) noexcept
+    bool_t release_render_data( render_datas_t::checked_handle_t rd ) noexcept
     {
         // #1 break connections BEFORE invalidating the item
-        auto const res = _renders.access( oid, name, [ & ]( gl4_pimpl_data::render_data_ref_t rd )
         {
-            for( auto const & item : rd.geo_ids )
+            for( auto const & item : rd->geo_ids )
             {
-                _geometries.access( item.id,
-                    [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.remove_render_data_id( oid ); } );
+                _geometries.access( item.id, [ & ]( gl4_pimpl_data::geo_data_ref_t d )
+                { d.remove_render_data_id( rd.oid() ); } );
             }
 
-            for( auto const id : rd.tf_ids )
+            for( auto const id : rd->tf_ids )
             {
                 _feedbacks.access( id, [ & ]( gl4_pimpl_data::feedback_data_ref_t d )
-                { d.remove_render_data_id( oid ); } );
+                { d.remove_render_data_id( rd.oid() ); } );
             }
             return true;
-        } );
+        }
 
-        _renders.invalidate( oid );
+        _renders.invalidate( rd.oid() );
         return true;
     }
 
     //****************************************************************************************
     bool_t construct_render_data_ext( motor::graphics::render_object_ref_t rc ) noexcept
     {
-        size_t oid = rc.get_oid( _bid );
-        auto const res = _renders.access( oid, rc.name(),
-            [ & ]( size_t const new_id, gl4_pimpl_data::render_data_ref_t config )
+        assert( rc.get_oid( _bid ) == size_t(-1) && "at the moment, rc must be released before this is used." ) ;
+
+        auto rd = _renders.access( rc.get_oid( _bid ), rc.name() );
+
+        // handle geometry links
         {
-            // handle geometry links
+            rd->geo_ids.reserve( rc.get_num_geometry() );
+            for( size_t i = 0; i < rc.get_num_geometry(); ++i )
             {
-                config.geo_ids.reserve( rc.get_num_geometry() );
-                for( size_t i = 0; i < rc.get_num_geometry(); ++i )
-                {
-                    auto const gid = _geometries.find_by_name( rc.get_geometry_link( i ).name );
-                    if( gid == size_t( -1 ) )
-                    {
-                        motor::log::global_t::warning< 1024 >(
-                            "[gl4] : no geometry with name [%s] for render_data [%s]",
-                            rc.get_geometry_link( i ).name.c_str(), rc.name().c_str() );
-                        continue;
-                    }
-                    config.geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
-                        gid, rc.get_geometry_link( i ).hash } );
-                    _geometries.access( gid, [ & ]( gl4_pimpl_data::geo_data_ref_t d )
-                    { d.add_render_data_id( new_id ); } );
-                }
-            }
-
-            // handle stream out links
-            {
-                config.tf_ids.reserve( rc.get_num_streamout() );
-
-                // find stream out object
-                for( size_t i = 0; i < rc.get_num_streamout(); ++i )
-                {
-                    size_t const idx = _feedbacks.find_by_name( rc.get_streamout( i ) );
-                    if( idx == size_t( -1 ) )
-                    {
-                        motor::log::global_t::warning< 2048 >(
-                            "[gl4] : no streamout object with name [%s] for render_data [%s]",
-                            rc.get_streamout( i ).c_str(), rc.name().c_str() );
-                        return false;
-                    }
-                    config.tf_ids.emplace_back( idx );
-                }
-            }
-
-            // find shader
-            {
-                config.shd_id = _shaders.find_by_name( rc.get_shader() );
-                if( config.shd_id == size_t( -1 ) )
-                {
-                    motor::log::global::warning< 1024 >(
-                        "[gl4] : no shader with name [%s] for render_data [%s]",
-                        rc.get_shader().c_str(), rc.name().c_str() );
-                    return false;
-                }
-            }
-
-            {
-                // remember that rd.var_sets hold the ref count reminder!
-                // no need to release any managed pointer!
-                auto vars = std::move( config.var_sets );
-                auto vsidx_to_idx = std::move( config.varset_to_idx );
-
-                config.var_sets_data.clear();
-                config.var_sets_texture.clear();
-                config.var_sets_array.clear();
-                config.var_sets_streamout.clear();
-                config.var_sets.clear();
-
-                rc.for_each( [ & ]( size_t const i,
-                                 motor::graphics::render_object_t::variable_set_cref_t vs )
-                {
-                    auto const res = this_t::connect( config, i, vs.hash, motor::share( vs.vs ) );
-                    motor::log::global_t::warning( !res, gl4_log( "connect" ) );
-                } );
-
-                for( auto & v : vars ) motor::release( motor::move( v.vs ) );
-            }
-
-            _shaders.access( config.shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
-            { this_t::render_object_variable_memory( config, shd ); } );
-
-            return true;
-        } );
-
-        if( res ) rc.set_oid( _bid, oid );
-        return res;
-    }
-
-    bool_t update_geometry_link(
-        motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
-    {
-        size_t oid = ro.get_oid( _bid );
-        auto const res = _renders.access( oid, ro.name(),
-            [ & ]( size_t const new_id, gl4_pimpl_data::render_data_ref_t config )
-        {
-            // do full binding
-            if( config.geo_ids.size() <= geo_idx )
-            {
-                auto const gid = _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
+                auto const gid = _geometries.find_by_name( rc.get_geometry_link( i ).name );
                 if( gid == size_t( -1 ) )
                 {
                     motor::log::global_t::warning< 1024 >(
-                        "[gl4:update_geometry_link] : no geometry with name [%s] for render_data "
-                        "[%s]",
-                        ro.get_geometry_link( geo_idx ).name.c_str(), ro.name().c_str() );
+                        "[gl4] : no geometry with name [%s] for render_data [%s]",
+                        rc.get_geometry_link( i ).name.c_str(), rc.name().c_str() );
+                    continue;
+                }
+                rd->geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
+                    gid, rc.get_geometry_link( i ).hash } );
+                _geometries.access( gid, [ & ]( gl4_pimpl_data::geo_data_ref_t d )
+                { d.add_render_data_id( rd.oid() ); } );
+            }
+        }
+
+        // handle stream out links
+        {
+            rd->tf_ids.reserve( rc.get_num_streamout() );
+
+            // find stream out object
+            for( size_t i = 0; i < rc.get_num_streamout(); ++i )
+            {
+                size_t const idx = _feedbacks.find_by_name( rc.get_streamout( i ) );
+                if( idx == size_t( -1 ) )
+                {
+                    motor::log::global_t::warning< 2048 >(
+                        "[gl4] : no streamout object with name [%s] for render_data [%s]",
+                        rc.get_streamout( i ).c_str(), rc.name().c_str() );
                     return false;
                 }
-                config.geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
-                    gid, ro.get_geometry_link( geo_idx ).hash } );
-                _geometries.access( gid,
-                    [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( new_id ); } );
+                rd->tf_ids.emplace_back( idx );
             }
-            else if( config.geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
+        }
+
+        // find shader
+        {
+            rd->shd_id = _shaders.find_by_name( rc.get_shader() );
+            if( rd->shd_id == size_t( -1 ) )
             {
-                auto const hash = ro.get_geometry_link( geo_idx ).hash;
-                if( ro.get_geometry_link( geo_idx ).ref_count == 0 )
-                {
-                    config.invalidate_geometry_id( geo_idx, hash );
-                }
-                else if( config.geo_ids[ geo_idx ].id != size_t( -1 ) )
-                {
-                    // config geometry entry is valid.
-                    // maybe the data changed lets check it
-                    {
-                        auto const gid =
-                            _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
-                        if( gid != config.geo_ids[ geo_idx ].id )
-                        {
-                            // ok, geometry changed
-                            config.geo_ids[ geo_idx ].id = gid;
+                motor::log::global::warning< 1024 >(
+                    "[gl4] : no shader with name [%s] for render_data [%s]",
+                    rc.get_shader().c_str(), rc.name().c_str() );
+                return false;
+            }
+        }
 
-                            // at this point, the geometry needs to be rebound
-                            // to the shader inputs.
-                            // At the moment, this is done before rendering
-                        }
-                    }
+        {
+            // remember that rd.var_sets hold the ref count reminder!
+            // no need to release any managed pointer!
+            auto vars = std::move( rd->var_sets );
+            auto vsidx_to_idx = std::move( rd->varset_to_idx );
 
-                    config.geo_ids[ geo_idx ].hash = hash;
-                }
-                else
+            rd->var_sets_data.clear();
+            rd->var_sets_texture.clear();
+            rd->var_sets_array.clear();
+            rd->var_sets_streamout.clear();
+            rd->var_sets.clear();
+
+            rc.for_each(
+                [ & ]( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
+            {
+                auto const res = this_t::connect( *rd, i, vs.hash, motor::share( vs.vs ) );
+                motor::log::global_t::warning( !res, gl4_log( "connect" ) );
+            } );
+
+            for( auto & v : vars ) motor::release( motor::move( v.vs ) );
+        }
+
+        _shaders.access( rd->shd_id, [ & ]( gl4_pimpl_data::shader_data_ref_t shd )
+        { this_t::render_object_variable_memory( *rd, shd ); } );
+
+        rc.set_oid( _bid, rd.oid() );
+        return true;
+    }
+
+    //****************************************************************************************
+    bool_t update_geometry_link(
+        motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
+    {
+        auto rd = _renders.access( ro.get_oid( _bid ), ro.name() );
+
+        // do full binding
+        if( rd->geo_ids.size() <= geo_idx )
+        {
+            auto const gid = _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
+            if( gid == size_t( -1 ) )
+            {
+                motor::log::global_t::warning< 1024 >(
+                    "[gl4:update_geometry_link] : no geometry with name [%s] for "
+                    "render_data "
+                    "[%s]",
+                    ro.get_geometry_link( geo_idx ).name.c_str(), ro.name().c_str() );
+                return false;
+            }
+            rd->geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
+                gid, ro.get_geometry_link( geo_idx ).hash } );
+            _geometries.access( gid,
+                [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( rd.oid() ); } );
+        }
+        else if( rd->geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
+        {
+            auto const hash = ro.get_geometry_link( geo_idx ).hash;
+            if( ro.get_geometry_link( geo_idx ).ref_count == 0 )
+            {
+                rd->invalidate_geometry_id( geo_idx, hash );
+            }
+            else if( rd->geo_ids[ geo_idx ].id != size_t( -1 ) )
+            {
+                // config geometry entry is valid.
+                // maybe the data changed lets check it
                 {
                     auto const gid =
                         _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
-                    config.geo_ids[ geo_idx ].id = gid;
-                    config.geo_ids[ geo_idx ].hash = hash;
+                    if( gid != rd->geo_ids[ geo_idx ].id )
+                    {
+                        // ok, geometry changed
+                        rd->geo_ids[ geo_idx ].id = gid;
+
+                        // at this point, the geometry needs to be rebound
+                        // to the shader inputs.
+                        // At the moment, this is done before rendering
+                    }
                 }
+
+                rd->geo_ids[ geo_idx ].hash = hash;
             }
             else
             {
-                // nothing to do
-                // everything is valid.
+                auto const gid = _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
+                rd->geo_ids[ geo_idx ].id = gid;
+                rd->geo_ids[ geo_idx ].hash = hash;
             }
-            return true;
-        } );
+        }
+        else
+        {
+            // nothing to do
+            // everything is valid.
+        }
 
         return true;
     }
@@ -1404,8 +1405,7 @@ struct gl4_backend::pimpl
 
 #if 1
     //****************************************************************************************
-    bool_t construct_geometry(
-        geo_datas_t::handle_t & geod, motor::graphics::vertex_buffer_in_t vb )
+    bool_t construct_geometry( geo_datas_t::handle_t geod, motor::graphics::vertex_buffer_in_t vb )
     {
         motor::log::global::status< 1024 >( "[gl4] : construct geometry %s", geod.name().c_str() );
 
@@ -1544,8 +1544,8 @@ struct gl4_backend::pimpl
         for( auto const id : geod->rd_ids )
         {
             if( id == size_t( -1 ) ) continue;
-            
-            auto hnd = _renders.access( id ) ;
+
+            auto hnd = _renders.access( id );
             if( hnd ) hnd->remove_geometry_id( geod.oid() );
         }
         geod->rd_ids.clear();
