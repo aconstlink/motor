@@ -1103,6 +1103,7 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t construct_render_data( motor::graphics::render_object_ref_t obj ) noexcept
     {
+    
         if( this_t::release_render_data( obj ) )
         {
             obj.set_oid( _bid, size_t( -1 ) );
@@ -1119,14 +1120,8 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     bool_t release_render_data( motor::graphics::render_object_ref_t obj ) noexcept
     {
-        auto rd = _renders.access( obj.get_oid( _bid ) );
-        if( !rd )
-        {
-            motor::log::global_t::error< 1024 >(
-                "[gl4] : Unknown render object id %d", obj.get_oid( _bid ) );
-            return false;
-        }
-
+        auto rd = _renders.access( obj.get_oid( _bid ) );        
+        if( rd.oid() == size_t( -1 ) ) return true ;
         return this_t::release_render_data( render_datas_t::checked_handle_t( rd ) );
     }
 
@@ -1146,7 +1141,6 @@ struct gl4_backend::pimpl
                 _feedbacks.access( id, [ & ]( gl4_pimpl_data::feedback_data_ref_t d )
                 { d.remove_render_data_id( rd.oid() ); } );
             }
-            return true;
         }
 
         _renders.invalidate( rd.oid() );
