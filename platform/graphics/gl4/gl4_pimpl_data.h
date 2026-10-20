@@ -647,7 +647,10 @@ struct render_data
     motor::vector< uniform_streamout_link > var_sets_streamout;
 
     // memory block for all variables in all variable sets.
+    size_t mem_block_sib = 0 ;
     void_ptr_t mem_block = nullptr;
+    // the memory needs a refresh if true
+    bool_t memory_dirty = true ;
 
     motor::vector< motor::graphics::render_state_sets > rss;
 
@@ -666,6 +669,11 @@ struct render_data
         {
             geo_ids.erase( geo_ids.begin() + i );
         }
+    }
+
+    void_t signal_dirty_memory( void_t ) noexcept
+    {
+        memory_dirty = true ;
     }
 
     void_t invalidate( std::string_view const & name ) noexcept
@@ -706,6 +714,8 @@ struct render_data
 
         motor::memory::global_t::dealloc( mem_block );
         mem_block = nullptr;
+        mem_block_sib = 0 ;
+        memory_dirty = true ;
     }
 };
 motor_typedef( render_data );

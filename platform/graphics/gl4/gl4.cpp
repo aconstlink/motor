@@ -719,12 +719,18 @@ struct gl4_backend::pimpl
                     this_t::connect( rd, shdc, i, vs.hash, motor::move( vs.vs ) );
                 }
 
+#if 1
+                // variable memory and data copy are now done
+                // during commit
+                rd->signal_dirty_memory();
+#else
                 this_t::render_object_variable_memory( rd, shdc );
 
                 for( size_t i = 0; i < rd->varset_to_idx.size(); ++i )
                 {
                     this_t::update_variables( rd, shdc, i );
                 }
+#endif
             } );
         }
 
@@ -1186,7 +1192,8 @@ struct gl4_backend::pimpl
             }
         }
 
-        auto shd = shader_datas_t::checked_handle( shader_datas_t::handle_t( rd->shd_id, _shaders ) );
+        auto shd =
+            shader_datas_t::checked_handle( shader_datas_t::handle_t( rd->shd_id, _shaders ) );
 
         {
             // remember that rd.var_sets hold the ref count reminder!
@@ -1203,16 +1210,19 @@ struct gl4_backend::pimpl
             rc.for_each(
                 [ & ]( size_t const i, motor::graphics::render_object_t::variable_set_cref_t vs )
             {
-                auto const res = this_t::connect(
-                    render_datas_t::checked_handle_t( rd ), shd, i, vs.hash, motor::share( vs.vs ) );
+                auto const res = this_t::connect( render_datas_t::checked_handle_t( rd ), shd, i,
+                    vs.hash, motor::share( vs.vs ) );
                 motor::log::global_t::warning( !res, gl4_log( "connect" ) );
             } );
 
             for( auto & v : vars ) motor::release( motor::move( v.vs ) );
         }
 
+#if 1
+        rd->signal_dirty_memory();
+#else
         this_t::render_object_variable_memory( render_datas_t::checked_handle_t( rd ), shd );
-
+#endif
         rc.set_oid( _bid, rd.oid() );
 
         return true;
@@ -1941,39 +1951,9 @@ struct gl4_backend::pimpl
         _tf_active_id = size_t( -1 );
     }
 
-
-    //
+    /////////////////////////////////////////////////////////////////////////////////////////
     // Update Variables
-    // 
-
-    //****************************************************************************************
-    bool_t check_variable_connectivity(
-        motor::graphics::render_object_ref_t ro, size_t const varset_id ) noexcept
-    {
-        if( auto rd = _renders.access( ro.get_oid( this_t::_bid ) ); rd )
-        {
-            auto [ hash, vs ] = ro.borrow_variable_set( varset_id );
-
-            if( auto shd = shader_datas_t::handle_t( rd->shd_id, _shaders ); shd )
-            {
-                auto rdc = render_datas_t::checked_handle_t( rd );
-                auto shdc = shader_datas_t::checked_handle_t( shd );
-
-                if( rd->has_variable_set( varset_id ) &&
-                    rd->has_variable_set_changed( varset_id, hash ) )
-                {
-                    this_t::reconnect( rdc, shdc, varset_id, hash, motor::share( vs ) );
-                }
-                else if( rd->has_not_variable_set( varset_id ) )
-                {
-                    this_t::connect( rdc, shdc, varset_id, hash, motor::share( vs ) );
-
-                    this_t::render_object_variable_memory( rdc, shdc );
-                }
-            }
-        }
-        return true;
-    }
+    /////////////////////////////////////////////////////////////////////////////////////////
 
     //****************************************************************************************
     bool_t update_variables( size_t const oid, size_t const varset_id ) noexcept
@@ -2093,15 +2073,51 @@ struct gl4_backend::pimpl
 
     //////////////////////////////////////////////////////////////////////////////////////////
 
+    /////////////////////////////////////////////////////////////////////////////////////////
+    // Variable connectivity
+    /////////////////////////////////////////////////////////////////////////////////////////
+
+    //****************************************************************************************
+    bool_t check_variable_connectivity(
+        motor::graphics::render_object_ref_t ro, size_t const varset_id ) noexcept
+    {
+        if( auto rd = _renders.access( ro.get_oid( this_t::_bid ) ); rd )
+        {
+            auto [ hash, vs ] = ro.borrow_variable_set( varset_id );
+
+            if( auto shd = shader_datas_t::handle_t( rd->shd_id, _shaders ); shd )
+            {
+                auto rdc = render_datas_t::checked_handle_t( rd );
+                auto shdc = shader_datas_t::checked_handle_t( shd );
+
+                if( rd->has_variable_set( varset_id ) &&
+                    rd->has_variable_set_changed( varset_id, hash ) )
+                {
+                    this_t::reconnect( rdc, shdc, varset_id, hash, motor::share( vs ) );
+                }
+                else if( rd->has_not_variable_set( varset_id ) )
+                {
+                    this_t::connect( rdc, shdc, varset_id, hash, motor::share( vs ) );
+
+#if 1
+                    rd->signal_dirty_memory();
+#else
+                    this_t::render_object_variable_memory( rdc, shdc );
+#endif
+                }
+            }
+        }
+        return true;
+    }
+
     //****************************************************************************************
     // helper function requires context:
     // you need to know if a variable set is reconnecting.
     // at the moment, just really call if you know if a reconnect is happening.
     // a reconnection could happen, if a variable set is still there, but on the user side
     // the variable set has been replaced so the hash values differ.
-    bool_t reconnect( render_datas_t::checked_handle_t rd,
-        shader_datas_t::checked_handle_t shd, size_t const var_set_idx, size_t const hash,
-        motor::graphics::variable_set_mtr_safe_t vs )
+    bool_t reconnect( render_datas_t::checked_handle_t rd, shader_datas_t::checked_handle_t shd,
+        size_t const var_set_idx, size_t const hash, motor::graphics::variable_set_mtr_safe_t vs )
     {
         // enforce description - see function desc
         assert( rd->varset_to_idx.size() > var_set_idx );
@@ -2234,9 +2250,8 @@ struct gl4_backend::pimpl
     }
 
     //****************************************************************************************
-    bool_t connect( render_datas_t::checked_handle_t rd,
-        shader_datas_t::checked_handle_t shd, size_t const var_set_idx, size_t const hash,
-        motor::graphics::variable_set_mtr_safe_t vs )
+    bool_t connect( render_datas_t::checked_handle_t rd, shader_datas_t::checked_handle_t shd,
+        size_t const var_set_idx, size_t const hash, motor::graphics::variable_set_mtr_safe_t vs )
     {
         vs->clone_from_if_not_exist( &shd->default_values );
 
@@ -2400,6 +2415,10 @@ struct gl4_backend::pimpl
     void_t render_object_variable_memory(
         render_datas_t::checked_handle_t rd, shader_datas_t::checked_handle_t shd ) noexcept
     {
+        if( !rd->memory_dirty ) return;
+
+        rd->memory_dirty = false;
+
         // construct memory block
         {
             size_t sib = 0;
@@ -2427,9 +2446,13 @@ struct gl4_backend::pimpl
                 sib += motor::ogl::uniform_size_of( uv.type );
             }
 
-            motor::memory::global_t::dealloc( rd->mem_block );
-            rd->mem_block =
-                motor::memory::global_t::alloc( sib, "[gl3] : render config memory block" );
+            if( sib > rd->mem_block_sib )
+            {
+                rd->mem_block_sib = sib;
+                motor::memory::global_t::dealloc( rd->mem_block );
+                rd->mem_block =
+                    motor::memory::global_t::alloc( sib, "[gl4] : render config memory block" );
+            }
         }
 
         // assign memory locations
@@ -2877,13 +2900,15 @@ gl4_backend::gl4_backend( motor::platform::opengl::rendering_context_ptr_t ctx )
     _pimpl =
         motor::memory::global_t::alloc( pimpl( this_t::get_bid(), ctx ), "gl4_backend::pimpl" );
     _context = ctx;
+
+    _prepare_draws.resize( 5000 );
 }
 
 //******************************************************************************************************
-gl4_backend::gl4_backend( this_rref_t rhv ) noexcept : backend( std::move( rhv ) )
+gl4_backend::gl4_backend( this_rref_t rhv ) noexcept
+    : backend( std::move( rhv ) ), _prepare_draws( std::move( rhv._prepare_draws ) ),
+      _pimpl( motor::move( rhv._pimpl ) ), _context( motor::move( rhv._context ) )
 {
-    _pimpl = motor::move( rhv._pimpl );
-    _context = motor::move( rhv._context );
 }
 
 //******************************************************************************************************
@@ -3181,27 +3206,6 @@ motor::graphics::result gl4_backend::release( motor::graphics::streamout_object_
     return motor::graphics::result::ok;
 }
 
-#if 0
-//******************************************************************************************************
-motor::graphics::result gl4_backend::connect( motor::graphics::render_object_mtr_t obj, 
-    motor::graphics::variable_set_mtr_t vs ) noexcept
-{
-    size_t const oid = obj->get_oid( this_t::get_bid() ) ;
-
-    if( oid == size_t(-1) )
-    {
-        motor::log::global_t::error( gl4_backend_log( "invalid render configuration id" ) ) ;
-        return motor::graphics::result::failed ;
-    }
-
-    auto const res = _pimpl->connect( oid, vs ) ;
-    motor::log::global_t::error( !res, 
-        gl4_backend_log( "connect variable set" ) ) ;
-   
-    return motor::graphics::result::ok ;
-}
-#endif
-
 //*******************************************************************************************
 motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mtr_t obj ) noexcept
 {
@@ -3247,20 +3251,6 @@ motor::graphics::result gl4_backend::update( motor::graphics::image_object_mtr_t
     if( !_pimpl->update( *obj, false ) )
     {
         return motor::graphics::result::failed;
-    }
-
-    return motor::graphics::result::ok;
-}
-
-//*******************************************************************************************
-motor::graphics::result gl4_backend::update(
-    motor::graphics::render_object_mtr_t obj, size_t const varset ) noexcept
-{
-    size_t const oid = obj->get_oid( this_t::get_bid() );
-
-    {
-        auto const res = _pimpl->update_variables( oid, varset );
-        if( !res ) return motor::graphics::result::failed;
     }
 
     return motor::graphics::result::ok;
@@ -3353,16 +3343,26 @@ motor::graphics::result gl4_backend::pop( motor::graphics::gen4::backend::pop_ty
     return motor::graphics::result::ok;
 }
 
-//***************************************************************************************
-motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_t obj,
+//************************************************************************************************************
+motor::graphics::result gl4_backend::prepare_render( motor::graphics::render_object_mtr_t obj,
     motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
 {
-    // motor::log::global_t::status( gl4_backend_log("render") ) ;
+    {
+        ++_prepare_draw_idx;
+        if( _prepare_draws.size() <= _prepare_draw_idx )
+            _prepare_draws.resize( _prepare_draws.size() + 5000 );
+
+        _prepare_draws[ _prepare_draw_idx ] =
+            this_t::prepare_draw{ false, uintptr_t( obj ), size_t( -1 ), size_t( -1 ) };
+    }
+
+    if( !obj ) return motor::graphics::result::invalid_argument;
 
     size_t const oid = obj->get_oid( this_t::get_bid() );
     if( oid == size_t( -1 ) )
     {
-        motor::log::global_t::error( gl4_log( "invalid id" ) );
+        motor::log::global_t::error< 1024 >(
+            "[gl4] : invalid render object id for %s", obj->name().c_str() );
         return motor::graphics::result::failed;
     }
 
@@ -3378,15 +3378,92 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
         if( !res ) return motor::graphics::result::failed;
     }
 
-    // update variables before render
-    {
-        auto const res = _pimpl->update_variables( oid, detail.varset );
-        if( !res ) return motor::graphics::result::failed;
-    }
-
     {
         auto const res = _pimpl->update_geometry_link( *obj, detail.geo );
         if( !res ) return motor::graphics::result::failed;
+    }
+
+    _prepare_draws[ _prepare_draw_idx ] =
+        this_t::prepare_draw{ true, uintptr_t( obj ), oid, detail.varset };
+
+    return motor::graphics::result::ok;
+}
+
+//************************************************************************************************************
+motor::graphics::result gl4_backend::prepare_render( motor::graphics::msl_object_mtr_t obj,
+    motor::graphics::gen4::backend::render_detail_cref_t det ) noexcept
+{
+    if( !obj ) return motor::graphics::result::invalid_argument;
+
+    size_t const oid = obj->get_oid( this_t::get_bid() );
+    if( oid == size_t( -1 ) )
+    {
+        motor::log::global_t::error< 1024 >( "[gl4] : invalid msl id for %s", obj->name().c_str() );
+        return motor::graphics::result::failed;
+    }
+
+    // X: prepare msl stuff
+
+    auto const res = this_t::prepare_render( obj->borrow_render_object(), det );
+    if( res != motor::graphics::result::ok )
+    {
+        motor::log::global_t::error< 1024 >( "[gl4] : prepare_render for %s", obj->name().c_str() );
+    }
+
+    return res;
+}
+
+//*************************************************************************************
+void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept
+{
+    for( size_t i = 0; i < _prepare_draw_idx + 1; ++i )
+    {
+        auto & prep = _prepare_draws[ i ];
+
+        if( !prep.ready ) continue;
+
+        prep.ready = false;
+
+        if( auto rd = render_datas_t::handle_t( prep.oid, _pimpl->_renders ); rd )
+        {
+            if( auto shd = shader_datas_t::handle_t( rd->shd_id, _pimpl->_shaders ); shd )
+            {
+                auto rdc = render_datas_t::checked_handle_t( rd );
+                auto shdc = shader_datas_t::checked_handle_t( shd );
+
+                _pimpl->render_object_variable_memory( rdc, shdc );
+
+                prep.ready = _pimpl->update_variables( rdc, shdc, prep.vs_idx );
+            }
+        }
+    }
+
+    _prepare_draw_idx = size_t( -1 );
+}
+
+//***************************************************************************************
+motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_t obj,
+    motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
+{
+    // quick verification of prepare draws
+    {
+        ++_prepare_draw_idx;
+        assert( _prepare_draws[ _prepare_draw_idx ].hash == uintptr_t( obj ) );
+
+        if( !_prepare_draws[ _prepare_draw_idx ].ready )
+            return motor::graphics::result::not_prepared;
+
+        _prepare_draws[ _prepare_draw_idx ] =
+            this_t::prepare_draw{ false, uintptr_t( obj ), size_t( -1 ), size_t( -1 ) };
+    }
+
+    if( !obj ) return motor::graphics::result::invalid_argument;
+
+    size_t const oid = obj->get_oid( this_t::get_bid() );
+    if( oid == size_t( -1 ) )
+    {
+        motor::log::global_t::error< 1024 >( "[gl4] : invalid msl id for %s", obj->name().c_str() );
+        return motor::graphics::result::failed;
     }
 
     // @todo
@@ -3401,6 +3478,8 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
 motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t obj,
     motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
 {
+    if( !obj ) return motor::graphics::result::invalid_argument;
+
     if( obj == nullptr ) return motor::graphics::result::invalid_argument;
 
     size_t const oid = obj->get_oid( this_t::get_bid() );
@@ -3411,22 +3490,25 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
         return motor::graphics::result::failed;
     }
 
-    auto const [ a, b ] = _pimpl->_msls.try_access< motor::graphics::result >( oid,
-        [ & ]( gl4_pimpl_data::msl_data_ref_t msl )
-    { return this_t::render( obj->borrow_render_object(), detail ); } );
+    if( auto msld = _pimpl->_msls.access( oid ); !msld )
+    {
+        return motor::graphics::result::failed;
+    }
 
-    return ( a && b == motor::graphics::result::ok ) ? b : motor::graphics::result::failed;
+    return this_t::render( obj->borrow_render_object(), detail );
 }
 
 //*************************************************************************************
 void_t gl4_backend::render_begin( void_t ) noexcept
 {
+    _prepare_draw_idx = size_t( -1 );
     _pimpl->begin_frame();
 }
 
 //*************************************************************************************
 void_t gl4_backend::render_end( void_t ) noexcept
 {
+    _prepare_draw_idx = size_t( -1 );
     _pimpl->end_frame();
 }
 
@@ -3435,6 +3517,3 @@ void_t gl4_backend::on_context_destruction( void_t ) noexcept
 {
     _pimpl->on_context_destruction();
 }
-
-//*************************************************************************************
-void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept {}

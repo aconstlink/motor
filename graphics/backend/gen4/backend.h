@@ -95,8 +95,6 @@ namespace motor
                 virtual motor::graphics::result update( motor::graphics::array_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result update( motor::graphics::streamout_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result update( motor::graphics::image_object_mtr_t ) noexcept = 0 ;
-                virtual motor::graphics::result update( motor::graphics::render_object_mtr_t, size_t const varset ) noexcept = 0 ;
-                //virtual motor::graphics::result update_geometry_link( motor::graphics::msl_object_mtr_t, size_t const idx ) noexcept = 0 ;
 
                 virtual motor::graphics::result use( motor::graphics::framebuffer_object_mtr_t ) noexcept = 0 ;
                 virtual motor::graphics::result use( motor::graphics::streamout_object_mtr_t ) noexcept = 0 ;
@@ -104,6 +102,8 @@ namespace motor
                 virtual motor::graphics::result push( motor::graphics::state_object_mtr_t, size_t const, bool_t const ) noexcept = 0 ;
                 virtual motor::graphics::result pop( pop_type const ) noexcept = 0 ;
 
+                virtual motor::graphics::result prepare_render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
+                virtual motor::graphics::result prepare_render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
                 virtual motor::graphics::result render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
                 virtual motor::graphics::result render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
 

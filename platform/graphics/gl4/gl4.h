@@ -24,6 +24,18 @@ class MOTOR_PLATFORM_API gl4_backend : public motor::graphics::gen4::backend
 
     motor::platform::opengl::rendering_context_ptr_t _context = nullptr;
 
+    struct prepare_draw
+    {
+        bool_t ready;
+
+        uintptr_t hash;
+        size_t oid ;
+        size_t vs_idx ;
+    };
+
+    size_t _prepare_draw_idx = size_t( -1 );
+    motor::vector< prepare_draw > _prepare_draws;
+
   public:
 
     gl4_backend( motor::platform::opengl::rendering_context_ptr_t ) noexcept;
@@ -69,8 +81,6 @@ class MOTOR_PLATFORM_API gl4_backend : public motor::graphics::gen4::backend
     virtual motor::graphics::result update(
         motor::graphics::streamout_object_mtr_t ) noexcept override;
     virtual motor::graphics::result update( motor::graphics::image_object_mtr_t ) noexcept override;
-    virtual motor::graphics::result update(
-        motor::graphics::render_object_mtr_t, size_t const varset ) noexcept;
 
     virtual motor::graphics::result use( motor::graphics::framebuffer_object_mtr_t ) noexcept;
     virtual motor::graphics::result use( motor::graphics::streamout_object_mtr_t ) noexcept;
@@ -80,6 +90,10 @@ class MOTOR_PLATFORM_API gl4_backend : public motor::graphics::gen4::backend
         motor::graphics::state_object_mtr_t, size_t const, bool_t const ) noexcept;
     virtual motor::graphics::result pop( motor::graphics::gen4::backend::pop_type const ) noexcept;
 
+    virtual motor::graphics::result prepare_render( motor::graphics::render_object_mtr_t,
+        motor::graphics::gen4::backend::render_detail_cref_t ) noexcept;
+    virtual motor::graphics::result prepare_render( motor::graphics::msl_object_mtr_t,
+        motor::graphics::gen4::backend::render_detail_cref_t ) noexcept;
     virtual motor::graphics::result render( motor::graphics::render_object_mtr_t,
         motor::graphics::gen4::backend::render_detail_cref_t ) noexcept override;
     virtual motor::graphics::result render( motor::graphics::msl_object_mtr_t,

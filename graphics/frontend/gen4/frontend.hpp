@@ -188,17 +188,6 @@ class frontend : public motor::graphics::ifrontend
         return *this;
     }
 
-    this_ref_t update(
-        motor::graphics::render_object_borrow_t::mtr_t o, size_t const varset ) noexcept
-    {
-        _re->send_update( { [ =, this ]( void_t )
-        {
-            _be->update( o, varset );
-        } } );
-
-        return *this;
-    }
-
     this_ref_t use( motor::graphics::framebuffer_object_borrow_t::mtr_t o ) noexcept
     {
         _re->send_execute( { [ =, this ]( void_t )
@@ -253,6 +242,11 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t render( motor::graphics::render_object_borrow_t::mtr_t o,
         motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept
     {
+        _re->send_update( { [ =, this ]( void_t )
+        {
+            _be->prepare_render( o, rd );
+        } } );
+
         _re->send_execute( { [ =, this ]( void_t )
         {
             _be->render( o, rd );
@@ -264,6 +258,11 @@ class frontend : public motor::graphics::ifrontend
     this_ref_t render( motor::graphics::msl_object_borrow_t::mtr_t o,
         motor::graphics::gen4::backend::render_detail_cref_t rd ) noexcept
     {
+        _re->send_update( { [ =, this ]( void_t )
+        {
+            _be->prepare_render( o, rd );
+        } } );
+
         _re->send_execute( { [ =, this ]( void_t )
         {
             _be->render( o, rd );
