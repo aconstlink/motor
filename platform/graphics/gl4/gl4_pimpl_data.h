@@ -192,6 +192,7 @@ struct geo_data
 
     // for geo reconfig - render data ids
     motor::vector< size_t > rd_ids;
+
     void_t remove_render_data_id( size_t const rid ) noexcept
     {
         if( rid == size_t( -1 ) ) return;
@@ -657,7 +658,7 @@ struct render_data
     {
         size_t i = size_t( -1 );
         while( ++i < geo_ids.size() && geo_ids[ i ].id != id );
-        if( i != size_t( -1 ) )
+        if( i != geo_ids.size() )
         {
             geo_ids.erase( geo_ids.begin() + i );
         }

@@ -131,7 +131,8 @@ class render_engine
         }
         _coms_exec.clear();
 
-        // 3. swap when upstream commands are processed
+        // @todo this should go after _commit_snapshot()
+        // X. swap when upstream commands are processed
         // At this point, the outer entity can write in the back buffer again
         this_t::swap_has_commands();
 

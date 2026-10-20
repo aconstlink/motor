@@ -6,10 +6,6 @@
 #include "../typedefs.h"
 #include <motor/concurrent/mrsw.hpp>
 
-#include <atomic>
-
-#define USE_DATAS_LOCKS 0
-
 namespace motor
 {
 namespace platform
@@ -20,128 +16,68 @@ struct datas
 {
     motor_this_typedefs( datas< T > );
 
-  private:
-
-#if USE_DATAS_LOCKS
-    struct guard_data
-    {
-        std::thread::id tid;
-
-        std::mutex mtx;
-        std::condition_variable cv;
-
-        size_t entries = 0;
-
-        guard_data( void_t ) noexcept = default;
-        guard_data( guard_data const & ) noexcept = delete;
-        guard_data( guard_data && rhv ) noexcept
-        {
-            tid = std::move( rhv.tid );
-            entries = rhv.entries;
-        }
-        guard_data & operator=( guard_data && rhv ) noexcept
-        {
-            assert( entries == 0 );
-            tid = std::move( rhv.tid );
-            entries = rhv.entries;
-            return *this;
-        }
-
-        bool_t try_enter( void_t ) noexcept
-        {
-            std::unique_lock< std::mutex > lk( mtx );
-            if( tid == std::this_thread::get_id() && ++entries > 0 ) return true;
-
-            if( entries > 0 ) return false;
-
-            tid = std::this_thread::get_id();
-            ++entries;
-            return true;
-        }
-
-        void_t enter( void_t ) noexcept
-        {
-            std::unique_lock< std::mutex > lk( mtx );
-            if( tid == std::this_thread::get_id() && ++entries > 0 ) return;
-
-            while( entries ) cv.wait( lk );
-
-            tid = std::this_thread::get_id();
-            ++entries;
-        }
-
-        bool_t leave( void ) noexcept
-        {
-            std::unique_lock< std::mutex > lk( mtx );
-            if( tid == std::this_thread::get_id() && --entries == 0 )
-            {
-                tid = std::thread::id();
-                cv.notify_one();
-                return true;
-            }
-            return false;
-        }
-    };
-#endif
-
   public:
 
-#if USE_DATAS_LOCKS
-    class try_guard
+    class handle
     {
       private:
 
-        guard_data & _data;
-        bool_t _accessed = false;
+        size_t _oid = size_t( -1 );
+        datas< T > & _owner;
 
       public:
 
-        try_guard( guard_data & d ) noexcept : _data( d )
+        handle( datas< T > & owner ) noexcept : _owner( owner ) {}
+        handle( size_t const oid, datas< T > & owner ) noexcept : _oid( oid ), _owner( owner ) {}
+
+        handle( handle const & rhv ) noexcept : _oid( rhv._oid ), _owner( rhv._owner ){}
+        handle( handle && rhv ) noexcept : _oid( rhv._oid ), _owner( rhv._owner )
         {
-            _accessed = _data.try_enter();
+            rhv._oid = size_t( -1 );
         }
 
-        ~try_guard( void_t ) noexcept
-        {
-            if( _accessed ) _data.leave();
-        }
-
-        bool_t has_accessed( void_t ) noexcept
-        {
-            return _accessed;
-        }
-    };
-
-    class busy_guard
-    {
-      private:
-
-        guard_data & _data;
+        ~handle( void_t ) noexcept {}
 
       public:
 
-        busy_guard( guard_data & d ) noexcept : _data( d )
+        size_t oid( void_t ) const noexcept
         {
-            _data.enter();
+            return _oid;
         }
 
-        ~busy_guard( void_t ) noexcept
+        motor::string_cref_t name( void_t ) const noexcept
         {
-            _data.leave();
+            return _owner.items[ _oid ].name;
+        }
+
+        T * operator->( void_t ) noexcept
+        {
+            return _owner.items[ _oid ].data;
+        }
+
+        T & operator*( void_t ) noexcept
+        {
+            return *_owner.items[ _oid ].data;
+        }
+
+        T const & operator*( void_t ) const noexcept
+        {
+            return *_owner.items[ _oid ].data;
+        }
+        
+        operator bool( void_t ) const noexcept
+        {
+            return _oid != size_t( -1 ) && _owner.items[ _oid ].valid;
         }
     };
-#endif
+    using handle_t = handle ;
+
+    friend class handle_t;
 
   private:
 
     struct wrapper
     {
-#if USE_DATAS_LOCKS
-        // allow only one entity to access
-        // the critical section.
-        guard_data gd;
-#endif
-
         bool_t valid = false;
         motor::string_t name;
 
@@ -151,21 +87,12 @@ struct datas
         wrapper( wrapper const & ) = delete;
 
         wrapper( wrapper && rhv ) noexcept
-            :
-#if USE_DATAS_LOCKS
-              gd( std::move( rhv.gd ) ),
-#endif
-              valid( rhv.valid ), name( std::move( rhv.name ) ), data( motor::move( rhv.data ) )
+            : valid( rhv.valid ), name( std::move( rhv.name ) ), data( motor::move( rhv.data ) )
         {
         }
 
         wrapper & operator=( wrapper && rhv ) noexcept
         {
-#if USE_DATAS_LOCKS
-            assert( gd.entries == 0 );
-
-            gd = std::move( rhv.gd );
-#endif
             valid = rhv.valid;
             rhv.valid = false;
             name = std::move( rhv.name );
@@ -176,9 +103,6 @@ struct datas
 
     using items_t = motor::vector< wrapper >;
 
-#if USE_DATAS_LOCKS
-    mutable motor::concurrent::mrsw_t mtx;
-#endif
     items_t items;
 
   public:
@@ -197,8 +121,43 @@ struct datas
         this_t::invalidate_and_clear();
     }
 
+  public:
+
+    // will create an entry with the name, if non exist. if the oid is wrong
+    // the oid will be set to the oid holding the name
+    this_t::handle_t access( size_t oid, motor::string_in_t name ) noexcept
+    {
+        // #1 quick check if id is still valid
+        {
+            oid = this_t::check_oid( oid, items );
+        }
+
+        // #2 if new or invalid, create new oid
+        if( oid == size_t( -1 ) )
+        {
+            oid = this_t::determine_oid( oid, name, items );
+        }
+
+        // #3 oid is safe, can access now.
+        if( oid != size_t( -1 ) )
+        {
+            return this_t::handle( oid, *this );
+        }
+
+        return this_t::handle( *this );
+    }
+
+    // will try accessing the resource with oid. if it does not
+    // exist, the function returns an invalid handle.
+    this_t::handle_t access( size_t const oid ) noexcept
+    {   
+        auto const cond = oid == size_t( -1 ) || this_t::check_oid( oid, items ) == size_t( -1 ) ;        
+        return cond ? this_t::handle( *this ) : this_t::handle( oid, *this );
+    }
+
   public: // read and write access
 
+    // @obsolete
     // access if you are not sure if the object exists.
     // this function will also create that object
     bool_t access( size_t & oid, motor::string_in_t name,
@@ -206,29 +165,18 @@ struct datas
     {
         // #1 quick check if id is still valid
         {
-#if USE_DATAS_LOCKS
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
             oid = this_t::check_oid( oid, items );
         }
 
         // #2 if new or invalid, create new oid
         if( oid == size_t( -1 ) )
         {
-#if USE_DATAS_LOCKS
-            motor::concurrent::mrsw_t::writer_lock_t lk( mtx );
-#endif
             oid = this_t::determine_oid( oid, name, items );
         }
 
         // #3 oid is safe, can access now.
         if( oid != size_t( -1 ) )
         {
-#if USE_DATAS_LOCKS
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-
-            this_t::busy_guard busy_wait( items[ oid ].gd );
-#endif
             return funk( oid, items[ oid ].name, *items[ oid ].data );
         }
 
@@ -268,16 +216,9 @@ struct datas
         if( oid == size_t( -1 ) ) return std::make_pair( false, false );
 
         {
-#if USE_DATAS_LOCKS
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
             if( this_t::check_oid( oid, items ) == size_t( -1 ) )
                 return std::make_pair( false, false );
 
-#if USE_DATAS_LOCKS
-            this_t::try_guard try_lock( items[ oid ].gd );
-            if( !try_lock.has_accessed() ) return std::make_pair( true, false );
-#endif
             funk( items[ oid ] );
         }
         return std::make_pair( false, true );
@@ -285,7 +226,6 @@ struct datas
 
   public: // try access
 
-#if USE_DATAS_LOCKS
     std::pair< bool_t, bool_t > try_access(
         size_t oid, std::function< void_t( T & ) > funk ) noexcept
     {
@@ -306,50 +246,14 @@ struct datas
     {
         if( oid == size_t( -1 ) ) return std::make_pair( false, R() );
 
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-
         if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return std::make_pair( false, R() );
-
-        this_t::try_guard try_lock( items[ oid ].gd );
-        if( !try_lock.has_accessed() ) return std::make_pair( true, R() );
-
-        return std::make_pair( true, funk( *items[ oid ].data ) );
-    }
-#else
-
-    std::pair< bool_t, bool_t > try_access(
-        size_t oid, std::function< void_t( T & ) > funk ) noexcept
-    {
-        return this_t::try_access( oid, [ & ]( this_t::wrapper & wrp ) { funk( *wrp.data ); } );
-    }
-
-    std::pair< bool_t, bool_t > try_access(
-        size_t oid, std::function< void_t( motor::string_in_t, T & ) > funk ) noexcept
-    {
-        return this_t::try_access(
-            oid, [ & ]( this_t::wrapper & wrp ) { funk( wrp.name, *wrp.data ); } );
-    }
-
-    // access by id only
-    // if you have an id and you know the object exists, use this function
-    template < typename R >
-    std::pair< bool_t, R > try_access( size_t const oid, std::function< R( T & ) > funk ) noexcept
-    {
-        if( oid == size_t( -1 ) ) return std::make_pair( false, R() );
 
 #if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
-
-        if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return std::make_pair( false, R() );
-
-        #if USE_DATAS_LOCKS
         this_t::try_guard try_lock( items[ oid ].gd );
         if( !try_lock.has_accessed() ) return std::make_pair( true, R() );
-        #endif
+#endif
         return std::make_pair( true, funk( *items[ oid ].data ) );
     }
-#endif
 
   public: // read access
 
@@ -364,14 +268,7 @@ struct datas
         if( oid == size_t( -1 ) ) return false;
 
         {
-#if USE_DATAS_LOCKS
-            motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
             if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return false;
-
-#if USE_DATAS_LOCKS
-            this_t::busy_guard busy_wait( items[ oid ].gd );
-#endif
             funk( items[ oid ].name, *items[ oid ].data );
         }
         return true;
@@ -380,17 +277,10 @@ struct datas
     bool_t access_by_name(
         motor::string_in_t name, std::function< void_t( size_t const, T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         auto i = size_t( -1 );
         while( ++i < items.size() && items[ i ].name != name );
 
         if( i == items.size() ) return false;
-
-#if USE_DATAS_LOCKS
-        this_t::busy_guard busy_wait( items[ i ].gd );
-#endif
         funk( i, *items[ i ].data );
 
         return true;
@@ -403,15 +293,7 @@ struct datas
         size_t const oid, std::function< R( motor::string_in_t, T & ) > funk ) noexcept
     {
         if( oid == size_t( -1 ) ) return std::make_pair( false, R() );
-
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         if( this_t::check_oid( oid, items ) == size_t( -1 ) ) return std::make_pair( false, R() );
-
-#if USE_DATAS_LOCKS
-        this_t::busy_guard busy_wait( items[ oid ].gd );
-#endif
         return std::make_pair( true, funk( items[ oid ].name, *items[ oid ].data ) );
     }
 
@@ -481,9 +363,6 @@ struct datas
     {
         if( name.empty() ) return size_t( -1 );
 
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         size_t i = size_t( -1 );
         while( ++i < items.size() && items[ i ].name != name );
         return i == items.size() ? size_t( -1 ) : i;
@@ -491,48 +370,27 @@ struct datas
 
     void_t for_each( std::function< void_t( T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         for( auto & i : items )
         {
             if( !i.valid ) continue;
-
-#if USE_DATAS_LOCKS
-            this_t::busy_guard busy_wait( i.gd );
-#endif
             funk( *i.data );
         }
     }
 
     void_t for_each( std::function< void_t( size_t const, T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
-
-#if USE_DATAS_LOCKS
-            this_t::busy_guard busy_wait( items[ i ].gd );
-#endif
             funk( i, *items[ i ].data );
         }
     }
 
     void_t for_each( std::function< void_t( motor::string_in_t, T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         for( auto & i : items )
         {
             if( !i.valid ) continue;
-
-#if USE_DATAS_LOCKS
-            this_t::busy_guard __( items[ i ].gd );
-#endif
             funk( i.name, *i.data );
         }
     }
@@ -542,15 +400,9 @@ struct datas
     // this function return true if the loop broke
     bool_t for_each_with_break( std::function< bool_t( T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         for( auto & i : items )
         {
             if( !i.valid ) continue;
-#if USE_DATAS_LOCKS
-            this_t::busy_guard __( items[ i ].gd );
-#endif
             if( !funk( *i.data ) ) return true;
         }
         return false;
@@ -558,15 +410,9 @@ struct datas
 
     bool_t for_each_with_break( std::function< bool_t( motor::string_in_t, T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         for( auto & i : items )
         {
             if( !i.valid ) continue;
-#if USE_DATAS_LOCKS
-            this_t::busy_guard __( items[ i ].gd );
-#endif
             if( !funk( i.name, *i.data ) ) return true;
         }
         return false;
@@ -574,15 +420,9 @@ struct datas
 
     bool_t for_each_with_break( std::function< bool_t( size_t const id, T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
-#if USE_DATAS_LOCKS
-            this_t::busy_guard __( items[ i ].gd );
-#endif
             if( !funk( i, *items[ i ].data ) ) return true;
         }
         return false;
@@ -591,15 +431,9 @@ struct datas
     bool_t for_each_with_break(
         std::function< bool_t( size_t const id, motor::string_in_t, T & ) > funk ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         for( size_t i = 0; i < items.size(); ++i )
         {
             if( !items[ i ].valid ) continue;
-#if USE_DATAS_LOCKS
-            this_t::busy_guard __( items[ i ].gd );
-#endif
             if( !funk( i, items[ i ].name, *items[ i ].data ) ) return true;
         }
         return false;
@@ -631,9 +465,6 @@ struct datas
     // invalidate a particular item
     bool_t invalidate( size_t const oid ) noexcept
     {
-#if USE_DATAS_LOCKS
-        motor::concurrent::mrsw_t::reader_lock_t lk( mtx );
-#endif
         if( oid >= items.size() ) return false;
         items[ oid ].data->invalidate( items[ oid ].name );
         items[ oid ].valid = false;
