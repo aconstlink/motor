@@ -7,6 +7,7 @@
 #include "gl4.h"
 #include "gl4_convert.h"
 #include "gl4_pimpl_data.h"
+#include "../datas.hpp"
 
 #include <motor/ogl/gl/gl.h>
 #include <motor/ogl/gl/convert.hpp>
@@ -25,6 +26,7 @@ using namespace motor::ogl;
 
 struct gl4_independent
 {
+
     struct compilation_result
     {
         bool_t success = false;
@@ -145,99 +147,7 @@ struct gl4_independent
             }
             ++iter;
         }
-    }
-
-    //****************************************************************************************
-    static bool_t bind_attributes( motor::string_in_t shd_name,
-        gl4_pimpl_data::shader_data & sconfig, gl4_pimpl_data::geo_data & gconfig ) noexcept
-    {
-        // bind vertex buffer
-        {
-            glBindBuffer( GL_ARRAY_BUFFER, gconfig.vb_id );
-            if( motor::ogl::error::check_and_log( gl4_log( "glBindBuffer(GL_ARRAY_BUFFER)" ) ) )
-                return false;
-        }
-
-        // bind index buffer
-        {
-            GLint const id_ = gconfig.ib_elem_sib == 0 ? 0 : gconfig.ib_id;
-            glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, id_ );
-            if( motor::ogl::error::check_and_log(
-                    gl4_log( "glBindBuffer(GL_ELEMENT_ARRAY_BUFFER)" ) ) )
-                return false;
-        }
-
-        // disable old locations
-        for( size_t i = 0; i < sconfig.attributes.size(); ++i )
-        {
-            glDisableVertexAttribArray( sconfig.attributes[ i ].loc );
-            motor::ogl::error::check_and_log( gl4_log( "glDisableVertexAttribArray" ) );
-        }
-
-        GLuint uiStride = gconfig.stride;
-        GLuint uiBegin = 0;
-        GLuint uiOffset = 0;
-
-        // sometimes some shader input attributes might not be used but
-        // are defined in the vertex layout. So a new location need to be
-        // figured out so that those vertex buffer attributes could
-        // be bound to the shader.
-        GLuint max_loc = 0;
-        if( sconfig.attributes.size() != gconfig.elements.size() )
-        {
-            for( auto const & a : sconfig.attributes )
-            {
-                max_loc = std::max( max_loc, a.loc );
-            }
-        }
-
-        for( auto & e : gconfig.elements )
-        {
-            uiBegin += uiOffset;
-            uiOffset = e.sib();
-
-            auto iter = std::find_if( sconfig.attributes.begin(), sconfig.attributes.end(),
-                [ & ]( gl4_pimpl_data::shader_data::attribute_variable_cref_t av )
-            { return av.va == e.va; } );
-
-            GLuint loc = 0;
-            GLenum type = GL_NONE;
-
-            if( iter == sconfig.attributes.end() )
-            {
-                loc = ++max_loc;
-                type = motor::platform::gl3::convert( e.type );
-
-                motor::log::global_t::warning(
-                    gl4_log( "Vertex attribute (" + motor::graphics::to_string( e.va ) +
-                             ") in shader (" + shd_name +
-                             ") not used."
-                             "Will bind geometry (" +
-                             shd_name + ") layout attribute to custom location (" +
-                             motor::to_string( uint_t( loc ) ) + ")." ) );
-            }
-            else
-            {
-                loc = iter->loc;
-                type = iter->type;
-            }
-
-            glEnableVertexAttribArray( loc );
-            motor::ogl::error::check_and_log( gl4_log( "glEnableVertexAttribArray" ) );
-
-            glVertexAttribPointer( loc, GLint( motor::graphics::size_of( e.type_struct ) ),
-                motor::ogl::complex_to_simple_type( type ), GL_FALSE, (GLsizei)uiStride,
-                (const GLvoid *)(size_t)uiBegin );
-
-            motor::ogl::error::check_and_log( gl4_log( "glVertexAttribPointer" ) );
-        }
-
-        {
-            glBindVertexArray( 0 );
-            if( motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) ) return false;
-        }
-        return true;
-    }
+    }    
 
     //****************************************************************************************
     static void_t post_link_uniforms( gl4_pimpl_data::shader_data & config ) noexcept

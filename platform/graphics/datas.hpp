@@ -98,7 +98,7 @@ struct datas
 
         motor::string_cref_t name( void_t ) const noexcept
         {
-            return _handle.name() ;
+            return _handle.name();
         }
 
         T * operator->( void_t ) noexcept
@@ -167,7 +167,7 @@ struct datas
         this_t::invalidate_and_clear();
     }
 
-  public:
+  public: // the handle api!
 
     // will create an entry with the name, if non exist. if the oid is wrong
     // the oid will be set to the oid holding the name
@@ -200,6 +200,22 @@ struct datas
         auto const cond = oid == size_t( -1 ) || this_t::check_oid( oid, items ) == size_t( -1 );
         return cond ? this_t::handle_t( *this ) : this_t::handle_t( oid, *this );
     }
+
+    void_t for_each( std::function< void_t( checked_handle_t ) > funk ) noexcept
+    {
+        size_t i = size_t(-1) ;
+        for( auto & item : items )
+        {
+            auto hnd = this_t::handle_t( ++i, *this ) ;
+            if( !hnd ) continue ;
+
+            funk( this_t::checked_handle_t( hnd ) ) ;
+        }
+    } 
+
+    ////////////////////////////////////////////////////////////////////////////
+    // OLD API
+    ////////////////////////////////////////////////////////////////////////////
 
   public: // read and write access
 

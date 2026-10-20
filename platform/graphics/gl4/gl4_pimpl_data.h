@@ -4,7 +4,7 @@
 #pragma once
 
 #include "gl4_log.h"
-
+#include "../datas.hpp"
 
 #include <motor/msl/symbol.hpp>
 #include <motor/msl/database.hpp>
@@ -156,6 +156,7 @@ struct feedback_data
     }
 };
 motor_typedef( feedback_data );
+using feedbacks_t = motor::platform::datas< gl4_pimpl_data::feedback_data_t >;
 
 //********************************************************************************
 struct geo_data
@@ -241,6 +242,7 @@ struct geo_data
     }
 };
 motor_typedef( geo_data );
+using geo_datas_t = motor::platform::datas< gl4_pimpl_data::geo_data_t >;
 
 //********************************************************************************
 struct shader_data
@@ -468,6 +470,7 @@ struct shader_data
     }
 };
 motor_typedef( shader_data );
+using shader_datas_t = motor::platform::datas< gl4_pimpl_data::shader_data_t >;
 
 //********************************************************************************
 struct state_data
@@ -477,6 +480,7 @@ struct state_data
     void_t invalidate( std::string_view const & ) {}
 };
 motor_typedef( state_data );
+using states_t = motor::platform::datas< gl4_pimpl_data::state_data >;
 
 //********************************************************************************
 struct render_data
@@ -705,6 +709,7 @@ struct render_data
     }
 };
 motor_typedef( render_data );
+using render_datas_t = motor::platform::datas< gl4_pimpl_data::render_data >;
 
 //********************************************************************************
 struct image_data
@@ -734,6 +739,7 @@ struct image_data
     }
 };
 motor_typedef( image_data );
+using image_datas_t = motor::platform::datas< gl4_pimpl_data::image_data_t >;
 
 //********************************************************************************
 struct array_data
@@ -763,6 +769,7 @@ struct array_data
     }
 };
 motor_typedef( array_data );
+using arrays_t = motor::platform::datas< gl4_pimpl_data::array_data_t >;
 
 //********************************************************************************
 struct framebuffer_data
@@ -813,6 +820,7 @@ struct framebuffer_data
     }
 };
 motor_typedef( framebuffer_data );
+using framebuffer_datas_t = motor::platform::datas< gl4_pimpl_data::framebuffer_data_t >;
 
 //********************************************************************************
 struct msl_data
@@ -826,4 +834,6 @@ struct msl_data
     }
 };
 motor_typedef( msl_data );
+using msls_t = motor::platform::datas< gl4_pimpl_data::msl_data_t >;
+
 }; // namespace pimpl_data
