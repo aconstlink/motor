@@ -74,13 +74,18 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     bool_t _size_changed = false;
     motor::math::vec2ui_t _dims;
 
+  private: // render lambda
+    
+    using check_render_funk_t = std::function< bool_t ( motor::graphics::gen4::frontend_ptr_t ) > ;
+    check_render_funk_t _check_render ;
+
   private:
 
     motor::gfx::tone_map_stage_mtr_t _tone_map = nullptr;
     motor::gfx::bright_pass_stage_mtr_t _brightpass = nullptr;
     motor::gfx::bloom_stage_mtr_t _bloom = nullptr;
     motor::gfx::merge_stage_mtr_t _merge = nullptr;
-    motor::gfx::fxaa_stage_mtr_t _fxaa = nullptr;    
+    motor::gfx::fxaa_stage_mtr_t _fxaa = nullptr;
 
   public:
 
