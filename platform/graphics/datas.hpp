@@ -118,7 +118,7 @@ struct datas
     };
     motor_typedef( checked_handle );
 
-    friend class handle_t;
+    friend class handle;
 
   private:
 

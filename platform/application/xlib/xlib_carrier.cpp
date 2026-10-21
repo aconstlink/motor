@@ -5,7 +5,7 @@
 
 #include "../../network/network_module_creator.hpp"
 
-#include <motor/graphics/render_engine.h>
+#include <motor/graphics/render_engine.hpp>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 
 #include "../glx/glx_context.h"
