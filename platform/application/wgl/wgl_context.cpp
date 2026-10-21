@@ -69,6 +69,12 @@ wgl_context::~wgl_context( void_t ) noexcept
 }
 
 //***********************************************************************
+void_t wgl_context::context_switched_externally( void_t ) noexcept 
+{
+    _active = false ;
+}
+
+//***********************************************************************
 motor::platform::result wgl_context::activate( void_t ) noexcept
 {
     if( _hwnd == NULL ) return motor::platform::result::invalid_win32_handle ;
@@ -94,7 +100,8 @@ motor::platform::result wgl_context::deactivate( void_t ) noexcept
 {
     if( !_active ) return motor::platform::result::context_not_active ;
 
-    if( motor::log::global::error( wglMakeCurrent( 0,0 ) == FALSE, 
+    HDC hdc = GetDC( _hwnd ) ;
+    if( motor::log::global::error( wglMakeCurrent( hdc,0 ) == FALSE, 
         wgl_context_log( "wglMakeCurrent(00)" ) ) ) 
         return motor::platform::result::failed_wgl ;
 

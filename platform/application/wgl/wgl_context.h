@@ -69,11 +69,13 @@ namespace motor
                 this_ref_t operator = ( this_rref_t ) noexcept ;
 
             public:
-
+                
                 virtual motor::platform::result activate( void_t ) noexcept ;
                 virtual motor::platform::result deactivate( void_t ) noexcept ;
                 virtual motor::platform::result vsync( bool_t const on_off ) noexcept ;
                 virtual motor::platform::result swap( void_t ) noexcept ;
+
+                void_t context_switched_externally( void_t ) noexcept ;
 
             public: // which interface ?
 

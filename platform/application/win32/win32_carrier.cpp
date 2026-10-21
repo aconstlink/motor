@@ -240,7 +240,15 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                             {
                                 //d.ptr->ctx.swap() ;
                             }
+
+                            // performance tests showed that deavtivating
+                            // a context costs time. so we just switch 
+                            // to another context if mutliple windows are used.
+                            #if 1
+                            d.ptr->ctx.context_switched_externally() ;
+                            #else
                             d.ptr->ctx.deactivate() ;
+                            #endif
                         }
                         else if( d.ptr->re.can_execute() )
                         {
