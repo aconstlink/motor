@@ -185,6 +185,11 @@ motor::graphics::result null_backend::render( motor::graphics::msl_object_mtr_t,
     return motor::graphics::result::ok;
 }
 
+motor::graphics::result null_backend::render( motor::graphics::gen4::backend::render_detail_cref_t ) noexcept 
+{
+    return motor::graphics::result::ok;
+}
+
 //***
 void_t null_backend::render_begin( void_t ) noexcept {}
 

@@ -3352,8 +3352,8 @@ motor::graphics::result gl4_backend::prepare_render( motor::graphics::render_obj
         if( _prepare_draws.size() <= _prepare_draw_idx )
             _prepare_draws.resize( _prepare_draws.size() + 5000 );
 
-        _prepare_draws[ _prepare_draw_idx ] =
-            this_t::prepare_draw{ false, uintptr_t( obj ), size_t( -1 ), size_t( -1 ) };
+        _prepare_draws[ _prepare_draw_idx ] = this_t::prepare_draw{
+            false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
     }
 
     if( !obj ) return motor::graphics::result::invalid_argument;
@@ -3384,7 +3384,7 @@ motor::graphics::result gl4_backend::prepare_render( motor::graphics::render_obj
     }
 
     _prepare_draws[ _prepare_draw_idx ] =
-        this_t::prepare_draw{ true, uintptr_t( obj ), oid, detail.varset };
+        this_t::prepare_draw{ true, _prepare_draw_idx, oid, detail.varset };
 
     return motor::graphics::result::ok;
 }
@@ -3393,17 +3393,27 @@ motor::graphics::result gl4_backend::prepare_render( motor::graphics::render_obj
 motor::graphics::result gl4_backend::prepare_render( motor::graphics::msl_object_mtr_t obj,
     motor::graphics::gen4::backend::render_detail_cref_t det ) noexcept
 {
+    {
+        ++_prepare_draw_idx;
+        if( _prepare_draws.size() <= _prepare_draw_idx )
+            _prepare_draws.resize( _prepare_draws.size() + 5000 );
+
+        _prepare_draws[ _prepare_draw_idx ] = this_t::prepare_draw{
+                false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
+    }
+
     if( !obj ) return motor::graphics::result::invalid_argument;
 
     size_t const oid = obj->get_oid( this_t::get_bid() );
     if( oid == size_t( -1 ) )
     {
-        motor::log::global_t::error< 1024 >( "[gl4] : invalid msl id for %s", obj->name().c_str() );
+        motor::log::global_t::error< 1024 >( "[gl4] : invalid msl id for %zu", obj->name().c_str() );
         return motor::graphics::result::failed;
     }
 
     // X: prepare msl stuff
 
+    --_prepare_draw_idx ;
     auto const res = this_t::prepare_render( obj->borrow_render_object(), det );
     if( res != motor::graphics::result::ok )
     {
@@ -3441,21 +3451,55 @@ void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept
     _prepare_draw_idx = size_t( -1 );
 }
 
-//***************************************************************************************
-motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_t obj,
+//*************************************************************************************
+motor::graphics::result gl4_backend::render(
     motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
 {
     // quick verification of prepare draws
     {
         ++_prepare_draw_idx;
-        assert( _prepare_draws[ _prepare_draw_idx ].hash == uintptr_t( obj ) );
+
+        auto & entry = _prepare_draws[ _prepare_draw_idx ];
+        assert( entry.cnt == _prepare_draw_idx );
+
+        if( !entry.ready ) return motor::graphics::result::not_prepared;
+    }
+
+    size_t const oid = _prepare_draws[ _prepare_draw_idx ].oid;
+    if( oid == size_t( -1 ) )
+    {
+        motor::log::global_t::error< 1024 >( "[gl4] : invalid object id %zu", oid );
+        return motor::graphics::result::failed;
+    }
+
+    // @todo
+    // change per object render states here.
+    _pimpl->render( oid, detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
+        detail.varset, (GLsizei)detail.start, (GLsizei)detail.num_elems );
+
+    _prepare_draws[ _prepare_draw_idx ] =
+        this_t::prepare_draw{ false, size_t( -1 ), size_t( -1 ), size_t( -1 ) };
+
+    return motor::graphics::result::ok;
+}
+
+//***************************************************************************************
+// @obsolete this function should not access user objects anymore.
+motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_t obj,
+    motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
+{
+    // quick verification of prepare draws
+    #if 0
+    {
+        ++_prepare_draw_idx;
 
         if( !_prepare_draws[ _prepare_draw_idx ].ready )
             return motor::graphics::result::not_prepared;
 
         _prepare_draws[ _prepare_draw_idx ] =
-            this_t::prepare_draw{ false, uintptr_t( obj ), size_t( -1 ), size_t( -1 ) };
+            this_t::prepare_draw{ false,  size_t( -1 ), size_t( -1 ) };
     }
+    #endif
 
     if( !obj ) return motor::graphics::result::invalid_argument;
 
@@ -3475,6 +3519,7 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
 }
 
 //*************************************************************************************
+// @obsolete this function should not access user objects anymore.
 motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t obj,
     motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
 {
@@ -3497,6 +3542,8 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
 
     return this_t::render( obj->borrow_render_object(), detail );
 }
+
+
 
 //*************************************************************************************
 void_t gl4_backend::render_begin( void_t ) noexcept

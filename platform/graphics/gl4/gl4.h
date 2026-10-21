@@ -28,7 +28,7 @@ class MOTOR_PLATFORM_API gl4_backend : public motor::graphics::gen4::backend
     {
         bool_t ready;
 
-        uintptr_t hash;
+        size_t cnt ;
         size_t oid ;
         size_t vs_idx ;
     };
@@ -98,6 +98,8 @@ class MOTOR_PLATFORM_API gl4_backend : public motor::graphics::gen4::backend
         motor::graphics::gen4::backend::render_detail_cref_t ) noexcept override;
     virtual motor::graphics::result render( motor::graphics::msl_object_mtr_t,
         motor::graphics::gen4::backend::render_detail_cref_t ) noexcept;
+
+    virtual motor::graphics::result render( motor::graphics::gen4::backend::render_detail_cref_t ) noexcept ;
 
     virtual void_t render_begin( void_t ) noexcept;
     virtual void_t render_end( void_t ) noexcept;

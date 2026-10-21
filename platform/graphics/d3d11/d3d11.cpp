@@ -4265,6 +4265,12 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
 }
 
 //************************************************************************************************************
+motor::graphics::result d3d11_backend::render( motor::graphics::gen4::backend::render_detail_cref_t ) noexcept 
+{
+    return motor::graphics::result::failed ;
+}
+
+//************************************************************************************************************
 void_t d3d11_backend::render_begin( void_t ) noexcept
 {
     _pimpl->begin_frame();

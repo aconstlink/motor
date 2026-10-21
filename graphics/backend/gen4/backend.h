@@ -106,6 +106,9 @@ namespace motor
                 virtual motor::graphics::result prepare_render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
                 virtual motor::graphics::result render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
                 virtual motor::graphics::result render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
+                
+                // this works in tandem with prepare_render.
+                virtual motor::graphics::result render( motor::graphics::gen4::backend::render_detail_cref_t ) noexcept = 0 ;
 
             public: // engine interface
 
