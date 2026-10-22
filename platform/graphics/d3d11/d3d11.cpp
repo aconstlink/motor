@@ -5,8 +5,6 @@
 #include "d3d11_convert.h"
 #include "d3d11_independent.h"
 
-#include "../datas.hpp"
-
 #include <motor/msl/symbol.hpp>
 #include <motor/msl/database.hpp>
 #include <motor/msl/parser.h>
@@ -45,6 +43,8 @@
 using namespace motor::platform;
 using namespace motor::platform::gen4;
 
+using namespace d3d11_pimpl_data;
+
 struct d3d11_backend::pimpl
 {
     motor_this_typedefs( d3d11_backend::pimpl );
@@ -53,33 +53,20 @@ struct d3d11_backend::pimpl
     template < typename T >
     using datas = motor::platform::datas< T >;
 
-    using streamout_datas_t = datas< d3d11_pimpl_data::so_data_t >;
     streamout_datas_t _streamouts;
     size_t _cur_streamout_active = size_t( -1 );
 
-    using geometry_datas_t = datas< d3d11_pimpl_data::geo_data_t >;
     geometry_datas_t _geos;
-
-    using shader_datas_t = datas< d3d11_pimpl_data::shader_data_t >;
     shader_datas_t _shaders;
-
-    using image_datas_t = datas< d3d11_pimpl_data::image_data_t >;
     image_datas_t _images;
-
-    using array_datas_t = datas< d3d11_pimpl_data::array_data_t >;
     array_datas_t _arrays;
-
-    using render_datas_t = datas< d3d11_pimpl_data::render_data_t >;
     render_datas_t _renders;
-
-    using msl_datas_t = datas< d3d11_pimpl_data::msl_data_t >;
     msl_datas_t _msls;
 
     motor::msl::database_t _mdb;
 
   public: // framebuffer
 
-    using framebuffers_t = datas< d3d11_pimpl_data::framebuffer_data_t >;
     framebuffers_t _framebuffers;
     size_t _cur_fb_active = size_t( -1 );
 
@@ -696,7 +683,7 @@ struct d3d11_backend::pimpl
                 fbd->ds_view->Release();
                 fbd->ds_view = nullptr;
             }
-            #if 0
+#if 0
             // release images
             {
                 size_t img_id = fbd->image_ids[ fbd->num_color ];
@@ -714,7 +701,7 @@ struct d3d11_backend::pimpl
                     imgd->sampler = nullptr;
                 }
             }
-            #endif
+#endif
             auto const dst = obj.get_depth_target();
 
             if( dst != motor::graphics::depth_stencil_target_type::unknown )
@@ -2521,7 +2508,7 @@ struct d3d11_backend::pimpl
 
         auto array_variable_mapping =
             [ & ]( // motor::graphics::render_object_ref_t rc_,
-                motor::graphics::variable_set_mtr_t vs, pimpl::streamout_datas_t & streamouts,
+                motor::graphics::variable_set_mtr_t vs, streamout_datas_t & streamouts,
                 d3d11_pimpl_data::render_data_t::buffer_variables_t & buffer_vars,
                 d3d11_pimpl_data::render_data_t::buffer_variables_t & buffer_so_vars,
                 d3d11_pimpl_data::shader_data_t::buffer_variables_ref_t the_buffer )
@@ -3535,7 +3522,6 @@ struct d3d11_backend::pimpl
             // feedback data path
             if( !feed_from_so )
             {
-#if 1
                 if( auto sod = streamout_datas_t::handle_t( rd->so_ids[ 0 ], _streamouts ); sod )
                 {
                     size_t const ridx = sod->read_index();
@@ -3548,22 +3534,6 @@ struct d3d11_backend::pimpl
                             sizeof( D3D11_QUERY_DATA_SO_STATISTICS ), 0 );
                     }
                 }
-
-#else
-                _streamouts.access( rd->so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t so )
-                {
-                    size_t const ridx = so.read_index();
-                    auto & rbuffer = so.read_buffer();
-
-                    HRESULT hr = S_FALSE;
-                    while( hr != S_OK )
-                    {
-                        hr = _ctx->ctx()->GetData( so.read_buffer().query, &so_stats,
-                            sizeof( D3D11_QUERY_DATA_SO_STATISTICS ), 0 );
-                    }
-                    return true;
-                } );
-#endif
             }
 
             // feedback draw path
@@ -3571,7 +3541,6 @@ struct d3d11_backend::pimpl
             // primitives using DrawAuto
             if( feed_from_so )
             {
-#if 1
                 if( auto sod = streamout_datas_t::handle_t( rd->so_ids[ 0 ], _streamouts ); sod )
                 {
                     auto & rbuffer = sod->read_buffer();
@@ -3584,29 +3553,12 @@ struct d3d11_backend::pimpl
 
                     ctx->DrawAuto();
                 }
-#else
-                // d3d11_pimpl_data::so_data_ref_t so = _streamouts[ rd->so_ids[ 0 ] ] ;
-                _streamouts.access( rd->so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t so )
-                {
-                    auto & rbuffer = so.read_buffer();
-
-                    UINT const stride = so.stride;
-                    UINT const offset = 0;
-                    ctx->IASetVertexBuffers( 0, 1, rbuffer.buffers[ 0 ], &stride, &offset );
-                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( so.pt ) );
-                    ctx->IASetInputLayout( rd->vertex_layout_so );
-
-                    ctx->DrawAuto();
-                    return true;
-                } );
-#endif
             }
 
             // this path uses the geometry but should render just the number of captured
             // primitives using DrawAuto
             else
             {
-#if 1
                 if( auto geod = geometry_datas_t::handle_t( rd->geo_ids[ geo_idx ].id, _geos );
                     geod )
                 {
@@ -3622,28 +3574,6 @@ struct d3d11_backend::pimpl
                     // @todo no index geo implemented, see remarks in geo path below.
                     ctx->Draw( UINT( so_stats.NumPrimitivesWritten ), UINT( start_element ) );
                 }
-#else
-                // d3d11_pimpl_data::geo_data_ref_t geo = _geos[ rd->geo_ids[ geo_idx ] ] ;
-
-                _geos.access( rd->geo_ids[ geo_idx ].id,
-                    [ & ]( d3d11_pimpl_data::geo_data_ref_t geo )
-
-                {
-                    UINT const stride = geo.stride;
-                    UINT const offset = 0;
-                    ctx->IASetVertexBuffers( 0, 1, geo.vb, &stride, &offset );
-                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( geo.pt ) );
-                    ctx->IASetInputLayout( rd->vertex_layout );
-
-                    // AutoDraw does not seem to work when binding a different vertex buffer
-                    // then the used streamout buffer. If the other geometry uses index or
-                    // instanced data, AutoDraw doesn't work anyways according to doc.
-                    // @todo no index geo implemented, see remarks in geo path below.
-                    ctx->Draw( UINT( so_stats.NumPrimitivesWritten ), UINT( start_element ) );
-
-                    return true;
-                } );
-#endif
             }
         }
 
@@ -4340,20 +4270,149 @@ motor::graphics::result d3d11_backend::pop(
 }
 
 //************************************************************************************************************
-motor::graphics::result d3d11_backend::prepare_render( motor::graphics::render_object_mtr_t,
-    motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
+motor::graphics::result d3d11_backend::prepare_render( motor::graphics::render_object_mtr_t obj,
+    motor::graphics::gen4::backend::render_detail_cref_t det ) noexcept
 {
-    return motor::graphics::result::invalid;
+    {
+        ++_prepare_draw_idx;
+        if( _prepare_draws.size() <= _prepare_draw_idx )
+            _prepare_draws.resize( _prepare_draws.size() + 5000 );
+
+        _prepare_draws[ _prepare_draw_idx ] =
+            this_t::prepare_draw{ false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
+    }
+
+    if( !obj ) return motor::graphics::result::invalid_argument;
+
+    size_t const oid = obj->get_oid( this_t::get_bid() );
+    if( oid == size_t( -1 ) )
+    {
+        motor::log::global_t::error< 1024 >(
+            "[d3d11] : invalid render object id for %s", obj->name().c_str() );
+        return motor::graphics::result::failed;
+    }
+
+    {
+        auto const res = _pimpl->update_geometry_link( *obj, det.geo );
+        if( !res ) return motor::graphics::result::failed;
+    }
+
+    
+    auto const update_res = _pimpl->update_render_object( *obj, det.varset );
+    
+
+    _prepare_draws[ _prepare_draw_idx ] =
+        this_t::prepare_draw{ update_res, _prepare_draw_idx, oid, det.varset };
+
+    return update_res ? motor::graphics::result::ok : motor::graphics::result::failed;
 }
 
 //************************************************************************************************************
-motor::graphics::result d3d11_backend::prepare_render( motor::graphics::msl_object_mtr_t,
-    motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
+motor::graphics::result d3d11_backend::prepare_render( motor::graphics::msl_object_mtr_t obj,
+    motor::graphics::gen4::backend::render_detail_cref_t det ) noexcept
 {
-    return motor::graphics::result::invalid;
+    {
+        ++_prepare_draw_idx;
+        if( _prepare_draws.size() <= _prepare_draw_idx )
+            _prepare_draws.resize( _prepare_draws.size() + 5000 );
+
+        _prepare_draws[ _prepare_draw_idx ] =
+            this_t::prepare_draw{ false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
+    }
+
+    if( !obj ) return motor::graphics::result::invalid_argument;
+
+    size_t const oid = obj->get_oid( this_t::get_bid() );
+    if( oid == size_t( -1 ) )
+    {
+        motor::log::global_t::error< 1024 >(
+            "[d3d11] : invalid msl id for %s", obj->name().c_str() );
+        return motor::graphics::result::failed;
+    }
+
+    --_prepare_draw_idx;
+    auto const res = this_t::prepare_render( obj->borrow_render_object(), det );
+    if( res != motor::graphics::result::ok )
+    {
+        motor::log::global_t::error< 1024 >( "[d3d11] : prepare_render for %s", obj->name().c_str() );
+    }
+
+    return res;
+}
+
+//*************************************************************************************
+void_t d3d11_backend::commit_frame_snapshot( void_t ) noexcept
+{
+    for( size_t i = 0; i < _prepare_draw_idx + 1; ++i )
+    {
+        auto & prep = _prepare_draws[ i ];
+
+        if( !prep.ready ) continue;
+
+        //prep.ready = false;
+
+        if( auto rd = render_datas_t::handle_t( prep.oid, _pimpl->_renders ); rd )
+        {
+            if( auto shd = shader_datas_t::handle_t( rd->shd_id, _pimpl->_shaders ); shd )
+            {
+                auto rdc = render_datas_t::checked_handle_t( rd );
+                auto shdc = shader_datas_t::checked_handle_t( shd );
+
+#if 1
+                // update variables
+                // at the moment, variables are updated in prepare.
+                // this is possible, becuase every variable set has its own
+                // constant buffer.
+                //prep.ready = true
+    
+#else
+                _pimpl->render_object_variable_memory( rdc, shdc );
+
+                prep.ready = _pimpl->update_variables( rdc, shdc, prep.vs_idx );
+#endif
+            
+            }
+        }
+    }
+
+    _prepare_draw_idx = size_t( -1 );
 }
 
 //************************************************************************************************************
+motor::graphics::result d3d11_backend::render(
+    motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
+{
+    // quick verification of prepare draws
+    {
+        ++_prepare_draw_idx;
+
+        auto & entry = _prepare_draws[ _prepare_draw_idx ];
+        assert( entry.cnt == _prepare_draw_idx );
+
+        if( !entry.ready ) return motor::graphics::result::not_prepared;
+    }
+
+    size_t const oid = _prepare_draws[ _prepare_draw_idx ].oid;
+    if( oid == size_t( -1 ) )
+    {
+        motor::log::global_t::error< 1024 >( "[d3d11] : invalid render object id %zu", oid );
+        return motor::graphics::result::failed;
+    }
+
+    // render
+    
+    auto const res = _pimpl->render( oid, detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
+        detail.varset, (UINT)detail.start, (UINT)detail.num_elems );
+    
+
+    _prepare_draws[ _prepare_draw_idx ] =
+        this_t::prepare_draw{ false, size_t( -1 ), size_t( -1 ), size_t( -1 ) };
+
+    return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
+}
+
+//************************************************************************************************************
+// @obsolete dot not use, use render(det) for async rendering
 motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mtr_t obj,
     motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
 {
@@ -4387,6 +4446,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mt
 }
 
 //************************************************************************************************************
+// @obsolete dot not use, use render(det) for async rendering
 motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t obj,
     motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
 {
@@ -4405,32 +4465,20 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
         return motor::graphics::result::in_transit;
     }
 
-#if 1
     return this_t::render( obj->borrow_render_object(), detail );
-#else
-    motor::graphics::result res = motor::graphics::result::failed;
-    _pimpl->_msls.try_access( oid, [ & ]( d3d11_pimpl_data::msl_data_ref_t msl )
-    { return this_t::render( obj->borrow_render_object(), detail ); } );
-    return res;
-#endif
-}
-
-//************************************************************************************************************
-motor::graphics::result d3d11_backend::render(
-    motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
-{
-    return motor::graphics::result::failed;
 }
 
 //************************************************************************************************************
 void_t d3d11_backend::render_begin( void_t ) noexcept
 {
+    _prepare_draw_idx = size_t( -1 );
     _pimpl->begin_frame();
 }
 
 //************************************************************************************************************
 void_t d3d11_backend::render_end( void_t ) noexcept
 {
+    _prepare_draw_idx = size_t( -1 );
     _pimpl->end_frame();
 }
 
@@ -4441,5 +4489,3 @@ void_t d3d11_backend::report_live_device_objects( D3D11_RLDO_FLAGS const flags )
     if( _context != nullptr ) _context->debug()->ReportLiveDeviceObjects( flags );
 #endif
 }
-
-void_t d3d11_backend::commit_frame_snapshot( void_t ) noexcept {}

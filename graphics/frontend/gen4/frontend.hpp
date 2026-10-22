@@ -249,8 +249,8 @@ class frontend : public motor::graphics::ifrontend
 
         _re->send_execute( { [ =, this ]( void_t )
         {
-            //_be->render( rd );
-            _be->render( o, rd ) ;
+            _be->render( rd );
+            //_be->render( o, rd ) ;
         } } );
 
         return *this;
@@ -266,8 +266,8 @@ class frontend : public motor::graphics::ifrontend
 
         _re->send_execute( { [ =, this ]( void_t )
         {
-            //_be->render( rd );
-            _be->render( o, rd ) ;
+            _be->render( rd );
+            //_be->render( o, rd ) ;
         } } );
 
         return *this;

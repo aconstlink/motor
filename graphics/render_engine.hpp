@@ -66,8 +66,7 @@ class render_engine
 
     ushort_t coms_exec_write_idx( void_t ) const noexcept
     {
-        //return ( _coms_exec_read_idx + 1 ); % 2;
-        return this_t::coms_exec_read_idx() ;
+        return ( _coms_exec_read_idx + 1 ) % 2;
     }
 
   public:
@@ -152,7 +151,10 @@ class render_engine
         // do the frame snapshot
         _commit_snapshot();
 
-        
+        // @todo this should go after _commit_snapshot()
+        // X. swap when upstream commands are processed
+        // At this point, the outer entity can write in the back buffer again
+        this_t::swap_has_commands();
 
         // 3. execute "execute" commands
         for( auto & c : _coms_exec[ this_t::coms_exec_read_idx() ] )
@@ -160,12 +162,6 @@ class render_engine
             c.exec_funk();
         }
         _coms_exec[ this_t::coms_exec_read_idx() ].clear();
-
-
-        // @todo this should go after _commit_snapshot()
-        // X. swap when upstream commands are processed
-        // At this point, the outer entity can write in the back buffer again
-        this_t::swap_has_commands();
 
         return true;
     }
@@ -226,7 +222,7 @@ class render_engine
         {
             std::lock_guard< std::mutex > lk( _mtx_has_commands );
             _has_commands = false;
-            //_coms_exec_read_idx = ( _coms_exec_read_idx + 1 ) % 2;
+            _coms_exec_read_idx = ( _coms_exec_read_idx + 1 ) % 2;
         }
 
         if( _notify_has_work ) _notify_has_work();
