@@ -163,8 +163,12 @@ class render_engine
         {
             c.exec_funk();
         }
-        _coms_exec[ this_t::coms_exec_read_idx() ].clear();
-        _needs_execute = false ;
+        _coms_exec[ this_t::coms_exec_read_idx() ].clear(); 
+
+        {
+            std::lock_guard< std::mutex > lk( _mtx_has_commands );
+            _needs_execute = false ;
+        }
     }
 
   public: // interface for external entity
@@ -211,6 +215,7 @@ class render_engine
 
     bool_t needs_execute( void_t ) const noexcept
     {
+        std::lock_guard< std::mutex > lk( _mtx_has_commands );
         return _needs_execute ;
     }
 
