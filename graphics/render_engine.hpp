@@ -43,6 +43,7 @@ class render_engine
 
     mutable std::mutex _mtx_has_commands;
     bool_t _has_commands = false;
+    bool_t _needs_execute = false ;
 
     // update commands
     motor::vector< command_t > _coms_update;
@@ -134,9 +135,7 @@ class render_engine
         return this_t::has_frame_commands();
     }
 
-    // returns true if a frame has been rendered
-    // otherwise false
-    bool_t execute_frame( void_t ) noexcept
+    void_t execute_prepare( void_t ) noexcept
     {
         assert( _has_commands == true );
 
@@ -155,15 +154,17 @@ class render_engine
         // X. swap when upstream commands are processed
         // At this point, the outer entity can write in the back buffer again
         this_t::swap_has_commands();
+    }
 
+    void_t execute( void_t ) noexcept
+    {
         // 3. execute "execute" commands
         for( auto & c : _coms_exec[ this_t::coms_exec_read_idx() ] )
         {
             c.exec_funk();
         }
         _coms_exec[ this_t::coms_exec_read_idx() ].clear();
-
-        return true;
+        _needs_execute = false ;
     }
 
   public: // interface for external entity
@@ -208,6 +209,11 @@ class render_engine
         _commit_snapshot = std::move( f );
     }
 
+    bool_t needs_execute( void_t ) const noexcept
+    {
+        return _needs_execute ;
+    }
+
   public: // reserved for the application carrier
 
     void_t set_work_notify( notify_funk_t f ) noexcept
@@ -223,8 +229,10 @@ class render_engine
             std::lock_guard< std::mutex > lk( _mtx_has_commands );
             _has_commands = false;
             _coms_exec_read_idx = ( _coms_exec_read_idx + 1 ) % 2;
+            _needs_execute = true ;
         }
 
+        // early wakeup here. maybe in leave frame, it is too late..
         if( _notify_has_work ) _notify_has_work();
     }
 
