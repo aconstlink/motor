@@ -343,13 +343,15 @@ motor::application::result xlib_carrier::on_exec( void_t ) noexcept
                         if( motor::platform::success( d.ptr->ctx.activate() ) )
                         {
                             d.ptr->ctx.borrow_backend()->render_begin() ;
-                            d.ptr->re.execute_frame() ;
+                            d.ptr->re.execute_prepare() ;
+                            this_t::notify_update() ;
+                            d.ptr->re.execute() ;
                             d.ptr->ctx.borrow_backend()->render_end() ;
                             d.ptr->ctx.swap() ;
                             d.ptr->ctx.deactivate() ;
                         }
                         else d.ptr->re.force_clear() ;
-                        this_t::notify_update() ;
+                        
                     }
                     
                 }
@@ -671,7 +673,10 @@ bool_t xlib_carrier::handle_destroyed_hwnd( Window hwnd ) noexcept
             if( iter2->ptr->re.can_execute() )
             {
                 if( motor::platform::success( iter2->ptr->ctx.activate() ) )
-                    iter2->ptr->re.execute_frame() ;
+                {
+                    iter2->ptr->re.execute_prepare() ;
+                    iter2->ptr->re.execute() ;
+                }
                 else iter2->ptr->re.force_clear() ;
             }
             motor::memory::global_t::dealloc( iter2->ptr->fe ) ;
