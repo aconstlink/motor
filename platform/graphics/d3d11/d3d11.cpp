@@ -495,317 +495,345 @@ struct d3d11_backend::pimpl
     //************************************************************************************************************
     bool_t construct_framebuffer( motor::graphics::framebuffer_object_ref_t obj ) noexcept
     {
-        // oid = determine_oid( obj.get_oid(_bid), obj.name(), _framebuffers ) ;
-        // auto & fb = _framebuffers[ oid ] ;
-
-        size_t oid = obj.get_oid( _bid );
-        auto const res = _framebuffers.access( oid, obj.name(),
-            [ & ]( d3d11_pimpl_data::framebuffer_data_ref_t fb )
+        auto fbd = _framebuffers.access( obj.get_oid( _bid ), obj.name() );
+        if( !fbd )
         {
-            ID3D11Device * dev = _ctx->dev();
+            motor::log::global_t::error< 1024 >(
+                "[d3d11] : invalid framebuffer %s", obj.name().c_str() );
+            return false;
+        }
 
-            // colors
+        ID3D11Device * dev = _ctx->dev();
+
+        // release all framebuffer resources
+        {
+            for( size_t i = 0; i < d3d11_pimpl_data::framebuffer_data_t::max_rt_views; ++i )
             {
-                for( size_t i = 0; i < fb.num_color; ++i )
+                auto *& view = fbd->rt_view[ i ];
+                if( view != nullptr )
                 {
-                    auto *& view = fb.rt_view[ i ];
-                    if( view != nullptr )
-                    {
-                        view->Release();
-                        view = nullptr;
-                    }
-                }
-
-                // release images
-                for( size_t i = 0; i < fb.num_color; ++i )
-                {
-                    if( fb.image_ids[ i ] != size_t( -1 ) )
-                    {
-                        _images.access( fb.image_ids[ i ],
-                            [ & ]( d3d11_pimpl_data::image_data_ref_t img )
-                        {
-                            //
-                            // could just call img.invalidate() i guess
-                            //
-                            img.view->Release();
-                            img.texture->Release();
-                            img.sampler->Release();
-
-                            img.view = nullptr;
-                            img.texture = nullptr;
-                            img.sampler = nullptr;
-                        } );
-                    }
-                }
-
-                size_t const nt = obj.get_num_color_targets();
-                auto const ctt = obj.get_color_target();
-                auto const dst = obj.get_depth_target();
-
-                for( size_t i = 0; i < nt; ++i )
-                {
-                    // sampler
-                    d3d11_pimpl_data::guard< ID3D11SamplerState > smp;
-                    {
-                        D3D11_SAMPLER_DESC sampDesc = {};
-                        sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-                        sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-                        sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-                        sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-                        sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-                        sampDesc.MinLOD = 0;
-                        sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-                        auto const hr = dev->CreateSamplerState( &sampDesc, smp );
-                        if( FAILED( hr ) )
-                        {
-                            motor::log::global_t::error(
-                                d3d11_backend_log( "CreateSamplerState" ) );
-                            continue;
-                        }
-                    }
-
-                    // texture
-                    d3d11_pimpl_data::guard< ID3D11Texture2D > tex;
-                    {
-                        auto const dims = obj.get_dims();
-                        size_t const width = UINT( dims.x() );
-                        size_t const height = UINT( dims.y() );
-
-                        D3D11_TEXTURE2D_DESC desc = {};
-                        desc.Width = static_cast< UINT >( width );
-                        desc.Height = static_cast< UINT >( height );
-                        desc.MipLevels = static_cast< UINT >( 1 );
-                        desc.ArraySize = static_cast< UINT >( 1 );
-                        desc.Format = motor::platform::d3d11::convert( ctt );
-                        desc.SampleDesc.Count = 1;
-                        desc.SampleDesc.Quality = 0;
-                        desc.Usage = D3D11_USAGE_DEFAULT;
-                        desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-                        desc.CPUAccessFlags = 0;
-                        desc.MiscFlags = 0;
-
-                        // create the texture object
-                        {
-                            auto const hr = dev->CreateTexture2D( &desc, nullptr, tex );
-                            if( FAILED( hr ) )
-                            {
-                                motor::log::global_t::error(
-                                    d3d11_backend_log( "CreateTexture2D" ) );
-                                continue;
-                            }
-                        }
-                    }
-
-                    // shader resource view
-                    d3d11_pimpl_data::guard< ID3D11ShaderResourceView > srv;
-                    {
-                        D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {};
-                        res_desc.Format = motor::platform::d3d11::convert( ctt );
-                        res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-                        res_desc.Texture2D.MostDetailedMip = 0;
-                        res_desc.Texture2D.MipLevels = UINT( 1 );
-
-                        auto const hr = dev->CreateShaderResourceView( tex, &res_desc, srv );
-                        if( FAILED( hr ) )
-                        {
-                            motor::log::global_t::error( d3d11_backend_log(
-                                "CreateShaderResourceView for texture : [" + obj.name() + "]" ) );
-                            continue;
-                        }
-                    }
-
-                    // render target view
-                    d3d11_pimpl_data::guard< ID3D11RenderTargetView > view;
-                    {
-                        D3D11_RENDER_TARGET_VIEW_DESC desc = {};
-                        desc.Format = motor::platform::d3d11::convert( ctt );
-                        desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-                        desc.Texture2D.MipSlice = 0;
-
-                        auto const res = _ctx->dev()->CreateRenderTargetView( tex, &desc, view );
-                        if( FAILED( res ) )
-                        {
-                            motor::log::global_t::error(
-                                d3d11_backend_log( "CreateRenderTargetView" ) );
-                            continue;
-                        }
-                    }
-
-                    // store data
-                    {
-                        motor::string_t const name = obj.name() + "." + motor::to_string( i );
-
-                        _images.access( fb.image_ids[ i ], name,
-                            [ & ]( d3d11_pimpl_data::image_data_ref_t img )
-                        {
-                            img.sampler = smp.move_out();
-                            img.texture = tex.move_out();
-                            img.view = srv.move_out();
-                            img.requires_y_flip = 1.0f;
-                            return true;
-                        } );
-                        {
-                            auto const dims = obj.get_dims();
-                            fb.width = FLOAT( dims.x() );
-                            fb.height = FLOAT( dims.y() );
-                        }
-
-                        fb.num_color = nt;
-                        fb.rt_view[ i ] = view.move_out();
-                    }
+                    view->Release();
+                    view = nullptr;
                 }
             }
 
-            // depth stencil
+            // release images
+            for( size_t i = 0; i < d3d11_pimpl_data::framebuffer_data_t::max_images; ++i )
             {
-                if( fb.ds_view != nullptr )
+                if( auto imgd = _images.access( fbd->image_ids[ i ] ); imgd )
                 {
-                    fb.ds_view->Release();
-                    fb.ds_view = nullptr;
-                }
+                    //
+                    // could just call img.invalidate() i guess
+                    //
+                    imgd->view->Release();
+                    imgd->texture->Release();
+                    imgd->sampler->Release();
 
-                // release images
-                if( fb.image_ids[ fb.num_color ] != size_t( -1 ) )
+                    imgd->view = nullptr;
+                    imgd->texture = nullptr;
+                    imgd->sampler = nullptr;
+                }
+            }
+        }
+
+        // colors
+        {
+#if 0
+            for( size_t i = 0; i < fbd->num_color; ++i )
+            {
+                auto *& view = fbd->rt_view[ i ];
+                if( view != nullptr )
                 {
-                    _images.access( fb.image_ids[ fb.num_color ],
-                        [ & ]( d3d11_pimpl_data::image_data_ref_t img )
+                    view->Release();
+                    view = nullptr;
+                }
+            }
+
+            // release images
+            for( size_t i = 0; i < fbd->num_color; ++i )
+            {
+                if( fbd->image_ids[ i ] != size_t( -1 ) )
+                {
+                    if( auto imgd = _images.access( fbd->image_ids[ i ] ); imgd )
                     {
                         //
                         // could just call img.invalidate() i guess
                         //
-                        img.view->Release();
-                        img.texture->Release();
-                        img.sampler->Release();
+                        imgd->view->Release();
+                        imgd->texture->Release();
+                        imgd->sampler->Release();
 
-                        img.view = nullptr;
-                        img.texture = nullptr;
-                        img.sampler = nullptr;
-                    } );
-                }
-
-                auto const dst = obj.get_depth_target();
-
-                if( dst != motor::graphics::depth_stencil_target_type::unknown )
-                {
-                    // sampler
-                    d3d11_pimpl_data::guard< ID3D11SamplerState > smp;
-                    {
-                        D3D11_SAMPLER_DESC sampDesc = {};
-                        sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-                        sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-                        sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-                        sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-                        sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-                        sampDesc.MinLOD = 0;
-                        sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-                        auto const hr = dev->CreateSamplerState( &sampDesc, smp );
-                        if( FAILED( hr ) )
-                        {
-                            motor::log::global_t::error(
-                                d3d11_backend_log( "CreateSamplerState" ) );
-                            return false;
-                        }
-                    }
-
-                    // texture
-                    d3d11_pimpl_data::guard< ID3D11Texture2D > tex;
-                    {
-                        auto const dims = obj.get_dims();
-                        size_t const width = UINT( dims.x() );
-                        size_t const height = UINT( dims.y() );
-
-                        D3D11_TEXTURE2D_DESC desc = {};
-                        desc.Width = static_cast< UINT >( width );
-                        desc.Height = static_cast< UINT >( height );
-                        desc.MipLevels = static_cast< UINT >( 1 );
-                        desc.ArraySize = static_cast< UINT >( 1 );
-                        desc.Format = motor::platform::d3d11::convert_texture( dst );
-                        desc.SampleDesc.Count = 1;
-                        desc.SampleDesc.Quality = 0;
-                        desc.Usage = D3D11_USAGE_DEFAULT;
-                        desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-                        desc.CPUAccessFlags = 0;
-                        desc.MiscFlags = 0;
-
-                        // create the texture object
-                        {
-                            auto const hr = dev->CreateTexture2D( &desc, nullptr, tex );
-                            if( FAILED( hr ) )
-                            {
-                                motor::log::global_t::error(
-                                    d3d11_backend_log( "CreateTexture2D" ) );
-                                return false;
-                            }
-                        }
-                    }
-
-                    // shader resource view
-                    d3d11_pimpl_data::guard< ID3D11ShaderResourceView > srv;
-                    {
-                        D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {};
-                        res_desc.Format = motor::platform::d3d11::convert_shader_resource( dst );
-                        res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-                        res_desc.Texture2D.MostDetailedMip = 0;
-                        res_desc.Texture2D.MipLevels = UINT( 1 );
-
-                        auto const hr = dev->CreateShaderResourceView( tex, &res_desc, srv );
-                        if( FAILED( hr ) )
-                        {
-                            motor::log::global_t::error( d3d11_backend_log(
-                                "CreateShaderResourceView for texture : [" + obj.name() + "]" ) );
-                            return false;
-                        }
-                    }
-
-                    // render target view
-                    d3d11_pimpl_data::guard< ID3D11DepthStencilView > view;
-                    {
-                        D3D11_DEPTH_STENCIL_VIEW_DESC desc = {};
-                        desc.Format = motor::platform::d3d11::convert_depth_stencil_view( dst );
-                        desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-                        desc.Texture2D.MipSlice = 0;
-
-                        auto const res = _ctx->dev()->CreateDepthStencilView( tex, &desc, view );
-                        if( FAILED( res ) )
-                        {
-                            motor::log::global_t::error(
-                                d3d11_backend_log( "CreateDepthStencilView" ) );
-                            return false;
-                        }
-                    }
-
-                    // store data
-                    {
-                        size_t const i = obj.get_num_color_targets();
-                        motor::string_t const name = obj.name() + ".depth";
-                        _images.access( fb.image_ids[ i ], name,
-                            [ & ]( d3d11_pimpl_data::image_data_ref_t img )
-                        {
-                            img.sampler = smp.move_out();
-                            img.texture = tex.move_out();
-                            img.view = srv.move_out();
-                            img.requires_y_flip = 1.0f;
-                            return true;
-                        } );
-                        {
-                            auto const dims = obj.get_dims();
-                            fb.width = FLOAT( dims.x() );
-                            fb.height = FLOAT( dims.y() );
-                        }
-
-                        fb.ds_view = view.move_out();
+                        imgd->view = nullptr;
+                        imgd->texture = nullptr;
+                        imgd->sampler = nullptr;
                     }
                 }
             }
+#endif
 
-            return true;
-        } );
+            size_t const nt = obj.get_num_color_targets();
+            auto const ctt = obj.get_color_target();
+            auto const dst = obj.get_depth_target();
 
-        if( res ) obj.set_oid( _bid, oid );
+            for( size_t i = 0; i < nt; ++i )
+            {
+                // sampler
+                d3d11_pimpl_data::guard< ID3D11SamplerState > smp;
+                {
+                    D3D11_SAMPLER_DESC sampDesc = {};
+                    sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+                    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+                    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+                    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+                    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+                    sampDesc.MinLOD = 0;
+                    sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-        return res;
+                    auto const hr = dev->CreateSamplerState( &sampDesc, smp );
+                    if( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "CreateSamplerState" ) );
+                        continue;
+                    }
+                }
+
+                // texture
+                d3d11_pimpl_data::guard< ID3D11Texture2D > tex;
+                {
+                    auto const dims = obj.get_dims();
+                    size_t const width = UINT( dims.x() );
+                    size_t const height = UINT( dims.y() );
+
+                    D3D11_TEXTURE2D_DESC desc = {};
+                    desc.Width = static_cast< UINT >( width );
+                    desc.Height = static_cast< UINT >( height );
+                    desc.MipLevels = static_cast< UINT >( 1 );
+                    desc.ArraySize = static_cast< UINT >( 1 );
+                    desc.Format = motor::platform::d3d11::convert( ctt );
+                    desc.SampleDesc.Count = 1;
+                    desc.SampleDesc.Quality = 0;
+                    desc.Usage = D3D11_USAGE_DEFAULT;
+                    desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+                    desc.CPUAccessFlags = 0;
+                    desc.MiscFlags = 0;
+
+                    // create the texture object
+                    {
+                        auto const hr = dev->CreateTexture2D( &desc, nullptr, tex );
+                        if( FAILED( hr ) )
+                        {
+                            motor::log::global_t::error( d3d11_backend_log( "CreateTexture2D" ) );
+                            continue;
+                        }
+                    }
+                }
+
+                // shader resource view
+                d3d11_pimpl_data::guard< ID3D11ShaderResourceView > srv;
+                {
+                    D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {};
+                    res_desc.Format = motor::platform::d3d11::convert( ctt );
+                    res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+                    res_desc.Texture2D.MostDetailedMip = 0;
+                    res_desc.Texture2D.MipLevels = UINT( 1 );
+
+                    auto const hr = dev->CreateShaderResourceView( tex, &res_desc, srv );
+                    if( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log(
+                            "CreateShaderResourceView for texture : [" + obj.name() + "]" ) );
+                        continue;
+                    }
+                }
+
+                // render target view
+                d3d11_pimpl_data::guard< ID3D11RenderTargetView > view;
+                {
+                    D3D11_RENDER_TARGET_VIEW_DESC desc = {};
+                    desc.Format = motor::platform::d3d11::convert( ctt );
+                    desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+                    desc.Texture2D.MipSlice = 0;
+
+                    auto const res = _ctx->dev()->CreateRenderTargetView( tex, &desc, view );
+                    if( FAILED( res ) )
+                    {
+                        motor::log::global_t::error(
+                            d3d11_backend_log( "CreateRenderTargetView" ) );
+                        continue;
+                    }
+                }
+
+                // store data
+                {
+                    motor::string_t const name = obj.name() + "." + motor::to_string( i );
+
+                    if( auto imgd = _images.access( fbd->image_ids[ i ], name ); imgd )
+                    {
+                        imgd->sampler = smp.move_out();
+                        imgd->texture = tex.move_out();
+                        imgd->view = srv.move_out();
+                        imgd->requires_y_flip = 1.0f;
+
+                        fbd->image_ids[ i ] = imgd.oid();
+                    }
+
+                    fbd->rt_view[ i ] = view.move_out();
+                }
+            }
+
+            {
+                auto const dims = obj.get_dims();
+                fbd->width = FLOAT( dims.x() );
+                fbd->height = FLOAT( dims.y() );
+            }
+            fbd->num_color = nt;
+        }
+
+        // depth stencil
+        {
+            if( fbd->ds_view != nullptr )
+            {
+                fbd->ds_view->Release();
+                fbd->ds_view = nullptr;
+            }
+            #if 0
+            // release images
+            {
+                size_t img_id = fbd->image_ids[ fbd->num_color ];
+                if( auto imgd = image_datas_t::handle_t( img_id, _images ); imgd )
+                {
+                    //
+                    // could just call img.invalidate() i guess
+                    //
+                    imgd->view->Release();
+                    imgd->texture->Release();
+                    imgd->sampler->Release();
+
+                    imgd->view = nullptr;
+                    imgd->texture = nullptr;
+                    imgd->sampler = nullptr;
+                }
+            }
+            #endif
+            auto const dst = obj.get_depth_target();
+
+            if( dst != motor::graphics::depth_stencil_target_type::unknown )
+            {
+                // sampler
+                d3d11_pimpl_data::guard< ID3D11SamplerState > smp;
+                {
+                    D3D11_SAMPLER_DESC sampDesc = {};
+                    sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+                    sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+                    sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+                    sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+                    sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+                    sampDesc.MinLOD = 0;
+                    sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+                    auto const hr = dev->CreateSamplerState( &sampDesc, smp );
+                    if( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log( "CreateSamplerState" ) );
+                        return false;
+                    }
+                }
+
+                // texture
+                d3d11_pimpl_data::guard< ID3D11Texture2D > tex;
+                {
+                    auto const dims = obj.get_dims();
+                    size_t const width = UINT( dims.x() );
+                    size_t const height = UINT( dims.y() );
+
+                    D3D11_TEXTURE2D_DESC desc = {};
+                    desc.Width = static_cast< UINT >( width );
+                    desc.Height = static_cast< UINT >( height );
+                    desc.MipLevels = static_cast< UINT >( 1 );
+                    desc.ArraySize = static_cast< UINT >( 1 );
+                    desc.Format = motor::platform::d3d11::convert_texture( dst );
+                    desc.SampleDesc.Count = 1;
+                    desc.SampleDesc.Quality = 0;
+                    desc.Usage = D3D11_USAGE_DEFAULT;
+                    desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+                    desc.CPUAccessFlags = 0;
+                    desc.MiscFlags = 0;
+
+                    // create the texture object
+                    {
+                        auto const hr = dev->CreateTexture2D( &desc, nullptr, tex );
+                        if( FAILED( hr ) )
+                        {
+                            motor::log::global_t::error( d3d11_backend_log( "CreateTexture2D" ) );
+                            return false;
+                        }
+                    }
+                }
+
+                // shader resource view
+                d3d11_pimpl_data::guard< ID3D11ShaderResourceView > srv;
+                {
+                    D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {};
+                    res_desc.Format = motor::platform::d3d11::convert_shader_resource( dst );
+                    res_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+                    res_desc.Texture2D.MostDetailedMip = 0;
+                    res_desc.Texture2D.MipLevels = UINT( 1 );
+
+                    auto const hr = dev->CreateShaderResourceView( tex, &res_desc, srv );
+                    if( FAILED( hr ) )
+                    {
+                        motor::log::global_t::error( d3d11_backend_log(
+                            "CreateShaderResourceView for texture : [" + obj.name() + "]" ) );
+                        return false;
+                    }
+                }
+
+                // render target view
+                d3d11_pimpl_data::guard< ID3D11DepthStencilView > view;
+                {
+                    D3D11_DEPTH_STENCIL_VIEW_DESC desc = {};
+                    desc.Format = motor::platform::d3d11::convert_depth_stencil_view( dst );
+                    desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+                    desc.Texture2D.MipSlice = 0;
+
+                    auto const res = _ctx->dev()->CreateDepthStencilView( tex, &desc, view );
+                    if( FAILED( res ) )
+                    {
+                        motor::log::global_t::error(
+                            d3d11_backend_log( "CreateDepthStencilView" ) );
+                        return false;
+                    }
+                }
+
+                // store data
+                {
+                    size_t const i = obj.get_num_color_targets();
+                    motor::string_t const name = obj.name() + ".depth";
+
+                    if( auto imgd = _images.access( fbd->image_ids[ i ], name ); imgd )
+                    {
+                        imgd->sampler = smp.move_out();
+                        imgd->texture = tex.move_out();
+                        imgd->view = srv.move_out();
+                        imgd->requires_y_flip = 1.0f;
+
+                        fbd->image_ids[ i ] = imgd.oid();
+                    }
+
+                    {
+                        auto const dims = obj.get_dims();
+                        fbd->width = FLOAT( dims.x() );
+                        fbd->height = FLOAT( dims.y() );
+                    }
+
+                    fbd->ds_view = view.move_out();
+                }
+            }
+        }
+
+        obj.set_oid( _bid, fbd.oid() );
+
+        return true;
     }
 
     //************************************************************************************************************
@@ -820,10 +848,10 @@ struct d3d11_backend::pimpl
     //************************************************************************************************************
     bool_t activate_framebuffer( size_t const oid ) noexcept
     {
-        // framebuffer_data_ref_t fb = framebuffer_data_ref_t( _framebuffers[ oid ] ) ;
-
-        _framebuffers.access( oid, [ & ]( d3d11_pimpl_data::framebuffer_data_ref_t fb )
-        { _ctx->ctx()->OMSetRenderTargets( UINT( fb.num_color ), fb.rt_view, fb.ds_view ); } );
+        if( auto fbd = framebuffers_t::handle_t( oid, _framebuffers ); fbd )
+        {
+            _ctx->ctx()->OMSetRenderTargets( UINT( fbd->num_color ), fbd->rt_view, fbd->ds_view );
+        }
 
         _cur_fb_active = oid;
 
@@ -856,103 +884,98 @@ struct d3d11_backend::pimpl
     //************************************************************************************************************
     size_t construct_streamout( size_t oid, motor::graphics::streamout_object_ref_t obj ) noexcept
     {
-        auto const res = _streamouts.access( oid, obj.name(),
-            [ & ]( motor::string_in_t conf_name, d3d11_pimpl_data::so_data_ref_t config )
+        auto sod = _streamouts.access( oid, obj.name() );
+
+        // capture the vertex layout for stream out
+        if( obj.num_buffers() > 0 )
         {
-            // capture the vertex layout for stream out
-            if( obj.num_buffers() > 0 )
+            obj.get_buffer( 0 ).for_each_layout_element(
+                [ & ]( motor::graphics::vertex_buffer_t::data_cref_t d )
             {
-                obj.get_buffer( 0 ).for_each_layout_element(
-                    [ & ]( motor::graphics::vertex_buffer_t::data_cref_t d )
-                {
-                    d3d11_pimpl_data::so_data_t::layout_element le;
-                    le.va = d.va;
-                    le.type = d.type;
-                    le.type_struct = d.type_struct;
-                    config.elements.push_back( le );
-                } );
+                d3d11_pimpl_data::so_data_t::layout_element le;
+                le.va = d.va;
+                le.type = d.type;
+                le.type_struct = d.type_struct;
+                sod->elements.push_back( le );
+            } );
 
-                config.stride = UINT( obj.get_buffer( 0 ).get_layout_sib() );
-            }
+            sod->stride = UINT( obj.get_buffer( 0 ).get_layout_sib() );
+        }
 
-            // create buffers
+        // create buffers
+        {
+            obj.for_each( [ & ]( size_t const i, motor::graphics::vertex_buffer_cref_t vb )
             {
-                obj.for_each( [ & ]( size_t const i, motor::graphics::vertex_buffer_cref_t vb )
+                if( i >= d3d11_pimpl_data::so_data_t::max_buffers ) return;
+
+                size_t const byte_width = obj.size() * obj.get_buffer( i ).get_layout_sib();
+
+                // create buffer
                 {
-                    if( i >= d3d11_pimpl_data::so_data_t::max_buffers ) return;
+                    D3D11_BUFFER_DESC bd = {};
+                    bd.ByteWidth = UINT( byte_width );
+                    bd.Usage = D3D11_USAGE_DEFAULT;
+                    bd.BindFlags = D3D11_BIND_STREAM_OUTPUT | D3D11_BIND_VERTEX_BUFFER |
+                                   D3D10_BIND_SHADER_RESOURCE;
 
-                    size_t const byte_width = obj.size() * obj.get_buffer( i ).get_layout_sib();
-
-                    // create buffer
+                    for( size_t j = 0; j < 2; ++j )
                     {
-                        D3D11_BUFFER_DESC bd = {};
-                        bd.ByteWidth = UINT( byte_width );
-                        bd.Usage = D3D11_USAGE_DEFAULT;
-                        bd.BindFlags = D3D11_BIND_STREAM_OUTPUT | D3D11_BIND_VERTEX_BUFFER |
-                                       D3D10_BIND_SHADER_RESOURCE;
+                        auto & b = sod->_ping_pong[ j ].buffers[ i ].invalidate();
 
-                        for( size_t j = 0; j < 2; ++j )
-                        {
-                            auto & b = config._ping_pong[ j ].buffers[ i ].invalidate();
-
-                            HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, NULL, b );
-                            motor::log::global_t::error( FAILED( hr ),
-                                d3d11_backend_log( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) );
-                        }
+                        HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, NULL, b );
+                        motor::log::global_t::error( FAILED( hr ),
+                            d3d11_backend_log( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) );
                     }
-
-                    // create the resource view
-                    {
-                        auto const le = obj.get_buffer( i ).get_layout_element_zero();
-                        D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {};
-                        res_desc.Format = motor::platform::d3d11::convert_type_to_vec_format(
-                            le.type, le.type_struct );
-                        res_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-
-                        res_desc.Buffer.FirstElement = 0;
-
-                        // somehow, this can not be 0
-                        // otherwise, hr will be in valid.
-                        res_desc.Buffer.NumElements =
-                            UINT( obj.size() * obj.get_buffer( i ).get_num_layout_elements() );
-
-                        for( size_t j = 0; j < 2; ++j )
-                        {
-                            auto & b = config._ping_pong[ j ].buffers[ i ];
-                            auto & v = config._ping_pong[ j ].views[ i ].invalidate();
-                            auto const hr =
-                                _ctx->dev()->CreateShaderResourceView( b, &res_desc, v );
-                            if( FAILED( hr ) )
-                            {
-                                d3d11_log_errorv( "CreateShaderResourceView for buffer : [%s]",
-                                    conf_name.c_str() );
-                            }
-                        }
-                    }
-                } );
-
-                config.buffers_used =
-                    std::min( obj.num_buffers(), d3d11_pimpl_data::so_data_t::max_buffers );
-            }
-
-            // create query objects
-            {
-                D3D11_QUERY_DESC qd;
-                qd.Query = D3D11_QUERY_SO_STATISTICS;
-                qd.MiscFlags = 0;
-
-                for( size_t j = 0; j < 2; ++j )
-                {
-                    HRESULT const hr =
-                        _ctx->dev()->CreateQuery( &qd, config._ping_pong[ j ].query );
-                    motor::log::global_t::error( FAILED( hr ),
-                        d3d11_backend_log( "CreateQuery - D3D11_QUERY_SO_STATISTICS" ) );
                 }
-            }
 
-            return true;
-        } );
-        return oid;
+                // create the resource view
+                {
+                    auto const le = obj.get_buffer( i ).get_layout_element_zero();
+                    D3D11_SHADER_RESOURCE_VIEW_DESC res_desc = {};
+                    res_desc.Format = motor::platform::d3d11::convert_type_to_vec_format(
+                        le.type, le.type_struct );
+                    res_desc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+
+                    res_desc.Buffer.FirstElement = 0;
+
+                    // somehow, this can not be 0
+                    // otherwise, hr will be in valid.
+                    res_desc.Buffer.NumElements =
+                        UINT( obj.size() * obj.get_buffer( i ).get_num_layout_elements() );
+
+                    for( size_t j = 0; j < 2; ++j )
+                    {
+                        auto & b = sod->_ping_pong[ j ].buffers[ i ];
+                        auto & v = sod->_ping_pong[ j ].views[ i ].invalidate();
+                        auto const hr = _ctx->dev()->CreateShaderResourceView( b, &res_desc, v );
+                        if( FAILED( hr ) )
+                        {
+                            d3d11_log_errorv(
+                                "CreateShaderResourceView for buffer : [%s]", sod.name().c_str() );
+                        }
+                    }
+                }
+            } );
+
+            sod->buffers_used =
+                std::min( obj.num_buffers(), d3d11_pimpl_data::so_data_t::max_buffers );
+        }
+
+        // create query objects
+        {
+            D3D11_QUERY_DESC qd;
+            qd.Query = D3D11_QUERY_SO_STATISTICS;
+            qd.MiscFlags = 0;
+
+            for( size_t j = 0; j < 2; ++j )
+            {
+                HRESULT const hr = _ctx->dev()->CreateQuery( &qd, sod->_ping_pong[ j ].query );
+                motor::log::global_t::error(
+                    FAILED( hr ), d3d11_backend_log( "CreateQuery - D3D11_QUERY_SO_STATISTICS" ) );
+            }
+        }
+
+        return sod.oid();
     }
 
     //************************************************************************************************************
@@ -969,10 +992,9 @@ struct d3d11_backend::pimpl
     bool_t update(
         size_t const oid, motor::graphics::streamout_object_ref_t obj, bool_t const is_config )
     {
-        // auto & d = _streamouts[oid] ;
-        return _streamouts.access( oid, [ & ]( d3d11_pimpl_data::so_data_ref_t d )
+        if( auto sod = _streamouts.access( oid ); sod )
         {
-            if( d.buffers_used != obj.num_buffers() )
+            if( sod->buffers_used != obj.num_buffers() )
             {
                 this_t::construct_streamout( oid, obj );
                 return true;
@@ -987,19 +1009,20 @@ struct d3d11_backend::pimpl
                 for( size_t pp = 0; pp < 2; ++pp )
                 {
                     D3D11_BUFFER_DESC bd;
-                    d._ping_pong[ pp ].buffers[ i ]->GetDesc( &bd );
+                    sod->_ping_pong[ pp ].buffers[ i ]->GetDesc( &bd );
 
                     if( byte_width <= bd.ByteWidth ) continue;
                     bd.ByteWidth = UINT( byte_width );
 
-                    auto & b = d._ping_pong[ pp ].buffers[ i ].invalidate();
+                    auto & b = sod->_ping_pong[ pp ].buffers[ i ].invalidate();
                     HRESULT const hr = _ctx->dev()->CreateBuffer( &bd, NULL, b );
                     motor::log::global_t::error( FAILED( hr ),
                         d3d11_backend_log( "CreateBuffer - D3D11_BIND_STREAM_OUTPUT" ) );
                 }
             } );
             return true;
-        } );
+        }
+        return false;
     }
 
     //************************************************************************************************************
@@ -1009,10 +1032,9 @@ struct d3d11_backend::pimpl
 
         if( _cur_streamout_active == size_t( -1 ) ) return true;
 
-        // auto & d = _streamouts[ _cur_streamout_active] ;
-        _streamouts.access( _cur_streamout_active, [ & ]( d3d11_pimpl_data::so_data_ref_t d )
+        if( auto sod = streamout_datas_t::handle_t( _cur_streamout_active, _streamouts ); sod )
         {
-            auto & wrtb = d.write_buffer();
+            auto & wrtb = sod->write_buffer();
             _ctx->ctx()->Begin( wrtb.query );
 
             {
@@ -1023,9 +1045,9 @@ struct d3d11_backend::pimpl
                     if( wrtb.buffers[ i ] == nullptr ) break;
                     buffers[ i ] = wrtb.buffers[ i ];
                 }
-                _ctx->ctx()->SOSetTargets( UINT( d.buffers_used ), buffers, offsets );
+                _ctx->ctx()->SOSetTargets( UINT( sod->buffers_used ), buffers, offsets );
             }
-        } );
+        }
 
         return true;
     }
@@ -1036,12 +1058,14 @@ struct d3d11_backend::pimpl
         if( _cur_streamout_active == size_t( -1 ) ) return;
 
         // auto & d = _streamouts[_cur_streamout_active] ;
-        _streamouts.access( _cur_streamout_active, [ & ]( d3d11_pimpl_data::so_data_ref_t d )
+        //_streamouts.access( _cur_streamout_active, [ & ]( d3d11_pimpl_data::so_data_ref_t d )
+
+        if( auto sod = streamout_datas_t::handle_t( _cur_streamout_active, _streamouts ); sod )
         {
-            d.swap();
-            _ctx->ctx()->End( d.read_buffer().query );
+            sod->swap();
+            _ctx->ctx()->End( sod->read_buffer().query );
             _ctx->ctx()->SOSetTargets( 0, nullptr, nullptr );
-        } );
+        }
 
         _cur_streamout_active = size_t( -1 );
     }
@@ -1114,9 +1138,8 @@ struct d3d11_backend::pimpl
             // which has not been configured by the user...
             if( oid == size_t( -1 ) )
             {
-                motor::log::global::warning<1024>( 
-                    "[d3d11::construct_msl_data] : "
-                    "render configuration not found : %s",
+                motor::log::global::warning< 1024 >( "[d3d11::construct_msl_data] : "
+                                                     "render configuration not found : %s",
                     c_exp.c_str() );
                 continue;
             }
@@ -1303,11 +1326,11 @@ struct d3d11_backend::pimpl
     //************************************************************************************************************
     size_t construct_geo( size_t oid, motor::graphics::geometry_object_ref_t obj ) noexcept
     {
-        auto const res =
-            _geos.access( oid, obj.name(), [ & ]( d3d11_pimpl_data::geo_data_ref_t config )
-        { return this_t::construct_geo( obj, config ); } );
+        auto geod = _geos.access( oid, obj.name() );
 
-        return oid;
+        this_t::construct_geo( obj, *geod );
+
+        return geod.oid();
     }
 
     //************************************************************************************************************
@@ -1439,119 +1462,118 @@ struct d3d11_backend::pimpl
     void_t release_geometry( size_t const oid ) noexcept
     {
         _renders.for_each(
-            [ & ]( d3d11_pimpl_data::render_data_ref_t d ) { d.unlink_geometry( oid ); } );
+            [ = ]( render_datas_t::checked_handle_t rd ) { rd->unlink_geometry( oid ); } );
         _geos.invalidate( oid );
     }
 
     //************************************************************************************************************
     bool_t update( size_t const id, motor::graphics::geometry_object_mtr_t geo )
     {
-        // auto& config = _geos[ id ] ;
-        return _geos.access( id, [ & ]( d3d11_pimpl_data::geo_data_ref_t config )
+        auto geod = geometry_datas_t::handle_t( id, _geos );
+        if( !geod ) return false;
+
+        if( geo->index_buffer().get_num_elements() != 0 && geod->ib == nullptr )
         {
-            if( geo->index_buffer().get_num_elements() != 0 && config.ib == nullptr )
-            {
-                this_t::construct_geo( *geo, config );
-            }
+            this_t::construct_geo( *geo, *geod );
+        }
 
-            // vb: check memory space
-            {
-                D3D11_BUFFER_DESC bd;
-                config.vb->GetDesc( &bd );
+        // vb: check memory space
+        {
+            D3D11_BUFFER_DESC bd;
+            geod->vb->GetDesc( &bd );
 
-                size_t const sib = geo->vertex_buffer().get_sib();
-                if( sib > bd.ByteWidth )
+            size_t const sib = geo->vertex_buffer().get_sib();
+            if( sib > bd.ByteWidth )
+            {
+                bd.ByteWidth = uint_t( sib );
+
+                motor::memory::global_t::dealloc_raw( geod->vb_mem );
+                geod->vb_mem = motor::memory::global_t::alloc_raw< uint8_t >(
+                    sib, "[d3d11] : vertex buffer memory" );
+
+                D3D11_SUBRESOURCE_DATA init_data = {};
+                init_data.pSysMem = (void_ptr_t)geod->vb_mem;
+
+                geod->vb->Release();
                 {
-                    bd.ByteWidth = uint_t( sib );
-
-                    motor::memory::global_t::dealloc_raw( config.vb_mem );
-                    config.vb_mem = motor::memory::global_t::alloc_raw< uint8_t >(
-                        sib, "[d3d11] : vertex buffer memory" );
-
-                    D3D11_SUBRESOURCE_DATA init_data = {};
-                    init_data.pSysMem = (void_ptr_t)config.vb_mem;
-
-                    config.vb->Release();
+                    auto const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, geod->vb );
+                    if( FAILED( hr ) )
                     {
-                        auto const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.vb );
-                        if( FAILED( hr ) )
-                        {
-                            motor::log::global_t::error(
-                                d3d11_backend_log( "CreateBuffer( vertex_buffer )" ) );
-                            return false;
-                        }
+                        motor::log::global_t::error(
+                            d3d11_backend_log( "CreateBuffer( vertex_buffer )" ) );
+                        return false;
                     }
                 }
-
-                config.num_elements_vb = geo->vertex_buffer().get_num_elements();
-
-                // copy data
-                {
-                    // exactly the size in bytes of the 1d buffer
-                    LONG const lsib = LONG( geo->vertex_buffer().get_layout_sib() );
-                    LONG const ne = LONG( geo->vertex_buffer().get_num_elements() );
-                    void_cptr_t data = geo->vertex_buffer().data();
-                    CD3D11_BOX const box( 0, 0, 0, ne, 1, 1 );
-
-                    //_ctx->ctx()->UpdateSubresource( config.vb, 0, nullptr /*&box*/, data, lsib, 0
-                    //) ;
-                    D3D11_MAPPED_SUBRESOURCE resource;
-                    _ctx->ctx()->Map( config.vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource );
-                    std::memcpy( resource.pData, data, lsib * ne );
-                    _ctx->ctx()->Unmap( config.vb, 0 );
-                }
             }
 
-            // ib: check memory space
-            if( config.ib != nullptr )
+            geod->num_elements_vb = geo->vertex_buffer().get_num_elements();
+
+            // copy data
             {
-                D3D11_BUFFER_DESC bd;
-                config.ib->GetDesc( &bd );
+                // exactly the size in bytes of the 1d buffer
+                LONG const lsib = LONG( geo->vertex_buffer().get_layout_sib() );
+                LONG const ne = LONG( geo->vertex_buffer().get_num_elements() );
+                void_cptr_t data = geo->vertex_buffer().data();
+                CD3D11_BOX const box( 0, 0, 0, ne, 1, 1 );
 
-                size_t const sib = geo->index_buffer().get_sib();
-                if( sib > bd.ByteWidth )
+                //_ctx->ctx()->UpdateSubresource( geod->vb, 0, nullptr /*&box*/, data, lsib, 0
+                //) ;
+                D3D11_MAPPED_SUBRESOURCE resource;
+                _ctx->ctx()->Map( geod->vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource );
+                std::memcpy( resource.pData, data, lsib * ne );
+                _ctx->ctx()->Unmap( geod->vb, 0 );
+            }
+        }
+
+        // ib: check memory space
+        if( geod->ib != nullptr )
+        {
+            D3D11_BUFFER_DESC bd;
+            geod->ib->GetDesc( &bd );
+
+            size_t const sib = geo->index_buffer().get_sib();
+            if( sib > bd.ByteWidth )
+            {
+                bd.ByteWidth = uint_t( sib );
+
+                motor::memory::global_t::dealloc_raw( geod->ib_mem );
+                geod->ib_mem = motor::memory::global_t::alloc_raw< uint8_t >(
+                    sib, "[d3d11] : index buffer memory" );
+
+                D3D11_SUBRESOURCE_DATA init_data = {};
+                init_data.pSysMem = (void_ptr_t)geod->ib_mem;
+
+                geod->ib->Release();
                 {
-                    bd.ByteWidth = uint_t( sib );
-
-                    motor::memory::global_t::dealloc_raw( config.ib_mem );
-                    config.ib_mem = motor::memory::global_t::alloc_raw< uint8_t >(
-                        sib, "[d3d11] : index buffer memory" );
-
-                    D3D11_SUBRESOURCE_DATA init_data = {};
-                    init_data.pSysMem = (void_ptr_t)config.ib_mem;
-
-                    config.ib->Release();
+                    auto const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, geod->ib );
+                    if( FAILED( hr ) )
                     {
-                        auto const hr = _ctx->dev()->CreateBuffer( &bd, &init_data, config.ib );
-                        if( FAILED( hr ) )
-                        {
-                            motor::log::global_t::error(
-                                d3d11_backend_log( "CreateBuffer( index_buffer )" ) );
-                            return false;
-                        }
+                        motor::log::global_t::error(
+                            d3d11_backend_log( "CreateBuffer( index_buffer )" ) );
+                        return false;
                     }
                 }
-
-                config.num_elements_ib = geo->index_buffer().get_num_elements();
-
-                // copy data
-                {
-                    // exactly the size in bytes of the 1d buffer
-                    LONG const lsib = LONG( sizeof( uint32_t ) );
-                    LONG const ne = LONG( geo->index_buffer().get_num_elements() );
-                    void_cptr_t data = geo->index_buffer().data();
-                    CD3D11_BOX const box( 0, 0, 0, ne, 1, 1 );
-
-                    //_ctx->ctx()->UpdateSubresource( config.ib, 0, &box, data, lsib, ne ) ;
-                    D3D11_MAPPED_SUBRESOURCE resource;
-                    _ctx->ctx()->Map( config.ib, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource );
-                    std::memcpy( resource.pData, data, lsib * ne );
-                    _ctx->ctx()->Unmap( config.ib, 0 );
-                }
             }
 
-            return true;
-        } );
+            geod->num_elements_ib = geo->index_buffer().get_num_elements();
+
+            // copy data
+            {
+                // exactly the size in bytes of the 1d buffer
+                LONG const lsib = LONG( sizeof( uint32_t ) );
+                LONG const ne = LONG( geo->index_buffer().get_num_elements() );
+                void_cptr_t data = geo->index_buffer().data();
+                CD3D11_BOX const box( 0, 0, 0, ne, 1, 1 );
+
+                //_ctx->ctx()->UpdateSubresource( geod->ib, 0, &box, data, lsib, ne ) ;
+                D3D11_MAPPED_SUBRESOURCE resource;
+                _ctx->ctx()->Map( geod->ib, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource );
+                std::memcpy( resource.pData, data, lsib * ne );
+                _ctx->ctx()->Unmap( geod->ib, 0 );
+            }
+        }
+
+        return true;
     }
 
     //****************************************************************************************
@@ -1646,25 +1668,19 @@ struct d3d11_backend::pimpl
     bool_t install_shader_data( motor::graphics::shader_object_ref_t obj,
         d3d11_pimpl_data::shader_data_ref_t new_shader_data ) noexcept
     {
-        size_t oid = obj.get_oid( _bid );
-        auto const shd_res = _shaders.access( oid, obj.name(),
-            [ & ]( motor::string_in_t shd_name, d3d11_pimpl_data::shader_data_ref_t sd )
+        auto shd = _shaders.access( obj.get_oid( _bid ), obj.name() );
         {
-            sd.invalidate( std::nullopt );
-            sd = std::move( new_shader_data );
-            return true;
-        } );
+            shd->invalidate( std::nullopt );
+            *shd = std::move( new_shader_data );
+        }
 
-        if( !shd_res ) return false;
-
-        obj.set_oid( _bid, oid );
+        obj.set_oid( _bid, shd.oid() );
 
         return true;
     }
 
     //************************************************************************************************************
-    // this function compiles the shader. It is not yet in the support thread.
-    // @todo put in support thread
+    // this function compiles the shader.
     bool_t construct_shader_data( motor::graphics::shader_object_ref_t obj ) noexcept
     {
         d3d11_pimpl_data::shader_data_t new_shader_data;
@@ -1708,39 +1724,33 @@ struct d3d11_backend::pimpl
 
     //************************************************************************************************************
     // @param sid shader oid if known
-    bool_t construct_render_data(
-        motor::graphics::render_object_ref_t obj )
+    bool_t construct_render_data( motor::graphics::render_object_ref_t obj )
     {
-        size_t oid = obj.get_oid( _bid );
-        auto const res =
-            _renders.access( oid, obj.name(), [ & ]( d3d11_pimpl_data::render_data_ref_t rd )
+        auto rd = _renders.access( obj.get_oid( _bid ), obj.name() );
         {
-            if( rd.vertex_layout != nullptr )
+            if( rd->vertex_layout != nullptr )
             {
-                rd.vertex_layout->Release();
-                rd.vertex_layout = nullptr;
+                rd->vertex_layout->Release();
+                rd->vertex_layout = nullptr;
             }
 
-            if( rd.vertex_layout_so != nullptr )
+            if( rd->vertex_layout_so != nullptr )
             {
-                rd.vertex_layout_so->Release();
-                rd.vertex_layout_so = nullptr;
+                rd->vertex_layout_so->Release();
+                rd->vertex_layout_so = nullptr;
             }
 
-            std::memset( rd.layout, 0, ARRAYSIZE( rd.layout ) );
+            std::memset( rd->layout, 0, ARRAYSIZE( rd->layout ) );
 
+            if( !this_t::update( render_datas_t::checked_handle_t( rd ), obj ) )
             {
-                auto const res = this_t::update( rd, obj );
-                motor::log::global_t::error(
-                    !res, "[d3d11] : update from construct_render_config" );
-
-                if( !res ) return false;
+                motor::log::global_t::error< 1024 >(
+                    "[d3d11] : update from construct_render_data for %s", rd.name().c_str() );
+                return false;
             }
-
-            return true;
-        } );
-        if( res ) obj.set_oid( _bid, oid );
-        return res;
+        }
+        obj.set_oid( _bid, rd.oid() );
+        return true;
     }
 
     //************************************************************************************************************
@@ -1766,14 +1776,17 @@ struct d3d11_backend::pimpl
     // @param geo_idx by default is 0. we assume for now, all vertex input layouts are the same.
     // but we need it for dynamic geometry links. having a separate vertex input layout for every
     // geometry link is already issued. @see #159
-    bool_t bind_vertex_inputs( d3d11_pimpl_data::render_data_ref_t rd,
-        motor::graphics::render_object_ref_t rc, size_t const geo_idx = 0 ) noexcept
+    bool_t bind_vertex_inputs(
+        render_datas_t::checked_handle_t rd, size_t const geo_idx = 0 ) noexcept
     {
-        if( rd.geo_ids.size() != 0 )
+        auto shd = _shaders.access( rd->shd_id );
+        if( !shd ) return false;
+
+        if( rd->geo_ids.size() != 0 )
         {
             d3d11_pimpl_data::geo_data_t::elements_t elems;
             {
-                bool_t const valid_obj = _geos.access( rd.geo_ids[ geo_idx ].id,
+                bool_t const valid_obj = _geos.access( rd->geo_ids[ geo_idx ].id,
                     [ & ]( d3d11_pimpl_data::geo_data_ref_t geo ) { elems = geo.elements; } );
                 assert( valid_obj );
             }
@@ -1781,6 +1794,10 @@ struct d3d11_backend::pimpl
             ID3DBlob * blob_ptr = nullptr;
             d3d11_pimpl_data::shader_data_t::vibs_t vibs;
             {
+#if 1
+                vibs = shd->vertex_inputs;
+                blob_ptr = shd->vs_blob;
+#else
                 bool_t const valid_obj =
                     _shaders.access( rd.shd_id, [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
                 {
@@ -1788,6 +1805,7 @@ struct d3d11_backend::pimpl
                     blob_ptr = shd.vs_blob;
                 } );
                 assert( valid_obj );
+#endif
             }
 
             // sort shader input attributes based on geometry layout.
@@ -1808,7 +1826,7 @@ struct d3d11_backend::pimpl
                     {
                         vibs.erase( vibs.begin() + i );
                         motor::log::global_t::warning(
-                            d3d11_backend_log( "removed shader input attribute in [" + rc.name() +
+                            d3d11_backend_log( "removed shader input attribute in [" + rd.name() +
                                                "]. "
                                                "Attribute not found in geometry layout." ) );
                     }
@@ -1838,64 +1856,67 @@ struct d3d11_backend::pimpl
                     D3D11_INPUT_CLASSIFICATION const iclass = D3D11_INPUT_PER_VERTEX_DATA;
                     UINT instance_data_step_rate = 0;
 
-                    rd.layout[ i++ ] = { name, semantic_index, fmt, input_slot, aligned_byte_offset,
-                        iclass, instance_data_step_rate };
+                    rd->layout[ i++ ] = { name, semantic_index, fmt, input_slot,
+                        aligned_byte_offset, iclass, instance_data_step_rate };
 
                     offset += d3d11_pimpl_data::geo_data_t::get_sib( b.va, elems );
                 }
 
                 UINT const num_elements = UINT( i );
 
-                if( rd.vertex_layout != nullptr )
+                if( rd->vertex_layout != nullptr )
                 {
-                    rd.vertex_layout->Release();
-                    rd.vertex_layout = nullptr;
+                    rd->vertex_layout->Release();
+                    rd->vertex_layout = nullptr;
                 }
 
                 bool_t failed = false;
-                _shaders.access( rd.shd_id,
-                    [ & ]( motor::string_in_t name, d3d11_pimpl_data::shader_data_ref_t shd )
                 {
-                    auto const hr = _ctx->dev()->CreateInputLayout( rd.layout, num_elements,
-                        shd.vs_blob->GetBufferPointer(), shd.vs_blob->GetBufferSize(),
-                        &rd.vertex_layout );
+                    auto const hr = _ctx->dev()->CreateInputLayout( rd->layout, num_elements,
+                        shd->vs_blob->GetBufferPointer(), shd->vs_blob->GetBufferSize(),
+                        &rd->vertex_layout );
 
                     if( FAILED( hr ) )
                     {
                         d3d11_log_warningv(
-                            "CreateInputLayout for shader [%s] and render object[%s]", name.c_str(),
-                            rc.name().c_str() );
+                            "CreateInputLayout for shader [%s] and render object[%s]",
+                            shd.name().c_str(), rd.name().c_str() );
                         d3d11_log_warningv(
                             "This is probably due to a missmatch of the shader input attributes \
                                             and the vertex buffer layout. They do not match." );
 
                         failed = true;
                     }
-                } );
+                }
 
                 if( failed ) return false;
             }
         }
 
-        if( rd.so_ids.size() != 0 )
+        if( rd->so_ids.size() != 0 )
         {
             d3d11_pimpl_data::shader_data_t::vibs_t vibs;
             d3d11_pimpl_data::so_data_t::elements_t elems;
 
+#if 1
+            vibs = shd->vertex_inputs;
+#else
+
             _shaders.access( rd.shd_id,
                 [ & ]( d3d11_pimpl_data::shader_data_ref_t shd ) { vibs = shd.vertex_inputs; } );
-
+#endif
             // sort shader input attributes based on geometry layout.
             // in hlsl the order seems to be required to match for the
             // used geometry layout (next section) and the shader input
             // attribute order.
             {
                 size_t n = 0;
-                _streamouts.access( rd.so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t sod )
+                //_streamouts.access( rd.so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t sod )
+                if( auto sod = streamout_datas_t::handle_t( rd->so_ids[ 0 ], _streamouts ); sod )
                 {
-                    elems = sod.elements;
-                    n = std::min( sod.elements.size(), vibs.size() );
-                } );
+                    elems = sod->elements;
+                    n = std::min( sod->elements.size(), vibs.size() );
+                }
 
                 // d3d11_pimpl_data::so_data_ref_t sod = _streamouts[ rd.so_ids[0] ] ;
                 // size_t const n = std::min( sod.elements.size(), vibs.size() ) ;
@@ -1907,7 +1928,7 @@ struct d3d11_backend::pimpl
                                                  ") do not match the number of streamout "
                                                  "vertex attributes(" +
                                                  motor::to_string( elems.size() ) +
-                                                 ") for render object[" + rc.name() + "] " );
+                                                 ") for render object[" + rd.name() + "] " );
                 }
 
                 for( size_t i = 0; i < n; ++i )
@@ -1922,6 +1943,14 @@ struct d3d11_backend::pimpl
                     else if( j == vibs.size() )
                     {
                         vibs.erase( vibs.begin() + i );
+#if 1
+                        {
+                            motor::log::global_t::warning( d3d11_backend_log(
+                                "removed shader input attribute in [" + shd.name() +
+                                "]. "
+                                "Attribute not found in geometry layout." ) );
+                        }
+#else
                         _shaders.access( rd.shd_id, [ & ]( motor::string_in_t shd_name,
                                                         d3d11_pimpl_data::shader_data_ref_t shd )
                         {
@@ -1930,6 +1959,7 @@ struct d3d11_backend::pimpl
                                 "]. "
                                 "Attribute not found in geometry layout." ) );
                         } );
+#endif
                     }
                     // .. or entries are not at the same spot. exchange.
                     else if( j != i )
@@ -1958,7 +1988,7 @@ struct d3d11_backend::pimpl
                     D3D11_INPUT_CLASSIFICATION const iclass = D3D11_INPUT_PER_VERTEX_DATA;
                     UINT instance_data_step_rate = 0;
 
-                    rd.layout_so[ i++ ] = { name, semantic_index, fmt, input_slot,
+                    rd->layout_so[ i++ ] = { name, semantic_index, fmt, input_slot,
                         aligned_byte_offset, iclass, instance_data_step_rate };
 
                     offset += d3d11_pimpl_data::so_data_t::get_sib( b.va, elems );
@@ -1966,12 +1996,30 @@ struct d3d11_backend::pimpl
 
                 UINT const num_elements = UINT( i );
 
-                if( rd.vertex_layout_so != nullptr )
+                if( rd->vertex_layout_so != nullptr )
                 {
-                    rd.vertex_layout_so->Release();
-                    rd.vertex_layout_so = nullptr;
+                    rd->vertex_layout_so->Release();
+                    rd->vertex_layout_so = nullptr;
+                }
+#if 1
+                auto res = true;
+                {
+                    HRESULT const hr = _ctx->dev()->CreateInputLayout( rd->layout_so, num_elements,
+                        shd->vs_blob->GetBufferPointer(), shd->vs_blob->GetBufferSize(),
+                        &rd->vertex_layout_so );
+
+                    if( FAILED( hr ) )
+                    {
+                        motor::log::global_t::warning(
+                            d3d11_backend_log( "CreateInputLayout for shader [" + shd.name() +
+                                               "] and "
+                                               "render object[" +
+                                               rd.name() + "]" ) );
+                        res = false;
+                    }
                 }
 
+#else
                 auto const res = _shaders.access( rd.shd_id,
                     [ & ]( motor::string_in_t shd_name, d3d11_pimpl_data::shader_data_ref_t shd )
                 {
@@ -1985,12 +2033,12 @@ struct d3d11_backend::pimpl
                             d3d11_backend_log( "CreateInputLayout for shader [" + shd_name +
                                                "] and "
                                                "render object[" +
-                                               rc.name() + "]" ) );
+                                               rd.name() + "]" ) );
                         return false;
                     }
                     return true;
                 } );
-
+#endif
                 if( !res ) return false;
             }
         }
@@ -2004,21 +2052,20 @@ struct d3d11_backend::pimpl
     // at the moment, just really call if you know if a reconnect is happening.
     // a reconnection could happen, if a variable set is still there, but on the user side
     // the variable set has been replaced so the hash values differ.
-    void_t reconnect_data_for_variable_set( d3d11_pimpl_data::render_data_ref_t rd,
-        motor::graphics::render_object_ref_t rc, size_t const vs_idx, size_t const hash ) noexcept
+    void_t reconnect_data_for_variable_set( render_datas_t::checked_handle_t rd,
+        shader_datas_t::checked_handle_t shd, motor::graphics::render_object_ref_t rc,
+        size_t const vs_idx, size_t const hash ) noexcept
     {
         // enforce description - see function desc
-        assert( rd.varset_to_idx.size() > vs_idx );
-        assert( rd.varset_to_idx[ vs_idx ].idx != size_t( -1 ) );
-        assert( rd.var_sets[ rd.varset_to_idx[ vs_idx ].idx ].hash != hash );
-        assert( rd.var_sets[ rd.varset_to_idx[ vs_idx ].idx ].vs != nullptr );
+        assert( rd->varset_to_idx.size() > vs_idx );
+        assert( rd->varset_to_idx[ vs_idx ].idx != size_t( -1 ) );
+        assert( rd->var_sets[ rd->varset_to_idx[ vs_idx ].idx ].hash != hash );
+        assert( rd->var_sets[ rd->varset_to_idx[ vs_idx ].idx ].vs != nullptr );
 
         // borrowed
-        motor::graphics::variable_set_mtr_t default_values = nullptr;
-        _shaders.access( rd.shd_id, [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
-        { default_values = &shd.default_values; } );
+        motor::graphics::variable_set_mtr_t default_values = &( shd->default_values );
 
-        auto & old_vs_entry = rd.via_indirection( vs_idx );
+        auto & old_vs_entry = rd->via_indirection( vs_idx );
         auto vs_entry = rc.borrow_variable_set( vs_idx );
 
         if( default_values != nullptr )
@@ -2032,8 +2079,8 @@ struct d3d11_backend::pimpl
                             d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices const it,
                             d3d11_pimpl_data::render_data_t::cbuffers_ref_t buffer )
             {
-                auto const s = rd.varset_to_idx[ vs_idx ].cbuffer_begin[ it ];
-                auto const e = rd.varset_to_idx[ vs_idx ].cbuffer_end[ it ];
+                auto const s = rd->varset_to_idx[ vs_idx ].cbuffer_begin[ it ];
+                auto const e = rd->varset_to_idx[ vs_idx ].cbuffer_end[ it ];
 
                 for( size_t i = s; i < e; ++i )
                 {
@@ -2057,17 +2104,17 @@ struct d3d11_backend::pimpl
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-                funk( t, rd._cbuffers_vs );
+                funk( t, rd->_cbuffers_vs );
             }
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
-                funk( t, rd._cbuffers_gs );
+                funk( t, rd->_cbuffers_gs );
             }
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-                funk( t, rd._cbuffers_ps );
+                funk( t, rd->_cbuffers_ps );
             }
         }
 
@@ -2077,8 +2124,8 @@ struct d3d11_backend::pimpl
                             d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices const it,
                             d3d11_pimpl_data::render_data_t::image_variables_ref_t buffer )
             {
-                auto const s = rd.varset_to_idx[ vs_idx ].imgs_begin[ it ];
-                auto const e = rd.varset_to_idx[ vs_idx ].imgs_end[ it ];
+                auto const s = rd->varset_to_idx[ vs_idx ].imgs_begin[ it ];
+                auto const e = rd->varset_to_idx[ vs_idx ].imgs_end[ it ];
 
                 for( size_t i = s; i < e; ++i )
                 {
@@ -2110,18 +2157,18 @@ struct d3d11_backend::pimpl
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-                funk( t, rd.var_sets_imgs_vs );
+                funk( t, rd->var_sets_imgs_vs );
             }
 #if 0 // dont have it yet
             {
                 auto const t = d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader ;
-                funk( t, rd.var_sets_imgs_gs ) ;
+                funk( t, rd->var_sets_imgs_gs ) ;
             }
 #endif
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-                funk( t, rd.var_sets_imgs_ps );
+                funk( t, rd->var_sets_imgs_ps );
             }
         }
 
@@ -2131,8 +2178,8 @@ struct d3d11_backend::pimpl
                             d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices const it,
                             d3d11_pimpl_data::render_data_t::buffer_variables_ref_t buffer )
             {
-                auto const s = rd.varset_to_idx[ vs_idx ].buffers_begin[ it ];
-                auto const e = rd.varset_to_idx[ vs_idx ].buffers_end[ it ];
+                auto const s = rd->varset_to_idx[ vs_idx ].buffers_begin[ it ];
+                auto const e = rd->varset_to_idx[ vs_idx ].buffers_end[ it ];
 
                 for( size_t i = s; i < e; ++i )
                 {
@@ -2152,17 +2199,17 @@ struct d3d11_backend::pimpl
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-                funk( t, rd.var_sets_buffers_vs );
+                funk( t, rd->var_sets_buffers_vs );
             }
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
-                funk( t, rd.var_sets_buffers_gs );
+                funk( t, rd->var_sets_buffers_gs );
             }
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-                funk( t, rd.var_sets_buffers_ps );
+                funk( t, rd->var_sets_buffers_ps );
             }
         }
 
@@ -2172,8 +2219,8 @@ struct d3d11_backend::pimpl
                             d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices const it,
                             d3d11_pimpl_data::render_data_t::buffer_variables_ref_t buffer )
             {
-                auto const s = rd.varset_to_idx[ vs_idx ].buffers_so_begin[ it ];
-                auto const e = rd.varset_to_idx[ vs_idx ].buffers_so_end[ it ];
+                auto const s = rd->varset_to_idx[ vs_idx ].buffers_so_begin[ it ];
+                auto const e = rd->varset_to_idx[ vs_idx ].buffers_so_end[ it ];
 
                 for( size_t i = s; i < e; ++i )
                 {
@@ -2193,17 +2240,17 @@ struct d3d11_backend::pimpl
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-                funk( t, rd.var_sets_buffers_so_vs );
+                funk( t, rd->var_sets_buffers_so_vs );
             }
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
-                funk( t, rd.var_sets_buffers_so_gs );
+                funk( t, rd->var_sets_buffers_so_gs );
             }
             {
                 auto const t =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-                funk( t, rd.var_sets_buffers_so_ps );
+                funk( t, rd->var_sets_buffers_so_ps );
             }
         }
 
@@ -2217,21 +2264,20 @@ struct d3d11_backend::pimpl
 
     // if vs_idx == size_t(-1) -> create all
     // otherwise, only create for specific idx
-    void_t check_and_create_data_for_variable_set( d3d11_pimpl_data::render_data_ref_t rd,
-        motor::graphics::render_object_ref_t rc, size_t const vs_idx = size_t( -1 ) ) noexcept
+    void_t check_and_create_data_for_variable_set( render_datas_t::checked_handle_t rd,
+        shader_datas_t::checked_handle_t shd, motor::graphics::render_object_ref_t rc,
+        size_t const vs_idx = size_t( -1 ) ) noexcept
     {
-        if( rd.has_variable_set( vs_idx ) ) return;
+        if( rd->has_variable_set( vs_idx ) ) return;
 
         // borrowed
-        motor::graphics::variable_set_mtr_t default_values = nullptr;
-        _shaders.access( rd.shd_id, [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
-        { default_values = &shd.default_values; } );
+        motor::graphics::variable_set_mtr_t default_values = &( shd->default_values );
 
         if( vs_idx == size_t( -1 ) )
         {
             // track ref count for variable set
             {
-                rd.varset_to_idx.resize( rc.get_num_variable_sets() );
+                rd->varset_to_idx.resize( rc.get_num_variable_sets() );
 
                 rc.for_each( [ & ]( size_t const i,
                                  motor::graphics::render_object_t::variable_set_cref_t vs )
@@ -2242,14 +2288,14 @@ struct d3d11_backend::pimpl
                     }
                     {
                         d3d11_pimpl_data::render_data_t::varset_to_idx_data entry;
-                        entry.idx = rd.var_sets.size();
-                        rd.varset_to_idx[ i ] = std::move( entry );
+                        entry.idx = rd->var_sets.size();
+                        rd->varset_to_idx[ i ] = std::move( entry );
                     }
                     {
                         d3d11_pimpl_data::render_data_t::variable_set vs_;
                         vs_.vs = motor::share( vs.vs );
                         vs_.hash = vs.hash;
-                        rd.var_sets.emplace_back( std::move( vs_ ) );
+                        rd->var_sets.emplace_back( std::move( vs_ ) );
                     }
                 } );
             }
@@ -2259,10 +2305,10 @@ struct d3d11_backend::pimpl
             // make indirection entry
             {
                 d3d11_pimpl_data::render_data_t::varset_to_idx_data entry;
-                entry.idx = rd.var_sets.size();
+                entry.idx = rd->var_sets.size();
 
-                if( rd.varset_to_idx.size() <= vs_idx ) rd.varset_to_idx.resize( vs_idx + 1 );
-                rd.varset_to_idx[ vs_idx ] = std::move( entry );
+                if( rd->varset_to_idx.size() <= vs_idx ) rd->varset_to_idx.resize( vs_idx + 1 );
+                rd->varset_to_idx[ vs_idx ] = std::move( entry );
             }
 
             // store variable set itself
@@ -2271,7 +2317,7 @@ struct d3d11_backend::pimpl
                 d3d11_pimpl_data::render_data_t::variable_set vs_;
                 vs_.vs = motor::share( entry.vs );
                 vs_.hash = entry.hash;
-                rd.var_sets.emplace_back( std::move( vs_ ) );
+                rd->var_sets.emplace_back( std::move( vs_ ) );
             }
 
             // assign default values
@@ -2331,8 +2377,8 @@ struct d3d11_backend::pimpl
                 }
             };
 
-            // d3d11_pimpl_data::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
-            _shaders.access( rd.shd_id, [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
+            // d3d11_pimpl_data::shader_data_ref_t shd = _shaders[ rd->shd_id ] ;
+
             {
                 size_t const a0 =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
@@ -2346,39 +2392,39 @@ struct d3d11_backend::pimpl
                     rc.for_each( [ & ]( size_t const i,
                                      motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
-                        auto & mapping_entry = rd.varset_to_idx[ i ];
+                        auto & mapping_entry = rd->varset_to_idx[ i ];
 
-                        mapping_entry.cbuffer_begin[ a0 ] = rd._cbuffers_vs.size();
-                        mapping_entry.cbuffer_begin[ a1 ] = rd._cbuffers_gs.size();
-                        mapping_entry.cbuffer_begin[ a2 ] = rd._cbuffers_ps.size();
+                        mapping_entry.cbuffer_begin[ a0 ] = rd->_cbuffers_vs.size();
+                        mapping_entry.cbuffer_begin[ a1 ] = rd->_cbuffers_gs.size();
+                        mapping_entry.cbuffer_begin[ a2 ] = rd->_cbuffers_ps.size();
 
-                        var_funk( _ctx->dev(), i, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs );
-                        var_funk( _ctx->dev(), i, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs );
-                        var_funk( _ctx->dev(), i, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps );
+                        var_funk( _ctx->dev(), i, vs.vs, shd->vs_cbuffers, rd->_cbuffers_vs );
+                        var_funk( _ctx->dev(), i, vs.vs, shd->gs_cbuffers, rd->_cbuffers_gs );
+                        var_funk( _ctx->dev(), i, vs.vs, shd->ps_cbuffers, rd->_cbuffers_ps );
 
-                        mapping_entry.cbuffer_end[ a0 ] = rd._cbuffers_vs.size();
-                        mapping_entry.cbuffer_end[ a1 ] = rd._cbuffers_gs.size();
-                        mapping_entry.cbuffer_end[ a2 ] = rd._cbuffers_ps.size();
+                        mapping_entry.cbuffer_end[ a0 ] = rd->_cbuffers_vs.size();
+                        mapping_entry.cbuffer_end[ a1 ] = rd->_cbuffers_gs.size();
+                        mapping_entry.cbuffer_end[ a2 ] = rd->_cbuffers_ps.size();
                     } );
                 }
                 else
                 {
-                    auto & mapping_entry = rd.varset_to_idx[ vs_idx ];
+                    auto & mapping_entry = rd->varset_to_idx[ vs_idx ];
 
-                    mapping_entry.cbuffer_begin[ a0 ] = rd._cbuffers_vs.size();
-                    mapping_entry.cbuffer_begin[ a1 ] = rd._cbuffers_gs.size();
-                    mapping_entry.cbuffer_begin[ a2 ] = rd._cbuffers_ps.size();
+                    mapping_entry.cbuffer_begin[ a0 ] = rd->_cbuffers_vs.size();
+                    mapping_entry.cbuffer_begin[ a1 ] = rd->_cbuffers_gs.size();
+                    mapping_entry.cbuffer_begin[ a2 ] = rd->_cbuffers_ps.size();
 
                     auto vs = rc.borrow_variable_set( vs_idx );
-                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd.vs_cbuffers, rd._cbuffers_vs );
-                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd.gs_cbuffers, rd._cbuffers_gs );
-                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd.ps_cbuffers, rd._cbuffers_ps );
+                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd->vs_cbuffers, rd->_cbuffers_vs );
+                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd->gs_cbuffers, rd->_cbuffers_gs );
+                    var_funk( _ctx->dev(), vs_idx, vs.vs, shd->ps_cbuffers, rd->_cbuffers_ps );
 
-                    mapping_entry.cbuffer_end[ a0 ] = rd._cbuffers_vs.size();
-                    mapping_entry.cbuffer_end[ a1 ] = rd._cbuffers_gs.size();
-                    mapping_entry.cbuffer_end[ a2 ] = rd._cbuffers_ps.size();
+                    mapping_entry.cbuffer_end[ a0 ] = rd->_cbuffers_vs.size();
+                    mapping_entry.cbuffer_end[ a1 ] = rd->_cbuffers_gs.size();
+                    mapping_entry.cbuffer_end[ a2 ] = rd->_cbuffers_ps.size();
                 }
-            } );
+            }
         }
 
         // texture variable mapping
@@ -2413,8 +2459,6 @@ struct d3d11_backend::pimpl
                 }
             };
 
-            // d3d11_pimpl_data::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
-            _shaders.access( rd.shd_id, [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
             {
                 size_t const a0 =
                     d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
@@ -2428,36 +2472,36 @@ struct d3d11_backend::pimpl
                     rc.for_each( [ & ]( size_t const i,
                                      motor::graphics::render_object_t::variable_set_cref_t vs )
                     {
-                        auto & mapping_entry = rd.varset_to_idx[ i ];
+                        auto & mapping_entry = rd->varset_to_idx[ i ];
 
-                        mapping_entry.imgs_begin[ a0 ] = rd.var_sets_imgs_vs.size();
+                        mapping_entry.imgs_begin[ a0 ] = rd->var_sets_imgs_vs.size();
                         var_funk(
-                            _ctx->dev(), vs.vs, _images, shd.vs_textures, rd.var_sets_imgs_vs );
-                        mapping_entry.imgs_end[ a0 ] = rd.var_sets_imgs_vs.size();
+                            _ctx->dev(), vs.vs, _images, shd->vs_textures, rd->var_sets_imgs_vs );
+                        mapping_entry.imgs_end[ a0 ] = rd->var_sets_imgs_vs.size();
 
 #if 0 // vs and gs not used right now                        
-                        mapping_entry.imgs_begin[a1] = rd.var_sets_imgs_gs.size() ;
-                        var_funk( _ctx->dev(), vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_gs ) ;
-                        mapping_entry.imgs_end[a1] = rd.var_sets_imgs_gs.size() ;
+                        mapping_entry.imgs_begin[a1] = rd->var_sets_imgs_gs.size() ;
+                        var_funk( _ctx->dev(), vs.vs, _images, shd->ps_textures, rd->var_sets_imgs_gs ) ;
+                        mapping_entry.imgs_end[a1] = rd->var_sets_imgs_gs.size() ;
 #endif
 
-                        mapping_entry.imgs_begin[ a2 ] = rd.var_sets_imgs_ps.size();
+                        mapping_entry.imgs_begin[ a2 ] = rd->var_sets_imgs_ps.size();
                         var_funk(
-                            _ctx->dev(), vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps );
-                        mapping_entry.imgs_end[ a2 ] = rd.var_sets_imgs_ps.size();
+                            _ctx->dev(), vs.vs, _images, shd->ps_textures, rd->var_sets_imgs_ps );
+                        mapping_entry.imgs_end[ a2 ] = rd->var_sets_imgs_ps.size();
                     } );
                 }
                 else
                 {
-                    auto & mapping_entry = rd.varset_to_idx[ vs_idx ];
+                    auto & mapping_entry = rd->varset_to_idx[ vs_idx ];
                     auto vs = rc.borrow_variable_set( vs_idx );
 
                     // vs
                     {
-                        mapping_entry.imgs_begin[ a0 ] = rd.var_sets_imgs_vs.size();
+                        mapping_entry.imgs_begin[ a0 ] = rd->var_sets_imgs_vs.size();
                         var_funk(
-                            _ctx->dev(), vs.vs, _images, shd.vs_textures, rd.var_sets_imgs_vs );
-                        mapping_entry.imgs_end[ a0 ] = rd.var_sets_imgs_vs.size();
+                            _ctx->dev(), vs.vs, _images, shd->vs_textures, rd->var_sets_imgs_vs );
+                        mapping_entry.imgs_end[ a0 ] = rd->var_sets_imgs_vs.size();
                     }
 
                     // gs here
@@ -2466,13 +2510,13 @@ struct d3d11_backend::pimpl
 
                     // ps
                     {
-                        mapping_entry.imgs_begin[ a2 ] = rd.var_sets_imgs_ps.size();
+                        mapping_entry.imgs_begin[ a2 ] = rd->var_sets_imgs_ps.size();
                         var_funk(
-                            _ctx->dev(), vs.vs, _images, shd.ps_textures, rd.var_sets_imgs_ps );
-                        mapping_entry.imgs_end[ a2 ] = rd.var_sets_imgs_ps.size();
+                            _ctx->dev(), vs.vs, _images, shd->ps_textures, rd->var_sets_imgs_ps );
+                        mapping_entry.imgs_end[ a2 ] = rd->var_sets_imgs_ps.size();
                     }
                 }
-            } );
+            }
         }
 
         auto array_variable_mapping =
@@ -2518,97 +2562,93 @@ struct d3d11_backend::pimpl
         };
 
         {
-            // d3d11_pimpl_data::shader_data_ref_t shd = _shaders[ rd.shd_id ] ;
-            _shaders.access( rd.shd_id, [ & ]( d3d11_pimpl_data::shader_data_ref_t shd )
+            size_t const a0 =
+                d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
+            size_t const a1 =
+                d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
+            size_t const a2 =
+                d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
+
+            if( vs_idx == size_t( -1 ) )
             {
-                size_t const a0 =
-                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-                size_t const a1 =
-                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
-                size_t const a2 =
-                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-
-                if( vs_idx == size_t( -1 ) )
+                rc.for_each( [ & ]( size_t const i,
+                                 motor::graphics::render_object_t::variable_set_cref_t vs )
                 {
-                    rc.for_each( [ & ]( size_t const i,
-                                     motor::graphics::render_object_t::variable_set_cref_t vs )
+                    auto & mapping_entry = rd->varset_to_idx[ i ];
+
                     {
-                        auto & mapping_entry = rd.varset_to_idx[ i ];
+                        mapping_entry.buffers_begin[ a0 ] = rd->var_sets_buffers_vs.size();
+                        mapping_entry.buffers_so_begin[ a0 ] = rd->var_sets_buffers_so_vs.size();
+                        array_variable_mapping( vs.vs, _streamouts, rd->var_sets_buffers_vs,
+                            rd->var_sets_buffers_so_vs, shd->vs_buffers );
+                        mapping_entry.buffers_so_end[ a0 ] = rd->var_sets_buffers_so_vs.size();
+                        mapping_entry.buffers_end[ a0 ] = rd->var_sets_buffers_vs.size();
+                    }
 
-                        {
-                            mapping_entry.buffers_begin[ a0 ] = rd.var_sets_buffers_vs.size();
-                            mapping_entry.buffers_so_begin[ a0 ] = rd.var_sets_buffers_so_vs.size();
-                            array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_vs,
-                                rd.var_sets_buffers_so_vs, shd.vs_buffers );
-                            mapping_entry.buffers_so_end[ a0 ] = rd.var_sets_buffers_so_vs.size();
-                            mapping_entry.buffers_end[ a0 ] = rd.var_sets_buffers_vs.size();
-                        }
+                    {
+                        mapping_entry.buffers_begin[ a1 ] = rd->var_sets_buffers_gs.size();
+                        mapping_entry.buffers_so_begin[ a1 ] = rd->var_sets_buffers_so_gs.size();
+                        array_variable_mapping( vs.vs, _streamouts, rd->var_sets_buffers_gs,
+                            rd->var_sets_buffers_so_gs, shd->gs_buffers );
+                        mapping_entry.buffers_so_end[ a1 ] = rd->var_sets_buffers_so_gs.size();
+                        mapping_entry.buffers_end[ a1 ] = rd->var_sets_buffers_gs.size();
+                    }
 
-                        {
-                            mapping_entry.buffers_begin[ a1 ] = rd.var_sets_buffers_gs.size();
-                            mapping_entry.buffers_so_begin[ a1 ] = rd.var_sets_buffers_so_gs.size();
-                            array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_gs,
-                                rd.var_sets_buffers_so_gs, shd.gs_buffers );
-                            mapping_entry.buffers_so_end[ a1 ] = rd.var_sets_buffers_so_gs.size();
-                            mapping_entry.buffers_end[ a1 ] = rd.var_sets_buffers_gs.size();
-                        }
+                    {
+                        mapping_entry.buffers_begin[ a2 ] = rd->var_sets_buffers_ps.size();
+                        mapping_entry.buffers_so_begin[ a2 ] = rd->var_sets_buffers_so_ps.size();
+                        array_variable_mapping( vs.vs, _streamouts, rd->var_sets_buffers_ps,
+                            rd->var_sets_buffers_so_ps, shd->ps_buffers );
+                        mapping_entry.buffers_so_end[ a2 ] = rd->var_sets_buffers_so_ps.size();
+                        mapping_entry.buffers_end[ a2 ] = rd->var_sets_buffers_ps.size();
+                    }
+                } );
+            }
+            else
+            {
+                auto & mapping_entry = rd->varset_to_idx[ vs_idx ];
 
-                        {
-                            mapping_entry.buffers_begin[ a2 ] = rd.var_sets_buffers_ps.size();
-                            mapping_entry.buffers_so_begin[ a2 ] = rd.var_sets_buffers_so_ps.size();
-                            array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_ps,
-                                rd.var_sets_buffers_so_ps, shd.ps_buffers );
-                            mapping_entry.buffers_so_end[ a2 ] = rd.var_sets_buffers_so_ps.size();
-                            mapping_entry.buffers_end[ a2 ] = rd.var_sets_buffers_ps.size();
-                        }
-                    } );
-                }
-                else
+                auto vs = rc.borrow_variable_set( vs_idx );
+
                 {
-                    auto & mapping_entry = rd.varset_to_idx[ vs_idx ];
-
-                    auto vs = rc.borrow_variable_set( vs_idx );
-
-                    {
-                        mapping_entry.buffers_begin[ a0 ] = rd.var_sets_buffers_vs.size();
-                        mapping_entry.buffers_so_begin[ a0 ] = rd.var_sets_buffers_so_vs.size();
-                        array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_vs,
-                            rd.var_sets_buffers_so_vs, shd.vs_buffers );
-                        mapping_entry.buffers_so_end[ a0 ] = rd.var_sets_buffers_so_vs.size();
-                        mapping_entry.buffers_end[ a0 ] = rd.var_sets_buffers_vs.size();
-                    }
-
-                    {
-                        mapping_entry.buffers_begin[ a1 ] = rd.var_sets_buffers_gs.size();
-                        mapping_entry.buffers_so_begin[ a1 ] = rd.var_sets_buffers_so_gs.size();
-                        array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_gs,
-                            rd.var_sets_buffers_so_gs, shd.gs_buffers );
-                        mapping_entry.buffers_so_end[ a1 ] = rd.var_sets_buffers_so_gs.size();
-                        mapping_entry.buffers_end[ a1 ] = rd.var_sets_buffers_gs.size();
-                    }
-
-                    {
-                        mapping_entry.buffers_begin[ a2 ] = rd.var_sets_buffers_ps.size();
-                        mapping_entry.buffers_so_begin[ a2 ] = rd.var_sets_buffers_so_ps.size();
-                        array_variable_mapping( vs.vs, _streamouts, rd.var_sets_buffers_ps,
-                            rd.var_sets_buffers_so_ps, shd.ps_buffers );
-                        mapping_entry.buffers_so_end[ a2 ] = rd.var_sets_buffers_so_ps.size();
-                        mapping_entry.buffers_end[ a2 ] = rd.var_sets_buffers_ps.size();
-                    }
+                    mapping_entry.buffers_begin[ a0 ] = rd->var_sets_buffers_vs.size();
+                    mapping_entry.buffers_so_begin[ a0 ] = rd->var_sets_buffers_so_vs.size();
+                    array_variable_mapping( vs.vs, _streamouts, rd->var_sets_buffers_vs,
+                        rd->var_sets_buffers_so_vs, shd->vs_buffers );
+                    mapping_entry.buffers_so_end[ a0 ] = rd->var_sets_buffers_so_vs.size();
+                    mapping_entry.buffers_end[ a0 ] = rd->var_sets_buffers_vs.size();
                 }
-            } );
+
+                {
+                    mapping_entry.buffers_begin[ a1 ] = rd->var_sets_buffers_gs.size();
+                    mapping_entry.buffers_so_begin[ a1 ] = rd->var_sets_buffers_so_gs.size();
+                    array_variable_mapping( vs.vs, _streamouts, rd->var_sets_buffers_gs,
+                        rd->var_sets_buffers_so_gs, shd->gs_buffers );
+                    mapping_entry.buffers_so_end[ a1 ] = rd->var_sets_buffers_so_gs.size();
+                    mapping_entry.buffers_end[ a1 ] = rd->var_sets_buffers_gs.size();
+                }
+
+                {
+                    mapping_entry.buffers_begin[ a2 ] = rd->var_sets_buffers_ps.size();
+                    mapping_entry.buffers_so_begin[ a2 ] = rd->var_sets_buffers_so_ps.size();
+                    array_variable_mapping( vs.vs, _streamouts, rd->var_sets_buffers_ps,
+                        rd->var_sets_buffers_so_ps, shd->ps_buffers );
+                    mapping_entry.buffers_so_end[ a2 ] = rd->var_sets_buffers_so_ps.size();
+                    mapping_entry.buffers_end[ a2 ] = rd->var_sets_buffers_ps.size();
+                }
+            }
         }
     }
 
     //************************************************************************************************************
     // must be called from within a safe area(i.e. through an access into _renders)
-    bool_t update( d3d11_pimpl_data::render_data_ref_t rd, motor::graphics::render_object_ref_t rc )
+    bool_t update( render_datas_t::checked_handle_t rd, motor::graphics::render_object_ref_t rc )
     {
-        rd.shd_id = size_t( -1 );
+        rd->shd_id = size_t( -1 );
 
         // find geometry
         {
-            rd.geo_ids.clear();
+            rd->geo_ids.clear();
             for( size_t i = 0; i < rc.get_num_geometry(); ++i )
             {
                 auto const id_ = _geos.find_by_name( rc.get_geometry_link( i ).name );
@@ -2621,13 +2661,13 @@ struct d3d11_backend::pimpl
                     continue;
                 }
 
-                rd.geo_ids.emplace_back( id_ );
+                rd->geo_ids.emplace_back( id_ );
             }
         }
 
         // handle stream out links
         {
-            rd.so_ids.clear();
+            rd->so_ids.clear();
             for( size_t i = 0; i < rc.get_num_streamout(); ++i )
             {
                 auto const id_ = _streamouts.find_by_name( rc.get_streamout( i ) );
@@ -2640,12 +2680,12 @@ struct d3d11_backend::pimpl
                     continue;
                 }
 
-                rd.so_ids.emplace_back( id_ );
+                rd->so_ids.emplace_back( id_ );
             }
         }
 
         // find shader
-        if( rd.shd_id == size_t( -1 ) )
+        if( rd->shd_id == size_t( -1 ) )
         {
             auto const id_ = _shaders.find_by_name( rc.get_shader() );
             if( id_ == size_t( -1 ) )
@@ -2655,11 +2695,11 @@ struct d3d11_backend::pimpl
                                        "] for render_config [" + rc.name() + "]" ) );
                 return false;
             }
-            rd.shd_id = id_;
+            rd->shd_id = id_;
         }
 
         // may happen if shaders did not compile properly the first time.
-        if( rd.shd_id == size_t( -1 ) /*|| _shaders[ rd.shd_id ].vs_blob == nullptr*/ )
+        if( rd->shd_id == size_t( -1 ) /*|| _shaders[ rd->shd_id ].vs_blob == nullptr*/ )
         {
             motor::log::global_t::warning( d3d11_backend_log(
                 "something strange happened to render_config [" + rc.name() + "]" ) );
@@ -2667,8 +2707,7 @@ struct d3d11_backend::pimpl
         }
 
         {
-            auto const res = this_t::bind_vertex_inputs( rd, rc );
-            if( !res )
+            if( !this_t::bind_vertex_inputs( rd ) )
             {
                 return false;
             }
@@ -2676,11 +2715,11 @@ struct d3d11_backend::pimpl
 
         // release placeholder/ref count manager variable sets
         {
-            rd.varset_to_idx.clear();
-            // rd.var_set_to_idx_map.clear() ;
+            rd->varset_to_idx.clear();
+            // rd->var_set_to_idx_map.clear() ;
 
-            for( auto & vs : rd.var_sets ) motor::memory::release_ptr( vs.vs );
-            rd.var_sets.clear();
+            for( auto & vs : rd->var_sets ) motor::memory::release_ptr( vs.vs );
+            rd->var_sets.clear();
         }
 
         {
@@ -2697,115 +2736,129 @@ struct d3d11_backend::pimpl
                 }
                 datum.clear();
             };
-            release_funk( rd._cbuffers_vs );
-            release_funk( rd._cbuffers_gs );
-            release_funk( rd._cbuffers_ps );
+            release_funk( rd->_cbuffers_vs );
+            release_funk( rd->_cbuffers_gs );
+            release_funk( rd->_cbuffers_ps );
         }
 
         {
-            rd.var_sets_imgs_vs.clear();
-            rd.var_sets_imgs_ps.clear();
+            rd->var_sets_imgs_vs.clear();
+            rd->var_sets_imgs_ps.clear();
 
-            rd._cbuffers_vs.clear();
-            rd._cbuffers_gs.clear();
-            rd._cbuffers_ps.clear();
+            rd->_cbuffers_vs.clear();
+            rd->_cbuffers_gs.clear();
+            rd->_cbuffers_ps.clear();
 
-            rd.var_sets_buffers_vs.clear();
-            rd.var_sets_buffers_gs.clear();
-            rd.var_sets_buffers_ps.clear();
+            rd->var_sets_buffers_vs.clear();
+            rd->var_sets_buffers_gs.clear();
+            rd->var_sets_buffers_ps.clear();
 
-            rd.var_sets_buffers_so_vs.clear();
-            rd.var_sets_buffers_so_gs.clear();
-            rd.var_sets_buffers_so_ps.clear();
+            rd->var_sets_buffers_so_vs.clear();
+            rd->var_sets_buffers_so_gs.clear();
+            rd->var_sets_buffers_so_ps.clear();
         }
 
+        if( auto shd = shader_datas_t::handle_t( rd->shd_id, _shaders ); shd )
         {
-            // vs_idx == size_t(-1)
-            this_t::check_and_create_data_for_variable_set( rd, rc );
+            this_t::check_and_create_data_for_variable_set(
+                rd, shader_datas_t::checked( shd ), rc );
         }
 
         return true;
-    }
-
-    bool_t update_geometry_link(
-        motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
-    {
-        size_t oid = ro.get_oid( _bid );
-        auto const res = _renders.access( oid, ro.name(),
-            [ & ]( size_t const new_id, d3d11_pimpl_data::render_data_ref_t config )
-        {
-            // do full binding
-            if( config.geo_ids.size() <= geo_idx )
-            {
-                auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
-                if( gid == size_t( -1 ) )
-                {
-                    motor::log::global_t::warning< 1024 >(
-                        "[d3d11:update_geometry_link] : no geometry with name [%s] for render_data "
-                        "[%s]",
-                        ro.get_geometry_link( geo_idx ).name.c_str(), ro.name().c_str() );
-                    return false;
-                }
-                config.geo_ids.emplace_back( d3d11_pimpl_data::render_data_t::geo_id_data{
-                    gid, ro.get_geometry_link( geo_idx ).hash } );
-                //_geos.access( gid, [&]( d3d11_pimpl_data::geo_data_ref_t d ){
-                // d.add_render_data_id( new_id ) ; } ) ;
-
-                auto const res = this_t::bind_vertex_inputs( config, ro );
-            }
-            else if( config.geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
-            {
-                auto const hash = ro.get_geometry_link( geo_idx ).hash;
-                if( ro.get_geometry_link( geo_idx ).ref_count == 0 )
-                {
-                    config.invalidate_geometry_index( geo_idx, hash );
-                }
-                else if( config.geo_ids[ geo_idx ].id != size_t( -1 ) )
-                {
-                    // config geometry entry is valid.
-                    // maybe the data changed lets check it
-                    {
-                        auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
-                        if( gid != config.geo_ids[ geo_idx ].id )
-                        {
-                            // ok, geometry changed
-                            config.geo_ids[ geo_idx ].id = gid;
-
-                            // at this point, the geometry needs to be rebound
-                            // to the shader inputs.
-                            auto const res = this_t::bind_vertex_inputs( config, ro, geo_idx );
-                        }
-                    }
-
-                    config.geo_ids[ geo_idx ].hash = hash;
-                }
-                else
-                {
-                    auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
-                    config.geo_ids[ geo_idx ].id = gid;
-                    config.geo_ids[ geo_idx ].hash = hash;
-                }
-            }
-            else
-            {
-                // nothing to do
-                // everything is valid.
-            }
-            return true;
-        } );
-
-        return res;
     }
 
     //************************************************************************************************************
-    bool_t update( size_t const oid, motor::graphics::msl_object_ref_t obj, size_t const vs_id )
+    bool_t update_geometry_link(
+        motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
     {
-        _msls.access( oid, [ & ]( d3d11_pimpl_data::msl_data_ref_t msl )
+        auto rd = _renders.access( ro.get_oid( _bid ), ro.name() );
+        if( !rd ) return false;
+
+        // do full binding
+        if( rd->geo_ids.size() <= geo_idx )
         {
-            this_t::update(
-                obj.borrow_render_object()->get_oid( _bid ), *obj.borrow_render_object(), vs_id );
-        } );
+            auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
+            if( gid == size_t( -1 ) )
+            {
+                motor::log::global_t::warning< 1024 >(
+                    "[d3d11:update_geometry_link] : no geometry with name [%s] for render_data "
+                    "[%s]",
+                    ro.get_geometry_link( geo_idx ).name.c_str(), ro.name().c_str() );
+                return false;
+            }
+            rd->geo_ids.emplace_back( d3d11_pimpl_data::render_data_t::geo_id_data{
+                gid, ro.get_geometry_link( geo_idx ).hash } );
+            //_geos.access( gid, [&]( d3d11_pimpl_data::geo_data_ref_t d ){
+            // d.add_render_data_id( new_id ) ; } ) ;
+
+            auto const res = this_t::bind_vertex_inputs( render_datas_t::checked_handle_t( rd ) );
+        }
+        else if( rd->geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
+        {
+            auto const hash = ro.get_geometry_link( geo_idx ).hash;
+            if( ro.get_geometry_link( geo_idx ).ref_count == 0 )
+            {
+                rd->invalidate_geometry_index( geo_idx, hash );
+            }
+            else if( rd->geo_ids[ geo_idx ].id != size_t( -1 ) )
+            {
+                // config geometry entry is valid.
+                // maybe the data changed lets check it
+                {
+                    auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
+                    if( gid != rd->geo_ids[ geo_idx ].id )
+                    {
+                        // ok, geometry changed
+                        rd->geo_ids[ geo_idx ].id = gid;
+
+                        // at this point, the geometry needs to be rebound
+                        // to the shader inputs.
+                        auto const res = this_t::bind_vertex_inputs(
+                            render_datas_t::checked_handle_t( rd ), geo_idx );
+                    }
+                }
+
+                rd->geo_ids[ geo_idx ].hash = hash;
+            }
+            else
+            {
+                auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
+                rd->geo_ids[ geo_idx ].id = gid;
+                rd->geo_ids[ geo_idx ].hash = hash;
+            }
+        }
+        else
+        {
+            // nothing to do
+            // everything is valid.
+        }
+
         return true;
+    }
+
+    //************************************************************************************************************
+    bool_t update_render_object( motor::graphics::render_object_ref_t obj, size_t const vs_id )
+    {
+
+        size_t const ro_oid = obj.get_oid( _bid );
+        auto rd = render_datas_t::handle_t( ro_oid, _renders );
+        if( rd )
+        {
+            return this_t::update_render_data( render_datas_t::checked_handle_t( rd ), obj, vs_id );
+        }
+
+        return false;
+    }
+
+    //************************************************************************************************************
+    bool_t update_msl( motor::graphics::msl_object_ref_t obj, size_t const vs_id )
+    {
+        auto msld = msl_datas_t::handle_t( obj.get_oid( _bid ), _msls );
+        if( msld )
+        {
+            return this_t::update_render_object( *obj.borrow_render_object(), vs_id );
+        }
+        return false;
     }
 
     //************************************************************************************************************
@@ -3148,119 +3201,124 @@ struct d3d11_backend::pimpl
 
     //************************************************************************************************************
     // update the variable data in the api, i.e. it copies the data from engine to api memory
-    bool_t update(
-        size_t const id, motor::graphics::render_object_ref_t obj, size_t const varset_id )
+    bool_t update_render_data( render_datas_t::checked_handle_t rd,
+        motor::graphics::render_object_ref_t obj, size_t const varset_id )
     {
         MOTOR_PROBE( "Graphics", "[d3d11] : update render object" );
 
-        auto const res = _renders.access( id, [ & ]( d3d11_pimpl_data::render_data_ref_t rnd )
+        auto shd = shader_datas_t::handle_t( rd->shd_id, _shaders );
+        if( !shd )
         {
-            // search if variable set exists
+            motor::log::global_t::error< 1024 >(
+                "[d3d11::update_render_data] : invalid shader data with %zu", rd->shd_id );
+            return false;
+        }
+
+        auto shdc = shader_datas_t::checked( shd );
+
+        // search if variable set exists
+        {
+            auto entry = obj.borrow_variable_set( varset_id );
+            if( rd->has_not_variable_set( varset_id ) )
             {
-                auto entry = obj.borrow_variable_set( varset_id );
-                if( rnd.has_not_variable_set( varset_id ) )
+                this_t::check_and_create_data_for_variable_set( rd, shdc, obj, varset_id );
+            }
+            else if( rd->has_variable_set_changed( varset_id, entry.hash ) )
+            {
+                this_t::reconnect_data_for_variable_set( rd, shdc, obj, varset_id, entry.hash );
+            }
+        }
+
+        // data variables
+        {
+            auto update_funk =
+                [ & ]( ID3D11DeviceContext * ctx_, d3d11_pimpl_data::render_data_t::cbuffer_t & cb )
+            {
+                for( auto & dv : cb.data_variables )
                 {
-                    this_t::check_and_create_data_for_variable_set( rnd, obj, varset_id );
+                    if( dv.ivar == nullptr ) continue;
+                    dv.do_copy_funk_from_origin( cb.mem );
                 }
-                else if( rnd.has_variable_set_changed( varset_id, entry.hash ) )
+                ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 );
+            };
+
+            if( rd->has_variable_set( varset_id ) )
+            {
+                auto const & entry = rd->varset_to_idx[ varset_id ];
+                size_t const a0 =
+                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
+                size_t const a1 =
+                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
+                size_t const a2 =
+                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
+
+                for( size_t i = entry.cbuffer_begin[ a0 ]; i < entry.cbuffer_end[ a0 ]; ++i )
                 {
-                    this_t::reconnect_data_for_variable_set( rnd, obj, varset_id, entry.hash );
+                    update_funk( _ctx->ctx(), rd->_cbuffers_vs[ i ] );
+                }
+                for( size_t i = entry.cbuffer_begin[ a1 ]; i < entry.cbuffer_end[ a1 ]; ++i )
+                {
+                    update_funk( _ctx->ctx(), rd->_cbuffers_gs[ i ] );
+                }
+                for( size_t i = entry.cbuffer_begin[ a2 ]; i < entry.cbuffer_end[ a2 ]; ++i )
+                {
+                    update_funk( _ctx->ctx(), rd->_cbuffers_ps[ i ] );
                 }
             }
+        }
 
-            // data variables
+        // textures
+        // all we need to do is to figure out if a texture variable has
+        // changed its name. If so, assign correct image id.
+        {
+            auto update_funk =
+                [ & ]( size_t const vsid, d3d11_pimpl_data::render_data_t::image_variable_t & iv )
             {
-                auto update_funk = [ & ]( ID3D11DeviceContext * ctx_,
-                                       d3d11_pimpl_data::render_data_t::cbuffer_t & cb )
-                {
-                    for( auto & dv : cb.data_variables )
-                    {
-                        if( dv.ivar == nullptr ) continue;
-                        dv.do_copy_funk_from_origin( cb.mem );
-                    }
-                    ctx_->UpdateSubresource( cb.ptr, 0, nullptr, cb.mem, 0, 0 );
-                };
+                auto * vs = rd->var_sets[ rd->varset_to_idx[ vsid ].idx ].vs;
 
-                if( rnd.has_variable_set( varset_id ) )
                 {
-                    auto const & entry = rnd.varset_to_idx[ varset_id ];
-                    size_t const a0 =
-                        d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-                    size_t const a1 = d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::
-                        geometry_shader;
-                    size_t const a2 =
-                        d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
+                    auto * tx_var = vs->find_texture_variable( iv.name.c_str() );
 
-                    for( size_t i = entry.cbuffer_begin[ a0 ]; i < entry.cbuffer_end[ a0 ]; ++i )
-                    {
-                        update_funk( _ctx->ctx(), rnd._cbuffers_vs[ i ] );
-                    }
-                    for( size_t i = entry.cbuffer_begin[ a1 ]; i < entry.cbuffer_end[ a1 ]; ++i )
-                    {
-                        update_funk( _ctx->ctx(), rnd._cbuffers_gs[ i ] );
-                    }
-                    for( size_t i = entry.cbuffer_begin[ a2 ]; i < entry.cbuffer_end[ a2 ]; ++i )
-                    {
-                        update_funk( _ctx->ctx(), rnd._cbuffers_ps[ i ] );
-                    }
+                    // if nullptr, variable does not exist anymore
+                    // what to do then?
+                    if( tx_var == nullptr ) return;
+
+                    if( tx_var->get().hash() == iv.value_hash ) return;
+                    iv.value_hash = tx_var->get().hash();
+
+                    size_t const idx = _images.find_by_name( tx_var->get().name() );
+                    iv.id = idx;
                 }
-            }
+            };
 
-            // textures
-            // all we need to do is to figure out if a texture variable has
-            // changed its name. If so, assign correct image id.
+            if( rd->has_variable_set( varset_id ) )
             {
-                auto update_funk = [ & ]( size_t const vsid,
-                                       d3d11_pimpl_data::render_data_t::image_variable_t & iv )
+                auto const & entry = rd->varset_to_idx[ varset_id ];
+                size_t const a0 =
+                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
+                size_t const a1 =
+                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
+                size_t const a2 =
+                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
+
+                for( size_t i = entry.imgs_begin[ a0 ]; i < entry.imgs_end[ a0 ]; ++i )
                 {
-                    auto * vs = rnd.var_sets[ rnd.varset_to_idx[ vsid ].idx ].vs;
-
-                    {
-                        auto * tx_var = vs->find_texture_variable( iv.name.c_str() );
-
-                        // if nullptr, variable does not exist anymore
-                        // what to do then?
-                        if( tx_var == nullptr ) return;
-
-                        if( tx_var->get().hash() == iv.value_hash ) return;
-                        iv.value_hash = tx_var->get().hash();
-
-                        size_t const idx = _images.find_by_name( tx_var->get().name() );
-                        iv.id = idx;
-                    }
-                };
-
-                if( rnd.has_variable_set( varset_id ) )
-                {
-                    auto const & entry = rnd.varset_to_idx[ varset_id ];
-                    size_t const a0 =
-                        d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-                    size_t const a1 = d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::
-                        geometry_shader;
-                    size_t const a2 =
-                        d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-
-                    for( size_t i = entry.imgs_begin[ a0 ]; i < entry.imgs_end[ a0 ]; ++i )
-                    {
-                        update_funk( varset_id, rnd.var_sets_imgs_vs[ i ] );
-                    }
+                    update_funk( varset_id, rd->var_sets_imgs_vs[ i ] );
+                }
 #if 0 // currently not implemented
                     for( size_t i=entry.imgs_begin[a1]; i<entry.imgs_end[a1]; ++i )
                     {
-                        update_funk( varset_id, rnd.var_sets_imgs_gs[i] ) ;
+                        update_funk( varset_id, rd->var_sets_imgs_gs[i] ) ;
                     }
 #endif
-                    for( size_t i = entry.imgs_begin[ a2 ]; i < entry.imgs_end[ a2 ]; ++i )
-                    {
-                        update_funk( varset_id, rnd.var_sets_imgs_ps[ i ] );
-                    }
+                for( size_t i = entry.imgs_begin[ a2 ]; i < entry.imgs_end[ a2 ]; ++i )
+                {
+                    update_funk( varset_id, rd->var_sets_imgs_ps[ i ] );
                 }
             }
+        }
 
-            return true;
-        } );
-
-        return res;
+        return true;
     }
 
     //************************************************************************************************************
@@ -3272,364 +3330,452 @@ struct d3d11_backend::pimpl
 
         // d3d11_pimpl_data::render_data_ref_t rnd = _renders[ id ] ;
 
-        return _renders.access( id,
-            [ & ]( motor::string_in_t rnd_name, d3d11_pimpl_data::render_data_ref_t rnd )
+        auto rd = render_datas_t::handle_t( id, _renders );
+        if( !rd )
         {
-            if( rnd.has_not_variable_set( varset_id ) ) return false;
+            motor::log::global_t::error< 1024 >(
+                "[d3d11::render] : invalid render data with %zu", id );
+            return false;
+        }
 
-            if( rnd.shd_id == size_t( -1 ) )
+        auto shd = shader_datas_t::handle_t( rd->shd_id, _shaders );
+        if( !shd )
+        {
+            motor::log::global_t::error< 1024 >(
+                "[d3d11::render] : invalid shader data with %zu", rd->shd_id );
+            return false;
+        }
+
+        if( rd->has_not_variable_set( varset_id ) ) return false;
+
+        if( geo_idx >= rd->geo_ids.size() && !feed_from_so )
+        {
+            motor::log::global_t::error( "[d3d11::render] : used geometry idx invalid "
+                                         "because exceeds array size for render object : " +
+                                         rd.name() );
+            return false;
+        }
+
+        ID3D11DeviceContext * ctx = _ctx->ctx();
+
+        {
+            if( shd->vs == nullptr )
             {
-                motor::log::global_t::error( d3d11_backend_log( "shader invalid. First shader "
-                                                                "compilation failed probably." ) );
+                motor::log::global_t::error< 1024 >(
+                    "[d3d11::render] : shader missing for %s", shd.name().c_str() );
                 return false;
             }
 
-            if( geo_idx >= rnd.geo_ids.size() && !feed_from_so )
+            // SECTION: Set all shaders
             {
-                motor::log::global_t::error( "[d3d11::render] : used geometry idx invalid "
-                                             "because exceeds array size for render object : " +
-                                             rnd_name );
-                return false;
+                ctx->VSSetShader( shd->vs, nullptr, 0 );
+                ctx->GSSetShader( shd->gs, nullptr, 0 );
+                ctx->PSSetShader( shd->ps, nullptr, 0 );
             }
+        }
 
-            ID3D11DeviceContext * ctx = _ctx->ctx();
+        // SECTION: vertex shader variables
+        if( rd->has_variable_set( varset_id ) )
+        {
+            auto const access =
+                d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
 
-            // d3d11_pimpl_data::shader_data_ref_t shd = _shaders[ rnd.shd_id ] ;
+            auto const idx = rd->varset_to_idx[ varset_id ].idx;
 
+            // update constant buffers/variables
             {
-                auto const res = _shaders.access( rnd.shd_id,
-                    [ & ]( motor::string_in_t shd_name, d3d11_pimpl_data::shader_data_ref_t shd )
+                auto const begin = rd->varset_to_idx[ varset_id ].cbuffer_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].cbuffer_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
                 {
-                    if( shd.vs == nullptr )
-                    {
-                        motor::log::global_t::error(
-                            d3d11_backend_log( "shader missing for " + shd_name ) );
-                        return false;
-                    }
+                    auto & cb = rd->_cbuffers_vs[ i ];
+                    ctx->VSSetConstantBuffers( cb.slot, 1, cb.ptr );
+                }
+            }
 
-                    // SECTION: Set all shaders
+            // update buffer variables
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].buffers_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].buffers_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & buf = rd->var_sets_buffers_vs[ i ];
+                    if( auto hnd = array_datas_t::handle_t( buf.id, _arrays ); hnd )
+                        ctx->VSSetShaderResources( buf.slot, 1, hnd->view );
+                }
+            }
+
+            // update streamout buffers
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].buffers_so_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].buffers_so_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & buf = rd->var_sets_buffers_so_vs[ i ];
+
+                    if( auto hnd = streamout_datas_t::handle_t( buf.id, _streamouts ); hnd )
                     {
-                        ctx->VSSetShader( shd.vs, nullptr, 0 );
-                        ctx->GSSetShader( shd.gs, nullptr, 0 );
-                        ctx->PSSetShader( shd.ps, nullptr, 0 );
+                        auto & ppb = hnd->read_buffer();
+                        ctx->VSSetShaderResources( buf.slot, 1, ppb.views[ 0 ] );
+                    }
+                }
+            }
+        }
+
+        // SECTION: geometry shader variables
+        if( rd->has_variable_set( varset_id ) )
+        {
+            auto const access =
+                d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
+
+            auto const idx = rd->varset_to_idx[ varset_id ].idx;
+
+            // update data variables
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].cbuffer_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].cbuffer_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & cb = rd->_cbuffers_gs[ i ];
+                    ctx->GSSetConstantBuffers( cb.slot, 1, cb.ptr );
+                }
+            }
+
+            // update buffer variables
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].buffers_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].buffers_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & buf = rd->var_sets_buffers_gs[ i ];
+                    if( auto hnd = array_datas_t::handle_t( buf.id, _arrays ); hnd )
+                        ctx->GSSetShaderResources( buf.slot, 1, hnd->view );
+                }
+            }
+
+            // update streamout buffers
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].buffers_so_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].buffers_so_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & buf = rd->var_sets_buffers_so_gs[ i ];
+
+                    if( auto hnd = streamout_datas_t::handle_t( buf.id, _streamouts ); hnd )
+                    {
+                        auto & ppb = hnd->read_buffer();
+                        ctx->GSSetShaderResources( buf.slot, 1, ppb.views[ 0 ] );
+                    }
+                }
+            }
+        }
+
+        // SECTION: tesselation shader variables
+        {
+        }
+
+        // SECTION: pixel shader variables
+        if( rd->has_variable_set( varset_id ) )
+        {
+            auto const access =
+                d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
+            auto const idx = rd->varset_to_idx[ varset_id ].idx;
+
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].cbuffer_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].cbuffer_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & cb = rd->_cbuffers_ps[ i ];
+                    ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr );
+                }
+            }
+
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].imgs_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].imgs_end[ access ];
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & img = rd->var_sets_imgs_ps[ i ];
+
+                    _images.access( img.id, [ & ]( d3d11_pimpl_data::image_data_ref_t imgd )
+                    {
+                        ctx->PSSetShaderResources( img.slot, 1, imgd.view );
+                        ctx->PSSetSamplers( img.slot, 1, imgd.sampler );
+                    } );
+                }
+            }
+
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].buffers_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].buffers_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & buf = rd->var_sets_buffers_ps[ i ];
+
+                    _arrays.access( buf.id, [ & ]( d3d11_pimpl_data::array_data_ref_t ad )
+                    { ctx->PSSetShaderResources( buf.slot, 1, ad.view ); } );
+                }
+            }
+        }
+
+        // feed from streamout path
+        if( ( feed_from_so || use_streamout_count ) && rd->so_ids.size() != 0 )
+        {
+            D3D11_QUERY_DATA_SO_STATISTICS so_stats = { 0 };
+
+            // feedback data path
+            if( !feed_from_so )
+            {
+#if 1
+                if( auto sod = streamout_datas_t::handle_t( rd->so_ids[ 0 ], _streamouts ); sod )
+                {
+                    size_t const ridx = sod->read_index();
+                    auto & rbuffer = sod->read_buffer();
+
+                    HRESULT hr = S_FALSE;
+                    while( hr != S_OK )
+                    {
+                        hr = _ctx->ctx()->GetData( sod->read_buffer().query, &so_stats,
+                            sizeof( D3D11_QUERY_DATA_SO_STATISTICS ), 0 );
+                    }
+                }
+
+#else
+                _streamouts.access( rd->so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t so )
+                {
+                    size_t const ridx = so.read_index();
+                    auto & rbuffer = so.read_buffer();
+
+                    HRESULT hr = S_FALSE;
+                    while( hr != S_OK )
+                    {
+                        hr = _ctx->ctx()->GetData( so.read_buffer().query, &so_stats,
+                            sizeof( D3D11_QUERY_DATA_SO_STATISTICS ), 0 );
                     }
                     return true;
                 } );
-
-                if( !res ) return false;
+#endif
             }
 
-            // SECTION: vertex shader variables
-            if( rnd.has_variable_set( varset_id ) )
+            // feedback draw path
+            // this path uses the streamout primitives as input data and the number of captured
+            // primitives using DrawAuto
+            if( feed_from_so )
             {
-                auto const access =
-                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::vertex_shader;
-
-                auto const idx = rnd.varset_to_idx[ varset_id ].idx;
-
-                // update constant buffers/variables
+#if 1
+                if( auto sod = streamout_datas_t::handle_t( rd->so_ids[ 0 ], _streamouts ); sod )
                 {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].cbuffer_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].cbuffer_end[ access ];
+                    auto & rbuffer = sod->read_buffer();
 
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & cb = rnd._cbuffers_vs[ i ];
-                        ctx->VSSetConstantBuffers( cb.slot, 1, cb.ptr );
-                    }
+                    UINT const stride = sod->stride;
+                    UINT const offset = 0;
+                    ctx->IASetVertexBuffers( 0, 1, rbuffer.buffers[ 0 ], &stride, &offset );
+                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( sod->pt ) );
+                    ctx->IASetInputLayout( rd->vertex_layout_so );
+
+                    ctx->DrawAuto();
                 }
-
-                // update buffer variables
+#else
+                // d3d11_pimpl_data::so_data_ref_t so = _streamouts[ rd->so_ids[ 0 ] ] ;
+                _streamouts.access( rd->so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t so )
                 {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].buffers_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].buffers_end[ access ];
+                    auto & rbuffer = so.read_buffer();
 
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & buf = rnd.var_sets_buffers_vs[ i ];
-                        _arrays.access( buf.id, [ & ]( d3d11_pimpl_data::array_data_ref_t ad )
-                        { ctx->VSSetShaderResources( buf.slot, 1, ad.view ); } );
-                    }
-                }
+                    UINT const stride = so.stride;
+                    UINT const offset = 0;
+                    ctx->IASetVertexBuffers( 0, 1, rbuffer.buffers[ 0 ], &stride, &offset );
+                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( so.pt ) );
+                    ctx->IASetInputLayout( rd->vertex_layout_so );
 
-                // update streamout buffers
-                {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].buffers_so_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].buffers_so_end[ access ];
-
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & buf = rnd.var_sets_buffers_so_vs[ i ];
-
-                        _streamouts.access( buf.id, [ & ]( d3d11_pimpl_data::so_data_ref_t sod )
-                        {
-                            auto & ppb = sod.read_buffer();
-                            ctx->VSSetShaderResources( buf.slot, 1, ppb.views[ 0 ] );
-                        } );
-                    }
-                }
+                    ctx->DrawAuto();
+                    return true;
+                } );
+#endif
             }
 
-            // SECTION: geometry shader variables
-            if( rnd.has_variable_set( varset_id ) )
+            // this path uses the geometry but should render just the number of captured
+            // primitives using DrawAuto
+            else
             {
-                auto const access =
-                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::geometry_shader;
-
-                auto const idx = rnd.varset_to_idx[ varset_id ].idx;
-
-                // update data variables
+#if 1
+                if( auto geod = geometry_datas_t::handle_t( rd->geo_ids[ geo_idx ].id, _geos );
+                    geod )
                 {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].cbuffer_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].cbuffer_end[ access ];
+                    UINT const stride = geod->stride;
+                    UINT const offset = 0;
+                    ctx->IASetVertexBuffers( 0, 1, geod->vb, &stride, &offset );
+                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( geod->pt ) );
+                    ctx->IASetInputLayout( rd->vertex_layout );
 
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & cb = rnd._cbuffers_gs[ i ];
-                        ctx->GSSetConstantBuffers( cb.slot, 1, cb.ptr );
-                    }
+                    // AutoDraw does not seem to work when binding a different vertex buffer
+                    // then the used streamout buffer. If the other geometry uses index or
+                    // instanced data, AutoDraw doesn't work anyways according to doc.
+                    // @todo no index geo implemented, see remarks in geo path below.
+                    ctx->Draw( UINT( so_stats.NumPrimitivesWritten ), UINT( start_element ) );
                 }
+#else
+                // d3d11_pimpl_data::geo_data_ref_t geo = _geos[ rd->geo_ids[ geo_idx ] ] ;
 
-                // update buffer variables
+                _geos.access( rd->geo_ids[ geo_idx ].id,
+                    [ & ]( d3d11_pimpl_data::geo_data_ref_t geo )
+
                 {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].buffers_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].buffers_end[ access ];
+                    UINT const stride = geo.stride;
+                    UINT const offset = 0;
+                    ctx->IASetVertexBuffers( 0, 1, geo.vb, &stride, &offset );
+                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( geo.pt ) );
+                    ctx->IASetInputLayout( rd->vertex_layout );
 
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & buf = rnd.var_sets_buffers_gs[ i ];
-                        _arrays.access( buf.id, [ & ]( d3d11_pimpl_data::array_data_ref_t ad )
-                        { ctx->GSSetShaderResources( buf.slot, 1, ad.view ); } );
-                    }
-                }
+                    // AutoDraw does not seem to work when binding a different vertex buffer
+                    // then the used streamout buffer. If the other geometry uses index or
+                    // instanced data, AutoDraw doesn't work anyways according to doc.
+                    // @todo no index geo implemented, see remarks in geo path below.
+                    ctx->Draw( UINT( so_stats.NumPrimitivesWritten ), UINT( start_element ) );
 
-                // update streamout buffers
-                {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].buffers_so_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].buffers_so_end[ access ];
-
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & buf = rnd.var_sets_buffers_so_gs[ i ];
-
-                        _streamouts.access( buf.id, [ & ]( d3d11_pimpl_data::so_data_ref_t sod )
-                        {
-                            auto & ppb = sod.read_buffer();
-                            ctx->GSSetShaderResources( buf.slot, 1, ppb.views[ 0 ] );
-                        } );
-                    }
-                }
+                    return true;
+                } );
+#endif
             }
+        }
 
-            // SECTION: tesselation shader variables
+        // @todo
+        // if use_streamout_count && !feed_from_so
+        // this path must be used with the queried number of prims written in so_stats
+        else // feed from geometry path
+        {
+#if 1
+            if( auto geod = geometry_datas_t::handle_t( rd->geo_ids[ geo_idx ].id, _geos ); geod )
             {
-            }
-
-            // SECTION: pixel shader variables
-            if( rnd.has_variable_set( varset_id ) )
-            {
-                auto const access =
-                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-                auto const idx = rnd.varset_to_idx[ varset_id ].idx;
-
+#if 1
+                if( auto sod = streamout_datas_t::handle_t( _cur_streamout_active, _streamouts );
+                    sod )
                 {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].cbuffer_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].cbuffer_end[ access ];
-
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & cb = rnd._cbuffers_ps[ i ];
-                        ctx->PSSetConstantBuffers( cb.slot, 1, cb.ptr );
-                    }
+                    sod->pt = geod->pt;
+                }
+#else
+                if( _cur_streamout_active != size_t( -1 ) )
+                {
+                    _streamouts.access( _cur_streamout_active,
+                        [ & ]( d3d11_pimpl_data::so_data_ref_t so ) { so.pt = geod->pt; } );
+                }
+#endif
+                {
+                    UINT const stride = geod->stride;
+                    UINT const offset = 0;
+                    ctx->IASetVertexBuffers( 0, 1, geod->vb, &stride, &offset );
+                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( geod->pt ) );
                 }
 
+                ctx->IASetInputLayout( rd->vertex_layout );
+
+                if( geod->num_elements_ib != 0 )
                 {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].imgs_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].imgs_end[ access ];
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & img = rnd.var_sets_imgs_ps[ i ];
+                    ctx->IASetIndexBuffer( geod->ib, DXGI_FORMAT_R32_UINT, 0 );
 
-                        _images.access( img.id, [ & ]( d3d11_pimpl_data::image_data_ref_t imgd )
-                        {
-                            ctx->PSSetShaderResources( img.slot, 1, imgd.view );
-                            ctx->PSSetSamplers( img.slot, 1, imgd.sampler );
-                        } );
-                    }
+                    UINT const max_elems =
+                        num_elements == UINT( -1 ) ? UINT( geod->num_elements_ib ) : num_elements;
+                    ctx->DrawIndexed( max_elems, start_element, 0 );
                 }
-
-                {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].buffers_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].buffers_end[ access ];
-
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & buf = rnd.var_sets_buffers_ps[ i ];
-
-                        _arrays.access( buf.id, [ & ]( d3d11_pimpl_data::array_data_ref_t ad )
-                        { ctx->PSSetShaderResources( buf.slot, 1, ad.view ); } );
-                    }
-                }
-            }
-
-            // feed from streamout path
-            if( ( feed_from_so || use_streamout_count ) && rnd.so_ids.size() != 0 )
-            {
-                D3D11_QUERY_DATA_SO_STATISTICS so_stats = { 0 };
-
-                if( !feed_from_so )
-                {
-                    // d3d11_pimpl_data::so_data_ref_t so = _streamouts[ rnd.so_ids[ 0 ] ] ;
-                    _streamouts.access( rnd.so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t so )
-                    {
-                        size_t const ridx = so.read_index();
-                        auto & rbuffer = so.read_buffer();
-
-                        HRESULT hr = S_FALSE;
-                        while( hr != S_OK )
-                        {
-                            hr = _ctx->ctx()->GetData( so.read_buffer().query, &so_stats,
-                                sizeof( D3D11_QUERY_DATA_SO_STATISTICS ), 0 );
-                        }
-                        return true;
-                    } );
-                }
-
-                // this path uses the streamout primitives as input data and the number of captured
-                // primitives using DrawAuto
-                if( feed_from_so )
-                {
-                    // d3d11_pimpl_data::so_data_ref_t so = _streamouts[ rnd.so_ids[ 0 ] ] ;
-                    _streamouts.access( rnd.so_ids[ 0 ], [ & ]( d3d11_pimpl_data::so_data_ref_t so )
-                    {
-                        auto & rbuffer = so.read_buffer();
-
-                        UINT const stride = so.stride;
-                        UINT const offset = 0;
-                        ctx->IASetVertexBuffers( 0, 1, rbuffer.buffers[ 0 ], &stride, &offset );
-                        ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( so.pt ) );
-                        ctx->IASetInputLayout( rnd.vertex_layout_so );
-
-                        ctx->DrawAuto();
-                        return true;
-                    } );
-                }
-
-                // this path uses the geometry but should render just the number of captured
-                // primitives using DrawAuto
                 else
                 {
-                    // d3d11_pimpl_data::geo_data_ref_t geo = _geos[ rnd.geo_ids[ geo_idx ] ] ;
-
-                    _geos.access( rnd.geo_ids[ geo_idx ].id,
-                        [ & ]( d3d11_pimpl_data::geo_data_ref_t geo )
-                    {
-                        UINT const stride = geo.stride;
-                        UINT const offset = 0;
-                        ctx->IASetVertexBuffers( 0, 1, geo.vb, &stride, &offset );
-                        ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( geo.pt ) );
-                        ctx->IASetInputLayout( rnd.vertex_layout );
-
-                        // AutoDraw does not seem to work when binding a different vertex buffer
-                        // then the used streamout buffer. If the other geometry uses index or
-                        // instanced data, AutoDraw doesn't work anyways according to doc.
-                        // @todo no index geo implemented, see remarks in geo path below.
-                        ctx->Draw( UINT( so_stats.NumPrimitivesWritten ), UINT( start_element ) );
-
-                        return true;
-                    } );
+                    UINT const max_elems =
+                        num_elements == UINT( -1 ) ? UINT( geod->num_elements_vb ) : num_elements;
+                    ctx->Draw( max_elems, UINT( start_element ) );
                 }
             }
-
-            // @todo
-            // if use_streamout_count && !feed_from_so
-            // this path must be used with the queried number of prims written in so_stats
-            else // feed from geometry path
+#else
+            // d3d11_pimpl_data::geo_data_ref_t geo = _geos[ rd->geo_ids[ geo_idx ] ] ;
+            _geos.access( rd->geo_ids[ geo_idx ].id, [ & ]( d3d11_pimpl_data::geo_data_ref_t geo )
             {
-                // d3d11_pimpl_data::geo_data_ref_t geo = _geos[ rnd.geo_ids[ geo_idx ] ] ;
-                _geos.access( rnd.geo_ids[ geo_idx ].id,
-                    [ & ]( d3d11_pimpl_data::geo_data_ref_t geo )
+                if( _cur_streamout_active != size_t( -1 ) )
                 {
-                    if( _cur_streamout_active != size_t( -1 ) )
-                    {
-                        _streamouts.access( _cur_streamout_active,
-                            [ & ]( d3d11_pimpl_data::so_data_ref_t so ) { so.pt = geo.pt; } );
-                    }
+                    _streamouts.access( _cur_streamout_active,
+                        [ & ]( d3d11_pimpl_data::so_data_ref_t so ) { so.pt = geo.pt; } );
+                }
 
-                    {
-                        UINT const stride = geo.stride;
-                        UINT const offset = 0;
-                        ctx->IASetVertexBuffers( 0, 1, geo.vb, &stride, &offset );
-                        ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( geo.pt ) );
-                    }
+                {
+                    UINT const stride = geo.stride;
+                    UINT const offset = 0;
+                    ctx->IASetVertexBuffers( 0, 1, geo.vb, &stride, &offset );
+                    ctx->IASetPrimitiveTopology( motor::platform::d3d11::convert( geo.pt ) );
+                }
 
-                    ctx->IASetInputLayout( rnd.vertex_layout );
+                ctx->IASetInputLayout( rd->vertex_layout );
 
-                    if( geo.num_elements_ib != 0 )
-                    {
-                        ctx->IASetIndexBuffer( geo.ib, DXGI_FORMAT_R32_UINT, 0 );
+                if( geo.num_elements_ib != 0 )
+                {
+                    ctx->IASetIndexBuffer( geo.ib, DXGI_FORMAT_R32_UINT, 0 );
 
-                        UINT const max_elems =
-                            num_elements == UINT( -1 ) ? UINT( geo.num_elements_ib ) : num_elements;
-                        ctx->DrawIndexed( max_elems, start_element, 0 );
-                    }
-                    else
-                    {
-                        UINT const max_elems =
-                            num_elements == UINT( -1 ) ? UINT( geo.num_elements_vb ) : num_elements;
-                        ctx->Draw( max_elems, UINT( start_element ) );
-                    }
-                } );
-            }
+                    UINT const max_elems =
+                        num_elements == UINT( -1 ) ? UINT( geo.num_elements_ib ) : num_elements;
+                    ctx->DrawIndexed( max_elems, start_element, 0 );
+                }
+                else
+                {
+                    UINT const max_elems =
+                        num_elements == UINT( -1 ) ? UINT( geo.num_elements_vb ) : num_elements;
+                    ctx->Draw( max_elems, UINT( start_element ) );
+                }
+            } );
+#endif
+        }
 
-            // SECTION: UNBIND pixel shader variables
-            if( rnd.has_variable_set( varset_id ) )
+        // SECTION: UNBIND pixel shader variables
+        if( rd->has_variable_set( varset_id ) )
+        {
+            auto const access =
+                d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
+            auto const idx = rd->varset_to_idx[ varset_id ].idx;
+
             {
-                auto const access =
-                    d3d11_pimpl_data::render_data_t::varset_to_idx_data::indices::pixel_shader;
-                auto const idx = rnd.varset_to_idx[ varset_id ].idx;
+                auto const begin = rd->varset_to_idx[ varset_id ].cbuffer_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].cbuffer_end[ access ];
 
+                for( size_t i = begin; i < end; ++i )
                 {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].cbuffer_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].cbuffer_end[ access ];
+                    auto & cb = rd->_cbuffers_ps[ i ];
 
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & cb = rnd._cbuffers_ps[ i ];
-
-                        ID3D11Buffer * const null_buffer[ 1 ] = { nullptr };
-                        ctx->PSSetConstantBuffers( cb.slot, 1, null_buffer );
-                    }
-                }
-
-                {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].imgs_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].imgs_end[ access ];
-
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & img = rnd.var_sets_imgs_ps[ i ];
-                        ID3D11ShaderResourceView * const null_view[ 1 ] = { nullptr };
-                        ctx->PSSetShaderResources( img.slot, 1, null_view );
-                    }
-                }
-
-                {
-                    auto const begin = rnd.varset_to_idx[ varset_id ].buffers_begin[ access ];
-                    auto const end = rnd.varset_to_idx[ varset_id ].buffers_end[ access ];
-
-                    for( size_t i = begin; i < end; ++i )
-                    {
-                        auto & buf = rnd.var_sets_buffers_ps[ i ];
-
-                        ID3D11ShaderResourceView * const null_view[ 1 ] = { nullptr };
-                        ctx->PSSetShaderResources( buf.slot, 1, null_view );
-                    }
+                    ID3D11Buffer * const null_buffer[ 1 ] = { nullptr };
+                    ctx->PSSetConstantBuffers( cb.slot, 1, null_buffer );
                 }
             }
 
-            return true;
-        } );
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].imgs_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].imgs_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & img = rd->var_sets_imgs_ps[ i ];
+                    ID3D11ShaderResourceView * const null_view[ 1 ] = { nullptr };
+                    ctx->PSSetShaderResources( img.slot, 1, null_view );
+                }
+            }
+
+            {
+                auto const begin = rd->varset_to_idx[ varset_id ].buffers_begin[ access ];
+                auto const end = rd->varset_to_idx[ varset_id ].buffers_end[ access ];
+
+                for( size_t i = begin; i < end; ++i )
+                {
+                    auto & buf = rd->var_sets_buffers_ps[ i ];
+
+                    ID3D11ShaderResourceView * const null_view[ 1 ] = { nullptr };
+                    ctx->PSSetShaderResources( buf.slot, 1, null_view );
+                }
+            }
+        }
+
+        return true;
     }
 
     //************************************************************************************************************
@@ -4194,15 +4340,17 @@ motor::graphics::result d3d11_backend::pop(
 }
 
 //************************************************************************************************************
-motor::graphics::result d3d11_backend::prepare_render( motor::graphics::render_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
+motor::graphics::result d3d11_backend::prepare_render( motor::graphics::render_object_mtr_t,
+    motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
 {
-    return motor::graphics::result::invalid ;
+    return motor::graphics::result::invalid;
 }
 
 //************************************************************************************************************
-motor::graphics::result d3d11_backend::prepare_render( motor::graphics::msl_object_mtr_t, motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
+motor::graphics::result d3d11_backend::prepare_render( motor::graphics::msl_object_mtr_t,
+    motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
 {
-    return motor::graphics::result::invalid ;
+    return motor::graphics::result::invalid;
 }
 
 //************************************************************************************************************
@@ -4226,7 +4374,7 @@ motor::graphics::result d3d11_backend::render( motor::graphics::render_object_mt
 
     // update variables
     {
-        _pimpl->update( oid, *obj, detail.varset );
+        _pimpl->update_render_object( *obj, detail.varset );
     }
 
     // render
@@ -4257,17 +4405,21 @@ motor::graphics::result d3d11_backend::render( motor::graphics::msl_object_mtr_t
         return motor::graphics::result::in_transit;
     }
 
+#if 1
+    return this_t::render( obj->borrow_render_object(), detail );
+#else
     motor::graphics::result res = motor::graphics::result::failed;
-
     _pimpl->_msls.try_access( oid, [ & ]( d3d11_pimpl_data::msl_data_ref_t msl )
     { return this_t::render( obj->borrow_render_object(), detail ); } );
     return res;
+#endif
 }
 
 //************************************************************************************************************
-motor::graphics::result d3d11_backend::render( motor::graphics::gen4::backend::render_detail_cref_t ) noexcept 
+motor::graphics::result d3d11_backend::render(
+    motor::graphics::gen4::backend::render_detail_cref_t ) noexcept
 {
-    return motor::graphics::result::failed ;
+    return motor::graphics::result::failed;
 }
 
 //************************************************************************************************************

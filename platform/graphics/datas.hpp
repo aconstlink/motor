@@ -120,6 +120,11 @@ struct datas
 
     friend class handle;
 
+    static checked_handle_t checked( handle_t hnd ) noexcept
+    {
+        return checked_handle_t( hnd ) ;
+    }
+
   private:
 
     struct wrapper

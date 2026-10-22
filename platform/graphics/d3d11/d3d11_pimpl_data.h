@@ -1175,13 +1175,17 @@ motor_typedef( so_data );
         FLOAT width = 0.0f ;
         FLOAT height = 0.0f ;
 
+        static size_t const max_images = 9 ;
+
         // 8 color targets + 1 depth stencil
-        size_t image_ids[ 9 ] = {
+        size_t image_ids[ max_images ] = {
             size_t( -1 ), size_t( -1 ), size_t( -1 ), size_t( -1 ),
             size_t( -1 ), size_t( -1 ), size_t( -1 ), size_t( -1 ), 
             size_t( -1 )} ;
 
-        ID3D11RenderTargetView * rt_view[ 8 ] = 
+        static size_t const max_rt_views = 8 ;
+
+        ID3D11RenderTargetView * rt_view[ max_rt_views ] = 
             { nullptr, nullptr, nullptr, nullptr, 
                 nullptr, nullptr, nullptr, nullptr } ;
 
@@ -1189,8 +1193,8 @@ motor_typedef( so_data );
 
         void_t invalidate( std::optional< std::string_view > const & ) noexcept
         {
-            for( size_t i=0; i<9; ++i ) image_ids[i] = size_t( -1 ) ;
-            for( size_t i=0; i<8; ++i ) if( rt_view[i] ) 
+            for( size_t i=0; i<max_images; ++i ) image_ids[i] = size_t( -1 ) ;
+            for( size_t i=0; i<max_rt_views; ++i ) if( rt_view[i] ) 
             {
                 rt_view[i]->Release() ;
                 rt_view[i] = nullptr ;
