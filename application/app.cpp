@@ -523,7 +523,7 @@ bool_t app::clear_out_window_data( window_data & d ) noexcept
     // have to wait until the render engine 
     // is free of any more commands.
     auto * re = d.fe->borrow_render_engine() ;
-    if( !re->can_enter_frame() || !re->needs_execute() ) 
+    if( !re->can_enter_frame() || re->needs_execute() ) 
     {
         return false ;
     }
