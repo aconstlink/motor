@@ -71,6 +71,28 @@ struct gl4_backend::pimpl
 
     size_t _bid = size_t( -1 );
 
+
+public:
+
+    GLuint _cur_program_id = GLuint( -1 );
+    GLuint _cur_vao = GLuint( -1 );
+
+    void_t reset_and_unbind_cached_objects( void_t ) noexcept
+    {
+        if( _cur_program_id != GLuint(-1) )
+        {
+            _cur_program_id = GLuint(-1) ;
+            glUseProgram( 0 ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glUseProgram" ) ) ;
+        }
+
+        if( _cur_vao != GLuint(-1) )
+        {
+            _cur_vao = GLuint(-1) ;
+            glBindVertexArray( 0 );
+            motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) ;
+        }
+    }
   private: // support thread
 
     using shared_data_t = motor::platform::gl4::support_thread< this_t >::shared_data_t;
@@ -1976,10 +1998,15 @@ struct gl4_backend::pimpl
         gl4_pimpl_data::render_data_t::varset_to_idx_data entry;
         if( !rd->get_vs_to_idx_entry( varset_id, entry ) ) return false;
 
+        #if 0
+        if( _cur_program_id != shd->pg_id )
         {
             glUseProgram( shd->pg_id );
             if( gl4_log_error( "glUseProgram" ) ) return false;
+
+            _cur_program_id = shd->pg_id ;
         }
+        #endif
 
         // data vars
         {
@@ -2602,20 +2629,27 @@ struct gl4_backend::pimpl
                     vao_id = rd->geo_to_vaos[ vao_idx ].vao;
             }
 
+            if( _cur_vao != vao_id )
             {
                 glBindVertexArray( vao_id );
                 if( motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) )
                     return false;
+
+                _cur_vao = vao_id;
             }
         }
 
+        if( _cur_program_id != shd->pg_id )
         {
             glUseProgram( shd->pg_id );
             if( motor::ogl::error::check_and_log( gl4_log( "glUseProgram" ) ) )
             {
                 glBindVertexArray( 0 );
+                motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) );
+                _cur_vao = GLuint( -1 );
                 return false;
             }
+            _cur_program_id = shd->pg_id;
         }
 
         // if( config.var_sets.size() > varset_id )
@@ -2815,10 +2849,12 @@ struct gl4_backend::pimpl
             gl4_log_error( "glDisable : GL_RASTERIZER_DISCARD" );
         }
 
+#if 0
         {
             glBindVertexArray( 0 );
             gl4_log_error( "glBindVertexArray" );
         }
+#endif
 
         return true;
     }
@@ -2862,6 +2898,8 @@ struct gl4_backend::pimpl
     //****************************************************************************************
     void_t end_frame( void_t )
     {
+        this_t::reset_and_unbind_cached_objects();
+
         glFlush();
 
         _ctsd->for_each( [ & ]( gl4_independent::backward_message & item )
@@ -3352,8 +3390,8 @@ motor::graphics::result gl4_backend::prepare_render( motor::graphics::render_obj
         if( _prepare_draws.size() <= _prepare_draw_idx )
             _prepare_draws.resize( _prepare_draws.size() + 5000 );
 
-        _prepare_draws[ _prepare_draw_idx ] = this_t::prepare_draw{
-            false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
+        _prepare_draws[ _prepare_draw_idx ] =
+            this_t::prepare_draw{ false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
     }
 
     if( !obj ) return motor::graphics::result::invalid_argument;
@@ -3398,8 +3436,8 @@ motor::graphics::result gl4_backend::prepare_render( motor::graphics::msl_object
         if( _prepare_draws.size() <= _prepare_draw_idx )
             _prepare_draws.resize( _prepare_draws.size() + 5000 );
 
-        _prepare_draws[ _prepare_draw_idx ] = this_t::prepare_draw{
-                false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
+        _prepare_draws[ _prepare_draw_idx ] =
+            this_t::prepare_draw{ false, _prepare_draw_idx, size_t( -1 ), size_t( -1 ) };
     }
 
     if( !obj ) return motor::graphics::result::invalid_argument;
@@ -3407,13 +3445,14 @@ motor::graphics::result gl4_backend::prepare_render( motor::graphics::msl_object
     size_t const oid = obj->get_oid( this_t::get_bid() );
     if( oid == size_t( -1 ) )
     {
-        motor::log::global_t::error< 1024 >( "[gl4] : invalid msl id for %zu", obj->name().c_str() );
+        motor::log::global_t::error< 1024 >(
+            "[gl4] : invalid msl id for %zu", obj->name().c_str() );
         return motor::graphics::result::failed;
     }
 
     // X: prepare msl stuff
 
-    --_prepare_draw_idx ;
+    --_prepare_draw_idx;
     auto const res = this_t::prepare_render( obj->borrow_render_object(), det );
     if( res != motor::graphics::result::ok )
     {
@@ -3449,6 +3488,8 @@ void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept
     }
 
     _prepare_draw_idx = size_t( -1 );
+
+    _pimpl->reset_and_unbind_cached_objects(); 
 }
 
 //*************************************************************************************
@@ -3488,8 +3529,8 @@ motor::graphics::result gl4_backend::render(
 motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_t obj,
     motor::graphics::gen4::backend::render_detail_cref_t detail ) noexcept
 {
-    // quick verification of prepare draws
-    #if 0
+// quick verification of prepare draws
+#if 0
     {
         ++_prepare_draw_idx;
 
@@ -3499,7 +3540,7 @@ motor::graphics::result gl4_backend::render( motor::graphics::render_object_mtr_
         _prepare_draws[ _prepare_draw_idx ] =
             this_t::prepare_draw{ false,  size_t( -1 ), size_t( -1 ) };
     }
-    #endif
+#endif
 
     if( !obj ) return motor::graphics::result::invalid_argument;
 
@@ -3542,8 +3583,6 @@ motor::graphics::result gl4_backend::render( motor::graphics::msl_object_mtr_t o
 
     return this_t::render( obj->borrow_render_object(), detail );
 }
-
-
 
 //*************************************************************************************
 void_t gl4_backend::render_begin( void_t ) noexcept
