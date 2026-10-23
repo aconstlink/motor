@@ -43,14 +43,20 @@ class render_engine
 
     mutable std::mutex _mtx_has_commands;
     bool_t _has_commands = false;
-    bool_t _needs_execute = false ;
+    bool_t _needs_execute = false;
 
     // update commands
     motor::vector< command_t > _coms_update;
+    size_t _coms_update_pos = 0;
 
     // execute (like rendering, compute) commands
     ushort_t _coms_exec_read_idx = 0;
-    std::array< motor::vector< command_t >, 2 > _coms_exec;
+    struct commands_entry
+    {
+        size_t pos = 0;
+        motor::vector< command_t > comms;
+    };
+    std::array< commands_entry, 2 > _coms_exec;
 
     // if someone else needs to know if work has arrieved.
     // so that other entity can be woken up.
@@ -79,26 +85,37 @@ class render_engine
           _coms_exec( std::move( rhv._coms_exec ) ),
           _notify_has_work( std::move( rhv._notify_has_work ) ),
           _commit_snapshot( std::move( rhv._commit_snapshot ) ),
-          _coms_exec_read_idx( rhv._coms_exec_read_idx )
+          _coms_exec_read_idx( rhv._coms_exec_read_idx ),
+          _coms_update_pos( rhv._coms_update_pos ),
+          _needs_execute( rhv._needs_execute )
     {
+        rhv._coms_update_pos = 0;
+        rhv._coms_exec[0].pos = 0;
+        rhv._coms_exec[1].pos = 0;
     }
     ~render_engine( void_t ) noexcept
     {
         std::lock_guard< std::mutex > lk( _mtx_has_commands );
 
-        for( auto & c : _coms_exec[ 0 ] )
+        for( size_t i = 0; i < _coms_exec[ 0 ].pos; ++i )
         {
+            auto & c = _coms_exec[ 0 ].comms[ i ];
             c.cancel_funk();
         }
 
-        for( auto & c : _coms_exec[ 1 ] )
+        for( size_t i = 0; i < _coms_exec[ 1 ].pos; ++i )
         {
+            auto & c = _coms_exec[ 1 ].comms[ i ];
             c.cancel_funk();
         }
 
         _coms_update.clear();
-        _coms_exec[ 0 ].clear();
-        _coms_exec[ 1 ].clear();
+        _coms_update_pos = 0;
+
+        _coms_exec[ 0 ].pos = 0;
+        _coms_exec[ 0 ].comms.clear();
+        _coms_exec[ 1 ].pos = 0;
+        _coms_exec[ 1 ].comms.clear();
         _has_commands = false;
     }
 
@@ -109,24 +126,30 @@ class render_engine
     {
         std::lock_guard< std::mutex > lk( _mtx_has_commands );
 
-        for( auto & c : _coms_update )
+        for( size_t i = 0; i < _coms_update_pos; ++i )
         {
+            auto & c = _coms_update[ i ];
             c.cancel_funk();
         }
         _coms_update.clear();
+        _coms_update_pos = 0;
 
-        for( auto & c : _coms_exec[ 0 ] )
+        for( size_t i = 0; i < _coms_exec[ 0 ].pos; ++i )
         {
+            auto & c = _coms_exec[ 0 ].comms[ i ];
             c.cancel_funk();
         }
 
-        for( auto & c : _coms_exec[ 1 ] )
+        for( size_t i = 0; i < _coms_exec[ 1 ].pos; ++i )
         {
+            auto & c = _coms_exec[ 1 ].comms[ i ];
             c.cancel_funk();
         }
 
-        _coms_exec[ 0 ].clear();
-        _coms_exec[ 1 ].clear();
+        _coms_exec[ 0 ].pos = 0;
+        _coms_exec[ 0 ].comms.clear();
+        _coms_exec[ 1 ].pos = 0;
+        _coms_exec[ 1 ].comms.clear();
         _has_commands = false;
     }
 
@@ -140,11 +163,16 @@ class render_engine
         assert( _has_commands == true );
 
         // 1. execute prepare commands
-        for( auto & c : _coms_update )
+        for( size_t i = 0; i < _coms_update_pos; ++i )
         {
+            auto & c = _coms_update[ i ];
             c.exec_funk();
         }
+#if 1
+        _coms_update_pos = 0;
+#else
         _coms_update.clear();
+#endif
 
         // 2. commit all data, i.e.
         // do the frame snapshot
@@ -159,15 +187,17 @@ class render_engine
     void_t execute( void_t ) noexcept
     {
         // 3. execute "execute" commands
-        for( auto & c : _coms_exec[ this_t::coms_exec_read_idx() ] )
+        for( size_t i = 0; i < _coms_exec[ this_t::coms_exec_read_idx() ].pos; ++i )
         {
+            auto & c = _coms_exec[ this_t::coms_exec_read_idx() ].comms[ i ];
             c.exec_funk();
         }
-        _coms_exec[ this_t::coms_exec_read_idx() ].clear(); 
+        _coms_exec[ this_t::coms_exec_read_idx() ].pos = 0;
+        //_coms_exec[ this_t::coms_exec_read_idx() ].clear();
 
         {
             std::lock_guard< std::mutex > lk( _mtx_has_commands );
-            _needs_execute = false ;
+            _needs_execute = false;
         }
     }
 
@@ -199,13 +229,23 @@ class render_engine
     // !not thread safe! Only use within enter_frame/leave_frame
     void_t send_update( this_t::command_t c ) noexcept
     {
-        _coms_update.emplace_back( std::move( c ) );
+        if( _coms_update.size() <= _coms_update_pos )
+        {
+            _coms_update.resize( _coms_update.size() + 100 );
+        }
+        _coms_update[ _coms_update_pos++ ] = ( std::move( c ) );
     }
 
     // !not thread safe! Only use within enter_frame/leave_frame
     void_t send_execute( this_t::command_t c ) noexcept
     {
-        _coms_exec[ this_t::coms_exec_write_idx() ].emplace_back( std::move( c ) );
+        auto & entry = _coms_exec[ this_t::coms_exec_write_idx() ];
+        if( entry.comms.size() <= entry.pos )
+        {
+            entry.comms.resize( entry.comms.size() + 100 );
+        }
+
+        entry.comms[ entry.pos++ ] = std::move( c );
     }
 
     void_t set_commit_snapshot_funk( this_t::commit_snapshot_funk_t && f ) noexcept
@@ -216,7 +256,7 @@ class render_engine
     bool_t needs_execute( void_t ) const noexcept
     {
         std::lock_guard< std::mutex > lk( _mtx_has_commands );
-        return _needs_execute ;
+        return _needs_execute;
     }
 
   public: // reserved for the application carrier
@@ -234,7 +274,7 @@ class render_engine
             std::lock_guard< std::mutex > lk( _mtx_has_commands );
             _has_commands = false;
             _coms_exec_read_idx = ( _coms_exec_read_idx + 1 ) % 2;
-            _needs_execute = true ;
+            _needs_execute = true;
         }
 
         // early wakeup here. maybe in leave frame, it is too late..
