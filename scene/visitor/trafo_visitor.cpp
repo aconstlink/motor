@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #include "trafo_visitor.h"
 #include "../node/leaf.h"
 
@@ -48,6 +47,47 @@ motor::scene::result trafo_visitor::post_visit(
 //******************************************************************************
 void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
 {
+#if 1
+
+    // handle trafo first
+    if( auto * tc = nptr->borrow_component< motor::scene::trafo3d_component_t >(); tc )
+    {
+        auto const local = tc->get_trafo();
+        auto const trafo = _trafos.top() * local;
+        motor::scene::trafo3d_component_t::visitor_interface( tc ).set_computed( trafo );
+
+        // push in any case, so the post_visit function
+        // can just pop the trafo from the stack
+        _trafos.push( trafo );
+    }
+
+    nptr->for_each_component( [ & ]( motor::scene::icomponent_mtr_t comp )
+    {
+        // camers
+        if( auto * cptr = motor::scene::safe_cast< motor::scene::camera_component_t >( comp );
+            cptr )
+        {
+            if( auto * ptr = cptr->borrow_camera(); ptr != nullptr )
+            {
+                ptr->set_transformation( _trafos.top() );
+            }
+        }
+        // light
+        else if( auto * lptr = motor::scene::safe_cast< motor::scene::light_component_t >( comp );
+                 lptr )
+        {
+            lptr->for_each_light( [ &, this ]( motor::gfx::light_mtr_t l )
+            { l->set_transformation( _trafos.top() ); } );
+        }
+        else if( auto * msls = motor::scene::safe_cast< motor::scene::msl_set_component_t >( comp );
+                 msls )
+        {
+            msls->for_each_msl( [ & ]( motor::scene::msl_component_mtr_t msl_comp )
+            { msl_comp->set_world( _trafos.top() ); } );
+        }
+    } );
+
+#else
     // trafo3d
     {
         auto * tcomp = nptr->borrow_component< motor::scene::trafo3d_component_t >();
@@ -80,11 +120,8 @@ void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
         auto * comp = nptr->borrow_component< motor::scene::light_component_t >();
         if( comp != nullptr )
         {
-            comp->for_each_light( [&, this ]( motor::gfx::light_mtr_t l )
-            {
-                l->set_transformation( _trafos.top() ) ;
-            } ) ;
-            
+            comp->for_each_light( [ &, this ]( motor::gfx::light_mtr_t l )
+            { l->set_transformation( _trafos.top() ); } );
         }
     }
 
@@ -106,6 +143,7 @@ void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
             { msl_comp->set_world( _trafos.top() ); } );
         }
     }
+#endif
 }
 
 //******************************************************************************

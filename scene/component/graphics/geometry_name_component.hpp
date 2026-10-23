@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #pragma once
 
 #include "../icomponent.h"
@@ -14,11 +13,17 @@ namespace motor
 {
 namespace scene
 {
-class geometry_name_component : public icomponent
+class MOTOR_SCENE_API geometry_name_component : public icomponent
 {
     motor_this_typedefs( geometry_name_component );
 
   public:
+
+    static uint64_t const tid;
+    virtual uint64_t type_id( void_t ) const noexcept override
+    {
+        return tid;
+    }
 
   private:
 

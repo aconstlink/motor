@@ -1,31 +1,30 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #include "camera_component.h"
 
-using namespace motor::scene ;
+#include "../global.h"
+using namespace motor::scene;
+
+uint64_t const camera_component::tid =
+    motor::scene::global::register_internal_type( "motor::scene::camera_component" );
 
 //**************************************************************************************
-camera_component::camera_component( void_t ) noexcept
+camera_component::camera_component( void_t ) noexcept {}
+
+//**************************************************************************************
+camera_component::camera_component( motor::gfx::generic_camera_mtr_safe_t cam ) noexcept
+    : _cam( motor::move( cam ) )
 {
 }
 
 //**************************************************************************************
-camera_component::camera_component( motor::gfx::generic_camera_mtr_safe_t cam ) noexcept :
-	_cam( motor::move(cam) )
-{
-}
-
-//**************************************************************************************
-camera_component::camera_component( this_rref_t rhv ) noexcept : _cam( motor::move(rhv._cam) )
-{
-}
+camera_component::camera_component( this_rref_t rhv ) noexcept : _cam( motor::move( rhv._cam ) ) {}
 
 //**************************************************************************************
 camera_component::~camera_component( void_t ) noexcept
 {
-	motor::release( motor::move( _cam ) ) ;
+    motor::release( motor::move( _cam ) );
 }
 
 //**************************************************************************************

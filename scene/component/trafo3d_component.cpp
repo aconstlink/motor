@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
+#include "../global.h"
 #include "trafo3d_component.h"
 
 using namespace motor::scene;
+
+uint64_t const trafo3d_component::tid = motor::scene::global::register_internal_type( 
+    "motor::scene::trafo3d_component" ) ;
 
 //********************************************************************************
 trafo3d_component::trafo3d_component( void_t ) noexcept

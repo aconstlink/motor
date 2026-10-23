@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #pragma once
 
 #include "icomponent.h"
@@ -23,11 +22,19 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 {
     motor_this_typedefs( trafo3d_component );
 
+  public:
+
+    static uint64_t const tid;
+    virtual uint64_t type_id( void_t ) const noexcept override
+    {
+        return tid;
+    }
+
   private: // slot data
 
     motor_typedefs( motor::wire::input_slot< motor::math::m3d::trafof_t >, in_slot );
     motor_typedefs( motor::wire::output_slot< motor::math::m3d::trafof_t >, out_slot );
-    motor_typedefs( motor::wire::trafo3f_composer_t, trafo_composer ) ;
+    motor_typedefs( motor::wire::trafo3f_composer_t, trafo_composer );
 
     // borrowed slot pointer for local transformation.
     in_slot_ptr_t _trafo_is = nullptr;
@@ -37,7 +44,7 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 
     // we can have multiple composers per trafo.
     // all composers could be attached to a mixer
-    motor::vector< this_t::trafo_composer_mtr_t > _composer ;
+    motor::vector< this_t::trafo_composer_mtr_t > _composer;
 
     // @todo mixer
 
@@ -77,7 +84,6 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
         return _trafo_local;
     }
 
-    
     void_t set_trafo( motor::math::m3d::trafof_in_t t ) noexcept
     {
         _trafo = t;
@@ -90,27 +96,27 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 
     void_t reset_trafo_local_position( void_t ) noexcept
     {
-        _trafo_local.set_translation( motor::math::vec3f_t() ) ;
+        _trafo_local.set_translation( motor::math::vec3f_t() );
     }
 
     void_t reset_trafo_local_scale( void_t ) noexcept
     {
-        auto const t = _trafo_local.get_translation() ;
-        auto const o = _trafo_local.get_orientation() ;
-        _trafo_local = motor::math::m3d::trafof_t( motor::math::vec3f_t(1.0f), o, t ) ;
+        auto const t = _trafo_local.get_translation();
+        auto const o = _trafo_local.get_orientation();
+        _trafo_local = motor::math::m3d::trafof_t( motor::math::vec3f_t( 1.0f ), o, t );
     }
 
     void_t reset_trafo_local_rotation( void_t ) noexcept
     {
-        auto const s = _trafo_local.get_scale() ;
-        auto const t = _trafo_local.get_translation() ;
+        auto const s = _trafo_local.get_scale();
+        auto const t = _trafo_local.get_translation();
 
-        _trafo_local = motor::math::m3d::trafof_t( s, motor::math::vec3f_t(), t ) ;
+        _trafo_local = motor::math::m3d::trafof_t( s, motor::math::vec3f_t(), t );
     }
 
     in_slot_mtr_t borrow_trafo_is( void_t ) noexcept
     {
-        return _trafo_is ;
+        return _trafo_is;
     }
 
 #if 0
@@ -124,14 +130,14 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
     }
 #endif
 
-public:
+  public:
 
-    trafo_composer_mtr_safe_t create_composer( void_t ) noexcept ;
-    trafo_composer_mtr_t create_composer_and_borrow( void_t ) noexcept ;
-    bool_t attach_composer( trafo_composer_mtr_safe_t ) noexcept ;
-    bool_t has_composer( trafo_composer_mtr_t ) const noexcept ;
+    trafo_composer_mtr_safe_t create_composer( void_t ) noexcept;
+    trafo_composer_mtr_t create_composer_and_borrow( void_t ) noexcept;
+    bool_t attach_composer( trafo_composer_mtr_safe_t ) noexcept;
+    bool_t has_composer( trafo_composer_mtr_t ) const noexcept;
 
-public:
+  public:
 
     // allows a transformation visitor to update
     // the computed transformation.
@@ -159,8 +165,8 @@ public:
 
     void_t init_slots( void_t ) noexcept;
 
-    virtual void_t sync_inputs( void_t ) noexcept ;
-    virtual void_t sync_outputs( void_t ) noexcept ;
+    virtual void_t sync_inputs( void_t ) noexcept;
+    virtual void_t sync_outputs( void_t ) noexcept;
 
   public:
 

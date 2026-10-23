@@ -4,15 +4,24 @@
 #pragma once
 
 #include "icomponent.h"
+#include "../global.h"
 #include <motor/gfx/util/light.hpp>
 
 namespace motor
 {
 namespace scene
 {
-class light_component : public icomponent
+class MOTOR_SCENE_API light_component : public icomponent
 {
     motor_this_typedefs( light_component );
+
+  public:
+
+    static uint64_t const tid;
+    virtual uint64_t type_id( void_t ) const noexcept override
+    {
+        return tid;
+    }
 
   private:
 
@@ -20,7 +29,7 @@ class light_component : public icomponent
 
   public:
 
-    light_component( void_t ) noexcept{}
+    light_component( void_t ) noexcept {}
     light_component( motor::gfx::light_mtr_safe_t l ) noexcept
     {
         this_t::add_light( motor::move( l ) );
@@ -59,10 +68,10 @@ class light_component : public icomponent
         _lights.emplace_back( motor::move( l ) );
     }
 
-    using for_each_borrowed_light_funk_t = std::function< void_t ( motor::gfx::light_mtr_t ) > ;
+    using for_each_borrowed_light_funk_t = std::function< void_t( motor::gfx::light_mtr_t ) >;
     void_t for_each_light( for_each_borrowed_light_funk_t f )
     {
-        for( auto * l : _lights ) f( l ) ;
+        for( auto * l : _lights ) f( l );
     }
 
     // use:
@@ -91,10 +100,7 @@ class light_component : public icomponent
         return std::make_pair( false, nullptr );
     }
 
-    void_t apply_transformation( motor::math::m3d::trafof_cref_t trafo ) noexcept
-    {
-        
-    }
+    void_t apply_transformation( motor::math::m3d::trafof_cref_t trafo ) noexcept {}
 };
 motor_typedef( light_component );
 } // namespace scene

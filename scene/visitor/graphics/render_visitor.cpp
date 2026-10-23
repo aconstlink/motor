@@ -1,14 +1,19 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
-
 #include "render_visitor.h"
 
 #include "../../component/graphics/msl_component.h"
 #include "../../component/graphics/msl_set_component.hpp"
 #include "../../component/graphics/render_settings_component.hpp"
 #include "../../component/graphics/config_graphics_component.h"
+
+struct local_cache
+{
+    motor::scene::config_graphics_component_ptr_t cgc = nullptr;
+    motor::scene::render_settings_component_ptr_t rsc = nullptr;
+    motor::scene::msl_set_component_ptr_t msls = nullptr;
+};
 
 using namespace motor::scene;
 
@@ -20,8 +25,9 @@ render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id
 }
 
 //*****************************************************************************************
-render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id, size_t const render_id,
-    motor::graphics::gen4::frontend_ptr_t fe, motor::gfx::generic_camera_ptr_t cam ) noexcept
+render_visitor::render_visitor( motor::scene::msl_set_component_t::id_t const id,
+    size_t const render_id, motor::graphics::gen4::frontend_ptr_t fe,
+    motor::gfx::generic_camera_ptr_t cam ) noexcept
     : _msl_set_id( id ), _render_data_id( render_id ), _fe( fe ), _cam( cam )
 {
 }
@@ -70,6 +76,84 @@ motor::scene::result render_visitor::post_visit(
 //*****************************************************************************************
 void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
 {
+    local_cache lc;
+
+#if 1
+    nptr->for_each_component( [ & ]( motor::scene::icomponent_mtr_t comp )
+    {
+        // configurations
+        if( lc.cgc = motor::scene::safe_cast< motor::scene::config_graphics_component_t >( comp );
+            lc.cgc )
+        {
+        }
+        // render settings
+        else if( lc.rsc =
+                     motor::scene::safe_cast< motor::scene::render_settings_component_t >( comp );
+                 lc.rsc )
+        {
+        }
+        else if( lc.msls = motor::scene::safe_cast< motor::scene::msl_set_component_t >( comp );
+                 lc.msls )
+        {
+        }
+    } );
+
+    // 1
+    if( lc.cgc )
+    {
+        if( lc.cgc->init_and_cleanup( _fe ) )
+        {
+        }
+    }
+
+    // 2
+    if( lc.rsc )
+    {
+        // only called if render state for id exists.
+        lc.rsc->borrow_state( 0, [ & ]( motor::graphics::state_object_mtr_t state ) //
+        {
+            auto res = _fe->decode( state );
+            if( res.first == motor::graphics::object_state::ready )
+            {
+                _fe->push( state );
+            }
+            else if( res.first == motor::graphics::object_state::raw ||
+                     res.first == motor::graphics::object_state::invalid )
+            {
+                _fe->configure< motor::graphics::state_object_t >( state );
+            }
+        } );
+    }
+
+    // 3
+    if( lc.msls && lc.msls->init_msl( this_t::msl_set_id(), _fe ) )
+    {
+        motor::scene::msl_component_mtr_t mslc;
+        if( lc.msls->borrow_msl_component( this_t::msl_set_id(), mslc ) )
+        {
+            size_t used_vs_idx = mslc->get_variable_set_idx();
+            if( _render_data_id != size_t( -1 ) )
+            {
+                used_vs_idx = mslc->render_update( _render_data_id, _cam );
+            }
+            else
+            {
+                mslc->render_update( _cam );
+            }
+
+            auto msl = mslc->borrow_msl();
+
+            {
+                motor::graphics::gen4::backend_t::render_detail_t detail;
+                detail.start = 0;
+                // detail.num_elems = 3 ;
+                detail.geo = mslc->get_geo_idx() == size_t( -1 ) ? 0 : mslc->get_geo_idx();
+                detail.varset = used_vs_idx;
+                _fe->render( msl, detail );
+            }
+        }
+    }
+#else
     // configurations
     {
         auto * comp = nptr->borrow_component< motor::scene::config_graphics_component_t >();
@@ -111,16 +195,15 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
             motor::scene::msl_component_mtr_t comp;
             if( set_comp->borrow_msl_component( this_t::msl_set_id(), comp ) )
             {
-                size_t used_vs_idx = comp->get_variable_set_idx() ;
-                if( _render_data_id != size_t(-1) )
+                size_t used_vs_idx = comp->get_variable_set_idx();
+                if( _render_data_id != size_t( -1 ) )
                 {
-                    used_vs_idx = comp->render_update( _render_data_id, _cam ) ;
+                    used_vs_idx = comp->render_update( _render_data_id, _cam );
                 }
                 else
                 {
                     comp->render_update( _cam );
                 }
-                
 
                 auto msl = comp->borrow_msl();
 
@@ -135,6 +218,7 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
             }
         }
     }
+#endif
 }
 
 //*****************************************************************************************

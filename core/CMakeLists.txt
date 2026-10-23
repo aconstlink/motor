@@ -6,6 +6,7 @@
 set( sources 
     "double_dispatch.hpp"
     "document.hpp"
+    "id_registry.hpp"
     "dummy.cpp"
     )
 
