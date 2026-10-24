@@ -71,28 +71,28 @@ struct gl4_backend::pimpl
 
     size_t _bid = size_t( -1 );
 
-
-public:
+  public:
 
     GLuint _cur_program_id = GLuint( -1 );
     GLuint _cur_vao = GLuint( -1 );
 
     void_t reset_and_unbind_cached_objects( void_t ) noexcept
     {
-        if( _cur_program_id != GLuint(-1) )
+        if( _cur_program_id != GLuint( -1 ) )
         {
-            _cur_program_id = GLuint(-1) ;
-            glUseProgram( 0 ) ;
-            motor::ogl::error::check_and_log( gl4_log( "glUseProgram" ) ) ;
+            _cur_program_id = GLuint( -1 );
+            glUseProgram( 0 );
+            motor::ogl::error::check_and_log( gl4_log( "glUseProgram" ) );
         }
 
-        if( _cur_vao != GLuint(-1) )
+        if( _cur_vao != GLuint( -1 ) )
         {
-            _cur_vao = GLuint(-1) ;
+            _cur_vao = GLuint( -1 );
             glBindVertexArray( 0 );
-            motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) ) ;
+            motor::ogl::error::check_and_log( gl4_log( "glBindVertexArray" ) );
         }
     }
+
   private: // support thread
 
     using shared_data_t = motor::platform::gl4::support_thread< this_t >::shared_data_t;
@@ -856,8 +856,11 @@ public:
     {
         if( !with_gl )
         {
-            _renders.for_each(
-                [ & ]( gl4_pimpl_data::render_data_ref_t rd ) { rd.geo_to_vaos.clear(); } );
+            _renders.for_each( [ & ]( gl4_pimpl_data::render_data_ref_t rd )
+            {
+                rd.geo_ids.clear();
+                rd.geo_to_vaos.clear();
+            } );
         }
 
         _renders.invalidate_and_clear();
@@ -1176,10 +1179,17 @@ public:
                         rc.get_geometry_link( i ).name.c_str(), rc.name().c_str() );
                     continue;
                 }
+
+                // set hash to -1 so we force action in geometry link
                 rd->geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
-                    gid, rc.get_geometry_link( i ).hash } );
+                    gid, /*rc.get_geometry_link( i ).hash*/ size_t( -1 ), GLuint( -1 ) } );
+
+#if 1
+                geo_datas_t::handle_t( gid, _geometries )->add_render_data_id( rd.oid() );
+#else
                 _geometries.access( gid, [ & ]( gl4_pimpl_data::geo_data_ref_t d )
                 { d.add_render_data_id( rd.oid() ); } );
+#endif
             }
         }
 
@@ -1255,8 +1265,16 @@ public:
         motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
     {
         auto rd = _renders.access( ro.get_oid( _bid ), ro.name() );
+        auto shd = _shaders.access( rd->shd_id );
+        if( !shd )
+        {
+            motor::log::global_t::error< 1024 >(
+                "[gl4:update_geometry_link] : no shader assigned in render object %s",
+                rd.name().c_str() );
+            return false;
+        }
 
-        // do full binding
+        // probably added after configure of render object
         if( rd->geo_ids.size() <= geo_idx )
         {
             auto const gid = _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
@@ -1269,11 +1287,38 @@ public:
                     ro.get_geometry_link( geo_idx ).name.c_str(), ro.name().c_str() );
                 return false;
             }
+            auto gd = geo_datas_t::handle_t( gid, _geometries );
+            GLuint vao_id;
+            {
+                glGenVertexArrays( 1, &vao_id );
+                if( motor::ogl::error::check_and_log( gl4_log( "glGenVertexArrays" ) ) )
+                    return false;
+            }
+
+            if( !this_t::bind_attributes( vao_id, geo_datas_t::checked_handle_t( gd ),
+                    shader_datas_t::checked_handle_t( shd ) ) )
+            {
+                motor::log::global_t::warning< 1024 >(
+                    "[gl4:update_geometry_link] : unable to bind_attributes for %s",
+                    rd.name().c_str() );
+
+                glDeleteVertexArrays( 1, &vao_id );
+                motor::ogl::error::check_and_log( gl4_log( "glGenVertexArrays" ) );
+
+                return false;
+            }
+
             rd->geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
-                gid, ro.get_geometry_link( geo_idx ).hash } );
+                gid, ro.get_geometry_link( geo_idx ).hash, vao_id } );
+
+#if 1
+            gd->add_render_data_id( rd.oid() );
+#else
             _geometries.access( gid,
                 [ & ]( gl4_pimpl_data::geo_data_ref_t d ) { d.add_render_data_id( rd.oid() ); } );
+#endif
         }
+        // geometry was already linked. so if the hash differes, something has changed.
         else if( rd->geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
         {
             auto const hash = ro.get_geometry_link( geo_idx ).hash;
@@ -1288,15 +1333,49 @@ public:
                 {
                     auto const gid =
                         _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
+
+                    if( gid == size_t( -1 ) )
+                    {
+                        motor::log::global_t::warning< 1024 >(
+                            "[gl4:update_geometry_link] : unable to find geometry %s for %s",
+                            ro.get_geometry_link( geo_idx ).name.c_str(), rd.name().c_str() );
+                        return false;
+                    }
+                    auto gd = geo_datas_t::handle_t( gid, _geometries );
+
+                    GLuint vao_id = rd->geo_ids[ geo_idx ].vao;
+
+                    // has gid changed
                     if( gid != rd->geo_ids[ geo_idx ].id )
                     {
                         // ok, geometry changed
                         rd->geo_ids[ geo_idx ].id = gid;
 
                         // at this point, the geometry needs to be rebound
-                        // to the shader inputs.
-                        // At the moment, this is done before rendering
+                        // to the shader inputs. We do this below.
                     }
+
+                    if( vao_id == GLuint( -1 ) )
+                    {
+                        {
+                            glGenVertexArrays( 1, &vao_id );
+                            if( motor::ogl::error::check_and_log( gl4_log( "glGenVertexArrays" ) ) )
+                                return false;
+                        }
+
+                        rd->geo_ids[ geo_idx ].vao = vao_id;
+                    }
+
+                    if( !this_t::bind_attributes( vao_id, geo_datas_t::checked_handle_t( gd ),
+                            shader_datas_t::checked_handle_t( shd ) ) )
+                    {
+                        motor::log::global_t::warning< 1024 >(
+                            "[gl4:update_geometry_link] : unable to bind_attributes for %s",
+                            rd.name().c_str() );
+                        return false;
+                    }
+
+                    gd->add_render_data_id( rd.oid() );
                 }
 
                 rd->geo_ids[ geo_idx ].hash = hash;
@@ -1304,8 +1383,42 @@ public:
             else
             {
                 auto const gid = _geometries.find_by_name( ro.get_geometry_link( geo_idx ).name );
+
+                if( gid == size_t( -1 ) )
+                {
+                    motor::log::global_t::warning< 1024 >(
+                        "[gl4:update_geometry_link] : unable to find geometry %s for %s",
+                        ro.get_geometry_link( geo_idx ).name.c_str(), rd.name().c_str() );
+                    return false;
+                }
+
+                auto gd = geo_datas_t::handle_t( gid, _geometries );
+                GLuint vao_id = rd->geo_ids[ geo_idx ].vao;
+
+                if( vao_id == GLuint( -1 ) )
+                {
+                    {
+                        glGenVertexArrays( 1, &vao_id );
+                        if( motor::ogl::error::check_and_log( gl4_log( "glGenVertexArrays" ) ) )
+                            return false;
+                    }
+
+                    rd->geo_ids[ geo_idx ].vao = vao_id;
+                }
+
+                if( !this_t::bind_attributes( vao_id, geo_datas_t::checked_handle_t( gd ),
+                        shader_datas_t::checked_handle_t( shd ) ) )
+                {
+                    motor::log::global_t::warning< 1024 >(
+                        "[gl4:update_geometry_link] : unable to bind_attributes for %s",
+                        rd.name().c_str() );
+                    return false;
+                }
+
                 rd->geo_ids[ geo_idx ].id = gid;
                 rd->geo_ids[ geo_idx ].hash = hash;
+
+                gd->add_render_data_id( rd.oid() );
             }
         }
         else
@@ -1497,18 +1610,29 @@ public:
                 auto rd = _renders.access( rid );
                 if( !rd || rd->shd_id == size_t( -1 ) ) continue;
 
+                {
+                    size_t i = size_t( -1 );
+                    while( ++i < rd->geo_ids.size() && rd->geo_ids[ i ].id != geod.oid() );
+                    if( i != rd->geo_ids.size() )
+                    {
+                        rd->geo_ids[ i ].hash = size_t( -1 );
+                    }
+                }
+
                 // this may happen if the geometry is configured a second time
                 // after the render object is configured but the render object
                 // is not rendered yet.
-                size_t i = size_t( -1 );
-                while( ++i < rd->geo_to_vaos.size() && rd->geo_to_vaos[ i ].gid != geod.oid() );
-                if( i != rd->geo_to_vaos.size() )
                 {
-                    glDeleteVertexArrays( 1, &( rd->geo_to_vaos[ i ].vao ) );
-                    gl4_log_error( "glDeleteVertexArrays" );
+                    size_t i = size_t( -1 );
+                    while( ++i < rd->geo_to_vaos.size() && rd->geo_to_vaos[ i ].gid != geod.oid() );
+                    if( i != rd->geo_to_vaos.size() )
+                    {
+                        glDeleteVertexArrays( 1, &( rd->geo_to_vaos[ i ].vao ) );
+                        gl4_log_error( "glDeleteVertexArrays" );
 
-                    rd->geo_to_vaos[ i ].gid = size_t( -1 );
-                    rd->geo_to_vaos[ i ].vao = GLuint( -1 );
+                        rd->geo_to_vaos[ i ].gid = size_t( -1 );
+                        rd->geo_to_vaos[ i ].vao = GLuint( -1 );
+                    }
                 }
             }
         }
@@ -1998,7 +2122,7 @@ public:
         gl4_pimpl_data::render_data_t::varset_to_idx_data entry;
         if( !rd->get_vs_to_idx_entry( varset_id, entry ) ) return false;
 
-        #if 0
+#if 0
         if( _cur_program_id != shd->pg_id )
         {
             glUseProgram( shd->pg_id );
@@ -2006,7 +2130,7 @@ public:
 
             _cur_program_id = shd->pg_id ;
         }
-        #endif
+#endif
 
         // data vars
         {
@@ -2550,6 +2674,7 @@ public:
 
         size_t gid = size_t( -1 );
         size_t tfid = size_t( -1 );
+        GLuint vao_id = GLuint( -1 );
 
         // #1 : check feedback geometry
         if( ( feed_from_tf || use_streamout_count ) && rd->tf_ids.size() != 0 )
@@ -2561,12 +2686,16 @@ public:
                 { gid = d.read_buffer().gids[ 0 ]; } );
             }
             else
+            {
                 gid = rd->geo_ids[ geo_idx ].id;
+                vao_id = rd->geo_ids[ geo_idx ].vao;
+            }
         }
         // #2 : check geometry
         else if( rd->geo_ids.size() > geo_idx )
         {
             gid = rd->geo_ids[ geo_idx ].id;
+            vao_id = rd->geo_ids[ geo_idx ].vao;
         }
         // #3 : otherwise we can not render
         else
@@ -2589,8 +2718,8 @@ public:
 
         // find vao
         {
-            GLuint vao_id = GLuint( 0 );
 
+            if( vao_id == GLuint( -1 ) )
             {
                 size_t vao_free = size_t( -1 );
                 size_t vao_idx = size_t( -1 );
@@ -3489,7 +3618,7 @@ void_t gl4_backend::commit_frame_snapshot( void_t ) noexcept
 
     _prepare_draw_idx = size_t( -1 );
 
-    _pimpl->reset_and_unbind_cached_objects(); 
+    _pimpl->reset_and_unbind_cached_objects();
 }
 
 //*************************************************************************************

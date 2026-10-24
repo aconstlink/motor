@@ -276,12 +276,12 @@ struct shader_data
     bool_t find_vertex_output_binding_by_name(
         motor::string_cref_t name_, motor::graphics::vertex_attribute & va ) const noexcept
     {
-        size_t i = size_t(-1) ;
-        while( ++i < vertex_outputs.size() && vertex_outputs[i].name != name_ ) ;
+        size_t i = size_t( -1 );
+        while( ++i < vertex_outputs.size() && vertex_outputs[ i ].name != name_ );
 
-        if( i == vertex_outputs.size() ) return false ;
+        if( i == vertex_outputs.size() ) return false;
 
-        va = vertex_outputs[i].va ;
+        va = vertex_outputs[ i ].va;
 
         return true;
     }
@@ -318,7 +318,7 @@ struct shader_data
     };
     motor_typedef( uniform_variable );
 
-  public: // variables    
+  public: // variables
 
     GLuint vs_id = GLuint( -1 );
     GLuint gs_id = GLuint( -1 );
@@ -434,7 +434,7 @@ struct shader_data
 
         default_values.clear();
 
-        output_names = nullptr ;
+        output_names = nullptr;
     }
 
     this_ref_t operator=( this_cref_t rhv ) = delete;
@@ -487,8 +487,9 @@ struct render_data
 {
     struct geo_id_data
     {
-        size_t id;
-        size_t hash;
+        size_t id = size_t( -1 );
+        size_t hash = size_t( -1 );
+        GLuint vao = GLuint( -1 );
     };
     motor::vector< geo_id_data > geo_ids;
 
@@ -500,6 +501,10 @@ struct render_data
         size_t gid;
         GLuint vao;
     };
+
+    // we leave those links here because they are used by the
+    // transform feedback path. vaos for normal geometry has been
+    // transfered into the geo_ids container.
     motor::vector< geo_to_vao > geo_to_vaos;
 
     struct variable_set
@@ -647,10 +652,10 @@ struct render_data
     motor::vector< uniform_streamout_link > var_sets_streamout;
 
     // memory block for all variables in all variable sets.
-    size_t mem_block_sib = 0 ;
+    size_t mem_block_sib = 0;
     void_ptr_t mem_block = nullptr;
     // the memory needs a refresh if true
-    bool_t memory_dirty = true ;
+    bool_t memory_dirty = true;
 
     motor::vector< motor::graphics::render_state_sets > rss;
 
@@ -659,6 +664,13 @@ struct render_data
         if( idx >= geo_ids.size() ) return;
         geo_ids[ idx ].id = size_t( -1 );
         geo_ids[ idx ].hash = hash;
+
+        if( geo_ids[ idx ].vao != GLuint( -1 ) )
+        {
+            glDeleteVertexArrays( 1, &geo_ids[ idx ].vao );
+            gl4_log_error( "glDeleteVertexArrays" );
+            geo_ids[ idx ].vao = GLuint( -1 );
+        }
     }
 
     void_t remove_geometry_id( size_t const id ) noexcept
@@ -667,23 +679,27 @@ struct render_data
         while( ++i < geo_ids.size() && geo_ids[ i ].id != id );
         if( i != geo_ids.size() )
         {
+            invalidate_geometry_id( i, size_t( -1 ) );
             geo_ids.erase( geo_ids.begin() + i );
         }
     }
 
     void_t signal_dirty_memory( void_t ) noexcept
     {
-        memory_dirty = true ;
+        memory_dirty = true;
     }
 
     void_t invalidate( std::string_view const & name ) noexcept
     {
         // need to clear geometry connections before!
-        // I am trying to remove those connections.
+        for( auto & g : geo_ids )
+        {
+            glDeleteVertexArrays( 1, &g.vao );
+            gl4_log_error2( "glDeleteVertexArrays", name.data() );
+        }
         geo_ids.clear();
 
         // need to clear transform fb connections before!
-        // I am trying to remove those connections.
         tf_ids.clear();
 
         shd_id = GLuint( -1 );
@@ -696,7 +712,6 @@ struct render_data
             glDeleteVertexArrays( 1, &d.vao );
             gl4_log_error2( "glDeleteVertexArrays", name.data() );
         }
-
         geo_to_vaos.clear();
     }
 
@@ -714,8 +729,8 @@ struct render_data
 
         motor::memory::global_t::dealloc( mem_block );
         mem_block = nullptr;
-        mem_block_sib = 0 ;
-        memory_dirty = true ;
+        mem_block_sib = 0;
+        memory_dirty = true;
     }
 };
 motor_typedef( render_data );
@@ -846,4 +861,4 @@ struct msl_data
 motor_typedef( msl_data );
 using msls_t = motor::platform::datas< gl4_pimpl_data::msl_data_t >;
 
-}; // namespace pimpl_data
+}; // namespace gl4_pimpl_data
