@@ -1509,6 +1509,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     }
                 } // animations
 
+                if( data->animations_count == 0 )
+                {
+                    start_node->then( motor::share( merger_node ) ) ;
+                }
                 ret.start_node = motor::move( start_node );
                 ret.merger_node = motor::move( merger_node );
             }
