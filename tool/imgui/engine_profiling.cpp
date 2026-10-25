@@ -8,247 +8,272 @@
 #include <motor/profiling/global.h>
 #include <motor/std/vector_pod>
 
-using namespace motor::tool ;
+using namespace motor::tool;
 
 //******************************************************************************
 void_t engine_profiling::update( void_t ) noexcept
 {
-    #if MOTOR_MEMORY_OBSERVER
+#if MOTOR_MEMORY_OBSERVER
     {
         motor::memory::observer_t::observable_data_t od =
-            motor::memory::global_t::get_observer()->swap_and_clear() ;
+            motor::memory::global_t::get_observer()->swap_and_clear();
 
-        _profiling_data.memory_allocations.clear() ;
-        _profiling_data.memory_deallocations.clear() ;
+        _profiling_data.memory_allocations.clear();
+        _profiling_data.memory_deallocations.clear();
 
-        for ( auto const & m : od.messages )
+        for( auto const & m : od.messages )
         {
-            if ( m.type == motor::memory::observer_t::alloc_type::allocation ||
+            if( m.type == motor::memory::observer_t::alloc_type::allocation ||
                 m.type == motor::memory::observer_t::alloc_type::managed )
             {
-                _profiling_data.memory_allocations.insert( m.sib ) ;
-                _profiling_data.memory_current.insert( m.sib ) ;
+                _profiling_data.memory_allocations.insert( m.sib );
+                _profiling_data.memory_current.insert( m.sib );
             }
-            else if ( m.type == motor::memory::observer_t::alloc_type::deallocation )
+            else if( m.type == motor::memory::observer_t::alloc_type::deallocation )
             {
-                _profiling_data.memory_deallocations.insert( m.sib ) ;
-                _profiling_data.memory_current.remove( m.sib ) ;
+                _profiling_data.memory_deallocations.insert( m.sib );
+                _profiling_data.memory_current.remove( m.sib );
             }
         }
     }
-    #endif
+#endif
 
-    #if MOTOR_PROFILING
-    _profiling_data.profiling_data_points.clear() ;
-    _profiling_data.profiling_data_points = motor::profiling::global_t::manager().swap_and_clear() ;
-    
+#if MOTOR_PROFILING
+    _profiling_data.profiling_data_points.clear();
+    _profiling_data.profiling_data_points = motor::profiling::global_t::manager().swap_and_clear();
+
     {
-        for ( auto & dp : _profiling_data.profiling_data_points  )
+        for( auto & dp : _profiling_data.profiling_data_points )
         {
-            size_t const id = dp.probe_id ;
+            size_t const id = dp.probe_id;
 
-            auto & d = _profiling_data.tmp[ motor::profiling::manager_t::get_name(id) ] ;
-            ++d.num_calls ;
-            d.duration += dp.dur ;
+            auto & d = _profiling_data.tmp[ motor::profiling::manager_t::get_name( id ) ];
+            ++d.num_calls;
+            d.duration += dp.dur;
         }
 
-        for ( auto const & [key, value] : _profiling_data.tmp )
+        for( auto const & [ key, value ] : _profiling_data.tmp )
         {
-            auto & vec = _profiling_data.function_timings[ key ] ;
-            vec.append( value ) ;
+            auto & vec = _profiling_data.function_timings[ key ];
+            vec.append( value );
         }
     }
 
     {
-        for ( auto & dp : _profiling_data.profiling_data_points )
+        for( auto & dp : _profiling_data.profiling_data_points )
         {
-            size_t const pid = dp.probe_id ;
-            auto & cat_item = _by_categories.by_cat[ motor::profiling::manager_t::get_category( pid ) ] ;
-            auto & name_item = cat_item[ motor::profiling::manager_t::get_name( pid ) ] ;
-            ++name_item ;
-            
+            size_t const pid = dp.probe_id;
+            auto & cat_item =
+                _by_categories.by_cat[ motor::profiling::manager_t::get_category( pid ) ];
+            auto & name_item = cat_item[ motor::profiling::manager_t::get_name( pid ) ];
+            ++name_item;
         }
     }
 
-    _profiling_data.tmp.clear() ;
-    #endif
+    _profiling_data.tmp.clear();
+#endif
 }
 
 //******************************************************************************
 bool_t engine_profiling::display( void_t ) noexcept
 {
-    if ( !ImGui::Begin( "Profiling Data" ) ) return false ;
-
-    motor::vector_pod< int_t > xs ;
-    motor::vector_pod< int_t > ys ;
-
-    if ( ImGui::BeginTabBar( "Profiling Data##TabBar" ) )
+    if( !ImGui::Begin( "Profiling Data" ) )
     {
-        using histogram_t = decltype( _profiling_data.memory_current ) ;
+        ImGui::End();
+        return false;
+    }
 
-        auto common_histogram = [&] ( void_t )
+    motor::vector_pod< int_t > xs;
+    motor::vector_pod< int_t > ys;
+
+    if( ImGui::BeginTabBar( "Profiling Data##TabBar" ) )
+    {
+        using histogram_t = decltype( _profiling_data.memory_current );
+
+        auto common_histogram = [ & ]( void_t )
         {
-            xs.resize( _profiling_data.memory_current.get_num_entries() )  ;
-            ys.resize( _profiling_data.memory_current.get_num_entries() )  ;
+            xs.resize( _profiling_data.memory_current.get_num_entries() );
+            ys.resize( _profiling_data.memory_current.get_num_entries() );
 
-            _profiling_data.memory_current.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
+            _profiling_data.memory_current.for_each_entry(
+                [ & ]( size_t const i, histogram_t::data_cref_t d )
             {
-                xs[ i ] = (int_t) d.value ;
-                ys[ i ] = (int_t) d.count ;
-            } ) ;
+                xs[ i ] = (int_t)d.value;
+                ys[ i ] = (int_t)d.count;
+            } );
 
-            //int_t const max_value = (int_t) _profiling_data.memory_current.get_max_count() ;
+            // int_t const max_value = (int_t) _profiling_data.memory_current.get_max_count() ;
 
+            ImPlot::PlotBars( "Current Footprint", xs.data(), ys.data(), (int)ys.size(), 1 );
+        };
 
-            ImPlot::PlotBars( "Current Footprint", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
-        } ;
-
-        if ( ImGui::BeginTabItem( "CPU Memory" ) )
+        if( ImGui::BeginTabItem( "CPU Memory" ) )
         {
-            if ( ImPlot::BeginPlot( "CPU Memory##the_plot" ) )
+            if( ImPlot::BeginPlot( "CPU Memory##the_plot" ) )
             {
-                int_t max_value = 0 ;
+                int_t max_value = 0;
 
                 // draw allocation difference
                 {
-                    common_histogram() ;
+                    common_histogram();
                 }
                 // draw allocations
                 {
-                    if ( _profiling_data.display_allocations )
+                    if( _profiling_data.display_allocations )
                     {
-                        #if 1
-                        xs.resize( _profiling_data.memory_allocations.get_num_entries() ) ;
-                        ys.resize( _profiling_data.memory_allocations.get_num_entries() ) ;
-                        #else
-                        xs = motor::vector_pod< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
-                        ys = motor::vector_pod< int_t >( _profiling_data.memory_allocations.get_num_entries() )  ;
-                        #endif
-                        _profiling_data.memory_allocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
+#if 1
+                        xs.resize( _profiling_data.memory_allocations.get_num_entries() );
+                        ys.resize( _profiling_data.memory_allocations.get_num_entries() );
+#else
+                        xs = motor::vector_pod< int_t >(
+                            _profiling_data.memory_allocations.get_num_entries() );
+                        ys = motor::vector_pod< int_t >(
+                            _profiling_data.memory_allocations.get_num_entries() );
+#endif
+                        _profiling_data.memory_allocations.for_each_entry(
+                            [ & ]( size_t const i, histogram_t::data_cref_t d )
                         {
-                            xs[ i ] = (int_t) d.value ;
-                            ys[ i ] = (int_t) d.count ;
-                        } ) ;
+                            xs[ i ] = (int_t)d.value;
+                            ys[ i ] = (int_t)d.count;
+                        } );
 
-                        max_value = (int_t) _profiling_data.memory_allocations.get_max_count() ;
+                        max_value = (int_t)_profiling_data.memory_allocations.get_max_count();
                     }
 
-                    ImPlot::HideNextItem( true ) ;
-                    ImPlot::PlotBars( "Relative Allocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
+                    ImPlot::HideNextItem( true );
+                    ImPlot::PlotBars( "Relative Allocations", xs.data(), ys.data(),
+                        (int)ys.size() / sizeof( int ), 1 );
 
-                    if ( ImPlot::IsLegendEntryHovered( "Relative Allocations" ) )
+                    if( ImPlot::IsLegendEntryHovered( "Relative Allocations" ) )
                     {
-                        if ( ImGui::IsItemClicked() )
+                        if( ImGui::IsItemClicked() )
                         {
-                            _profiling_data.display_allocations = !_profiling_data.display_allocations ;
+                            _profiling_data.display_allocations =
+                                !_profiling_data.display_allocations;
                         }
                     }
                 }
 
                 // draw deallocations
                 {
-                    if ( _profiling_data.display_deallocations )
+                    if( _profiling_data.display_deallocations )
                     {
-                        #if 1
-                        xs.resize( _profiling_data.memory_deallocations.get_num_entries() ) ;
-                        ys.resize( _profiling_data.memory_deallocations.get_num_entries() ) ;
-                        #else
-                        xs = motor::vector_pod< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
-                        ys = motor::vector_pod< int_t >( _profiling_data.memory_deallocations.get_num_entries() )  ;
-                        #endif
-                        _profiling_data.memory_deallocations.for_each_entry( [&] ( size_t const i, histogram_t::data_cref_t d )
+#if 1
+                        xs.resize( _profiling_data.memory_deallocations.get_num_entries() );
+                        ys.resize( _profiling_data.memory_deallocations.get_num_entries() );
+#else
+                        xs = motor::vector_pod< int_t >(
+                            _profiling_data.memory_deallocations.get_num_entries() );
+                        ys = motor::vector_pod< int_t >(
+                            _profiling_data.memory_deallocations.get_num_entries() );
+#endif
+                        _profiling_data.memory_deallocations.for_each_entry(
+                            [ & ]( size_t const i, histogram_t::data_cref_t d )
                         {
-                            xs[ i ] = (int_t) d.value ;
-                            ys[ i ] = (int_t) d.count ;
-                        } ) ;
+                            xs[ i ] = (int_t)d.value;
+                            ys[ i ] = (int_t)d.count;
+                        } );
 
-                        max_value = (int_t) _profiling_data.memory_deallocations.get_max_count() ;
+                        max_value = (int_t)_profiling_data.memory_deallocations.get_max_count();
                     }
 
-                    ImPlot::HideNextItem( true ) ;
-                    ImPlot::PlotBars( "Relative Deallocations", xs.data(), ys.data(), (int) ys.size() / sizeof( int ), 1 );
+                    ImPlot::HideNextItem( true );
+                    ImPlot::PlotBars( "Relative Deallocations", xs.data(), ys.data(),
+                        (int)ys.size() / sizeof( int ), 1 );
 
-                    if ( ImPlot::IsLegendEntryHovered( "Relative Deallocations" ) )
+                    if( ImPlot::IsLegendEntryHovered( "Relative Deallocations" ) )
                     {
-                        if ( ImGui::IsItemClicked() )
+                        if( ImGui::IsItemClicked() )
                         {
-                            _profiling_data.display_deallocations = !_profiling_data.display_deallocations ;
+                            _profiling_data.display_deallocations =
+                                !_profiling_data.display_deallocations;
                         }
                     }
                 }
-                ImPlot::EndPlot() ;
+                ImPlot::EndPlot();
             }
-            ImGui::EndTabItem() ;
+            ImGui::EndTabItem();
         }
 
-        size_t const max_entries = 1000 ;
+        size_t const max_entries = 1000;
 
-        uint_t num_calls[ max_entries ] ;
-        uint_t spend_micro[ max_entries ] ;
+        uint_t num_calls[ max_entries ];
+        uint_t spend_micro[ max_entries ];
+        uint_t spend_micro_per_call[ max_entries ];
 
-        if ( ImGui::BeginTabItem( "CPU Probes" ) )
+        if( ImGui::BeginTabItem( "CPU Probes" ) )
         {
-            if ( ImGui::TreeNode( "Unordered" ) )
+            if( ImGui::TreeNode( "Unordered" ) )
             {
-                for ( auto & [key, value] : _profiling_data.function_timings )
+                for( auto & [ key, value ] : _profiling_data.function_timings )
                 {
-                    for ( size_t i = value.cur_pos(); i < max_entries; ++i )
+                    for( size_t i = value.cur_pos(); i < max_entries; ++i )
                     {
-                        num_calls[ i ] = 0 ;
-                        spend_micro[ i ] = 0 ;
+                        num_calls[ i ] = 0;
+                        spend_micro[ i ] = 0;
+                        spend_micro_per_call[ i ] = 0;
                     }
 
-                    for ( size_t i = 0; i < std::min( size_t( max_entries ), value.cur_pos()+1 ) ; ++i )
+                    for( size_t i = 0; i < std::min( size_t( max_entries ), value.cur_pos() + 1 );
+                         ++i )
                     {
-                        num_calls[ i ] = value[ i ].num_calls ;
-                        spend_micro[ i ] = uint_t( std::chrono::duration_cast<std::chrono::microseconds>(
-                            value[ i ].duration ).count() )  ;
+                        num_calls[ i ] = value[ i ].num_calls;
+                        spend_micro[ i ] =
+                            uint_t( std::chrono::duration_cast< std::chrono::microseconds >(
+                                value[ i ].duration )
+                                        .count() );
+
+                        spend_micro_per_call[ i ] = spend_micro[ i ] / num_calls[ i ];
                     }
 
-                    if ( ImGui::TreeNode( key ) )
+                    if( ImGui::TreeNode( key ) )
                     {
-                        if ( ImPlot::BeginPlot( key ) )
+                        if( ImPlot::BeginPlot( key ) )
                         {
-                            ImPlot::PlotLine( "Num Calls", num_calls, max_entries ) ;
-                            ImPlot::PlotLine( "Microsecs", spend_micro, max_entries ) ;
-                            ImPlot::EndPlot() ;
+                            ImPlot::PlotLine( "Num Calls", num_calls, max_entries );
+                            ImPlot::PlotLine( "Microsecs", spend_micro, max_entries );
+                            ImPlot::PlotLine( "Microsecs/per call", spend_micro_per_call, max_entries );
+                            ImPlot::EndPlot();
                         }
                         ImGui::TreePop();
                     }
                 }
                 ImGui::TreePop();
             }
-            if ( ImGui::TreeNode( "By Category" ) )
+            if( ImGui::TreeNode( "By Category" ) )
             {
-                for ( auto & [category, by_name] : _by_categories.by_cat )
+                for( auto & [ category, by_name ] : _by_categories.by_cat )
                 {
-                    if ( ImGui::TreeNode( category ) )
+                    if( ImGui::TreeNode( category ) )
                     {
-                        for ( auto & [name, not_used_var] : by_name )
+                        for( auto & [ name, not_used_var ] : by_name )
                         {
                             this_t::profiling_data::ring_of_function_timings_t & value =
-                                _profiling_data.function_timings[name] ;
+                                _profiling_data.function_timings[ name ];
 
-                            if ( ImGui::TreeNode( name ) )
+                            if( ImGui::TreeNode( name ) )
                             {
-                                for ( size_t i = value.cur_pos(); i < max_entries; ++i )
+                                for( size_t i = value.cur_pos(); i < max_entries; ++i )
                                 {
-                                    num_calls[ i ] = 0 ;
-                                    spend_micro[ i ] = 0 ;
+                                    num_calls[ i ] = 0;
+                                    spend_micro[ i ] = 0;
                                 }
 
-                                for ( size_t i = 0; i < std::min( size_t( max_entries ), value.cur_pos() ) ; ++i )
+                                for( size_t i = 0;
+                                     i < std::min( size_t( max_entries ), value.cur_pos() ); ++i )
                                 {
-                                    num_calls[ i ] = value[ i ].num_calls ;
-                                    spend_micro[ i ] = uint_t( std::chrono::duration_cast<std::chrono::microseconds>(
-                                        value[ i ].duration ).count() )  ;
+                                    num_calls[ i ] = value[ i ].num_calls;
+                                    spend_micro[ i ] = uint_t(
+                                        std::chrono::duration_cast< std::chrono::microseconds >(
+                                            value[ i ].duration )
+                                            .count() );
                                 }
 
-                                if ( ImPlot::BeginPlot( name ) )
+                                if( ImPlot::BeginPlot( name ) )
                                 {
-                                    ImPlot::PlotLine( "Num Calls", num_calls, max_entries ) ;
-                                    ImPlot::PlotLine( "Microsecs", spend_micro, max_entries ) ;
-                                    ImPlot::EndPlot() ;
+                                    ImPlot::PlotLine( "Num Calls", num_calls, max_entries );
+                                    ImPlot::PlotLine( "Microsecs", spend_micro, max_entries );
+                                    ImPlot::EndPlot();
                                 }
 
                                 ImGui::TreePop();
@@ -257,19 +282,19 @@ bool_t engine_profiling::display( void_t ) noexcept
                         ImGui::TreePop();
                     }
                 }
-                
+
                 ImGui::TreePop();
             }
 
-            if ( ImGui::TreeNode( "Functions" ) )
+            if( ImGui::TreeNode( "Functions" ) )
             {
-                if ( ImGui::TreeNode( "Category 1" ) )
+                if( ImGui::TreeNode( "Category 1" ) )
                 {
-                    for ( int i = 0; i < 5; i++ )
+                    for( int i = 0; i < 5; i++ )
                     {
-                        if ( ImGui::TreeNode( (void *) (intptr_t) i, "Child %d", i ) )
+                        if( ImGui::TreeNode( (void *)(intptr_t)i, "Child %d", i ) )
                         {
-                            #if 0
+#if 0
                             ImGui::SameLine() ;
 
                             if ( ImPlot::BeginPlot( "Stock Prices" ) )
@@ -277,21 +302,23 @@ bool_t engine_profiling::display( void_t ) noexcept
                                 ImPlot::PlotLine( "Stock 1", xs1, ys1, 101 );
                                 ImPlot::EndPlot() ;
                             }
-                            #endif
+#endif
                             ImGui::TreePop();
                         }
                     }
                     ImGui::TreePop();
                 }
-                if ( ImGui::TreeNode( "Category 2" ) )
+                if( ImGui::TreeNode( "Category 2" ) )
                 {
-                    for ( int i = 0; i < 5; i++ )
+                    for( int i = 0; i < 5; i++ )
                     {
-                        if ( ImGui::TreeNode( (void *) (intptr_t) i, "Child %d", i ) )
+                        if( ImGui::TreeNode( (void *)(intptr_t)i, "Child %d", i ) )
                         {
                             ImGui::Text( "blah blah" );
                             ImGui::SameLine();
-                            if ( ImGui::SmallButton( "button" ) ) {}
+                            if( ImGui::SmallButton( "button" ) )
+                            {
+                            }
                             ImGui::TreePop();
                         }
                     }
@@ -300,23 +327,23 @@ bool_t engine_profiling::display( void_t ) noexcept
                 ImGui::TreePop();
             }
 
-            ImGui::EndTabItem() ;
+            ImGui::EndTabItem();
         }
 
-        if ( ImGui::BeginTabItem( "GPU Memory" ) )
+        if( ImGui::BeginTabItem( "GPU Memory" ) )
         {
-            ImGui::EndTabItem() ;
+            ImGui::EndTabItem();
         }
 
-        if ( ImGui::BeginTabItem( "GPU Performace" ) )
+        if( ImGui::BeginTabItem( "GPU Performace" ) )
         {
-            ImGui::EndTabItem() ;
+            ImGui::EndTabItem();
         }
 
-        ImGui::EndTabBar() ;
+        ImGui::EndTabBar();
     }
 
-    ImGui::End() ;
+    ImGui::End();
 
-    return true ;
+    return true;
 }

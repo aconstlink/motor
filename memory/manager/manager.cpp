@@ -101,7 +101,7 @@ manager::manager( this_rref_t rhv ) noexcept : _ptr_to_info( std::move( rhv._ptr
 manager::~manager( void_t ) noexcept
 {
 #if MOTOR_MEMORY_OBSERVER
-    free( _observer );
+    delete _observer ;
 #endif
 
     if( _pimpl != nullptr ) delete( _pimpl );
