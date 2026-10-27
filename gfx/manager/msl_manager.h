@@ -48,6 +48,11 @@ class MOTOR_GFX_API msl_manager
     // should return false. otherwise true.
     using completion_funk_t = std::function< bool_t( completion_funk_data const & ) >;
 
+  public:
+
+    using on_configure_funk_t =
+        std::function< void_t( motor::string_in_t, motor::graphics::msl_object_mtr_t ) >;
+
   private:
 
     struct shared_data
@@ -75,10 +80,42 @@ class MOTOR_GFX_API msl_manager
 
   private:
 
+    // if a comp funk is registered, is is put in here
+    motor::vector< on_configure_funk_t > _conf_funks;
+
+    // if a comp funk is registered, it will be
+    // called on every msl which is already in the msl container.
+    // when it is called on every msl item, it will be removed
+    // from this container.
+    // indirection into _conf_funks
+    motor::vector< size_t > _conf_funk_on_msls;
+
+    // if a comp funk is registered, it will be put in here
+    // until the manager is released.
+    // indirection into _conf_funks
+    motor::vector< size_t > _conf_funk_on_fresh;
+
+  public:
+
+    size_t register_funk( on_configure_funk_t f ) noexcept;
+    size_t unregister_funk( size_t const ) noexcept;
+
+  private:
+
     struct msl_data
     {
         motor::graphics::msl_object_mtr_t msl = nullptr;
         motor::io::monitor_mtr_t mon = nullptr;
+
+        // this is temporary. We need this in the on_update funk
+        // if the callback was already called.
+        bool_t conf_funk_called = false;
+
+        // this is temporary. We need this in the on_update funk
+        // if the msl ready flags flip between the callback
+        // loops. so the msl callback might end up in both lists
+        // and might be called twice.
+        bool_t is_in_process_list = false;
     };
 
     motor::io::database_mtr_t _db = nullptr;
@@ -128,10 +165,6 @@ class MOTOR_GFX_API msl_manager
         completion_funk_t = []( completion_funk_data const & ) { return false; } ) noexcept;
 
     void_t on_update( void_t ) noexcept;
-
-    using on_configure_funk_t =
-        std::function< void_t( motor::string_in_t, motor::graphics::msl_object_mtr_t ) >;
-    void_t for_each_configure_done( on_configure_funk_t ) noexcept;
 
   public: // graphics interface
 
