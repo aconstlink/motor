@@ -725,8 +725,8 @@ struct render_data
 {
     struct geo_id_data
     {
-        size_t id;
-        size_t hash;
+        size_t id = size_t( -1 );
+        size_t hash = size_t( -1 );
     };
     motor::vector< geo_id_data > geo_ids;
 

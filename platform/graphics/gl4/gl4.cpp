@@ -1168,7 +1168,7 @@ struct gl4_backend::pimpl
 
         // handle geometry links
         {
-            rd->geo_ids.reserve( rc.get_num_geometry() );
+            rd->geo_ids.resize( rc.get_num_geometry() );
             for( size_t i = 0; i < rc.get_num_geometry(); ++i )
             {
                 auto const gid = _geometries.find_by_name( rc.get_geometry_link( i ).name );
@@ -1181,8 +1181,8 @@ struct gl4_backend::pimpl
                 }
 
                 // set hash to -1 so we force action in geometry link
-                rd->geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
-                    gid, /*rc.get_geometry_link( i ).hash*/ size_t( -1 ), GLuint( -1 ) } );
+                rd->geo_ids[ i ] = gl4_pimpl_data::render_data::geo_id_data{
+                    gid, /*rc.get_geometry_link( i ).hash*/ size_t( -1 ), GLuint( -1 ) };
 
 #if 1
                 geo_datas_t::handle_t( gid, _geometries )->add_render_data_id( rd.oid() );
@@ -1265,6 +1265,7 @@ struct gl4_backend::pimpl
         motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
     {
         auto rd = _renders.access( ro.get_oid( _bid ), ro.name() );
+        if( !rd || geo_idx >= ro.get_num_geometry() ) return false;
         auto shd = _shaders.access( rd->shd_id );
         if( !shd )
         {
@@ -1308,8 +1309,10 @@ struct gl4_backend::pimpl
                 return false;
             }
 
-            rd->geo_ids.emplace_back( gl4_pimpl_data::render_data::geo_id_data{
-                gid, ro.get_geometry_link( geo_idx ).hash, vao_id } );
+            // Keep the backend index identical to the public geometry-link index.
+            rd->geo_ids.resize( geo_idx + 1 );
+            rd->geo_ids[ geo_idx ] = gl4_pimpl_data::render_data::geo_id_data{
+                gid, ro.get_geometry_link( geo_idx ).hash, vao_id };
 
 #if 1
             gd->add_render_data_id( rd.oid() );

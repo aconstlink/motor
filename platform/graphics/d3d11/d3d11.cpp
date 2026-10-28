@@ -1769,7 +1769,7 @@ struct d3d11_backend::pimpl
         auto shd = _shaders.access( rd->shd_id );
         if( !shd ) return false;
 
-        if( rd->geo_ids.size() != 0 )
+        if( geo_idx < rd->geo_ids.size() && rd->geo_ids[ geo_idx ].id != size_t( -1 ) )
         {
             d3d11_pimpl_data::geo_data_t::elements_t elems;
             {
@@ -2636,6 +2636,7 @@ struct d3d11_backend::pimpl
         // find geometry
         {
             rd->geo_ids.clear();
+            rd->geo_ids.resize( rc.get_num_geometry() );
             for( size_t i = 0; i < rc.get_num_geometry(); ++i )
             {
                 auto const id_ = _geos.find_by_name( rc.get_geometry_link( i ).name );
@@ -2648,7 +2649,7 @@ struct d3d11_backend::pimpl
                     continue;
                 }
 
-                rd->geo_ids.emplace_back( id_ );
+                rd->geo_ids[ i ] = { id_, size_t( -1 ) };
             }
         }
 
@@ -2694,7 +2695,12 @@ struct d3d11_backend::pimpl
         }
 
         {
-            if( !this_t::bind_vertex_inputs( rd ) )
+            // Missing links retain their slots; use the first available geometry for the layout.
+            size_t geo_idx = 0;
+            while( geo_idx < rd->geo_ids.size() && rd->geo_ids[ geo_idx ].id == size_t( -1 ) )
+                ++geo_idx;
+
+            if( !this_t::bind_vertex_inputs( rd, geo_idx ) )
             {
                 return false;
             }
@@ -2759,66 +2765,40 @@ struct d3d11_backend::pimpl
         motor::graphics::render_object_ref_t ro, size_t const geo_idx ) noexcept
     {
         auto rd = _renders.access( ro.get_oid( _bid ), ro.name() );
-        if( !rd ) return false;
+        if( !rd || geo_idx >= ro.get_num_geometry() ) return false;
 
-        // do full binding
-        if( rd->geo_ids.size() <= geo_idx )
+        if( rd->geo_ids.size() <= geo_idx ) rd->geo_ids.resize( geo_idx + 1 );
+
+        auto const & link = ro.get_geometry_link( geo_idx );
+        if( link.ref_count == 0 )
         {
-            auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
-            if( gid == size_t( -1 ) )
-            {
-                motor::log::global_t::warning< 1024 >(
-                    "[d3d11:update_geometry_link] : no geometry with name [%s] for render_data "
-                    "[%s]",
-                    ro.get_geometry_link( geo_idx ).name.c_str(), ro.name().c_str() );
-                return false;
-            }
-            rd->geo_ids.emplace_back( d3d11_pimpl_data::render_data_t::geo_id_data{
-                gid, ro.get_geometry_link( geo_idx ).hash } );
-            //_geos.access( gid, [&]( d3d11_pimpl_data::geo_data_ref_t d ){
-            // d.add_render_data_id( new_id ) ; } ) ;
-
-            auto const res = this_t::bind_vertex_inputs( render_datas_t::checked_handle_t( rd ) );
+            rd->invalidate_geometry_index( geo_idx, link.hash );
+            return false;
         }
-        else if( rd->geo_ids[ geo_idx ].hash != ro.get_geometry_link( geo_idx ).hash )
+
+        auto & entry = rd->geo_ids[ geo_idx ];
+        if( entry.id != size_t( -1 ) && entry.hash == link.hash ) return true;
+
+        auto const gid = _geos.find_by_name( link.name );
+        if( gid == size_t( -1 ) )
         {
-            auto const hash = ro.get_geometry_link( geo_idx ).hash;
-            if( ro.get_geometry_link( geo_idx ).ref_count == 0 )
-            {
-                rd->invalidate_geometry_index( geo_idx, hash );
-            }
-            else if( rd->geo_ids[ geo_idx ].id != size_t( -1 ) )
-            {
-                // config geometry entry is valid.
-                // maybe the data changed lets check it
-                {
-                    auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
-                    if( gid != rd->geo_ids[ geo_idx ].id )
-                    {
-                        // ok, geometry changed
-                        rd->geo_ids[ geo_idx ].id = gid;
-
-                        // at this point, the geometry needs to be rebound
-                        // to the shader inputs.
-                        auto const res = this_t::bind_vertex_inputs(
-                            render_datas_t::checked_handle_t( rd ), geo_idx );
-                    }
-                }
-
-                rd->geo_ids[ geo_idx ].hash = hash;
-            }
-            else
-            {
-                auto const gid = _geos.find_by_name( ro.get_geometry_link( geo_idx ).name );
-                rd->geo_ids[ geo_idx ].id = gid;
-                rd->geo_ids[ geo_idx ].hash = hash;
-            }
+            motor::log::global_t::warning< 1024 >(
+                "[d3d11:update_geometry_link] : no geometry with name [%s] for render_data [%s]",
+                link.name.c_str(), ro.name().c_str() );
+            return false;
         }
-        else
+
+        bool_t const needs_binding = entry.id != gid || rd->vertex_layout == nullptr;
+        entry.id = gid;
+        if( needs_binding &&
+            !this_t::bind_vertex_inputs( render_datas_t::checked_handle_t( rd ), geo_idx ) )
         {
-            // nothing to do
-            // everything is valid.
+            // Do not acknowledge a failed binding; retry when the geometry is used again.
+            rd->invalidate_geometry_index( geo_idx, size_t( -1 ) );
+            return false;
         }
+
+        entry.hash = link.hash;
 
         return true;
     }
