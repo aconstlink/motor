@@ -82,19 +82,24 @@ void_t render_visitor::handle_visit( motor::scene::node_ptr_t nptr ) noexcept
     nptr->for_each_component( [ & ]( motor::scene::icomponent_mtr_t comp )
     {
         // configurations
-        if( lc.cgc = motor::scene::safe_cast< motor::scene::config_graphics_component_t >( comp );
-            lc.cgc )
+        if( auto * cgc_ptr =
+                motor::scene::safe_cast< motor::scene::config_graphics_component_t >( comp );
+            cgc_ptr )
         {
+            lc.cgc = cgc_ptr;
         }
         // render settings
-        else if( lc.rsc =
+        else if( auto * rsc_ptr =
                      motor::scene::safe_cast< motor::scene::render_settings_component_t >( comp );
-                 lc.rsc )
+                 rsc_ptr )
         {
+            lc.rsc = rsc_ptr;
         }
-        else if( lc.msls = motor::scene::safe_cast< motor::scene::msl_set_component_t >( comp );
-                 lc.msls )
+        else if( auto * msl_ptr =
+                     motor::scene::safe_cast< motor::scene::msl_set_component_t >( comp );
+                 msl_ptr )
         {
+            lc.msls = msl_ptr;
         }
     } );
 

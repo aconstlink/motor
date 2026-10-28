@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #pragma once
 
 #include "../icomponent.h"
@@ -107,8 +106,12 @@ class MOTOR_SCENE_API msl_component : public icomponent
         return _msl->is_managed();
     }
 
-    // size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept;
-    size_t set_msl( motor::graphics::msl_object_mtr_safe_t ) noexcept;
+    // will relink geometry and variable set. so if a new msl is used with this
+    // component, just call this function. The old geometry will be linked to the
+    // new msl and the old variable set will be linked to the new msl so no data
+    // is lost. All temporary data is cleared though. we only store the 
+    // geometry link and the variable set. from those everything should be derivable.
+    size_t set_msl_and_link( motor::graphics::msl_object_mtr_safe_t ) noexcept;
 
     motor::graphics::msl_object_mtr_t borrow_msl( void_t ) noexcept
     {
@@ -126,6 +129,12 @@ class MOTOR_SCENE_API msl_component : public icomponent
     geo_idx_t get_geo_idx( void_t ) const noexcept
     {
         return _geo_id;
+    }
+
+    void_t set_idx( size_t const vs_idx, size_t const geo_idx ) noexcept
+    {
+        _geo_id = geo_idx;
+        _vs = vs_idx;
     }
 
   public: // render interface
@@ -153,10 +162,10 @@ class MOTOR_SCENE_API msl_component : public icomponent
     void_t set_light_intensity( size_t const render_id, float_t v ) noexcept;
 
     void_t set_light_color( motor::math::vec3f_cref_t ) noexcept;
-    void_t set_light_color( size_t const render_id, motor::math::vec3f_cref_t  ) noexcept;
+    void_t set_light_color( size_t const render_id, motor::math::vec3f_cref_t ) noexcept;
 
     void_t set_is_point_light( bool_t const ) noexcept;
-    void_t set_is_point_light( size_t const render_id, bool_t const  ) noexcept;
+    void_t set_is_point_light( size_t const render_id, bool_t const ) noexcept;
 
     void_t set_light_projection( motor::math::mat4f_cref_t ) noexcept;
     void_t set_light_projection( size_t const render_id, motor::math::mat4f_cref_t ) noexcept;
@@ -187,7 +196,7 @@ class MOTOR_SCENE_API msl_component : public icomponent
 
     // connect the output bridge to the input bridge slots of
     // render_data_set with id.
-    void_t connect_output_to_input( size_t const id );    
+    void_t connect_output_to_input( size_t const id );
 };
 motor_typedef( msl_component );
 } // namespace scene

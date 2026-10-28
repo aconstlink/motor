@@ -84,6 +84,15 @@ class add_msl_to_set_visitor : public default_visitor
             if( comp->borrow_msl_component( _id, msl_comp ) )
             {
                 // there is already a msl component.
+#if 1
+
+                msl_comp->set_msl_and_link( motor::share( _msl ) );
+
+                _vsf( name, msl_comp->borrow_msl()
+                                ->borrow_variable_set( msl_comp->get_variable_set_idx() )
+                                .vs );
+#else
+
                 size_t const geo_idx = msl_comp->get_geo_idx();
                 size_t const vs_idx = msl_comp->get_variable_set_idx();
 
@@ -92,17 +101,16 @@ class add_msl_to_set_visitor : public default_visitor
                 motor::string_t geo_name = msl->get_geo_link( geo_idx ).name;
                 auto vs = msl->get_variable_set( vs_idx );
 
-                msl->unlink_geometry( geo_idx );
-                msl->drop_variable_set( vs_idx );
-
                 _vsf( name, vs );
 
-                _msl->link_geometry( geo_name );
-                _msl->add_variable_set( motor::move( vs ) );
+                auto const new_geo_idx = _msl->link_geometry( geo_name );
+                auto const new_vs_idx = _msl->add_variable_set( motor::move( vs ) );
 
-                
+                msl_comp->set_msl( motor::share( _msl ), new_vs_idx, new_geo_idx );
 
-                msl_comp->set_msl( motor::share( _msl ) );
+                msl->unlink_geometry( geo_idx );
+                msl->drop_variable_set( vs_idx );
+#endif
             }
             else
             {

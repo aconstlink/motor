@@ -68,29 +68,108 @@ msl_component::~msl_component( void_t ) noexcept
     motor::release( motor::move( _comp_lst ) );
 }
 
+#if 1
 //*****************************************************************
-size_t msl_component::set_msl( motor::graphics::msl_object_mtr_safe_t msl ) noexcept
+size_t msl_component::set_msl_and_link( motor::graphics::msl_object_mtr_safe_t msl ) noexcept
+{
+    // remember the old links for geometry and 
+    // variable set. Those are put into the incoming
+    // msl.
+    motor::graphics::variable_set_mtr_safe_t vs;
+    motor::string_t geo_name;
+
+    // clean up old data first
+    {
+        if( _msl != nullptr )
+        {
+            vs = _msl->get_variable_set( _vs );
+            geo_name = _msl->get_geo_link( _geo_id ).name;
+
+            _msl->unlink_geometry( _geo_id );
+
+            _msl->drop_variable_set( _vs );
+            for( auto & ss : _sub_sets )
+            {
+                _msl->drop_variable_set( ss.get_variable_set_idx() );
+            }
+
+            _msl->unregister_listener( _comp_lst );
+            motor::release( motor::move( _msl ) );
+        }
+
+        _base_data_set.clear();
+        for( auto & ss : _sub_sets )
+        {
+            ss.clear();
+        }
+        _sub_sets.clear();
+    }
+
+    // assign new data.
+    {
+        _msl = motor::move( msl );
+
+        if( _msl != nullptr )
+        {
+            _vs = _msl->add_variable_set( motor::move( vs ) );
+            _geo_id = _msl->link_geometry( geo_name );
+            _msl->register_listener( motor::share( _comp_lst ) );
+            //_vs = _msl->borrow_variable_sets().size();
+            _msl->fill_variable_sets( _vs );
+        }
+    }
+
+    return _vs;
+}
+#else
+//*****************************************************************
+size_t msl_component::set_msl(
+    motor::graphics::msl_object_mtr_safe_t msl, motor::string_in_t geo_name ) noexcept
 {
 #if 0
     std::memset( reinterpret_cast< void * >( &_cam_vars ), 0, sizeof( _cam_vars ) );
     std::memset( reinterpret_cast< void * >( &_light_vars ), 0, sizeof( _light_vars ) );
 #endif
-    _base_data_set.clear();
 
-    if( _msl != nullptr ) motor::release( motor::move( _msl ) );
-
-    _msl = motor::move( msl );
-    _vs = size_t( -1 );
-    if( _msl != nullptr )
+    // clean up old data first
     {
-        _msl->register_listener( motor::share( _comp_lst ) );
-        _vs = _msl->borrow_variable_sets().size();
-        _msl->fill_variable_sets( _vs );
+        if( _msl != nullptr )
+        {
+            _msl->drop_variable_set( _base_data_set.get_variable_set_idx() );
+            for( auto & ss : _sub_sets )
+            {
+                _msl->drop_variable_set( ss.get_variable_set_idx() );
+            }
+
+            _msl->unregister_listener( _comp_lst );
+            motor::release( motor::move( _msl ) );
+        }
+
+        _base_data_set.clear();
+        for( auto & ss : _sub_sets )
+        {
+            ss.clear();
+        }
+        _sub_sets.clear();
+    }
+
+    // assign new data.
+    {
+        _msl = motor::move( msl );
+        _vs = vs_idx;
+        _geo_id = geo_idx;
+        if( _msl != nullptr )
+        {
+
+            _msl->register_listener( motor::share( _comp_lst ) );
+            //_vs = _msl->borrow_variable_sets().size();
+            _msl->fill_variable_sets( _vs );
+        }
     }
 
     return _vs;
 }
-
+#endif
 //*****************************************************************
 bool_t msl_component::render_init( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
@@ -304,13 +383,13 @@ void_t msl_component::set_light_color(
 }
 
 //*****************************************************************
-void_t msl_component::set_is_point_light( bool_t const v ) noexcept 
+void_t msl_component::set_is_point_light( bool_t const v ) noexcept
 {
     _base_data_set.set_is_point_light( v );
 }
 
 //*****************************************************************
-void_t msl_component::set_is_point_light( size_t const render_id, bool_t const v ) noexcept 
+void_t msl_component::set_is_point_light( size_t const render_id, bool_t const v ) noexcept
 {
     if( this_t::ensure_render_data( render_id ) )
     {
@@ -420,10 +499,11 @@ void_t msl_component::connect_output_to_input( size_t const id )
 
     _out_bridge.borrow_outputs().for_each_slot(
         [ & ]( motor::string_in_t name, motor::wire::ioutput_slot_ptr_t os )
-    { 
-        auto * ptr = iss.borrow( name ) ;
-        if( ptr == nullptr )  return ;
-        ptr->connect( motor::share( os ) ); } );
+    {
+        auto * ptr = iss.borrow( name );
+        if( ptr == nullptr ) return;
+        ptr->connect( motor::share( os ) );
+    } );
 }
 
 //*****************************************************************
