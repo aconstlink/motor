@@ -2473,10 +2473,16 @@ struct gl4_backend::pimpl
 
                     if( !res )
                     {
-                        motor::log::global_t::error< 1024 >(
-                            "[gl4] : Could not find image [%s]", tx_name.name().c_str() );
+                        motor::log::global_t::warning< 2048 >(
+                            "[gl4:connect] : render data [%s]; shader [%s]", rd.name().c_str(),
+                            shd.name().c_str() );
+
+                        motor::log::global_t::warning< 2048 >(
+                            "   -> Could not find image [%s] for variable name [%s]",
+                            tx_name.name().c_str(), uv.name.c_str() );
                         continue;
                     }
+
                     rd->var_sets_texture.emplace_back( link );
                     ++vtidx_data.texture_idx_end;
                 }
