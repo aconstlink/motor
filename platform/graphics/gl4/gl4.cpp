@@ -281,7 +281,10 @@ struct gl4_backend::pimpl
                     GLenum const gldst =
                         motor::platform::gl3::convert( new_states.blend_s.ss.dst_blend_factor );
 
-                    glBlendEquation( GL_FUNC_ADD );
+                    GLenum blend_func =
+                        motor::platform::gl3::convert( new_states.blend_s.ss.blend_func );
+
+                    glBlendEquation( blend_func );
                     motor::ogl::error::check_and_log( gl4_log( "glBlendEquation" ) );
                     glBlendFunc( glsrc, gldst );
                     motor::ogl::error::check_and_log( gl4_log( "glBlendFunc" ) );
@@ -300,11 +303,14 @@ struct gl4_backend::pimpl
             {
                 if( new_states.polygon_s.ss.do_activate )
                 {
-                    glEnable( GL_CULL_FACE );
-                    motor::ogl::error::check_and_log( gl4_log( "glEnable" ) );
+                    if( new_states.polygon_s.ss.cm != motor::graphics::cull_mode::none )
+                    {
+                        glEnable( GL_CULL_FACE );
+                        motor::ogl::error::check_and_log( gl4_log( "glEnable" ) );
 
-                    glCullFace( motor::platform::gl3::convert( new_states.polygon_s.ss.cm ) );
-                    motor::ogl::error::check_and_log( gl4_log( "glCullFace" ) );
+                        glCullFace( motor::platform::gl3::convert( new_states.polygon_s.ss.cm ) );
+                        motor::ogl::error::check_and_log( gl4_log( "glCullFace" ) );
+                    }
 
                     glFrontFace( motor::platform::gl3::convert( new_states.polygon_s.ss.ff ) );
                     motor::ogl::error::check_and_log( gl4_log( "glFrontFace" ) );
@@ -373,8 +379,33 @@ struct gl4_backend::pimpl
                 GLbitfield const color_bit = clear_color ? GL_COLOR_BUFFER_BIT : 0;
                 GLbitfield const depth_bit = clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 
+                //
+                // before we clear the depth buffer, we need to activate the
+                // depth write mask. Otherwise, the depth buffer will not be
+                // cleared.
+                //
+                GLboolean old_write_mask = GL_FALSE;
+                bool_t write_mask_changed = false;
+                if( clear_depth )
+                {
+                    glGetBooleanv( GL_DEPTH_WRITEMASK, &old_write_mask );
+                    motor::ogl::error::check_and_log( gl4_log( "glGetBooleanv" ) );
+                    if( old_write_mask != GL_TRUE )
+                    {
+                        write_mask_changed = true;
+                        glDepthMask( GL_TRUE );
+                        motor::ogl::error::check_and_log( gl4_log( "glDepthMask" ) );
+                    }
+                }
+
                 glClear( color_bit | depth_bit );
                 motor::ogl::error::check_and_log( gl4_log( "glEnable" ) );
+
+                if( write_mask_changed )
+                {
+                    glDepthMask( old_write_mask );
+                    motor::ogl::error::check_and_log( gl4_log( "glDepthMask" ) );
+                }
             }
         }
     }
@@ -3022,8 +3053,32 @@ struct gl4_backend::pimpl
             GLbitfield const color = GL_COLOR_BUFFER_BIT;
             GLbitfield const depth = GL_DEPTH_BUFFER_BIT;
 
+#if 0
             glClear( color | depth );
             motor::ogl::error::check_and_log( gl4_log( "glEnable" ) );
+#else
+            GLboolean old_write_mask = GL_FALSE;
+            bool_t write_mask_changed = false;
+            {
+                glGetBooleanv( GL_DEPTH_WRITEMASK, &old_write_mask );
+                motor::ogl::error::check_and_log( gl4_log( "glGetBooleanv" ) );
+                if( old_write_mask != GL_TRUE )
+                {
+                    write_mask_changed = true;
+                    glDepthMask( GL_TRUE );
+                    motor::ogl::error::check_and_log( gl4_log( "glDepthMask" ) );
+                }
+            }
+
+            glClear( color | depth );
+            motor::ogl::error::check_and_log( gl4_log( "glEnable" ) );
+
+            if( write_mask_changed )
+            {
+                glDepthMask( old_write_mask );
+                motor::ogl::error::check_and_log( gl4_log( "glDepthMask" ) );
+            }
+#endif
         }
     }
 

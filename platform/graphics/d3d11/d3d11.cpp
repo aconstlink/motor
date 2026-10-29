@@ -301,10 +301,13 @@ struct d3d11_backend::pimpl
             {
                 assert( incoming_states.depth_stencil_state != nullptr );
 
-                _ctx->ctx()->OMSetDepthStencilState( incoming_states.depth_stencil_state, 0 );
+                _ctx->ctx()->OMSetDepthStencilState( _state_stack.top().depth_stencil_state, 0 );
 
-                incoming_states.depth_stencil_state->Release();
-                incoming_states.depth_stencil_state = nullptr;
+                if( incoming_states.depth_stencil_state != nullptr )
+                {
+                    incoming_states.depth_stencil_state->Release();
+                    incoming_states.depth_stencil_state = nullptr;
+                }
             }
             else
             {
@@ -335,7 +338,7 @@ struct d3d11_backend::pimpl
             {
                 assert( incoming_states.blend_state != nullptr );
 
-                _ctx->ctx()->OMSetBlendState( incoming_states.blend_state, 0, 0xffffffff );
+                _ctx->ctx()->OMSetBlendState( _state_stack.top().blend_state, 0, 0xffffffff );
 
                 incoming_states.blend_state->Release();
                 incoming_states.blend_state = nullptr;
@@ -380,11 +383,31 @@ struct d3d11_backend::pimpl
         }
         // rasterizer state conglomerate
         {
+            // scissor state is set separately.
+            // but activated through the rs state
+            {
+                auto const & target_rss = popped ? _state_stack.top().rss : incoming_states.rss;
+
+                if( target_rss.scissor_s.ss.do_activate )
+                {
+                    LONG const h = target_rss.view_s.ss.vp.w();
+
+                    D3D11_RECT rect;
+                    rect.left = target_rss.scissor_s.ss.rect.x();
+                    rect.right =
+                        target_rss.scissor_s.ss.rect.x() + target_rss.scissor_s.ss.rect.z();
+                    rect.top =
+                        h - ( target_rss.scissor_s.ss.rect.y() + target_rss.scissor_s.ss.rect.w() );
+                    rect.bottom = rect.top + target_rss.scissor_s.ss.rect.w();
+
+                    _ctx->ctx()->RSSetScissorRects( 1, &rect );
+                }
+            }
+
             if( popped )
             {
                 assert( incoming_states.raster_state != nullptr );
-
-                _ctx->ctx()->RSSetState( incoming_states.raster_state );
+                _ctx->ctx()->RSSetState( _state_stack.top().raster_state );
 
                 incoming_states.raster_state->Release();
                 incoming_states.raster_state = nullptr;
@@ -414,6 +437,7 @@ struct d3d11_backend::pimpl
                 if( incoming_states.rss.scissor_s.do_change )
                 {
                     raster_desc.ScissorEnable = incoming_states.rss.scissor_s.ss.do_activate;
+#if 0
                     if( incoming_states.rss.scissor_s.ss.do_activate )
                     {
                         LONG const h = _state_stack.top().rss.view_s.ss.vp.w();
@@ -428,6 +452,7 @@ struct d3d11_backend::pimpl
 
                         _ctx->ctx()->RSSetScissorRects( 1, &rect );
                     }
+#endif
                 }
                 if( incoming_states.raster_state != nullptr )
                 {
@@ -3750,10 +3775,29 @@ struct d3d11_backend::pimpl
 
         assert( _state_stack.size() == 1 );
 
-        // simply pop the begin frame render states
-        // and also release all state objects.
+// simply pop the begin frame render states
+// and also release all state objects.
+#if 1
+        auto rss = _state_stack.pop();
+
+        if( rss.depth_stencil_state != nullptr )
+        {
+            rss.depth_stencil_state->Release();
+        }
+
+        if( rss.blend_state != nullptr )
+        {
+            rss.blend_state->Release();
+        }
+
+        if( rss.raster_state != nullptr )
+        {
+            rss.raster_state->Release();
+        }
+#else
         auto rss = _state_stack.pop();
         this->handle_render_state( rss, true );
+#endif
 
         _ctsd->notify_thread();
     }
@@ -4277,9 +4321,7 @@ motor::graphics::result d3d11_backend::prepare_render( motor::graphics::render_o
         if( !res ) return motor::graphics::result::failed;
     }
 
-    
     auto const update_res = _pimpl->update_render_object( *obj, det.varset );
-    
 
     _prepare_draws[ _prepare_draw_idx ] =
         this_t::prepare_draw{ update_res, _prepare_draw_idx, oid, det.varset };
@@ -4314,7 +4356,8 @@ motor::graphics::result d3d11_backend::prepare_render( motor::graphics::msl_obje
     auto const res = this_t::prepare_render( obj->borrow_render_object(), det );
     if( res != motor::graphics::result::ok )
     {
-        motor::log::global_t::error< 1024 >( "[d3d11] : prepare_render for %s", obj->name().c_str() );
+        motor::log::global_t::error< 1024 >(
+            "[d3d11] : prepare_render for %s", obj->name().c_str() );
     }
 
     return res;
@@ -4329,7 +4372,7 @@ void_t d3d11_backend::commit_frame_snapshot( void_t ) noexcept
 
         if( !prep.ready ) continue;
 
-        //prep.ready = false;
+        // prep.ready = false;
 
         if( auto rd = render_datas_t::handle_t( prep.oid, _pimpl->_renders ); rd )
         {
@@ -4343,14 +4386,13 @@ void_t d3d11_backend::commit_frame_snapshot( void_t ) noexcept
                 // at the moment, variables are updated in prepare.
                 // this is possible, becuase every variable set has its own
                 // constant buffer.
-                //prep.ready = true
-    
+                // prep.ready = true
+
 #else
                 _pimpl->render_object_variable_memory( rdc, shdc );
 
                 prep.ready = _pimpl->update_variables( rdc, shdc, prep.vs_idx );
 #endif
-            
             }
         }
     }
@@ -4380,15 +4422,14 @@ motor::graphics::result d3d11_backend::render(
     }
 
     // render
-    
-    auto const res = _pimpl->render( oid, detail.geo, detail.feed_from_streamout, detail.use_streamout_count,
-        detail.varset, (UINT)detail.start, (UINT)detail.num_elems );
-    
+
+    auto const res = _pimpl->render( oid, detail.geo, detail.feed_from_streamout,
+        detail.use_streamout_count, detail.varset, (UINT)detail.start, (UINT)detail.num_elems );
 
     _prepare_draws[ _prepare_draw_idx ] =
         this_t::prepare_draw{ false, size_t( -1 ), size_t( -1 ), size_t( -1 ) };
 
-    return res ? motor::graphics::result::ok : motor::graphics::result::failed ;
+    return res ? motor::graphics::result::ok : motor::graphics::result::failed;
 }
 
 //************************************************************************************************************
