@@ -301,29 +301,27 @@ struct gl4_backend::pimpl
         {
             if( new_states.polygon_s.do_change )
             {
-                if( new_states.polygon_s.ss.do_activate )
+                if( new_states.polygon_s.ss.do_activate &&
+                    new_states.polygon_s.ss.cm != motor::graphics::cull_mode::none )
                 {
-                    if( new_states.polygon_s.ss.cm != motor::graphics::cull_mode::none )
-                    {
-                        glEnable( GL_CULL_FACE );
-                        motor::ogl::error::check_and_log( gl4_log( "glEnable" ) );
+                    glEnable( GL_CULL_FACE );
+                    motor::ogl::error::check_and_log( gl4_log( "glEnable" ) );
 
-                        glCullFace( motor::platform::gl3::convert( new_states.polygon_s.ss.cm ) );
-                        motor::ogl::error::check_and_log( gl4_log( "glCullFace" ) );
-                    }
-
-                    glFrontFace( motor::platform::gl3::convert( new_states.polygon_s.ss.ff ) );
-                    motor::ogl::error::check_and_log( gl4_log( "glFrontFace" ) );
-
-                    glPolygonMode( GL_FRONT_AND_BACK,
-                        motor::platform::gl3::convert( new_states.polygon_s.ss.fm ) );
-                    motor::ogl::error::check_and_log( gl4_log( "glPolygonMode" ) );
+                    glCullFace( motor::platform::gl3::convert( new_states.polygon_s.ss.cm ) );
+                    motor::ogl::error::check_and_log( gl4_log( "glCullFace" ) );
                 }
                 else
                 {
                     glDisable( GL_CULL_FACE );
                     motor::ogl::error::check_and_log( gl4_log( "glDisable" ) );
                 }
+
+                glFrontFace( motor::platform::gl3::convert( new_states.polygon_s.ss.ff ) );
+                motor::ogl::error::check_and_log( gl4_log( "glFrontFace" ) );
+
+                glPolygonMode( GL_FRONT_AND_BACK,
+                    motor::platform::gl3::convert( new_states.polygon_s.ss.fm ) );
+                motor::ogl::error::check_and_log( gl4_log( "glPolygonMode" ) );
             }
         }
 
