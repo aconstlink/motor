@@ -30,6 +30,41 @@
 using namespace motor::platform;
 using namespace motor::platform::win32;
 
+namespace
+{
+    bool set_client_size( HWND const hwnd, int const x, int const y,
+        int const width, int const height, UINT const flags ) noexcept
+    {
+        RECT rect = { 0, 0, width, height };
+        if( ( flags & SWP_NOSIZE ) == 0 )
+        {
+            DWORD const style = DWORD( GetWindowLongPtr( hwnd, GWL_STYLE ) );
+            DWORD const ex_style = DWORD( GetWindowLongPtr( hwnd, GWL_EXSTYLE ) );
+            BOOL const menu = GetMenu( hwnd ) != nullptr;
+
+            // Keep older Windows targets working while using the window's DPI when available.
+            using get_dpi_t = UINT ( WINAPI * )( HWND );
+            using adjust_rect_t = BOOL ( WINAPI * )( LPRECT, DWORD, BOOL, DWORD, UINT );
+            static auto const get_dpi = reinterpret_cast< get_dpi_t >(
+                GetProcAddress( GetModuleHandleW( L"user32.dll" ), "GetDpiForWindow" ) );
+            static auto const adjust_rect = reinterpret_cast< adjust_rect_t >(
+                GetProcAddress( GetModuleHandleW( L"user32.dll" ), "AdjustWindowRectExForDpi" ) );
+            BOOL const adjusted = get_dpi && adjust_rect ?
+                adjust_rect( &rect, style, menu, ex_style, get_dpi( hwnd ) ) :
+                AdjustWindowRectEx( &rect, style, menu, ex_style );
+            if( motor::log::global_t::error( !adjusted,
+                "[win32_carrier] : Could not calculate window size from client size" ) ) return false;
+        }
+
+        // An explicit client size may exceed the desktop's default tracking limits.
+        UINT const size_flags = ( flags & SWP_NOSIZE ) == 0 ? SWP_NOSENDCHANGING : 0;
+        return !motor::log::global_t::error(
+            !SetWindowPos( hwnd, nullptr, x, y, rect.right - rect.left,
+                rect.bottom - rect.top, flags | size_flags ),
+            "[win32_carrier] : Could not set client size" );
+    }
+}
+
 #if MOTOR_GRAPHICS_WGL
 struct win32_carrier::wgl_pimpl
 {
@@ -389,6 +424,11 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                         wd.wnd = d.wnd;
                         wd.lsn = d.lsn;
                         wd.window_text = d.wi.window_name;
+                        wd.sv.fulls_msg = { d.wi.fullscreen ? motor::application::three_state::on :
+                            motor::application::three_state::off, d.wi.borderless ?
+                            motor::application::three_state::on : motor::application::three_state::off };
+                        wd.sv.resize_msg = { true, d.wi.x, d.wi.y, true,
+                            size_t( d.wi.w ), size_t( d.wi.h ) };
 
                         _win32_windows.emplace_back( wd );
                     }
@@ -498,6 +538,7 @@ motor::application::result win32_carrier::on_exec( void_t ) noexcept
                     }
 
                     this_t::send_create( _win32_windows.back() );
+                    this_t::send_resize( _win32_windows.back() );
                 }
                 _queue.clear();
             }
@@ -644,13 +685,12 @@ HWND win32_carrier::create_win32_window( motor::application::window_info_cref_t 
         //_is_cursor = wil.show_cursor ;
     }
 
-    // WS_POPUP is said to introduce tearing, so it is removed for now
     if( wi.fullscreen )
     {
         ws_ex_style = WS_EX_APPWINDOW /*& ~(WS_EX_DLGMODALFRAME |
                       WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE )*/
             ;
-        ws_style = /*WS_POPUP |*/ SW_SHOWNORMAL;
+        ws_style = WS_POPUP;
         start_x = start_y = 0;
         width = GetSystemMetrics( SM_CXSCREEN );
         height = GetSystemMetrics( SM_CYSCREEN );
@@ -662,12 +702,11 @@ HWND win32_carrier::create_win32_window( motor::application::window_info_cref_t 
 
         if( wi.borderless )
         {
-            ws_style = /*WS_POPUP |*/ SW_SHOWNORMAL;
+            ws_style = WS_POPUP;
         }
         else
         {
-            ws_style = WS_OVERLAPPEDWINDOW | SW_SHOWNORMAL; // | WS_CLIPSIBLINGS | WS_CLIPCHILDREN ;
-            height += GetSystemMetrics( SM_CYCAPTION );
+            ws_style = WS_OVERLAPPEDWINDOW;
         }
     }
 
@@ -683,12 +722,18 @@ HWND win32_carrier::create_win32_window( motor::application::window_info_cref_t 
     // that will perform the callback in the static wndproc
     SetWindowLongPtr( hwnd, GWLP_USERDATA, (LONG_PTR)this );
 
+    // The hidden window now supplies its actual monitor DPI and effective styles.
+    set_client_size( hwnd, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE );
+
     return hwnd;
 }
 
 //*******************************************************************************************
 LRESULT CALLBACK win32_carrier::WndProc( HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam )
 {
+    if( GetWindowLongPtr( hwnd, GWLP_USERDATA ) == 0 )
+        return DefWindowProc( hwnd, msg, wParam, lParam );
+
     switch( msg )
     {
     case WM_DWMNCRENDERINGCHANGED:
@@ -937,16 +982,18 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
 {
     if( states.show_changed )
     {
-        ShowWindow( d.hwnd, states.show_msg.show ? SW_SHOW : SW_HIDE );
+        RECT client;
+        GetClientRect( d.hwnd, &client );
+        DWORD const visibility = states.show_msg.show ? WS_VISIBLE : 0;
 
         if( states.show_msg.borderless == motor::application::three_state::on )
         {
-            DWORD const style = WS_POPUP | WS_VISIBLE;
+            DWORD const style = WS_POPUP | visibility;
             SetWindowLongPtrA( d.hwnd, GWL_STYLE, style );
         }
         else if( states.show_msg.borderless == motor::application::three_state::off )
         {
-            DWORD const style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+            DWORD const style = WS_OVERLAPPEDWINDOW | visibility;
             SetWindowLongPtrA( d.hwnd, GWL_STYLE, style );
         }
         else if( states.show_msg.borderless == motor::application::three_state::toggle )
@@ -954,18 +1001,23 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
             DWORD style = (DWORD)GetWindowLongPtr( d.hwnd, GWL_STYLE );
             if( style & WS_POPUP ) // its borderless
             {
-                style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+                style = WS_OVERLAPPEDWINDOW | visibility;
                 SetWindowLongPtrA( d.hwnd, GWL_STYLE, style );
             }
             else
             {
-                style = WS_VISIBLE | WS_POPUP;
+                style = visibility | WS_POPUP;
                 SetWindowLongPtrA( d.hwnd, GWL_STYLE, style );
             }
         }
         else
         { /*invalid state*/
         }
+
+        set_client_size( d.hwnd, 0, 0, client.right - client.left, client.bottom - client.top,
+            SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED );
+        ShowWindow( d.hwnd, states.show_msg.show ? SW_SHOW : SW_HIDE );
+        this_t::send_resize( d );
     }
 
     if( states.fulls_msg_changed )
@@ -996,7 +1048,7 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
 
             if( msg.fullscreen == motor::application::three_state::on )
             {
-                ws_style = WS_POPUP | SW_SHOWNORMAL;
+                ws_style = WS_POPUP;
                 d.sv.fulls_msg.fullscreen = motor::application::three_state::on;
             }
             else if( msg.fullscreen == motor::application::three_state::off )
@@ -1019,15 +1071,14 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
 
             if( msg.fullscreen == motor::application::three_state::off )
             {
-                height += GetSystemMetrics( SM_CYCAPTION );
-
                 start_x = d.sv.resize_msg.x;
                 start_y = d.sv.resize_msg.y;
                 width = int_t( d.sv.resize_msg.w );
                 height = int_t( d.sv.resize_msg.h );
             }
 
-            SetWindowPos( d.hwnd, HWND_TOP, start_x, start_y, width, height, SWP_SHOWWINDOW );
+            set_client_size( d.hwnd, start_x, start_y, width, height, SWP_SHOWWINDOW | SWP_FRAMECHANGED );
+            this_t::send_resize( d );
         }
     }
 
@@ -1037,53 +1088,11 @@ void_t win32_carrier::handle_messages( win32_window_data_inout_t d,
 
         motor::application::resize_message_cref_t msg = states.resize_msg;
 
-        RECT rc, wr;
-        GetClientRect( d.hwnd, &rc );
-        GetWindowRect( d.hwnd, &wr );
+        if( !msg.position ) flags |= SWP_NOMOVE;
+        if( !msg.resize ) flags |= SWP_NOSIZE;
 
-        int_t x = rc.left;
-        int_t y = rc.top;
-        int_t width = int_t( rc.right - rc.left );
-        int_t height = int_t( rc.bottom - rc.top );
-
-        int_t const difx = ( wr.right - wr.left ) - rc.right;
-        int_t const dify = ( wr.bottom - wr.top ) - rc.bottom;
-
-        if( msg.position )
-        {
-            x = msg.x;
-            y = msg.y;
-            rc.left = x;
-            rc.top = y;
-        }
-        else
-        {
-            flags |= SWP_NOMOVE;
-        }
-
-        if( msg.resize )
-        {
-            width = (int_t)msg.w;
-            height = (int_t)msg.h;
-
-            rc.right = x + width;
-            rc.bottom = y + height;
-        }
-        else
-        {
-            flags |= SWP_NOSIZE;
-        }
-
-        int_t const w = width + difx;
-        int_t const h = height + dify;
-
-        // SWP_NOACTIVATE : the window should not activate if
-        //  another window controls the size/position
-        // SWP_NOZORDER : Do not z over any other window.
-        // SWP_NOREDRAW : Optimization
-        // SWP_NOREPOSITION : Parent z order not changing
-        SetWindowPos( d.hwnd, NULL, x, y, width, height,
-            SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOREPOSITION | SWP_NOZORDER | flags );
+        if( set_client_size( d.hwnd, msg.x, msg.y, int_t( msg.w ), int_t( msg.h ),
+            SWP_NOACTIVATE | SWP_NOZORDER | flags ) ) this_t::send_resize( d );
     }
 
     if( states.cursor_msg_changed )

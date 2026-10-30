@@ -21,6 +21,7 @@ namespace motor
         {
             int_t x = 0 ;
             int_t y = 0 ;
+            // Requested client-area size; window decorations are added by the carrier.
             int_t w = 100 ;
             int_t h = 100 ;
 

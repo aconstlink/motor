@@ -28,6 +28,7 @@ namespace motor
             int_t y = 0 ;
 
             bool_t resize = false ;
+            // Client-area size, excluding window decorations.
             size_t w = 0 ;
             size_t h = 0 ;
 
