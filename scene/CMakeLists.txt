@@ -46,6 +46,7 @@ set( sources
     "visitor/graphics/light_pass_render_visitor.h"
     "visitor/graphics/light_pass_render_visitor.cpp"
     "visitor/graphics/connect_msl_slot_visitor.hpp"
+    "visitor/graphics/debug_graphics_visitor.hpp"
     
     "component/typeid_definitions.cpp"
     "component/icomponent.h"

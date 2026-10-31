@@ -252,6 +252,12 @@ void_t primitive_render_3d::configure( motor::graphics::gen4::frontend_mtr_t fe 
 }
 
 //*****************************************************************
+void_t primitive_render_3d::release( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
+{
+    // @todo
+}
+
+//*****************************************************************
 void_t primitive_render_3d::prepare_for_rendering( void_t ) noexcept
 {
     _lr.prepare_for_rendering();

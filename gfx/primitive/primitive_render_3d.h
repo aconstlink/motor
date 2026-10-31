@@ -118,6 +118,7 @@ class MOTOR_GFX_API primitive_render_3d
   public:
 
     void_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept;
+    void_t release( motor::graphics::gen4::frontend_mtr_t fe ) noexcept;
     // copy all data to the gpu buffer and transmit the data
     void_t prepare_for_rendering( void_t ) noexcept;
     void_t prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept;

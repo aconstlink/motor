@@ -11,7 +11,6 @@
 #include "../../component/graphics/msl_set_component.hpp"
 #include "../../component/graphics/geometry_name_component.hpp"
 
-#include <motor/application/typedefs.h>
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/std/hash_map>
 
