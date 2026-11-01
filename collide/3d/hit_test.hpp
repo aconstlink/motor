@@ -9,6 +9,8 @@
 
 #include <motor/math/primitive/3d/ray.hpp>
 
+#include <cmath>
+
 namespace motor::collide::c3d
 {
 template < typename T >
@@ -18,6 +20,7 @@ struct hit_test
 
     using type_t = T;
     using aabb_t = motor::collide::c3d::aabb< T >;
+    using sphere_t = motor::collide::c3d::sphere< T >;
     using vec3_t = motor::math::vector3< T >;
 
     static motor::collide::hit_test_type hit_test_box_box(
@@ -41,7 +44,6 @@ struct hit_test
     /// @return
     /// ht_outside: point is not in the box
     /// ht_inside: point is in the box
-    template < typename type_t >
     static motor::collide::hit_test_type hit_test_box_point(
         this_t::aabb_t const & box, motor::math::vector3< type_t > const & point ) noexcept
     {
@@ -51,6 +53,15 @@ struct hit_test
 
         return x.all() ? motor::collide::hit_test_type::inside
                        : motor::collide::hit_test_type::outside;
+    }
+
+    /// Points on the surface count as inside, matching the box/point test.
+    static motor::collide::hit_test_type hit_test_sphere_point(
+        this_t::sphere_t const & sphere, motor::math::vector3< type_t > const & point ) noexcept
+    {
+        auto const p = point - sphere.get_center();
+        return p.length2() <= sphere.get_radius2() ? motor::collide::hit_test_type::inside
+                                                  : motor::collide::hit_test_type::outside;
     }
 
     /// box/ray
@@ -63,7 +74,6 @@ struct hit_test
     /// @return
     /// ht_outside: the ray does not intersect with the aabb box
     /// ht_intersect: the ray and the box intersect
-    template < typename type_t >
     static hit_test_type hit_test_box_ray(
         aabb< type_t > const & box, motor::math::ray3f_t const & ray )
     {
@@ -150,11 +160,40 @@ struct hit_test
         return motor::collide::hit_test_type::intersect;
     }
 
-    template < typename type_t >
     static bool_t intersect(
         aabb< type_t > const & box, motor::math::ray3f_t const & ray, type_t & t_out )
     {
-        return hit_test_box_ray( box, ray ) == motor::collide::hit_test_type::intersect;
+        return this_t::hit_test_box_ray( box, ray ) == motor::collide::hit_test_type::intersect;
+    }
+
+    /// Returns the first surface hit with t >= 0, or the exit when starting inside.
+    /// Both objects must be in the same space and the ray direction must be nonzero.
+    /// t_out is the ray parameter (a distance for normalized directions), or zero on a miss.
+    static hit_test_type hit_test_sphere_ray(
+        this_t::sphere_t const & sphere, motor::math::ray3f_t const & ray, type_t & t_out ) noexcept
+    {
+        t_out = type_t( 0 );
+
+        vec3_t const p = vec3_t( ray.get_origin() ) - sphere.get_center();
+        vec3_t const d = ray.get_direction();
+        type_t const a = d.dot( d );
+        if( a == type_t( 0 ) ) return motor::collide::hit_test_type::outside;
+
+        type_t const b = p.dot( d );
+        type_t const c = p.dot( p ) - sphere.get_radius2();
+        if( c > type_t( 0 ) && b > type_t( 0 ) )
+            return motor::collide::hit_test_type::outside;
+
+        type_t const discriminant = b * b - a * c;
+        if( discriminant < type_t( 0 ) ) return motor::collide::hit_test_type::outside;
+
+        type_t const root = std::sqrt( discriminant );
+        type_t t = ( -b - root ) / a;
+        if( t < type_t( 0 ) ) t = ( -b + root ) / a;
+        if( t < type_t( 0 ) ) return motor::collide::hit_test_type::outside;
+
+        t_out = t;
+        return motor::collide::hit_test_type::intersect;
     }
 };
 } // namespace motor::collide::c3d

@@ -55,3 +55,8 @@ class sphere
     }
 };
 } // namespace motor::collide::c3d
+
+namespace motor::collide
+{
+    motor_typedefs( c3d::sphere< float_t >, sphere3f ) ;
+}
