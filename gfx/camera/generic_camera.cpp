@@ -312,6 +312,9 @@ generic_camera::ray3_t generic_camera::create_ray( vec2_cref_t screen_pos ) cons
 
 void_t generic_camera::reconstruct_frustum_planes( void_t ) noexcept
 {
+    #if 1
+    _frustum.contruct_planes_from( _view_matrix, _proj_matrix ) ;
+    #else
     motor::math::mat4f_t comb = _proj_matrix * _view_matrix;
 
     motor::math::vec4f_t r0, r1, r2, r3;
@@ -334,4 +337,5 @@ void_t generic_camera::reconstruct_frustum_planes( void_t ) noexcept
     _frustum.set_plane( frustum_t::frustum_plane::top_plane, plane_t( p3.negated() ) );
     _frustum.set_plane( frustum_t::frustum_plane::near_plane, plane_t( p4.negated() ) );
     _frustum.set_plane( frustum_t::frustum_plane::far_plane, plane_t( p5.negated() ) );
+    #endif
 }

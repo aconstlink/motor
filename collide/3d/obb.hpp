@@ -29,7 +29,10 @@ class obb
 
     obb( void_t ) noexcept {}
 
-    obb( this_cref_t ) noexcept {}
+    obb( this_cref_t rhv ) noexcept
+        : _origin( rhv._origin ), _scaling( rhv._scaling ), _orientation( rhv._orientation )
+    {
+    }
 
     obb( this_rref_t rhv ) noexcept
         : _origin( rhv._origin ), _scaling( rhv._scaling ), _orientation( rhv._orientation )

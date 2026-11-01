@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "../typedefs.h"
+
 #include <motor/math/primitive/3d/frustum.hpp>
 #include <motor/math/planar/plane/hesse_plane3.hpp>
 #include <motor/math/matrix/matrix4.hpp>
@@ -10,21 +12,19 @@
 
 namespace motor::collide::c3d
 {
-/*
-    DO NOT USE!
-*/
 template < typename type_t >
 class view_frustum
 {
-    typedef matrix< type_t, 4, 4 > mat4_t;
-    typedef mat4_t const & mat4_cref_t;
+    motor_this_typedefs( view_frustum< type_t > ) ;
 
-    typedef vector< type_t, 4 > vec4_t;
-    typedef vector< type_t, 3 > vec3_t;
-    typedef vec3_t const & vec3_cref_t;
+    using mat4_t = motor::math::matrix4< type_t > ;
+    using mat4_cref_t = mat4_t const & ;
 
-    typedef motor::collide::c3d::frustum< type_t > frustum_t;
-    typedef frustum_t const & frustum_cref_t;
+    using vec4_t = motor::math::vector4< type_t > ;
+    using vec3_t = motor::math::vector3< type_t > ;
+
+
+    using frustum_t = motor::math::m3d::frustum< type_t > ;
 
   public:
 
@@ -37,7 +37,11 @@ class view_frustum
 
   public:
 
-    view_frustum( void_t ) {}
+    view_frustum( void_t ) noexcept {}
+    view_frustum( this_t::mat4_cref_t view, this_t::mat4_cref_t proj ) noexcept 
+    {
+        this_t::contruct_planes_from( view, proj ) ;
+    }
 
   public:
 

@@ -274,6 +274,14 @@ void_t primitive_render_3d::draw_frustum(
 }
 
 //*****************************************************************
+void_t primitive_render_3d::draw_frustum(
+    motor::math::frustum3f_cref_t frustum, motor::math::vec4f_cref_t color ) noexcept
+{
+    std::array< motor::math::vec3f_t, 8 > points;
+    if( frustum.points( points ) ) this_t::draw_wire_cube( points, color );
+}
+
+//*****************************************************************
 void_t primitive_render_3d::configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 {
     _lr.configure( fe );

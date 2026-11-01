@@ -6,12 +6,6 @@ set( sources
 
     hit_test_types.h
 
-    3d/hit_test/hit_test_aabb_aabb.hpp
-    3d/hit_test/hit_test_aabb_frustum.hpp
-    3d/hit_test/hit_test_aabb_plane.hpp
-    3d/hit_test/hit_test_aabb_sphere.hpp
-    3d/hit_test/hit_test_aabb_point.hpp
-    3d/hit_test/hit_test_aabb_ray.hpp
     3d/hit_test/hit_test_plane_ray.hpp
 
     3d/aabb.hpp

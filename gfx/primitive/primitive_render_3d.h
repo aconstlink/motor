@@ -123,6 +123,10 @@ class MOTOR_GFX_API primitive_render_3d
 
       void_t draw_frustum( motor::gfx::generic_camera_cref_t cam, motor::math::vec4f_cref_t color ) ;
 
+      // Draws in the planes' coordinate space. Requires eight finite corner intersections.
+      void_t draw_frustum( motor::math::frustum3f_cref_t frustum,
+          motor::math::vec4f_cref_t color ) noexcept ;
+
   public:
 
     void_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept;
