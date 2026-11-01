@@ -113,7 +113,13 @@ APIs and internal systems are still evolving. The repository is best understood 
 
 ## AI-Assisted Development
 
-motor is a long-running, independently developed C++ engine. AI tools are used to assist with code reviews, compiler warning cleanup, bug investigation, test development, documentation, and technical brainstorming. Architecture, writing code and development decisions remain with the maintainer. AI-assisted changes are reviewed and tested as part of the development workflow.
+motor is a long-running, independently developed C++ engine.
+
+I use AI to support development, not to pile on features I don’t understand or hand over control of motor. The engine’s architecture, direction, and the changes I accept remain my responsibility.
+
+I mainly use AI to write tests, investigate bugs, and help implement targeted fixes. Understanding and fixing problems matters, but spending an entire evening tracking down a bug isn’t inherently more valuable than finding it sooner and moving forward.
+
+Using AI has genuinely revitalized the development of motor. With limited time available, it lets me spend more of that time coding, experimenting, and building the things I actually want to create.
 
 ## License
 
