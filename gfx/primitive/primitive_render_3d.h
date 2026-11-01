@@ -78,6 +78,14 @@ class MOTOR_GFX_API primitive_render_3d
     void_t draw_wire_sphere( motor::math::vec3f_cref_t center, float_t const radius,
         motor::math::vec4f_cref_t color, size_t const num_segments = 32 ) noexcept;
 
+    // 0-3 : front quad
+    // 4-7 : back quad
+    // 1/5 ----- 2/6
+    // |          |
+    // |          |
+    // 0/4 ----- 3/7
+    void_t draw_wire_cube( std::array< motor::math::vec3f_t, 8 >, motor::math::vec4f_cref_t color ) noexcept ;
+
     // Direction is normalized internally. Zero direction or non-positive length emits nothing.
     // Head dimensions are in world units; head_length is clamped to length.
     void_t draw_arrow( motor::math::vec3f_cref_t origin, motor::math::vec3f_cref_t direction,

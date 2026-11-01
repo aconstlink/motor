@@ -32,6 +32,7 @@ set( sources
     "util/quad.h"
     "util/quad.cpp"
     "util/light.hpp"
+    "util/bounding_volume.hpp"
 
     "postprocess/hdr_postprocess_pipeline.h"
     "postprocess/postprocess_status.hpp"

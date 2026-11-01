@@ -111,9 +111,6 @@ set( subdirs_header_only
     "base"
     "std"
     "math"
-    
-    
-    #"collide"
     )
 
 set( subdirs  )
@@ -132,6 +129,7 @@ list( APPEND subdirs
     "concurrent"
     "io"
     "controls"
+    "collide"
     "msl"
     
     ${opengl_subdir}
