@@ -19,6 +19,7 @@ set( sources
     3d/view_frustum.hpp
     3d/obb.hpp
     3d/transform.hpp
+    3d/hit_test.hpp
 
     2d/hit_test/hit_test_aabb_aabb.hpp
     2d/hit_test/hit_test_aabb_frustum.hpp

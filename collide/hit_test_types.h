@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-namespace motor
-{
-namespace collide
+namespace motor::collide
 {
 enum class hit_test_type
 {
@@ -15,6 +13,4 @@ enum class hit_test_type
     overlap,
     num_hit_test_types
 };
-}
-
-} // namespace motor
+} // namespace motor::collide

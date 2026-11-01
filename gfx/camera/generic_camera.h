@@ -26,7 +26,7 @@ namespace motor
         {
             motor_this_typedefs( generic_camera ) ;
 
-            motor_typedefs( motor::math::m3d::ray3f_t, ray3 ) ;
+            motor_typedefs( motor::math::ray3f_t, ray3 ) ;
             motor_typedefs( motor::math::vec2f_t, vec2 ) ;
             motor_typedefs( motor::math::vec3f_t, vec3 ) ;
             motor_typedefs( motor::math::m3d::frustum<float_t>, frustum ) ;
@@ -113,9 +113,9 @@ namespace motor
                 float_t const fov, float_t const n, float_t const f ) noexcept  ;
 
             // just changes the projection to orthographic
-            this_ref_t orthographic( void_t ) noexcept
+            this_ref_t orthographic( float_t const f = 1.0f ) noexcept
             {
-                this_t::make_orthographic( _sensor_dims.x(), _sensor_dims.y(), 
+                this_t::make_orthographic( _sensor_dims.x()*f, _sensor_dims.y()*f, 
                     _near_far.x(), _near_far.y() ) ;
                 return *this ;
             }

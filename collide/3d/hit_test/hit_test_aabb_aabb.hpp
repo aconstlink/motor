@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
+#if 0
 #pragma once
 
 #include "../../hit_test_types.h"
-#include "../bounds/aabb.hpp"
+#include "../aabb.hpp"
 
 namespace motor
 {
@@ -36,3 +37,4 @@ static bool_t intersect( aabb< type_t > const & volume_a, aabb< type_t > const &
 } // namespace collide
 
 } // namespace motor
+#endif
