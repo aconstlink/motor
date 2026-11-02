@@ -40,7 +40,8 @@ namespace this_file_hlsl5
     }
 
     //******************************************************************************************************************
-    motor::string_t replace_buildin_symbols( motor::string_rref_t code ) noexcept
+    motor::string_t replace_buildin_symbols( motor::string_rref_t code,
+        motor::core::types::bool_t const correct_raster_depth = false ) noexcept
     {
         motor::msl::repl_syms_t repls =
         {
@@ -543,7 +544,9 @@ namespace this_file_hlsl5
                 [=] ( motor::vector< motor::string_t > const& args ) -> motor::string_t
                 {
                     if( args.size() != 0 ) return "emit_vertex( INVALID_ARGS ) " ;
-                    return "prim_stream.Append( __output__ )"  ;
+                    return correct_raster_depth ?
+                        "prim_stream.Append( __msl_raster_output__( __output__ ) )" :
+                        "prim_stream.Append( __output__ )" ;
                 }
             },
             {
@@ -1673,17 +1676,6 @@ motor::msl::generated_code_t::shaders_t hlsl5_generator::generate( motor::msl::g
 
     // replace buildins
     {
-        for( auto& s : genable.config.shaders )
-        {
-            for( auto& c : s.codes )
-            {
-                for( auto& l : c.lines )
-                {
-                    l = this_file_hlsl5::replace_buildin_symbols( std::move( l ) ) ;
-                }
-            }
-        }
-
         for( auto& frg : genable.frags )
         {
             for( auto& f : frg.fragments )
@@ -2002,6 +1994,8 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
         text << "} ;" << std::endl << std::endl ;
     }
 
+    motor::string_t raster_position_name ;
+
     // outputs
     {
         size_t arg_i = 0 ;
@@ -2022,6 +2016,14 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
                 name = var_mappings[ idx ].new_name ;
             }
 
+            if( sht_after == motor::msl::shader_type::pixel_shader &&
+                ( sht_cur == motor::msl::shader_type::vertex_shader ||
+                    sht_cur == motor::msl::shader_type::geometry_shader ) &&
+                v.binding == motor::msl::binding::position )
+            {
+                raster_position_name = name ;
+            }
+
             if( v.binding == motor::msl::binding::unknown )
             {
                 text << type_ << " " << name << " : " << "ARG_" << arg_i++ << " ;" << std::endl ;
@@ -2034,6 +2036,20 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
         text << "} ;" << std::endl << std::endl ;
     }
 
+    bool_t const correct_raster_depth = !raster_position_name.empty() ;
+    motor::string_t const raster_output = correct_raster_depth ?
+        "__msl_raster_output__( __output__ )" : "__output__" ;
+
+    // Convert only the final raster output, leaving reusable/stream-out data untouched.
+    if( correct_raster_depth )
+    {
+        text << output_struct_name << " __msl_raster_output__( " << output_struct_name << " value )" << std::endl ;
+        text << "{" << std::endl ;
+        text << "    value." << raster_position_name << ".z = 0.5f * ( value." <<
+            raster_position_name << ".z + value." << raster_position_name << ".w ) ;" << std::endl ;
+        text << "    return value ;" << std::endl ;
+        text << "}" << std::endl << std::endl ;
+    }
 
     text << "// The shader // " << std::endl ;
     {
@@ -2100,6 +2116,11 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
         auto cpy_codes = s.codes ;
         for( auto& c : cpy_codes )
         {
+            for( auto& line : c.lines )
+            {
+                line = this_file_hlsl5::replace_buildin_symbols( std::move( line ), correct_raster_depth ) ;
+            }
+
             size_t curlies = 0 ;
             bool_t in_main = false ;
             for( auto iter = c.lines.begin(); iter != c.lines.end(); ++iter )
@@ -2134,7 +2155,7 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
                 else if( in_main && iter->find( "return ;" ) != std::string::npos )
                 {
                     if( sht_cur != motor::msl::shader_type::geometry_shader )
-                        text << "return __output__ ;" << std::endl ;
+                        text << "return " << raster_output << " ;" << std::endl ;
                     else
                         text << "return ;" << std::endl ;
                 }
@@ -2145,7 +2166,7 @@ motor::msl::generated_code_t::code_t hlsl5_generator::generate( motor::msl::gene
 
                     if( in_main && curlies == 0 && sht_cur != motor::msl::shader_type::geometry_shader )
                     {
-                        text << "return __output__ ;" << std::endl ;
+                        text << "return " << raster_output << " ;" << std::endl ;
                         in_main = false ;
                     }
                     text << " " << *iter << std::endl ;
