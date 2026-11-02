@@ -1204,6 +1204,18 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     auto light = lights[ lidx ];
 
+                    // determine extras from light node
+                    {
+                        using json = nlohmann::json;
+
+                        json extras = json::parse( gltf_node.extras.data );
+                        auto const type_iter = extras.find( "motor.cast_shadow" );
+                        if( type_iter != extras.end() )
+                        {
+                            bool_t const do_cast = *type_iter ;
+                            light->set_shadow_casting( do_cast ) ;
+                        }
+                    }
                     motor::scene::light_component_mtr_t ptr;
                     if( !node->has_component_and_borrow< motor::scene::light_component_t >( ptr ) )
                     {
@@ -1511,7 +1523,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                 if( data->animations_count == 0 )
                 {
-                    start_node->then( motor::share( merger_node ) ) ;
+                    start_node->then( motor::share( merger_node ) );
                 }
                 ret.start_node = motor::move( start_node );
                 ret.merger_node = motor::move( merger_node );
@@ -1599,10 +1611,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     motor::release( motor::move( i ) );
                 }
 
-
-                for( auto * mtr : lights ) 
+                for( auto * mtr : lights )
                 {
-                    motor::release( motor::move( mtr ) ) ;
+                    motor::release( motor::move( mtr ) );
                 }
             }
         }
