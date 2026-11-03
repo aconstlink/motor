@@ -15,6 +15,7 @@
 #include <motor/scene/component/trafo3d_component.h>
 #include <motor/scene/component/camera_component.h>
 #include <motor/scene/component/light_component.hpp>
+#include <motor/scene/component/bounds_component.hpp>
 #include <motor/scene/component/graphics/msl_component.h>
 #include <motor/scene/component/graphics/msl_set_component.hpp>
 #include <motor/scene/component/graphics/config_graphics_component.h>
@@ -27,6 +28,7 @@
 #include <motor/wire/slot/input_slot.h>
 
 #include <motor/gfx/util/light.hpp>
+#include <motor/gfx/util/bounding_volume.hpp>
 
 #include <motor/graphics/buffer/vertex_buffer.hpp>
 #include <motor/graphics/buffer/index_buffer.hpp>
@@ -37,6 +39,8 @@
 #include <motor/std/hash_map>
 #include <motor/io/database.h>
 #include <motor/memory/malloc_guard.hpp>
+
+#include <motor/collide/3d/aabb.hpp>
 
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
@@ -374,7 +378,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     char const * const ext_name = data->extensions_used[ ex_idx ];
                     motor::log::global::status< 2048 >( "[gltf] : Extension used %s", ext_name );
                 }
+            }
 
+            // KHR_lights_punctual
+            // cgltf unwraps it immediately
+            {
                 for( size_t lidx = 0; lidx < data->lights_count; ++lidx )
                 {
                     auto & light = data->lights[ lidx ];
@@ -414,7 +422,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 }
             }
 
-            using geos_t = motor::vector< motor::vector< motor::graphics::geometry_object_mtr_t > >;
+            using geo_item_t =
+                std::pair< motor::collide::aabb3f_t, motor::graphics::geometry_object_mtr_t >;
+            using geos_t = motor::vector< motor::vector< geo_item_t > >;
+
             // geos[cgltf_mesh_id] = vector( primitive geometry )
             geos_t geos( data->meshes_count );
 
@@ -497,6 +508,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                         vb.resize( num_vertices );
 
+                        motor::collide::aabb3f_t box;
+
                         // iterate a second time for vertex data
                         {
                             // this offset shifts the starting point of
@@ -541,6 +554,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                             auto v3 = (motor::math::vec3f_t *)( wt_buf );
                                             v3->z( v3->z() );
+
+                                            box.compare_and_exchange( *v3 );
 
                                             wt_buf += vertex_sib;
 
@@ -699,7 +714,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         {
                             motor::graphics::geometry_object_t geo(
                                 geo_name, pt, std::move( vb ), std::move( ib ) );
-                            geos[ midx ][ pidx ] = ( motor::shared( std::move( geo ) ) );
+                            geos[ midx ][ pidx ] =
+                                ( std::make_pair( box, motor::shared( std::move( geo ) ) ) );
                         }
 
                     } // primitives
@@ -975,8 +991,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             size_t const mid =
                                 cgltf_module_file::compute_msl_index( data, prim.material );
 
-                            motor::graphics::geometry_object_mtr_t geo =
+                            auto [ box, geo ] =
                                 geos[ cgltf_mesh_index( data, gltf_mesh ) ][ pidx ];
+
                             motor::graphics::msl_object_mtr_t msl = msls[ mid ];
 
                             size_t const geo_link_idx = msl->link_geometry( geo->name() );
@@ -1022,6 +1039,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     0, motor::shared( std::move( comp ) ) );
 
                                 render_node.add_component( motor::shared( std::move( set_comp ) ) );
+                            }
+
+                            // bounding volume comp
+                            {
+                                motor::scene::bounds_component_t comp( box ) ;
+                                render_node.add_component( motor::shared( std::move( comp ) ) );
                             }
 #if 1
                             // add msl configuration comp
@@ -1212,8 +1235,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         auto const type_iter = extras.find( "motor.cast_shadow" );
                         if( type_iter != extras.end() )
                         {
-                            bool_t const do_cast = *type_iter ;
-                            light->set_shadow_casting( do_cast ) ;
+                            bool_t const do_cast = *type_iter;
+                            light->set_shadow_casting( do_cast );
                         }
                     }
                     motor::scene::light_component_mtr_t ptr;
@@ -1597,24 +1620,28 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 {
                     motor::release( motor::move( msl ) );
                 }
+                msls.clear() ;
 
                 for( auto & mat : geos )
                 {
-                    for( auto * geo : mat )
+                    for( auto & geo : mat )
                     {
-                        motor::release( motor::move( geo ) );
+                        motor::release( motor::move( geo.second ) );
                     }
                 }
+                geos.clear() ;
 
                 for( auto i : nn_vec )
                 {
                     motor::release( motor::move( i ) );
                 }
+                nn_vec.clear() ;
 
                 for( auto * mtr : lights )
                 {
                     motor::release( motor::move( mtr ) );
                 }
+                lights.clear() ;
             }
         }
 

@@ -7,21 +7,23 @@
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/utility/3d/transformation.hpp>
 
+#include <limits>
+
 namespace motor::collide::c3d
 {
 template < typename type_t >
 class aabb
 {
-    motor_this_typedefs( aabb< type_t > ) ;
+    motor_this_typedefs( aabb< type_t > );
 
-    motor_typedefs( motor::math::vector3< type_t >, vec3 ) ;
-    
+    motor_typedefs( motor::math::vector3< type_t >, vec3 );
+
     typedef motor::math::vec3b_t vec3b_t;
 
   private:
 
-    vec3_t _max;
-    vec3_t _min;
+    vec3_t _max = motor::math::vec3f_t( std::numeric_limits< type_t >::lowest() );
+    vec3_t _min = motor::math::vec3f_t( std::numeric_limits< type_t >::max() );
 
   public:
 
@@ -100,6 +102,22 @@ class aabb
         return ( *this )( rhv.get_max(), rhv.get_min() );
     }
 
+    // takes the biggest/smallest components from in.
+    void_t compare_and_exchange( this_t::vec3_t const & in ) noexcept 
+    {
+        type_t const x = in.x() ;
+        type_t const y = in.y() ;
+        type_t const z = in.z() ;
+
+        if( _max.x() < x ) _max.x( x ) ;
+        if( _max.y() < y ) _max.y( y ) ;
+        if( _max.z() < z ) _max.z( z ) ;
+
+        if( _min.x() > x ) _min.x( x ) ;
+        if( _min.y() > y ) _min.y( y ) ;
+        if( _min.z() > z ) _min.z( z ) ;
+    }
+
   public:
 
     inline vec3_cref_t get_max( void_t ) const
@@ -140,9 +158,7 @@ class aabb
 
     std::array< this_t::vec3_t, 8 > points( void_t ) const noexcept
     {
-        return 
-        { 
-            this_t::vec3_t( _min.x(), _min.y(), _min.z() ),
+        return { this_t::vec3_t( _min.x(), _min.y(), _min.z() ),
             this_t::vec3_t( _min.x(), _max.y(), _min.z() ),
             this_t::vec3_t( _max.x(), _max.y(), _min.z() ),
             this_t::vec3_t( _max.x(), _min.y(), _min.z() ),
@@ -150,13 +166,12 @@ class aabb
             this_t::vec3_t( _min.x(), _min.y(), _max.z() ),
             this_t::vec3_t( _min.x(), _max.y(), _max.z() ),
             this_t::vec3_t( _max.x(), _max.y(), _max.z() ),
-            this_t::vec3_t( _max.x(), _min.y(), _max.z() )
-        } ;
+            this_t::vec3_t( _max.x(), _min.y(), _max.z() ) };
     }
 };
 } // namespace motor::collide::c3d
 
 namespace motor::collide
 {
-    motor_typedefs( motor::collide::c3d::aabb< float_t >, aabb3f ) ;
+motor_typedefs( motor::collide::c3d::aabb< float_t >, aabb3f );
 }

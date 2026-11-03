@@ -62,6 +62,7 @@ set( sources
     "component/camera_component.h"
     "component/camera_component.cpp"
     "component/light_component.hpp"
+    "component/bounds_component.hpp"
     "component/graphics/render_variables_component.hpp"
     "component/variables_component.hpp"
     "component/graphics/config_graphics_component.h"

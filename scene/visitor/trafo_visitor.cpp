@@ -7,6 +7,7 @@
 #include "../component/trafo3d_component.h"
 #include "../component/camera_component.h"
 #include "../component/light_component.hpp"
+#include "../component/bounds_component.hpp"
 #include "../component/graphics/msl_component.h"
 #include "../component/graphics/msl_set_component.hpp"
 
@@ -84,6 +85,10 @@ void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
         {
             msls->for_each_msl( [ & ]( motor::scene::msl_component_mtr_t msl_comp )
             { msl_comp->set_world( _trafos.top() ); } );
+        }
+        else if( auto bounds_comp = motor::scene::safe_cast< motor::scene::bounds_component_t >( comp ); bounds_comp )
+        {
+            bounds_comp->transform( _trafos.top() ) ;
         }
     } );
 

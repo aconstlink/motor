@@ -12,10 +12,12 @@ namespace motor::collide::c3d
 template < typename T >
 struct transform
 {
+    using vec4_t = motor::math::vector4< T > ;
+
     static motor::collide::c3d::obb< T > from_aabb( motor::collide::c3d::aabb< T > const & b,
-        motor::math::m3d::transformation< T > & trafo ) noexcept
+        motor::math::m3d::transformation< T > const & trafo ) noexcept
     {
-        auto const o = b.get_center();
+        auto const o = (trafo * vec4_t( b.get_center(), T(1) )).xyz() ;
         auto const e = b.get_extend();
 
         return motor::collide::c3d::obb< T >( o, e, trafo.get_rotation_matrix() );

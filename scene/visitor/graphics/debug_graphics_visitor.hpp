@@ -6,6 +6,7 @@
 #include "../default_visitor.h"
 #include "../../component/light_component.hpp"
 #include "../../component/trafo3d_component.h"
+#include "../../component/bounds_component.hpp"
 
 #include "../../node/node.h"
 
@@ -60,37 +61,56 @@ class debug_graphics_visitor : public motor::scene::default_visitor
             }
         }
 
-        motor::scene::light_component_mtr_t cptr;
-        if( nptr->has_component_and_borrow< motor::scene::light_component_t >( cptr ) )
+        // light component
         {
-            cptr->for_each_light( [ & ]( motor::gfx::light_mtr_t l )
+            motor::scene::light_component_mtr_t cptr;
+            if( nptr->has_component_and_borrow< motor::scene::light_component_t >( cptr ) )
             {
-                if( l->get_light_type() == motor::gfx::light_type::directional )
+                cptr->for_each_light( [ & ]( motor::gfx::light_mtr_t l )
                 {
-                    auto * ll = static_cast< motor::gfx::directional_light * >( l );
-                    auto const dir = ll->get_transformed_direction();
+                    if( l->get_light_type() == motor::gfx::light_type::directional )
+                    {
+                        auto * ll = static_cast< motor::gfx::directional_light * >( l );
+                        auto const dir = ll->get_transformed_direction();
 
-                    _prim_render->draw_arrow(
-                        pos, dir, 10.0f, motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ) );
-                }
-                else if( l->get_light_type() == motor::gfx::light_type::point )
-                {
-                    auto * ll = static_cast< motor::gfx::point_light_t * >( l );
-                    auto const lpos = ll->get_transformed_position();
+                        _prim_render->draw_arrow(
+                            pos, dir, 10.0f, motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ) );
+                    }
+                    else if( l->get_light_type() == motor::gfx::light_type::point )
+                    {
+                        auto * ll = static_cast< motor::gfx::point_light_t * >( l );
+                        auto const lpos = ll->get_transformed_position();
 
-                    float_t const r_0 = 0.5f ;
-                    float_t const r_1 = ll->get_radius() <= 0.0f ? r_0 * 2.0f : ll->get_radius() ;
+                        float_t const r_0 = 0.5f;
+                        float_t const r_1 =
+                            ll->get_radius() <= 0.0f ? r_0 * 2.0f : ll->get_radius();
 
-                    _prim_render->draw_circle( _cam->get_camera_matrix(), lpos, r_0,
-                        motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ),
-                        motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ),
+                        _prim_render->draw_circle( _cam->get_camera_matrix(), lpos, r_0,
+                            motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ),
+                            motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ),
 
-                        10 );
+                            10 );
 
-                    _prim_render->draw_wire_circle( _cam->get_camera_matrix(), lpos, r_1,
-                        motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ), 20 );
-                }
-            } );
+                        _prim_render->draw_wire_circle( _cam->get_camera_matrix(), lpos, r_1,
+                            motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ), 20 );
+                    }
+                } );
+            }
+        }
+
+        // bounds component
+        {
+            motor::scene::bounds_component_ptr_t cptr;
+            if( nptr->has_component_and_borrow< motor::scene::bounds_component_t >( cptr ) )
+            {
+                auto const & b = cptr->get_coarse_transformed();
+                _prim_render->draw_wire_cube(
+                    b.points(), motor::math::vec4f_t( 1.0f, 1.0f, 1.0f, 1.0f ) );
+            }
+        }
+
+        // camera component
+        {
         }
 
         return motor::scene::result::ok;
