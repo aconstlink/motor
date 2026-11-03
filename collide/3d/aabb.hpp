@@ -88,6 +88,13 @@ class aabb
         return *this;
     }
 
+    this_ref_t merge( this_cref_t other ) noexcept
+    {
+        this_t::compare_and_exchange_max( other.get_max() ) ;
+        this_t::compare_and_exchange_min( other.get_min() ) ;
+        return *this ;
+    }
+
   public:
 
     inline this_ref_t operator()( vec3_cref_t max, vec3_cref_t min )
@@ -103,19 +110,46 @@ class aabb
     }
 
     // takes the biggest/smallest components from in.
-    void_t compare_and_exchange( this_t::vec3_t const & in ) noexcept 
+    // use this function
+    void_t compare_and_exchange( this_t::vec3_t const & in ) noexcept
     {
-        type_t const x = in.x() ;
-        type_t const y = in.y() ;
-        type_t const z = in.z() ;
+        type_t const x = in.x();
+        type_t const y = in.y();
+        type_t const z = in.z();
 
-        if( _max.x() < x ) _max.x( x ) ;
-        if( _max.y() < y ) _max.y( y ) ;
-        if( _max.z() < z ) _max.z( z ) ;
+        if( _max.x() < x ) _max.x( x );
+        if( _max.y() < y ) _max.y( y );
+        if( _max.z() < z ) _max.z( z );
 
-        if( _min.x() > x ) _min.x( x ) ;
-        if( _min.y() > y ) _min.y( y ) ;
-        if( _min.z() > z ) _min.z( z ) ;
+        if( _min.x() > x ) _min.x( x );
+        if( _min.y() > y ) _min.y( y );
+        if( _min.z() > z ) _min.z( z );
+    }
+
+  private:
+
+    // takes the biggest components from in.
+    void_t compare_and_exchange_max( this_t::vec3_t const & in ) noexcept
+    {
+        type_t const x = in.x();
+        type_t const y = in.y();
+        type_t const z = in.z();
+
+        if( _max.x() < x ) _max.x( x );
+        if( _max.y() < y ) _max.y( y );
+        if( _max.z() < z ) _max.z( z );
+    }
+
+    // takes the smallest components from in.
+    void_t compare_and_exchange_min( this_t::vec3_t const & in ) noexcept
+    {
+        type_t const x = in.x();
+        type_t const y = in.y();
+        type_t const z = in.z();
+
+        if( _min.x() > x ) _min.x( x );
+        if( _min.y() > y ) _min.y( y );
+        if( _min.z() > z ) _min.z( z );
     }
 
   public:

@@ -14,6 +14,8 @@ struct transform
 {
     using vec4_t = motor::math::vector4< T > ;
 
+    // this function can be used to transform an aabb to form a obb. 
+    // if you want the come back to an aabb use the next function bellow transform_bounds::to_aabb
     static motor::collide::c3d::obb< T > from_aabb( motor::collide::c3d::aabb< T > const & b,
         motor::math::m3d::transformation< T > const & trafo ) noexcept
     {
@@ -31,14 +33,15 @@ struct transform_bounds
     using aabb_t = motor::collide::c3d::aabb< T >;
     using obb_t = motor::collide::c3d::obb< T >;
 
+    // this function function transforms an obb back to an aabb.
+    // the resulting aabb might be a little bit bigger than the enclosing
+    // object, but it is very fast!
     static aabb_t to_aabb( obb_t const & box ) noexcept
     {
         auto const o = box.origin();
-        auto const a = box.x().absed() + box.y().absed() + box.z().absed();
-        
+        auto const a = box.x().absed() + box.y().absed() + box.z().absed();        
 
         vec3_t const max = o + a ;
-
         vec3_t const min = o - a ;
 
         return aabb_t( max, min );

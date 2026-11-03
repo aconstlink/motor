@@ -7,38 +7,41 @@
 #include "../node/group.h"
 #include "../node/leaf.h"
 
+#include <motor/collide/3d/aabb.hpp>
 #include <motor/math/utility/3d/transformation.hpp>
 #include <motor/std/stack>
 
 namespace motor
 {
-    namespace scene
-    {
-        class MOTOR_SCENE_API trafo_visitor : public ivisitor
-        {
-            motor_this_typedefs( trafo_visitor ) ;
+namespace scene
+{
+class MOTOR_SCENE_API trafo_visitor : public ivisitor
+{
+    motor_this_typedefs( trafo_visitor );
 
-        private:
+  private:
 
-            motor::stack< motor::math::m3d::trafof_t, 10 > _trafos ;
+    motor::stack< motor::math::m3d::trafof_t, 10 > _trafos;
+    motor::stack< motor::collide::aabb3f_t, 10 > _coarses;
 
-        public:
+  public:
 
-            trafo_visitor( void_t ) noexcept ;
-            virtual ~trafo_visitor( void_t ) noexcept ;
-            
-            virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept ;
-            virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept ;
-            virtual motor::scene::result post_visit( motor::scene::group_ptr_t, motor::scene::result const ) noexcept ;
+    trafo_visitor( void_t ) noexcept;
+    virtual ~trafo_visitor( void_t ) noexcept;
 
-            virtual void_t on_start( void_t ) noexcept final ;
-            virtual void_t on_finish( void_t ) noexcept final ;
+    virtual motor::scene::result visit( motor::scene::leaf_ptr_t ) noexcept;
+    virtual motor::scene::result visit( motor::scene::group_ptr_t ) noexcept;
+    virtual motor::scene::result post_visit(
+        motor::scene::group_ptr_t, motor::scene::result const ) noexcept;
 
-        private:
+    virtual void_t on_start( void_t ) noexcept final;
+    virtual void_t on_finish( void_t ) noexcept final;
 
-            void_t handle_visit( motor::scene::node_ptr_t ) ;
-            void_t handle_post_visit( motor::scene::node_ptr_t ) ;
-        };
-        motor_typedef( trafo_visitor ) ;
-    }
-}
+  private:
+
+    void_t handle_visit( motor::scene::node_ptr_t, bool_t const update_bounds ) noexcept;
+    void_t handle_post_visit( motor::scene::node_ptr_t ) noexcept;
+};
+motor_typedef( trafo_visitor );
+} // namespace scene
+} // namespace motor

@@ -41,9 +41,20 @@ class bounds_component : public icomponent
     }
     virtual ~bounds_component( void_t ) noexcept {}
 
-    coarse_volume_t const & get_coarse( void_t ) noexcept
+    void_t set_coarse( coarse_volume_t const & v ) noexcept
+    {
+        _coarse = v;
+    }
+
+    coarse_volume_t const & get_coarse( void_t ) const noexcept
     {
         return _coarse;
+    }
+
+    //
+    void_t set_coarse_transformed( coarse_volume_t const & other ) noexcept
+    {
+        _coarse_transformed = other;
     }
 
     // @pre call transform somewhere first
