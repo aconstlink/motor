@@ -21,9 +21,9 @@ class obb
 
   private:
 
-    motor::math::vec3f_t _origin;
-    motor::math::vec3f_t _scaling;
-    motor::math::mat3f_t _orientation;
+    this_t::vec3_t _origin;
+    this_t::vec3_t _scaling;
+    this_t::mat3_t _orientation;
 
   public:
 
@@ -58,6 +58,21 @@ class obb
     this_t::mat3_cref_t orientation( void_t ) const noexcept
     {
         return _orientation;
+    }
+
+    this_t::vec3_t extend_x( void_t ) const noexcept
+    {
+        return this_t::vec3_t( _orientation.column(0) * _scaling[0] ) ;
+    }
+
+    this_t::vec3_t extend_y( void_t ) const noexcept
+    {
+        return this_t::vec3_t( _orientation.column(1) * _scaling[1] ) ;
+    }
+
+    this_t::vec3_t extend_z( void_t ) const noexcept
+    {
+        return this_t::vec3_t( _orientation.column(2) * _scaling[2] ) ;
     }
 
     this_t::vec3_t x( void_t ) const noexcept

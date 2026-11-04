@@ -96,7 +96,7 @@ void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr, bool_t const 
                  lptr )
         {
             lptr->for_each_light( [ &, this ]( motor::gfx::light_mtr_t l )
-            { l->set_transformation( _trafos.top() ); } );
+            { l->set_transformation( _trafos.top() ); return true ; } );
         }
         else if( auto * msls = motor::scene::safe_cast< motor::scene::msl_set_component_t >( comp );
                  msls )
@@ -139,6 +139,6 @@ void_t trafo_visitor::on_finish( void_t ) noexcept
     _trafos.pop();
     assert( !_trafos.has_item() );
 
-    _coarses.pop();
+    _world_box = _coarses.pop();
     assert( !_coarses.has_item() );
 }

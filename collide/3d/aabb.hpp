@@ -185,6 +185,11 @@ class aabb
         return ( this_t::get_max() - this_t::get_min() ) * type_t( 0.5 ) + this_t::get_min();
     }
 
+    vec3_t get_dims( void_t ) const noexcept
+    {
+        return this_t::get_max() - this_t::get_min() ;
+    }
+
     vec3_t get_extend( void_t ) const
     {
         return ( ( this_t::get_max() - this_t::get_min() ) * type_t( 0.5 ) );

@@ -68,10 +68,13 @@ class MOTOR_SCENE_API light_component : public icomponent
         _lights.emplace_back( motor::move( l ) );
     }
 
-    using for_each_borrowed_light_funk_t = std::function< void_t( motor::gfx::light_mtr_t ) >;
-    void_t for_each_light( for_each_borrowed_light_funk_t f )
+    using for_each_borrowed_light_funk_t = std::function< bool_t( motor::gfx::light_mtr_t ) >;
+    bool_t for_each_light( for_each_borrowed_light_funk_t f )
     {
-        for( auto * l : _lights ) f( l );
+        for( auto * l : _lights )
+            if( !f( l ) ) return false;
+
+        return true;
     }
 
     // use:

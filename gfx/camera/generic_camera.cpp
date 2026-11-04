@@ -192,6 +192,18 @@ generic_camera::this_ref_t generic_camera::look_at( motor::math::vec3f_cref_t po
 }
 
 //*********************************************
+generic_camera::this_ref_t generic_camera::look_at_by_dir( motor::math::vec3f_cref_t pos,
+                                                    motor::math::vec3f_cref_t dir ) noexcept
+{
+    motor::math::mat4f_t m;
+    motor::math::m3d::camera_util< float_t >::create_lookat_dir( pos, dir, m );
+
+    this_t::set_transformation( m );
+
+    return *this;
+}
+
+//*********************************************
 motor::math::mat4f_cref_t generic_camera::get_view_matrix( void_t ) const noexcept
 {
     return _view_matrix;

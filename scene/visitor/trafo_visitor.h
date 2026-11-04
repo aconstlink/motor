@@ -24,6 +24,9 @@ class MOTOR_SCENE_API trafo_visitor : public ivisitor
     motor::stack< motor::math::m3d::trafof_t, 10 > _trafos;
     motor::stack< motor::collide::aabb3f_t, 10 > _coarses;
 
+    // will be created if the traversal is done
+    motor::collide::aabb3f_t _world_box;
+
   public:
 
     trafo_visitor( void_t ) noexcept;
@@ -36,6 +39,11 @@ class MOTOR_SCENE_API trafo_visitor : public ivisitor
 
     virtual void_t on_start( void_t ) noexcept final;
     virtual void_t on_finish( void_t ) noexcept final;
+
+    motor::collide::aabb3f_t get_world_box( void_t ) const noexcept
+    {
+        return _world_box;
+    }
 
   private:
 

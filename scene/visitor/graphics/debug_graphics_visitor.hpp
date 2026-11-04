@@ -144,6 +144,7 @@ class debug_graphics_visitor : public motor::scene::ivisitor
                         _prim_render->draw_wire_circle( _cam->get_camera_matrix(), lpos, r_1,
                             motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ), 20 );
                     }
+                    return true ;
                 } );
             }
         }

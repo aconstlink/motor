@@ -49,3 +49,9 @@ struct transform_bounds
 };
 
 } // namespace motor::collide::c3d
+
+namespace motor::collide
+{
+    motor_typedefs( c3d::transform< float_t >, transform3f ) ;
+    motor_typedefs( c3d::transform_bounds< float_t >, transform_bounds3f ) ;
+}
