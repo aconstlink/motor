@@ -40,7 +40,7 @@ namespace motor
             floats_t _samples ;
             floats_t _frequencies ;
 
-            size_t _band_width = 0 ;
+            float_t _band_width = 0.0f ;
 
             motor::math::vec2f_t _mm = motor::math::vec2f_t(
                 std::numeric_limits<float_t>::max(),
@@ -106,12 +106,16 @@ namespace motor
                 return _frequencies.size() ;
             }
 
-            size_t get_band_width( void_t ) const noexcept 
+            template< typename T >
+            T get_band_width( void_t ) const noexcept 
             {
-                return _band_width ;
+                if constexpr ( std::is_integral<T>::value )
+                    return static_cast<T>( std::floorf(_band_width ) );
+                
+                return static_cast< T >( _band_width ) ;
             }
 
-            void_t set_band_width( size_t const bw ) noexcept
+            void_t set_band_width( float_t const bw ) noexcept
             {
                 _band_width = bw ;
             }
