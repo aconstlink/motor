@@ -97,7 +97,7 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
     bool_t add_component( motor::core::mtr_safe< T > comp ) noexcept
     {
         auto iter = std::find_if( _components.begin(), _components.end(),
-                                  [ & ]( motor::scene::icomponent_ptr_t comp_in )
+            [ & ]( motor::scene::icomponent_ptr_t comp_in )
         { return comp_in == comp || ( dynamic_cast< T * >( comp_in ) != nullptr ); } );
 
         if( iter != _components.end() )
@@ -116,7 +116,7 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
     bool_t remove_component( void_t ) noexcept
     {
         auto iter = std::find_if( _components.begin(), _components.end(),
-                                  [ & ]( motor::scene::icomponent_ptr_t comp_in )
+            [ & ]( motor::scene::icomponent_ptr_t comp_in )
         { return ( dynamic_cast< T * >( comp_in ) != nullptr ); } );
 
         if( iter == _components.end() )
@@ -144,6 +144,21 @@ class MOTOR_SCENE_API node : public motor::scene::ivisitable
         }
     }
 
+  public: // interface through typeid @see id_registry
+
+    template < typename T >
+    T * borrow_component_by_typeid( void_t ) noexcept
+    {
+        for( auto * comp : _components )
+        {
+            if( T::tid != comp->type_id() ) continue;
+            assert( dynamic_cast< T * >( comp ) != nullptr );
+            return static_cast< T * >( comp );
+        }
+        return nullptr;
+    }
+
+    
   public:
 
     // helps traversing the tree

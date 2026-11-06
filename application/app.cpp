@@ -206,6 +206,20 @@ bool_t app::carrier_update( void_t ) noexcept
     // this can happen in small projects, so we have to wait until micro != 0
     // I think this is not that much of a problem, because in more complex
     // applications, that will be != 0 anyways
+    #if 1
+    uint64_t observed ;
+    {
+        std::lock_guard< std::mutex > lk( _wake_mtx ) ;
+        observed = _wake_generation ;
+    }
+
+    {
+        dt_micro = std::chrono::duration_cast<std::chrono::microseconds>( this_t::platform_clock_t::now() - _tp_platform ) ;
+        dt_sec = float_t( double_t( dt_micro.count() ) / 1000000.0 ) ;
+        _tp_platform = this_t::platform_clock_t::now() ;
+    }
+
+    #else
     {
         dt_micro = std::chrono::duration_cast<std::chrono::microseconds>( this_t::platform_clock_t::now() - _tp_platform ) ;
 
@@ -219,6 +233,8 @@ bool_t app::carrier_update( void_t ) noexcept
         dt_sec = float_t( double_t( dt_micro.count() ) / 1000000.0 ) ;
         _tp_platform = this_t::platform_clock_t::now() ;
     }
+    #endif
+
 
     {
         std::lock_guard< std::mutex > lk( _mtx_window_cq ) ;
@@ -471,6 +487,33 @@ bool_t app::carrier_update( void_t ) noexcept
         }
     }
 
+    {
+        using us = std::chrono::microseconds ;
+
+        auto remaining = []( us interval, us residual )
+        {
+            return std::max( us(0), interval - residual ) ;
+        };
+
+        auto const delay = std::min( {
+            remaining( _device_interval, _device_residual ),
+            remaining( _update_interval, _update_residual ),
+            remaining( _audio_interval, _audio_residual ),
+            remaining( _profile_interval, _profile_residual )
+        } ) ;
+
+        auto const deadline = _tp_platform + delay ;
+
+        if( !_closed /*&& !graphics_ready_without_side_effects()*/ )
+        {
+            std::unique_lock<std::mutex> lk( _wake_mtx ) ;
+            _wake_cv.wait_until( lk, deadline, [&]
+            {
+                return _wake_generation != observed ;
+            } ) ;
+        }
+    }
+
     return true ;
 }
 
@@ -480,7 +523,7 @@ bool_t app::clear_out_window_data( window_data & d ) noexcept
     // have to wait until the render engine 
     // is free of any more commands.
     auto * re = d.fe->borrow_render_engine() ;
-    if( !re->can_enter_frame() ) 
+    if( !re->can_enter_frame() || re->needs_execute() ) 
     {
         return false ;
     }
@@ -698,9 +741,8 @@ bool_t app::before_audio( std::chrono::microseconds const & dt ) noexcept
 //************************************************************************
 void_t app::after_audio( bool_t const exec ) noexcept
 {
-    if( !exec ) return ;
-    _physics_residual = std::chrono::microseconds( 0 ) ;
-    _first_audio = false ;
+    _audio_residual = std::chrono::microseconds(0) ;
+    if( exec ) _first_audio = false ;    
 }
 
 //************************************************************************

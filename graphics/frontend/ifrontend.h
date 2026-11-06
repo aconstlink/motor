@@ -8,7 +8,7 @@
 #include "../api.h"
 #include "../typedefs.h"
 
-#include "../render_engine.h"
+#include "../render_engine.hpp"
 
 namespace motor
 {

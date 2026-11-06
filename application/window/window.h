@@ -8,7 +8,7 @@
 #include "iwindow.h"
 #include "window_message.h"
 #include "iwindow_message_listener.h"
-#include <motor/graphics/render_engine.h>
+#include <motor/graphics/render_engine.hpp>
 #include <motor/graphics/frontend/ifrontend.h>
 
 #include <motor/std/vector>

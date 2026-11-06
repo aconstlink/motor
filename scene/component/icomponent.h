@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #pragma once
 
 #include "../api.h"
@@ -22,13 +21,25 @@ class MOTOR_SCENE_API icomponent
 
   private:
 
+    static uint64_t const _type_id = uint64_t( -1 );
+
+  public:
+
+    virtual uint64_t type_id( void_t ) const noexcept
+    {
+        return _type_id;
+    }
+
+  private:
+
     motor::vector< motor::wire::iinput_slot_mtr_t > _inputs;
     motor::vector< motor::wire::ioutput_slot_mtr_t > _outputs;
 
   public:
 
     icomponent( void_t ) noexcept {}
-    icomponent( this_rref_t rhv ) noexcept : _inputs( std::move( rhv._inputs ) ), _outputs( std::move( rhv._outputs ) )
+    icomponent( this_rref_t rhv ) noexcept
+        : _inputs( std::move( rhv._inputs ) ), _outputs( std::move( rhv._outputs ) )
     {
     }
 
@@ -88,7 +99,8 @@ class MOTOR_SCENE_API icomponent
     }
 
     template < typename T >
-    motor::wire::input_slot< T > * create_input_slot( T const & initial, char const * purpose = "" ) noexcept
+    motor::wire::input_slot< T > * create_input_slot(
+        T const & initial, char const * purpose = "" ) noexcept
     {
         // here we create a managed pointer
         auto ret = motor::shared( motor::wire::input_slot< T >( initial ), purpose );
@@ -111,7 +123,8 @@ class MOTOR_SCENE_API icomponent
     }
 
     template < typename T >
-    motor::wire::output_slot< T > * create_output_slot( T const & initial, char const * purpose = "" ) noexcept
+    motor::wire::output_slot< T > * create_output_slot(
+        T const & initial, char const * purpose = "" ) noexcept
     {
         auto ret = motor::shared( motor::wire::output_slot< T >( initial ), purpose );
         _outputs.emplace_back( ret );
@@ -144,5 +157,24 @@ class MOTOR_SCENE_API icomponent
     virtual void_t sync_inputs( void_t ) noexcept {}
     virtual void_t sync_outputs( void_t ) noexcept {}
 };
+
+template < typename T >
+static T * safe_cast( motor::scene::icomponent_mtr_t comp ) noexcept
+{
+    if( comp == nullptr ) return nullptr ;
+
+    if constexpr( requires { T::tid; } )
+    {
+        if( comp->type_id() == T::tid )
+        {
+            assert( dynamic_cast< T * >( comp ) != nullptr );
+            return static_cast< T * >( comp );
+        }
+        return nullptr ;
+    }
+
+    return dynamic_cast< T * >( comp );
+}
+
 } // namespace scene
 } // namespace motor

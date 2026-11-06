@@ -26,16 +26,40 @@ struct global::singleton_data
 
     singleton_data( void_t ) noexcept{}
 
-    singleton_data( singleton_data && rhv ) noexcept
+    singleton_data( singleton_data && rhv ) noexcept : tp( std::move( rhv.tp ) ),
+        lts ( std::move( rhv.lts ) ), notifies( std::move( rhv.notifies) )
     {
-        tp = std::move( rhv.tp ) ;
-        lts = std::move( rhv.lts ) ;
+        //tp = std::move( rhv.tp ) ;
+        //lts = std::move( rhv.lts ) ;
         //arena = std::move( rhv.arena ) ;
     }
 
-    ~singleton_data( void_t ) noexcept
-    {}
+    ~singleton_data( void_t ) noexcept{
+    }
+
+    std::mutex notifies_mtx ;
+    motor::vector< global::notify_funk_t > notifies ;
+    motor::vector< size_t > lts_notifies ;
 };
+
+//*************************************************************************************************
+size_t global::register_work_event_notify( notify_funk_t f ) noexcept 
+{
+    std::lock_guard< std::mutex > lk( this_t::init()->notifies_mtx ) ;
+    _dptr->notifies.emplace_back( f ) ;
+    _dptr->lts_notifies.emplace_back( _dptr->lts.register_work_notify( f ) ) ;
+    return _dptr->notifies.size() - 1 ;
+}
+
+//*************************************************************************************************
+void_t global::unregister_work_event_notify( size_t const id ) noexcept 
+{
+    std::lock_guard< std::mutex > lk( this_t::init()->notifies_mtx ) ;
+    if( _dptr->notifies.size() <= id ) return ;
+    _dptr->lts.unregister_work_notify( _dptr->lts_notifies[id] ) ;
+    _dptr->lts_notifies[id] = size_t(-1) ;
+    _dptr->notifies[id] = nullptr ;
+}
 
 //*************************************************************************************************
 global::singleton_data * global::init( void_t ) noexcept
@@ -85,6 +109,14 @@ void_t global::schedule( motor::concurrent::task_mtr_safe_t t, motor::concurrent
     else if( st == motor::concurrent::schedule_type::loose )
     {
         this_t::init()->lts.schedule( std::move( t ) ) ;
+    }
+
+    {
+        std::lock_guard< std::mutex > lk( _dptr->notifies_mtx ) ;
+        for( auto & n : _dptr->notifies )
+        {
+            if( n ) n() ;
+        }
     }
 }
 

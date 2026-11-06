@@ -15,9 +15,17 @@ namespace motor
 {
 namespace scene
 {
-class msl_set_component : public motor::scene::icomponent
+class MOTOR_SCENE_API msl_set_component : public motor::scene::icomponent
 {
     motor_this_typedefs( msl_set_component );
+
+  public:
+
+    static uint64_t const tid;
+    virtual uint64_t type_id( void_t ) const noexcept override
+    {
+        return tid;
+    }
 
   public:
 
@@ -73,8 +81,7 @@ class msl_set_component : public motor::scene::icomponent
         _components[ id ] = { motor::move( msl ) };
     }
 
-    bool_t init_msl( id_t const id,
-        motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    bool_t init_msl( id_t const id, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
         auto iter = _components.find( id );
         if( iter == _components.end() )
@@ -87,8 +94,7 @@ class msl_set_component : public motor::scene::icomponent
         return iter->second.msl->render_init( fe );
     }
 
-    bool_t release_msl( id_t const id,
-        motor::graphics::gen4::frontend_ptr_t fe ) noexcept
+    bool_t release_msl( id_t const id, motor::graphics::gen4::frontend_ptr_t fe ) noexcept
     {
         auto iter = _components.find( id );
         if( iter == _components.end() )
@@ -130,19 +136,19 @@ class msl_set_component : public motor::scene::icomponent
         }
     }
 
-    virtual void_t sync_inputs( void_t ) noexcept 
+    virtual void_t sync_inputs( void_t ) noexcept
     {
         for( auto & item : _components )
         {
-            item.second.msl->sync_inputs() ;
+            item.second.msl->sync_inputs();
         }
     }
 
-    virtual void_t sync_outputs( void_t ) noexcept 
+    virtual void_t sync_outputs( void_t ) noexcept
     {
         for( auto & item : _components )
         {
-            item.second.msl->sync_outputs() ;
+            item.second.msl->sync_outputs();
         }
     }
 };

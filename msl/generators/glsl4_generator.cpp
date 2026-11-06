@@ -1426,6 +1426,9 @@ namespace this_file_glsl4
 
         else if( bit == motor::msl::buildin_type::fbm_1d ) 
         {
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_1)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::rand_1d_2)] ) ;
+            ret.emplace_back( api_buildins[as_number(api_build_in_types::int_perm_4d_4)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_1)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_2)] ) ;
             ret.emplace_back( api_buildins[as_number(api_build_in_types::noise_1d_3)] ) ;

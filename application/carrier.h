@@ -72,6 +72,8 @@ namespace motor
             motor::audio::system_ptr_t get_audio_system( void_t ) noexcept ;
             motor::network::system_ptr_t get_network_system( void_t ) noexcept ;
 
+            motor::application::app_mtr_t borrow_app( void_t ) noexcept { return _app ; }
+
         private:
 
             /// at the moment, the app object must be added by the applications' ctor

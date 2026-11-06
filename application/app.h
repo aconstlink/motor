@@ -51,9 +51,14 @@ namespace motor
 
         private:
 
-            typedef std::chrono::high_resolution_clock platform_clock_t ;
+            typedef std::chrono::steady_clock platform_clock_t ;
             platform_clock_t::time_point _tp_platform = platform_clock_t::now() ;
             
+            std::mutex _wake_mtx ;
+            std::condition_variable _wake_cv ;
+
+            uint64_t _wake_generation = 0 ;
+
             std::chrono::microseconds _render_residual = std::chrono::microseconds( 0 ) ;
             std::chrono::microseconds _audio_residual = std::chrono::microseconds( 0 ) ;
             std::chrono::microseconds _audio_interval = std::chrono::microseconds( 8000 ) ;
@@ -68,6 +73,15 @@ namespace motor
 
             std::chrono::microseconds _profile_interval = std::chrono::microseconds( 10000 ) ;
             std::chrono::microseconds _profile_residual = std::chrono::microseconds( 0 ) ;
+
+            void_t notify_update( void_t ) noexcept
+            {
+                {
+                    std::lock_guard<std::mutex> lk( _wake_mtx ) ;
+                    ++_wake_generation ;
+                }
+                _wake_cv.notify_one() ;
+            }
 
         private:
 
@@ -291,6 +305,7 @@ namespace motor
                 bool_t update( void_t ) noexcept { return _app->carrier_update() ; }
                 bool_t shutdown( void_t ) noexcept { return _app->carrier_shutdown() ; }
                 bool_t has_closed( void_t ) noexcept { return _app->_closed ; }
+                void_t notify_update( void_t ) noexcept { _app->notify_update() ; }
             };
 
         protected:

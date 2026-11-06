@@ -63,6 +63,35 @@ class MOTOR_GFX_API primitive_render_3d
         motor::math::vec4f_cref_t color, motor::math::vec4f_cref_t border_color,
         size_t const ) noexcept;
 
+    // right/up must form an orthonormal basis of the circle's plane.
+    // Non-positive radii or fewer than three segments emit no lines.
+    void_t draw_wire_circle( motor::math::vec3f_cref_t center,
+        motor::math::vec3f_cref_t right, motor::math::vec3f_cref_t up, float_t const radius,
+        motor::math::vec4f_cref_t color, size_t const num_segments = 32 ) noexcept;
+
+    // The orientation transforms a circle in the local XY plane.
+    void_t draw_wire_circle( motor::math::mat3f_cref_t orientation,
+        motor::math::vec3f_cref_t center, float_t const radius,
+        motor::math::vec4f_cref_t color, size_t const num_segments = 32 ) noexcept;
+
+    // Three world-axis-aligned great circles, not a tessellated sphere.
+    void_t draw_wire_sphere( motor::math::vec3f_cref_t center, float_t const radius,
+        motor::math::vec4f_cref_t color, size_t const num_segments = 32 ) noexcept;
+
+    // 0-3 : front quad
+    // 4-7 : back quad
+    // 1/5 ----- 2/6
+    // |          |
+    // |          |
+    // 0/4 ----- 3/7
+    void_t draw_wire_cube( std::array< motor::math::vec3f_t, 8 >, motor::math::vec4f_cref_t color ) noexcept ;
+
+    // Direction is normalized internally. Zero direction or non-positive length emits nothing.
+    // Head dimensions are in world units; head_length is clamped to length.
+    void_t draw_arrow( motor::math::vec3f_cref_t origin, motor::math::vec3f_cref_t direction,
+        float_t const length, motor::math::vec4f_cref_t color,
+        float_t const head_length = 0.35f, float_t const head_radius = 0.18f ) noexcept;
+
     void_t set_view_proj( motor::math::mat4f_cref_t view, motor::math::mat4f_cref_t proj ) noexcept;
 
   public: // splines
@@ -94,9 +123,14 @@ class MOTOR_GFX_API primitive_render_3d
 
       void_t draw_frustum( motor::gfx::generic_camera_cref_t cam, motor::math::vec4f_cref_t color ) ;
 
+      // Draws in the planes' coordinate space. Requires eight finite corner intersections.
+      void_t draw_frustum( motor::math::frustum3f_cref_t frustum,
+          motor::math::vec4f_cref_t color ) noexcept ;
+
   public:
 
     void_t configure( motor::graphics::gen4::frontend_mtr_t fe ) noexcept;
+    void_t release( motor::graphics::gen4::frontend_mtr_t fe ) noexcept;
     // copy all data to the gpu buffer and transmit the data
     void_t prepare_for_rendering( void_t ) noexcept;
     void_t prepare_for_rendering( motor::graphics::gen4::frontend_mtr_t fe ) noexcept;

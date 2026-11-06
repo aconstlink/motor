@@ -192,6 +192,18 @@ generic_camera::this_ref_t generic_camera::look_at( motor::math::vec3f_cref_t po
 }
 
 //*********************************************
+generic_camera::this_ref_t generic_camera::look_at_by_dir( motor::math::vec3f_cref_t pos,
+                                                    motor::math::vec3f_cref_t dir ) noexcept
+{
+    motor::math::mat4f_t m;
+    motor::math::m3d::camera_util< float_t >::create_lookat_dir( pos, dir, m );
+
+    this_t::set_transformation( m );
+
+    return *this;
+}
+
+//*********************************************
 motor::math::mat4f_cref_t generic_camera::get_view_matrix( void_t ) const noexcept
 {
     return _view_matrix;
@@ -269,11 +281,17 @@ motor::math::vec4f_t generic_camera::near_far_plane_half_dims( void_t ) const no
 //******************************************************************************************
 motor::math::vec4f_t generic_camera::near_far_plane_half_dims( motor::math::vec2f_in_t nf ) const noexcept
 {
+    if( this_t::is_orthographic() )
+    {
+        auto const half_dims = _sensor_dims * 0.5f;
+        return motor::math::vec4f_t( half_dims.x(), half_dims.y(), half_dims.x(), half_dims.y() );
+    }
+
     auto const nl = motor::math::m3d::detail::perspective_projection< float_t >::get_half_length_for( _fov, nf.x() );
     auto const fl = motor::math::m3d::detail::perspective_projection< float_t >::get_half_length_for( _fov, nf.y() );
 
-    auto const aspect = this_t::aspect_h_w();
-    return motor::math::vec4f_t( nl, nl * aspect, fl, fl * aspect );
+    auto const aspect = this_t::aspect_w_h();
+    return motor::math::vec4f_t( nl * aspect, nl, fl * aspect, fl );
 }
 
 //******************************************************************************************
@@ -306,6 +324,9 @@ generic_camera::ray3_t generic_camera::create_ray( vec2_cref_t screen_pos ) cons
 
 void_t generic_camera::reconstruct_frustum_planes( void_t ) noexcept
 {
+    #if 1
+    _frustum.contruct_planes_from( _view_matrix, _proj_matrix ) ;
+    #else
     motor::math::mat4f_t comb = _proj_matrix * _view_matrix;
 
     motor::math::vec4f_t r0, r1, r2, r3;
@@ -328,4 +349,5 @@ void_t generic_camera::reconstruct_frustum_planes( void_t ) noexcept
     _frustum.set_plane( frustum_t::frustum_plane::top_plane, plane_t( p3.negated() ) );
     _frustum.set_plane( frustum_t::frustum_plane::near_plane, plane_t( p4.negated() ) );
     _frustum.set_plane( frustum_t::frustum_plane::far_plane, plane_t( p5.negated() ) );
+    #endif
 }

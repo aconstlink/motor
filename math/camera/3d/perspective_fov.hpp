@@ -102,7 +102,7 @@ struct perspective
 #endif
 
   public:
-
+  #if 0
     /// @param fov horizontal and vertical fov in rad
     static void_t create_by_fov(
         vec2_cref_t const fov, type_t const n, type_t const f, mat4_out_t m )
@@ -122,7 +122,7 @@ struct perspective
 
         this_t::__create( w, h, n, f, m );
     }
-
+    #endif
 #if 0
                 /// by vertical fov
                 static void_t create_by_fovv_aspect( type_t const fov, type_t const aspect,
@@ -140,6 +140,8 @@ struct perspective
     {
         auto const t = tanf( fov * 0.5f );
 
+        // Replace the entire projection, including a previous identity or orthographic matrix.
+        m = mat4_t();
         m[ 0 ] = 1.0f / ( aspect * t );
         m[ 5 ] = 1.0f / t;
         m[ 10 ] = -( ( f + n ) / ( f - n ) );

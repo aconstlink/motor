@@ -64,20 +64,36 @@ class light_collector_visitor : public default_visitor
         return std::move( _lights );
     }
 
-    using for_each_funk_t =
-        std::function< void_t( size_t const, motor::scene::light_component_mtr_t ) >;
-    void_t for_each_light( this_t::for_each_funk_t f ) noexcept
+    using for_each_comp_funk_t =
+        std::function< void_t ( size_t const, motor::scene::light_component_mtr_t ) >;
+    void_t for_each_light_component( this_t::for_each_comp_funk_t f ) noexcept
     {
         size_t i = size_t( -1 );
         for( auto * ptr : _lights )
         {
-            f( ++i, ptr );
+            f( ++i, ptr ) ;
+        }
+        
+    }
+
+    using for_each_light_funk_t = std::function< bool_t ( size_t const, motor::gfx::light_mtr_t ) >;
+    void_t for_each_light( this_t::for_each_light_funk_t f ) noexcept
+    {
+        size_t i = size_t( -1 );
+        for( auto * ptr : _lights )
+        {
+            auto const res = ptr->for_each_light( [ & ]( motor::gfx::light_mtr_t l ) 
+            { 
+                return f( ++i, l ); 
+            } ) ;
+
+            if( !res ) break ;
         }
     }
 
     size_t get_num_lights( void_t ) const noexcept
     {
-        return _lights.size() ;
+        return _lights.size();
     }
 
     void_t clear_lights( void_t ) noexcept

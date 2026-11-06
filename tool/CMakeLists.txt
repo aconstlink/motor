@@ -37,6 +37,8 @@ set( sources
     "imgui/node_kit/imgui_node_visitor.cpp"
     "imgui/node_kit/imgui_node_component.h"
     "imgui/node_kit/imgui_node_component.cpp"
+
+    "imgui/onset_meter.hpp"
     )
 
 motor_vs_src_dir( sources )

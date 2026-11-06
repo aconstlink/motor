@@ -16,6 +16,7 @@ namespace motor
             failed,
             invalid,
             invalid_argument,
+            not_prepared,
             in_transit
         };
         motor_typedef( result ) ;

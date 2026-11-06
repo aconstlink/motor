@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #include "trafo_visitor.h"
 #include "../node/leaf.h"
 
 #include "../component/trafo3d_component.h"
 #include "../component/camera_component.h"
 #include "../component/light_component.hpp"
+#include "../component/bounds_component.hpp"
 #include "../component/graphics/msl_component.h"
 #include "../component/graphics/msl_set_component.hpp"
 
@@ -25,7 +25,7 @@ trafo_visitor::~trafo_visitor( void_t ) noexcept {}
 //******************************************************************************
 motor::scene::result trafo_visitor::visit( motor::scene::leaf_ptr_t nptr ) noexcept
 {
-    this_t::handle_visit( nptr );
+    this_t::handle_visit( nptr, true );
     this_t::handle_post_visit( nptr );
     return motor::scene::result::ok;
 }
@@ -33,7 +33,16 @@ motor::scene::result trafo_visitor::visit( motor::scene::leaf_ptr_t nptr ) noexc
 //******************************************************************************
 motor::scene::result trafo_visitor::visit( motor::scene::group_ptr_t nptr ) noexcept
 {
-    this_t::handle_visit( nptr );
+
+    if( !nptr->has_component< motor::scene::bounds_component_t >() )
+    {
+        nptr->add_component< motor::scene::bounds_component_t >(
+            motor::shared( motor::scene::bounds_component_t() ) );
+    }
+
+    _coarses.push( motor::collide::aabb3f_t() ) ;
+
+    this_t::handle_visit( nptr, false );
     return motor::scene::result::ok;
 }
 
@@ -41,81 +50,79 @@ motor::scene::result trafo_visitor::visit( motor::scene::group_ptr_t nptr ) noex
 motor::scene::result trafo_visitor::post_visit(
     motor::scene::group_ptr_t nptr, motor::scene::result const ) noexcept
 {
+
+    {
+        if( auto * c = nptr->borrow_component< motor::scene::bounds_component_t >(); c )
+        {
+            auto tmp = _coarses.pop() ;
+            _coarses.push( _coarses.pop().merge( tmp ) ) ;
+            c->set_coarse_transformed( tmp );
+            
+        }
+    }
+
     this_t::handle_post_visit( nptr );
     return motor::scene::result::ok;
 }
 
 //******************************************************************************
-void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr )
+void_t trafo_visitor::handle_visit( motor::scene::node_ptr_t nptr, bool_t const update_bounds ) noexcept
 {
-    // trafo3d
+    // handle trafo first
+    if( auto * tc = nptr->borrow_component< motor::scene::trafo3d_component_t >(); tc )
     {
-        auto * tcomp = nptr->borrow_component< motor::scene::trafo3d_component_t >();
-        if( tcomp != nullptr )
-        {
-            auto const local = tcomp->get_trafo();
-            auto const trafo = _trafos.top() * local;
-            motor::scene::trafo3d_component_t::visitor_interface( tcomp ).set_computed( trafo );
+        auto const local = tc->get_trafo();
+        auto const trafo = _trafos.top() * local;
+        motor::scene::trafo3d_component_t::visitor_interface( tc ).set_computed( trafo );
 
-            // push in any case, so the post_visit function
-            // can just pop the trafo from the stack
-            _trafos.push( trafo );
-        }
+        // push in any case, so the post_visit function
+        // can just pop the trafo from the stack
+        _trafos.push( trafo );
     }
 
-    // camera
+    nptr->for_each_component( [ & ]( motor::scene::icomponent_mtr_t comp )
     {
-        auto * comp = nptr->borrow_component< motor::scene::camera_component_t >();
-        if( comp != nullptr )
+        // camers
+        if( auto * cptr = motor::scene::safe_cast< motor::scene::camera_component_t >( comp );
+            cptr )
         {
-            if( auto * ptr = comp->borrow_camera(); ptr != nullptr )
+            if( auto * ptr = cptr->borrow_camera(); ptr != nullptr )
             {
                 ptr->set_transformation( _trafos.top() );
             }
         }
-    }
-
-    // light
-    {
-        auto * comp = nptr->borrow_component< motor::scene::light_component_t >();
-        if( comp != nullptr )
+        // light
+        else if( auto * lptr = motor::scene::safe_cast< motor::scene::light_component_t >( comp );
+                 lptr )
         {
-            comp->for_each_light( [&, this ]( motor::gfx::light_mtr_t l )
-            {
-                l->set_transformation( _trafos.top() ) ;
-            } ) ;
-            
+            lptr->for_each_light( [ &, this ]( motor::gfx::light_mtr_t l )
+            { l->set_transformation( _trafos.top() ); return true ; } );
         }
-    }
-
-    //
-    {
-        auto * comp = nptr->borrow_component< motor::scene::msl_component_t >();
-        if( comp != nullptr )
+        else if( auto * msls = motor::scene::safe_cast< motor::scene::msl_set_component_t >( comp );
+                 msls )
         {
-            comp->set_world( _trafos.top() );
-        }
-    }
-
-    //
-    {
-        auto * comp = nptr->borrow_component< motor::scene::msl_set_component_t >();
-        if( comp != nullptr )
-        {
-            comp->for_each_msl( [ & ]( motor::scene::msl_component_mtr_t msl_comp )
+            msls->for_each_msl( [ & ]( motor::scene::msl_component_mtr_t msl_comp )
             { msl_comp->set_world( _trafos.top() ); } );
         }
-    }
+        else if( auto bounds_comp =
+                     motor::scene::safe_cast< motor::scene::bounds_component_t >( comp );
+                 bounds_comp && update_bounds )
+        {
+            bounds_comp->transform( _trafos.top() );
+            _coarses.push( _coarses.pop().merge( bounds_comp->get_coarse_transformed() ) ) ;
+        }
+    } );
 }
 
 //******************************************************************************
-void_t trafo_visitor::handle_post_visit( motor::scene::node_ptr_t nptr )
+void_t trafo_visitor::handle_post_visit( motor::scene::node_ptr_t nptr ) noexcept
 {
     auto * tcomp = nptr->borrow_component< motor::scene::trafo3d_component_t >();
-    if( tcomp == nullptr ) return;
-
-    // pop transformation
-    _trafos.pop();
+    if( tcomp != nullptr )
+    {
+        // pop transformation
+        _trafos.pop();
+    }
 }
 
 //******************************************************************************
@@ -123,6 +130,7 @@ void_t trafo_visitor::on_start( void_t ) noexcept
 {
     // ensure at least one transformation is on the stack
     _trafos.push( motor::math::m3d::trafof_t() );
+    _coarses.push( motor::collide::aabb3f_t() );
 }
 
 //******************************************************************************
@@ -130,4 +138,7 @@ void_t trafo_visitor::on_finish( void_t ) noexcept
 {
     _trafos.pop();
     assert( !_trafos.has_item() );
+
+    _world_box = _coarses.pop();
+    assert( !_coarses.has_item() );
 }

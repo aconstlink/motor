@@ -182,7 +182,7 @@ size_t window::set_renderable( motor::graphics::render_engine_ptr_t re, motor::g
 {
     std::lock_guard< std::mutex > lk( _mtx_rnd ) ;
     if( _borrow != 0 ) return _borrow ;
-
+    
     _re = re ;_fe = fe ;
     return _borrow ;
 }

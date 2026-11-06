@@ -235,6 +235,7 @@ void_t tri_render_3d::init( motor::string_cref_t name ) noexcept
                         output.pos = mul( pos, u_world ) ;
                         output.pos = mul( output.pos, u_view ) ;
                         output.pos = mul( output.pos, u_proj ) ;
+                        output.pos.z = 0.5f * ( output.pos.z + output.pos.w );
                         return output;
                     } )" ) ).
 

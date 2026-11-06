@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #pragma once
 
 #include "../icomponent.h"
@@ -17,6 +16,14 @@ namespace scene
 class MOTOR_SCENE_API render_settings_component : public icomponent
 {
     motor_this_typedefs( render_settings_component );
+
+  public:
+
+    static uint64_t const tid;
+    virtual uint64_t type_id( void_t ) const noexcept override
+    {
+        return tid;
+    }
 
   public:
 
@@ -48,7 +55,7 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
 
     render_settings_component( motor::graphics::render_state_sets_rref_t rs ) noexcept
     {
-        this_t::add_state( 0, motor::shared( motor::graphics::state_object_t( std::move( rs ) ) ) ) ;
+        this_t::add_state( 0, motor::shared( motor::graphics::state_object_t( std::move( rs ) ) ) );
     }
 
     virtual ~render_settings_component( void_t ) noexcept
@@ -74,18 +81,18 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
     bool_t add_state( id_t const id, motor::graphics::state_object_mtr_safe_t rs ) noexcept
     {
         // is the id already in the set
-        if( this_t::has_id( id ) ) return false ;
-        return this_t::add_state_no_check( id, motor::move( rs ) ) ;
+        if( this_t::has_id( id ) ) return false;
+        return this_t::add_state_no_check( id, motor::move( rs ) );
     }
 
-    #if 0
+#if 0
     bool_t add_state( id_t const id, motor::graphics::render_state_sets_rref_t rs ) noexcept
     {
         // add render state sets to the render state object.
         // I think multiple set are not supported per state object at the moment.
     }
-    #endif
-    
+#endif
+
   private:
 
     // check if id already in the set
@@ -93,7 +100,7 @@ class MOTOR_SCENE_API render_settings_component : public icomponent
     {
         size_t i = size_t( -1 );
         while( ++i < _rs.size() && _rs[ i ].id != id );
-        return i != _rs.size() ;
+        return i != _rs.size();
     }
 
     // does not check if id already in the set.

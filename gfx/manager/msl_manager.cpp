@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
 #include "msl_manager.h"
 
 #include <motor/io/global.h>
@@ -17,11 +16,14 @@ msl_manager::msl_manager( motor::io::database_mtr_safe_t db ) noexcept : _db( mo
 //**************************************************************************
 msl_manager::msl_manager( this_rref_t rhv ) noexcept
     : _db( motor::move( rhv._db ) ), _location_to_id( std::move( rhv._location_to_id ) ),
-      _name_to_id( std::move( rhv._name_to_id ) ),
-      _msls( std::move( rhv._msls ) ), _msls_config( std::move( rhv._msls_config ) ),
+      _name_to_id( std::move( rhv._name_to_id ) ), _msls( std::move( rhv._msls ) ),
+      _msls_config( std::move( rhv._msls_config ) ),
       _msls_release( std::move( rhv._msls_release ) ),
       _configures_in_process( std::move( rhv._configures_in_process ) ),
-      _loads( std::move( rhv._loads ) ), _directs( std::move( rhv._directs ) )
+      _loads( std::move( rhv._loads ) ), _directs( std::move( rhv._directs ) ),
+      _conf_funks( std::move( rhv._conf_funks ) ),
+      _conf_funk_on_msls( std::move( rhv._conf_funk_on_msls ) ),
+      _conf_funk_on_fresh( std::move( rhv._conf_funk_on_fresh ) )
 {
     rhv.stop_thread();
     this_t::start_thread( true );
@@ -87,25 +89,56 @@ bool_t msl_manager::add(
 }
 
 //**************************************************************************
-void_t msl_manager::on_update( void_t ) noexcept {}
-
-//**************************************************************************
-void_t msl_manager::for_each_configure_done( on_configure_funk_t funk ) noexcept
+void_t msl_manager::on_update( void_t ) noexcept
 {
     motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
 
-    auto iter = _configures_in_process.begin();
-    while( iter != _configures_in_process.end() )
+    // check the in progress msls and call the callback
     {
-        size_t const id = *iter;
-        auto res = _msls[ id ].msl->is_ready();
-        if( res )
+        auto iter = _configures_in_process.begin();
+        while( iter != _configures_in_process.end() )
         {
-            funk( _msls[ id ].msl->name(), _msls[ id ].msl );
+            size_t const id = *iter;
+            if( !( _msls[ id ].msl->is_ready() ) )
+            {
+                _msls[ id ].is_in_process_list = true;
+                ++iter;
+                continue;
+            }
+
+            for( size_t i = 0; i < _conf_funk_on_fresh.size(); ++i )
+            {
+                if( _conf_funk_on_fresh[ i ] == size_t( -1 ) ) continue;
+
+                _conf_funks[ _conf_funk_on_fresh[ i ] ]( _msls[ id ].msl->name(), _msls[ id ].msl );
+            }
+            _msls[ id ].conf_funk_called = true;
+            _msls[ id ].is_in_process_list = false;
+
             iter = _configures_in_process.erase( iter );
-            continue;
         }
-        ++iter;
+    }
+
+    // call for each msl that is already ready
+    {
+        auto iter = _msls.begin();
+        while( iter != _msls.end() )
+        {
+            auto res = iter->msl->is_ready();
+            if( res && !iter->conf_funk_called && !iter->is_in_process_list )
+            {
+                for( size_t i = 0; i < _conf_funk_on_msls.size(); ++i )
+                {
+                    if( _conf_funk_on_msls[ i ] == size_t( -1 ) ) continue;
+                    _conf_funks[ _conf_funk_on_msls[ i ] ]( iter->msl->name(), iter->msl );
+                }
+            }
+            iter->conf_funk_called = false;
+
+            ++iter;
+        }
+
+        _conf_funk_on_msls.clear();
     }
 }
 
@@ -129,10 +162,11 @@ void_t msl_manager::on_render( motor::graphics::gen4::frontend_ptr_t fe ) noexce
     for( auto idx : _configures_in_process )
     {
         auto & item = _msls[ idx ];
-        auto [state, result] = fe->decode( item.msl ) ;
-        if( state == motor::graphics::object_state::invalid || state == motor::graphics::object_state::raw )
+        auto [ state, result ] = fe->decode( item.msl );
+        if( state == motor::graphics::object_state::invalid ||
+            state == motor::graphics::object_state::raw )
         {
-            fe->configure< motor::graphics::msl_object_t >( item.msl ) ;
+            fe->configure< motor::graphics::msl_object_t >( item.msl );
         }
     }
 }
@@ -153,7 +187,7 @@ void_t msl_manager::on_render_init( motor::graphics::gen4::frontend_ptr_t fe ) n
 }
 
 //**************************************************************************
-void_t msl_manager::on_render_release( motor::graphics::gen4::frontend_ptr_t fe ) noexcept 
+void_t msl_manager::on_render_release( motor::graphics::gen4::frontend_ptr_t fe ) noexcept
 {
     motor::concurrent::mrsw_t::reader_lock_t lk( _mutex );
     for( auto & item : _msls )
@@ -327,4 +361,63 @@ void_t msl_manager::stop_thread( void_t ) noexcept
     if( _th.joinable() ) _th.join();
 
     motor::release( motor::move( _sd ) );
+}
+
+//**************************************************************************
+size_t msl_manager::register_funk( on_configure_funk_t f ) noexcept
+{
+    motor::concurrent::mrsw_t::writer_lock_t lk( _mutex );
+
+    size_t i = size_t( -1 );
+
+    // insert into comp funk container
+    {
+        while( ++i < _conf_funks.size() && _conf_funks[ i ] );
+
+        if( i == _conf_funks.size() ) _conf_funks.resize( _conf_funks.size() + 5, nullptr );
+
+        _conf_funks[ i ] = std::move( f );
+    }
+
+    // insert into indirection containers
+    {
+        auto insertion_funk = []( motor::vector< size_t > & cont, size_t const idx )
+        {
+            size_t i = size_t( -1 );
+            while( ++i < cont.size() && cont[ i ] != size_t( -1 ) );
+
+            if( i == cont.size() ) cont.resize( cont.size() + 5, size_t( -1 ) );
+
+            cont[ i ] = idx;
+
+            return i;
+        };
+
+        insertion_funk( _conf_funk_on_msls, i );
+        insertion_funk( _conf_funk_on_fresh, i );
+    }
+
+    return i;
+}
+
+//**************************************************************************
+size_t msl_manager::unregister_funk( size_t const idx ) noexcept
+{
+    motor::concurrent::mrsw_t::writer_lock_t lk( _mutex );
+
+    if( idx >= _conf_funks.size() ) return size_t( -1 );
+
+    auto remove_funk = []( motor::vector< size_t > & cont, size_t const idx )
+    {
+        size_t i = size_t( -1 );
+        while( ++i < cont.size() && cont[ i ] != idx );
+        if( i != cont.size() ) cont[ i ] = size_t( -1 );
+    };
+
+    remove_funk( _conf_funk_on_msls, idx );
+    remove_funk( _conf_funk_on_fresh, idx );
+
+    _conf_funks[ idx ] = nullptr;
+
+    return size_t( -1 );
 }

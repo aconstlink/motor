@@ -46,8 +46,9 @@ set( sources
     "visitor/graphics/light_pass_render_visitor.h"
     "visitor/graphics/light_pass_render_visitor.cpp"
     "visitor/graphics/connect_msl_slot_visitor.hpp"
-
-
+    "visitor/graphics/debug_graphics_visitor.hpp"
+    
+    "component/typeid_definitions.cpp"
     "component/icomponent.h"
     "component/icontroller.h"
     "component/code_component.h"
@@ -61,6 +62,7 @@ set( sources
     "component/camera_component.h"
     "component/camera_component.cpp"
     "component/light_component.hpp"
+    "component/bounds_component.hpp"
     "component/graphics/render_variables_component.hpp"
     "component/variables_component.hpp"
     "component/graphics/config_graphics_component.h"
@@ -70,7 +72,7 @@ set( sources
     "component/graphics/msl_set_component.hpp"
     "component/graphics/geometry_name_component.hpp"
     "component/graphics/render_data_set.hpp"
-
+    
     "component/animation/animation_component.h"
     "component/animation/animation_component.cpp"
     "component/animation/animation_controller.h"

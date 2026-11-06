@@ -8,6 +8,7 @@
 
 #include <motor/math/vector/vector3.hpp>
 #include <motor/math/vector/vector4.hpp>
+#include <motor/math/utility/3d/transformation.hpp>
 
 namespace motor
 {
@@ -62,6 +63,8 @@ class light
 
     motor::math::m3d::trafof_t _trafo;
 
+    bool_t _cast_shadow = false ;
+
   public:
 
     light( void_t ) noexcept {}
@@ -71,13 +74,13 @@ class light
     }
 
     light( this_cref_t rhv ) noexcept
-        : _intensity( rhv._intensity ), _color( rhv._color ), _trafo( rhv._trafo )
+        : _intensity( rhv._intensity ), _color( rhv._color ), _trafo( rhv._trafo ), _cast_shadow( rhv._cast_shadow ) 
     {
     }
 
     light( this_rref_t rhv ) noexcept
         : _intensity( rhv._intensity ), _color( std::move( rhv._color ) ),
-          _trafo( std::move( rhv._trafo ) )
+          _trafo( std::move( rhv._trafo ) ), _cast_shadow( rhv._cast_shadow )
     {
     }
 
@@ -127,6 +130,16 @@ class light
     motor::math::m3d::trafof_cref_t transformation( void_t ) const noexcept
     {
         return _trafo;
+    }
+
+    void_t set_shadow_casting( bool_t const b ) noexcept
+    {
+        _cast_shadow = b ;
+    }
+
+    bool_t is_shadow_casting( void_t ) const noexcept
+    {
+        return _cast_shadow ;
     }
 };
 motor_typedef( light );

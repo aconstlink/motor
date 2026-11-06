@@ -4,62 +4,38 @@
 [![CMake on Win32 with DirectX 11](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`motor` is a custom C++ real-time framework for graphics, tooling, runtime systems, and interactive applications.
+motor is an independently developed C++20 real-time framework for graphics,
+tooling, runtime systems, and interactive applications.
 
-The project is developed as a personal engine/runtime environment. It is not meant to compete with large commercial engines. Its purpose is to explore and build the systems behind real-time applications directly: rendering abstraction, resource lifetimes, scene composition, shader workflows, data flow, tooling, and live iteration.
+I build motor for my own demos and game projects, and to explore how the systems
+behind them fit together. Applications can use the graphics layer directly or
+build on the scene graph.
 
 ## History
 
-The Motor repository started in 2023. Parts of its code originate from earlier
-engines that Alex Link has been developing since 2011 and has continued to
-rework and evolve into Motor.
-
-## Focus
-
-`motor` is currently focused on demo and visual application workflows:
-
-- multi-window rendering for tool and production views
-- OpenGL and DirectX rendering backends
-- explicit graphics resource configuration and release
-- asynchronous render-resource workflows
-- shader compilation and live iteration through MSL
-- scene graph with components and visitors
-- typed data-flow through the `wire` slot system
-- glTF based scene import from Blender
-- camera sequencing and animation playback
-- HDR/post-processing and render-pass experiments
-
-The engine is built around explicit control. Objects are configured before they are used, ownership is visible, and higher-level systems such as the scene graph can automate that lifecycle when needed.
+The motor repository started in 2023. Parts of its code originate from earlier
+engines that I have been developing since 2011 and have continued to rework into motor.
 
 ## Project Structure
 
-The repository is split into small libraries. Important modules include:
+motor is split into libraries:
 
-- `application` - application and window integration
-- `graphics` - backend-facing graphics objects, frontend command layer, render state and resource handling
-- `gfx` - higher-level rendering helpers and camera utilities
-- `scene` - scene graph, components, visitors, animation and graphics integration
-- `msl` - motor shading language and shader translation infrastructure
-- `wire` - typed slots and data-flow connections
-- `math`, `geometry`, `noise` - math and geometry support
-- `concurrent` - task and scheduling utilities
-- `tool`, `property` - runtime tooling and editable data interfaces
-- `format` - asset and file format integration
+- `application`, `platform` - application callbacks, windows, and platform integration
+- `graphics`, `gfx` - rendering backends, resources, cameras, lights, and rendering helpers
+- `scene` - scene graph, components, visitors, and animation
+- `msl`, `wire` - motor shading language, shader translation, and typed data-flow connections
+- `math`, `geometry`, `noise`, `collide` - mathematics, geometry, and intersection tests
+- `concurrent`, `io`, `format` - tasks, file/database access, and asset import
+- `audio`, `controls` - audio and input
+- `core`, `memory`, `log`, `profiling`, `tool`, `property` - utilities, diagnostics, and tooling
 
-Third-party dependencies live under `externals/` and are pulled in as git submodules. The engine integrates them through local CMake targets instead of modifying the external source code.
-
-## Related Repositories
-
-The engine repository intentionally does not contain all demos and visual test applications.
-
-- [`motor_suites`](https://github.com/aconstlink/motor_suites) contains sample applications, integration checks, and manual/visual test scenarios.
-- `motor_demos` is used for demo-focused applications built on top of the engine.
-
-This keeps the engine repository focused while still allowing larger examples and experiments to evolve separately.
+Third-party dependencies are integrated through CMake under `externals/`.
+Examples and tests live in [motor_suites](https://github.com/aconstlink/motor_suites)
+and [motor_ai_suites](https://github.com/aconstlink/motor_ai_suites).
 
 ## Build
 
-Clone with submodules:
+motor supports Windows with OpenGL 4 and Direct3D 11, and Linux with X11/GLX OpenGL.
 
 ```bash
 git clone --recursive https://github.com/aconstlink/motor.git
@@ -68,52 +44,46 @@ cmake -S . -B build
 cmake --build build
 ```
 
-If the repository was cloned without submodules:
+For an existing checkout, initialize missing submodules with:
 
 ```bash
 git submodule update --init --recursive
 ```
 
-Windows is the primary development platform. The engine is also built and tested on Linux for OpenGL-oriented configurations.
-
 ## Install Package
-
-Build and install a selected configuration into a separate directory:
 
 ```bash
 cmake --build build --config Release
 cmake --install build --config Release --prefix path/to/motor-package
 ```
 
-Point `CMAKE_PREFIX_PATH` at that directory when configuring a consuming project.
-The installed package provides individual module targets and `motor::complete`:
+Point `CMAKE_PREFIX_PATH` at the install directory in a consuming project:
 
 ```cmake
 find_package(motor 0.0.2 EXACT CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE motor::complete)
 ```
 
-For a smaller dependency set, link the required modules, such as `motor::math`
-or `motor::graphics`, instead. The targets propagate their include directories,
-compile definitions, dependencies, and the C++20 requirement.
-
-The package currently uses exact version matching; compatibility between different
-Motor versions is not promised. Binary packages must match the consumer's platform,
-architecture, compiler/runtime, and configuration. Shared libraries must also be
-available to the runtime loader (`bin` on Windows, `lib` on Linux). System graphics
-development dependencies, such as OpenGL, are resolved on the consuming machine.
+Individual modules, such as `motor::math` or `motor::graphics`, can be linked instead.
+The package uses exact version matching. Binary packages must match the consumer's
+platform, architecture, compiler/runtime, and build configuration. Shared libraries
+must be available to the runtime loader; system graphics dependencies are required
+on the consuming machine.
 
 ## Status
 
-Active development.
-
-The current work is centered on building polished real-time demos and using them as production-style tests for the engine: Blender scene import, camera sequencing, scene streaming, render passes, shadows, HDR, bloom, and post-processing.
-
-APIs and internal systems are still evolving. The repository is best understood as an engine development project and research runtime, not as a finished SDK.
+Active development, currently focused on demos and scene-based integration tests.
+APIs and internal systems are still evolving; motor is not a finished SDK.
 
 ## AI-Assisted Development
 
-Motor is a long-running, independently developed C++ engine. AI tools are used to assist with code reviews, compiler warning cleanup, bug investigation, test development, documentation, and technical brainstorming. Architecture and development decisions remain with the maintainer. AI-assisted changes are reviewed and tested as part of the development workflow.
+I use AI for test applications, bug investigation, targeted fixes, and technical
+discussions. I review the changes I accept and remain responsible for motor's
+architecture and direction. I do not use AI to add features I do not understand.
+
+This support has revitalized development. With limited time available, spending
+less time tracking down bugs lets me focus on coding, experimenting, and building
+my demos and games.
 
 ## License
 
