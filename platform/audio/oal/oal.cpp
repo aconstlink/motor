@@ -490,6 +490,7 @@ struct motor::platform::oal_backend::pimpl
             auto & positive_half = _gc->frequencies;
 
             // #1 - prepare complex frequencies
+            // AI help: It told me to add a Hann-Window which is the w term.
             {
                 size_t const num_samples = audio_samples.size();
                 size_t const N = num_samples;
@@ -546,7 +547,6 @@ struct motor::platform::oal_backend::pimpl
             // the integral/sum of all frequencies so the value is naturally
             // scaled so its summation will always equal 1!
             // The nice thing here is that volume is ruled out this way!
-
             {
                 size_t const num_samples = audio_samples.size();
                 size_t const positive_half_items = num_samples >> 1;
@@ -585,12 +585,11 @@ struct motor::platform::oal_backend::pimpl
 
             // SUB 3
             // The stuff I was doing sucks. here is the correct way.
-            // The exact computation is helped with by ai. Yes sorry, I couldn't 
-            // help myself. I already spend so much time on this and I failed.
-            // Yes I failed! Now the AI has to help me doing it.
+            // AI help: it kind of fixed the loops from above. the factor
+            // term are added and the normalization is removed.
             {
                 size_t const num_samples = audio_samples.size();
-                size_t const positive_half_items = num_samples >> 1;
+                size_t const positive_half_items = ( num_samples >> 1 ) + 1;
 
                 float_t v = 0.0f;
 
@@ -599,16 +598,10 @@ struct motor::platform::oal_backend::pimpl
                 for( size_t i = 0; i < positive_half_items; ++i )
                 {
                     float_t const factor = ( i == 0 || i == num_samples / 2 ) ? 1.0f : 2.0f;
-                    float_t const a = std::abs( positive_negative[ i ] ) * factor/window_sum;
+                    float_t const a = std::abs( positive_negative[ i ] ) * factor / window_sum;
 
-                    // a^2 : smooth out noise
                     positive_half[ i ] = a * a;
-
-                    // ... and accumulate
-                    v += positive_half[ i ];
                 }
-
-                v = std::max( 1.0f, v );
             }
 
 #endif
@@ -823,9 +816,9 @@ struct motor::platform::oal_backend::pimpl
         {
             float_t const sampling_rate = float_t( motor::audio::to_number( _gc->frequency ) );
             float_t const buffer_window = float_t( _gc->samples.size() );
-            float_t const band_width = float_t( sampling_rate ) / float_t( buffer_window );
+            float_t const bin_width_hz = float_t( sampling_rate ) / float_t( buffer_window );
 
-            cap.set_band_width( band_width );
+            cap.set_bin_width_hz( bin_width_hz );
         }
     }
 
