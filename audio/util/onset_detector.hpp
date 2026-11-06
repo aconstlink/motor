@@ -35,6 +35,11 @@ class onset_detector
     float_t _trigger_ratio;
     float_t _rearm_ratio;
 
+private:
+
+    float_t _raw = 0.0f ;
+    float_t _onset = 0.0f ;
+
   public:
 
     onset_detector( void_t ) noexcept : onset_detector( init_data{} ) {}
@@ -89,6 +94,8 @@ class onset_detector
         assert( std::isfinite( level ) && level >= 0.0f );
         assert( std::isfinite( dt ) );
 
+        _raw = level ;
+
         if( dt <= 0.0f )
         {
             return false;
@@ -115,7 +122,25 @@ class onset_detector
 
         _reference += alpha * ( fast - _reference );
 
+        if( triggered )
+        {
+            _onset = 1.0f ;
+        }
+        _onset *= std::exp( -dt / 0.1f );
+
         return triggered;
+    }
+
+    float_t raw_value( void_t) const noexcept
+    {
+        return _raw ;
+    }
+
+    // the onset will be set if the detector is triggered.
+    // the onset will decay over time.
+    float_t onset_value( void_t) const noexcept
+    {
+        return _onset ;
     }
 };
 

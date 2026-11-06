@@ -17,16 +17,14 @@ class imgui_onset_meter
 
   public:
 
-    void_t draw( char const * label, float_t const raw, motor::audio::onset_detector & detector,
-        float_t & onset ) noexcept
+    void_t draw( char const * label, motor::audio::onset_detector & detector ) noexcept
     {
-        this->draw_impl( label, raw, detector, onset );
+        this->draw_impl( label, detector );
     }
 
   private:
 
-    void_t draw_impl( char const * label, float_t const raw,
-        motor::audio::onset_detector & detector, float_t & onset ) noexcept
+    void_t draw_impl( char const * label, motor::audio::onset_detector & detector ) noexcept
     {
         ImGui::PushID( this );
         ImGui::PushID( label );
@@ -54,13 +52,13 @@ class imgui_onset_meter
                 return hi.y - std::clamp( value / _display_max, 0.0f, 1.0f ) * ( hi.y - lo.y );
             };
 
-            float_t const pulse = std::clamp( onset, 0.0f, 1.0f );
+            float_t const pulse = std::clamp( detector.onset_value(), 0.0f, 1.0f );
             ImVec4 background = ImGui::GetStyleColorVec4( ImGuiCol_FrameBg );
             background.x += ( 0.20f - background.x ) * pulse;
             background.y += ( 0.70f - background.y ) * pulse;
             background.z += ( 0.35f - background.z ) * pulse;
             draw->AddRectFilled( lo, hi, ImGui::GetColorU32( background ) );
-            draw->AddRectFilled( ImVec2( lo.x, y_for( raw ) ), hi, IM_COL32( 48, 172, 205, 255 ) );
+            draw->AddRectFilled( ImVec2( lo.x, y_for( detector.raw_value() ) ), hi, IM_COL32( 48, 172, 205, 255 ) );
             draw->AddRect(
                 lo, hi, ImGui::GetColorU32( hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Border ) );
             // The border remains visible even when the raw bar fills the meter.
@@ -97,7 +95,7 @@ class imgui_onset_meter
         {
             ImGui::TextUnformatted( label );
             ImGui::Separator();
-            ImGui::TextColored( ImVec4( 0.19f, 0.67f, 0.80f, 1.0f ), "Raw: %.6g", double_t( raw ) );
+            ImGui::TextColored( ImVec4( 0.19f, 0.67f, 0.80f, 1.0f ), "Raw: %.6g", double_t( detector.raw_value() ) );
             ImGui::Text( "Filtered: %.6g", double_t( filtered ) );
             ImGui::TextColored(
                 ImVec4( 0.96f, 0.75f, 0.25f, 1.0f ), "Minimum: %.6g", double_t( minimum ) );
@@ -142,7 +140,7 @@ class imgui_onset_meter
                 ImGui::PopID();
             }
             ImGui::PopItemWidth();
-            if( raw > _display_max || filtered > _display_max || minimum > _display_max )
+            if( detector.raw_value() > _display_max || filtered > _display_max || minimum > _display_max )
             {
                 ImGui::TextUnformatted( "Above display range" );
             }
