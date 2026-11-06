@@ -1228,6 +1228,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     auto light = lights[ lidx ];
 
                     // determine extras from light node
+                    if( gltf_node.extras.data )
                     {
                         using json = nlohmann::json;
 
