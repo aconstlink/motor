@@ -23,6 +23,10 @@ set( sources
     "backend.h"
     "backend.cpp"
     "frontend.hpp"
+
+    "util/envelope.hpp"
+    "util/onset_detector.hpp"
+    "util/frequency_bands.hpp"
     )
 
 
