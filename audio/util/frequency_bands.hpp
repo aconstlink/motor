@@ -7,8 +7,8 @@
 
 namespace motor::audio
 {
-    using namespace motor::core::types ;
-	class frequency_bands
+using namespace motor::core::types;
+class frequency_bands
 {
     motor_this_typedefs( frequency_bands );
 
@@ -35,7 +35,7 @@ namespace motor::audio
 
     using for_each_bin_funk_t = std::function< void_t( size_t const i, size_t const g ) >;
     void_t for_each(
-        float_t const hz_begin, float_t const hz_end, for_each_bin_funk_t && f ) noexcept
+        float_t const hz_begin, float_t const hz_end, for_each_bin_funk_t && f ) const noexcept
     {
         assert( std::isfinite( hz_begin ) && hz_begin >= 0.0f );
         assert( std::isfinite( hz_end ) && hz_end >= hz_begin );
@@ -57,4 +57,4 @@ namespace motor::audio
         }
     }
 };
-}
+} // namespace motor::audio
