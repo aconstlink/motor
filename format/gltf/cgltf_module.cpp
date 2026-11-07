@@ -1225,14 +1225,16 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     auto const lidx = cgltf_light_index( data, gltf_node.light );
 
-                    auto light = lights[ lidx ];
+                    auto light = lights[ lidx ]; 
+
+                    auto * data = gltf_node.light != nullptr ? gltf_node.light->extras.data : gltf_node.extras.data ;
 
                     // determine extras from light node
-                    if( gltf_node.extras.data )
+                    if( data )
                     {
                         using json = nlohmann::json;
 
-                        json extras = json::parse( gltf_node.extras.data );
+                        json extras = json::parse( data );
                         auto const type_iter = extras.find( "motor.cast_shadow" );
                         if( type_iter != extras.end() )
                         {
