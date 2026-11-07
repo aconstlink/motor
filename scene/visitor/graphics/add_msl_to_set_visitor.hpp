@@ -10,6 +10,7 @@
 
 #include "../../component/graphics/msl_set_component.hpp"
 #include "../../component/graphics/geometry_name_component.hpp"
+#include "../../component/material_info_component.hpp"
 
 #include <motor/graphics/frontend/gen4/frontend.hpp>
 #include <motor/std/hash_map>
@@ -79,7 +80,15 @@ class add_msl_to_set_visitor : public default_visitor
                 }
             }
 
-            motor::scene::msl_component_mtr_t msl_comp;
+            motor::scene::material_info_component_ptr_t mat_comp = nullptr;
+            {
+                if( nptr->has_component_and_borrow< motor::scene::material_info_component_t >(
+                        mat_comp ) )
+                {
+                }
+            }
+
+            motor::scene::msl_component_mtr_t msl_comp = nullptr;
             if( comp->borrow_msl_component( _id, msl_comp ) )
             {
                 // there is already a msl component.
@@ -108,11 +117,17 @@ class add_msl_to_set_visitor : public default_visitor
                 }
 
                 auto vs = motor::shared( motor::graphics::variable_set_t() );
+                if( mat_comp )
+                {
+                    vs->clone_from_if_not_exist( mat_comp->borrow_var_set() );
+                }
+
                 _vsf( name, vs );
 
                 size_t const vs_idx = _msl->add_variable_set( motor::move( vs ) );
 
                 motor::scene::msl_component_t new_comp( motor::share( _msl ), vs_idx, geo_idx );
+                
 
                 comp->add_component( _id, motor::shared( std::move( new_comp ) ) );
             }

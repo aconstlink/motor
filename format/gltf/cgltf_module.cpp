@@ -22,6 +22,7 @@
 #include <motor/scene/component/graphics/geometry_name_component.hpp>
 #include <motor/scene/component/animation/animation_track.hpp>
 #include <motor/scene/component/animation/animation_component.h>
+#include <motor/scene/component/material_info_component.hpp>
 
 #include <motor/wire/kit/trafo3_composer.hpp>
 #include <motor/wire/kit/time_node.hpp>
@@ -810,6 +811,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             auto & c = cgltf_mat.pbr_metallic_roughness.base_color_factor;
                             mi.base_color = motor::math::vec4f_t( c[ 0 ], c[ 1 ], c[ 2 ], c[ 3 ] );
                         }
+                        else
+                        {
+                            mi.base_color = motor::math::vec4f_t( 1.0f );
+                        }
+
                         ret.materials[ midx ] = std::move( mi );
                     }
 
@@ -991,8 +997,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             size_t const mid =
                                 cgltf_module_file::compute_msl_index( data, prim.material );
 
-                            auto [ box, geo ] =
-                                geos[ cgltf_mesh_index( data, gltf_mesh ) ][ pidx ];
+                            auto [ box, geo ] = geos[ cgltf_mesh_index( data, gltf_mesh ) ][ pidx ];
 
                             motor::graphics::msl_object_mtr_t msl = msls[ mid ];
 
@@ -1024,15 +1029,38 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // do default inputs
                                 if( prim.material != nullptr )
                                 {
+                                    auto const mat_name =
+                                        prim.material->name != nullptr
+                                            ? motor::string_t( prim.material->name )
+                                            : "";
+                                    auto mat_comp =
+                                        motor::scene::material_info_component_t( mat_name );
+
                                     using vec4_is_t =
                                         motor::wire::input_slot< motor::math::vec4f_t >;
+
+                                    using vec4_os_t =
+                                        motor::wire::output_slot< motor::math::vec4f_t >;
 
                                     auto const mat_idx =
                                         cgltf_material_index( data, prim.material );
 
+                                    // not sure if we need this any longer.
+                                    // use the material_info_component instead!
                                     comp.borrow_shader_inputs().borrow_or_add( "base_color",
                                         motor::shared(
                                             vec4_is_t( ret.materials[ mat_idx ].base_color ) ) );
+
+                                    mat_comp.borrow_var_set()
+                                        ->data_variable< motor::math::vec4f_t >( "base_color" )
+                                        ->set( ret.materials[ mat_idx ].base_color );
+
+                                    // propagate variables from the variable set
+                                    // as output slots in the bridge.
+                                    mat_comp.update_bridge();
+
+                                    render_node.add_component(
+                                        motor::shared( std::move( mat_comp ) ) );
                                 }
 
                                 auto set_comp = motor::scene::msl_set_component_t(
@@ -1043,7 +1071,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                             // bounding volume comp
                             {
-                                motor::scene::bounds_component_t comp( box ) ;
+                                motor::scene::bounds_component_t comp( box );
                                 render_node.add_component( motor::shared( std::move( comp ) ) );
                             }
 #if 1
@@ -1225,9 +1253,10 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     auto const lidx = cgltf_light_index( data, gltf_node.light );
 
-                    auto light = lights[ lidx ]; 
+                    auto light = lights[ lidx ];
 
-                    auto * data = gltf_node.light != nullptr ? gltf_node.light->extras.data : gltf_node.extras.data ;
+                    auto * data = gltf_node.light != nullptr ? gltf_node.light->extras.data
+                                                             : gltf_node.extras.data;
 
                     // determine extras from light node
                     if( data )
@@ -1623,7 +1652,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 {
                     motor::release( motor::move( msl ) );
                 }
-                msls.clear() ;
+                msls.clear();
 
                 for( auto & mat : geos )
                 {
@@ -1632,19 +1661,19 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         motor::release( motor::move( geo.second ) );
                     }
                 }
-                geos.clear() ;
+                geos.clear();
 
                 for( auto i : nn_vec )
                 {
                     motor::release( motor::move( i ) );
                 }
-                nn_vec.clear() ;
+                nn_vec.clear();
 
                 for( auto * mtr : lights )
                 {
                     motor::release( motor::move( mtr ) );
                 }
-                lights.clear() ;
+                lights.clear();
             }
         }
 

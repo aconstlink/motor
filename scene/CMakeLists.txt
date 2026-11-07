@@ -65,6 +65,7 @@ set( sources
     "component/bounds_component.hpp"
     "component/graphics/render_variables_component.hpp"
     "component/variables_component.hpp"
+    "component/material_info_component.hpp"
     "component/graphics/config_graphics_component.h"
     "component/graphics/config_graphics_component.cpp"
     "component/graphics/shader_change_observer_component.h"

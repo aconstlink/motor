@@ -124,7 +124,7 @@ class debug_graphics_visitor : public motor::scene::ivisitor
                         auto const dir = ll->get_transformed_direction();
 
                         _prim_render->draw_arrow(
-                            pos, dir, 10.0f, motor::math::vec4f_t( 0.0f, 1.0f, 0.0f, 1.0f ) );
+                            pos, dir, 500.0f, motor::math::vec4f_t( 1.0f, 0.0f, 0.0f, 1.0f ) );
                     }
                     else if( l->get_light_type() == motor::gfx::light_type::point )
                     {
