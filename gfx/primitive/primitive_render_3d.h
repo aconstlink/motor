@@ -22,6 +22,19 @@ namespace motor
 {
 namespace gfx
 {
+
+// protocol for usage:
+// 0. pr allocate
+// 1. pr->init()
+// for rendering: 
+// 2.1 pr->configure(fe)
+// 2.2 pr->release(fe)
+// 2.3 pr->prepare_for_rendering(fe)
+// 2.4 pr->render(fe)
+// for graphics:
+// 3.0 pr->set_view_proj(...)
+// 3.1 pr->prepare_for_rendering()
+
 class MOTOR_GFX_API primitive_render_3d
 {
     motor_this_typedefs( primitive_render_3d );
