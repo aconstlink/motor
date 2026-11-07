@@ -71,9 +71,16 @@ motor::gfx::postprocess_status_t hdr_postprocess_pipeline::check_status(
 }
 
 //***************************************************
+void_t hdr_postprocess_pipeline::on_resize_window( uint_t const w, uint_t const h ) noexcept
+{
+    _wdims = motor::math::vec2ui_t( w, h );
+    _wsize_changed = true;
+}
+
+//***************************************************
 void_t hdr_postprocess_pipeline::on_resize( uint_t const w, uint_t const h ) noexcept
 {
-    _dims = motor::math::vec2ui_t( w, h );
+    _post_fb_dims = motor::math::vec2ui_t( w, h );
     _size_changed = true;
 }
 
@@ -132,7 +139,7 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise;
             rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
             rss.clear_s.do_change = false;
-            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
+            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.1f, 0.1f, 0.1f, 1.0f );
             rss.clear_s.ss.do_activate = false;
             rss.clear_s.ss.do_color_clear = true;
             rss.clear_s.ss.do_depth_clear = true;
@@ -161,12 +168,12 @@ void_t hdr_postprocess_pipeline::init( void_t ) noexcept
             rss.polygon_s.ss.ff = motor::graphics::front_face::clock_wise;
             rss.polygon_s.ss.cm = motor::graphics::cull_mode::back;
             rss.clear_s.do_change = true;
-            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.5f, 0.5f, 0.5f, 1.0f );
+            rss.clear_s.ss.clear_color = motor::math::vec4f_t( 0.1f, 0.1f, 0.1f, 1.0f );
             rss.clear_s.ss.do_activate = true;
             rss.clear_s.ss.do_color_clear = true;
             rss.clear_s.ss.do_depth_clear = true;
-            rss.view_s.do_change = false;
-            rss.view_s.ss.do_activate = false;
+            rss.view_s.do_change = true;
+            rss.view_s.ss.do_activate = true;
             rss.view_s.ss.vp = motor::math::vec4ui_t( 0, 0, 50, 50 );
             so.add_render_state_set( rss );
         }
@@ -531,17 +538,20 @@ void_t hdr_postprocess_pipeline::init_render( motor::graphics::gen4::frontend_pt
     _merge->init_graphics( fe );
     _fxaa->init_graphics( fe );
 
-    auto the_render_funk( [](){} ) ;
+    auto the_render_funk( []() {} );
 
-    _check_render = [ this ] ( motor::graphics::gen4::frontend_ptr_t fe ) 
+    _check_render = [ this ]( motor::graphics::gen4::frontend_ptr_t fe )
     {
-        if( this->check_status( fe ).result == motor::graphics::result::ok ) 
+        if( this->check_status( fe ).result == motor::graphics::result::ok )
         {
-            this->_check_render = [=](motor::graphics::gen4::frontend_ptr_t fe){ return true ;} ;
-            return true ;
+            this->_check_render = [ = ]( motor::graphics::gen4::frontend_ptr_t fe )
+            {
+                return true;
+            };
+            return true;
         }
-        return false ;
-    } ;
+        return false;
+    };
 }
 
 //***************************************************
@@ -572,15 +582,15 @@ void_t hdr_postprocess_pipeline::release_render( motor::graphics::gen4::frontend
 void_t hdr_postprocess_pipeline::render(
     motor::graphics::gen4::frontend_ptr_t fe, bool_t const temp ) noexcept
 {
-    if( !_check_render( fe ) ) 
+    if( !_check_render( fe ) )
     {
-        return ;
+        return;
     }
 
     if( _size_changed )
     {
-        uint_t const w = _dims.x();
-        uint_t const h = _dims.y();
+        uint_t const w = _post_fb_dims.x();
+        uint_t const h = _post_fb_dims.y();
 
         // change post render state
         {
@@ -715,6 +725,30 @@ void_t hdr_postprocess_pipeline::render(
 
     // map to screen
     {
+        if( _wsize_changed )
+        {
+            float const scale = std::min( float( _wdims.x() ) / float_t( _post_fb_dims.x() ),
+                float( _wdims.y() ) / float_t( _post_fb_dims.y() ) );
+
+            int const w = int( std::lround( _post_fb_dims.x() * scale ) );
+            int const h = int( std::lround( _post_fb_dims.y() * scale ) );
+            int const x = ( _wdims.x() - w ) / 2;
+            int const y = ( _wdims.y() - h ) / 2;
+
+            _mts_so->access_render_state( 0, [ & ]( motor::graphics::render_state_sets_ref_t ss )
+            {
+                ss.view_s.ss.vp.x( x );
+                ss.view_s.ss.vp.y( y );
+                ss.view_s.ss.vp.z( w );
+                ss.view_s.ss.vp.w( h );
+
+                return true;
+            } );
+            fe->configure< motor::graphics::state_object >( _mts_so );
+
+            _wsize_changed = false;
+        }
+
         fe->push( _mts_so );
         motor::graphics::gen4::backend::render_detail det;
         det.varset = temp ? 1 : 0;

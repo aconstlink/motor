@@ -63,6 +63,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     // the resolution we use for the
     // post processing framebuffers
     motor::math::vec2ui_t _post_fb_dims = motor::math::vec2ui_t( 1920, 1080 );
+    bool_t _size_changed = false;
 
   private: // map to screen
 
@@ -70,9 +71,9 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
     motor::graphics::msl_object_mtr_t _msl = nullptr;
 
   private: // window size
-
-    bool_t _size_changed = false;
-    motor::math::vec2ui_t _dims;
+    
+    motor::math::vec2ui_t _wdims;
+    bool_t _wsize_changed = false;
 
   private: // render lambda
     
@@ -106,6 +107,7 @@ class MOTOR_GFX_API hdr_postprocess_pipeline
 
   public:
 
+    void_t on_resize_window( uint_t const w, uint_t const h ) noexcept;
     void_t on_resize( uint_t const w, uint_t const h ) noexcept;
     void_t init( void_t ) noexcept;
     void_t release( void_t ) noexcept;
