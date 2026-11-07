@@ -3442,12 +3442,13 @@ motor::graphics::result gl4_backend::update( motor::graphics::geometry_object_mt
 
     if( oid == size_t( -1 ) )
     {
-        motor::log::global_t::error( gl4_log( "invalid geometry configuration id" ) );
+        motor::log::global_t::error<2048>( "[gl4] : invalid geometry configuration id for $s", obj->name().c_str() );
         return motor::graphics::result::failed;
     }
 
     auto const res = _pimpl->update( obj );
-    motor::log::global_t::error( !res, gl4_log( "update geometry" ) );
+    if( !res ) 
+        motor::log::global_t::error<2048>( "[gl4] : update geometry for %s", obj->name().c_str() );
 
     return motor::graphics::result::ok;
 }

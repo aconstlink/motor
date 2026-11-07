@@ -1,206 +1,206 @@
 // SPDX-FileCopyrightText: 2023-2026 Alex Link
 // SPDX-License-Identifier: MIT
 
-
-
 #pragma once
 
 #include "islot.h"
 
-namespace motor
+namespace motor::wire
 {
-    namespace wire
+template < typename T >
+class input_slot : public iinput_slot
+{
+    motor_this_typedefs( input_slot< T > );
+
+  public:
+
+    motor_typedefs( T, value );
+    motor_typedefs( output_slot< T >, this_output_slot );
+    motor_typedefs( output_slot< T >, os );
+
+  private:
+
+    bool_t _has_changed = false;
+    T _value;
+    this_output_slot_mtr_t _output_slot = nullptr;
+
+  public:
+
+    input_slot( void_t ) noexcept {}
+    input_slot( T const v ) noexcept : _value( v ) {}
+
+    input_slot( this_rref_t rhv ) noexcept : _value( rhv._value )
     {
-        template< typename T >
-        class input_slot : public iinput_slot
-        {            
-            motor_this_typedefs( input_slot<T> ) ;
-
-        public:
-
-            motor_typedefs( T, value ) ;
-            motor_typedefs( output_slot<T>, this_output_slot ) ;
-            motor_typedefs( output_slot<T>, os ) ;
-            
-        private:
-
-            bool_t _has_changed = false ;
-            T _value ;
-            this_output_slot_mtr_t _output_slot = nullptr ;
-
-        public:
-
-            input_slot( void_t ) noexcept {}
-            input_slot( T const v ) noexcept : _value( v ) {}
-            
-            input_slot( this_rref_t rhv ) noexcept : _value( rhv._value ) 
-            {
-                this_t::disconnect() ;
-                _output_slot = motor::move( rhv._output_slot ) ;
-            }
-
-            input_slot( this_cref_t ) = delete ;
-
-            virtual ~input_slot( void_t ) noexcept
-            {
-                if( _output_slot != nullptr ) 
-                {
-                    _output_slot->disconnect( this ) ;
-                    motor::memory::release_ptr( _output_slot ) ;
-                }
-            }
-
-            void_t force_exchange( void_t ) noexcept
-            {
-                if( _output_slot != nullptr ) 
-                {
-                    _has_changed = true ;
-                    _value = _output_slot->get_value() ;
-                }
-            }
-
-            virtual bool_t exchange( void_t ) noexcept
-            {
-                bool_t res = false ;
-                if( _output_slot != nullptr ) 
-                {
-                    res = _output_slot->get_value( _value ) ;
-                }
-                return res ;
-            }
-
-            virtual void_t disconnect( bool_t const propagate = true ) noexcept
-            {
-                if ( _output_slot == nullptr ) return ;
-                if ( propagate ) _output_slot->disconnect( this, false ) ;
-                motor::memory::release_ptr( motor::move( _output_slot ) ) ;
-
-                //_value = T( 0 ) ;
-            }
-
-            virtual void_t disconnect( motor::wire::ioutput_slot_ptr_t sig, bool_t const propagate = true ) noexcept
-            {
-                if ( sig == _output_slot && _output_slot != nullptr )
-                {
-                    if ( propagate ) _output_slot->disconnect( this ) ;
-                    motor::memory::release_ptr( motor::move( _output_slot ) ) ;
-                }
-            }
-
-            virtual bool_t connect( motor::wire::ioutput_slot_mtr_safe_t s, bool_t const propagate = true ) noexcept
-            {
-                // first check is slot is already connected.
-                if( _output_slot == s ) 
-                {
-                    motor::release( motor::move( s ) ) ;
-                    return s == nullptr ? false : true ;
-                }
-
-                if ( auto * v = dynamic_cast<motor::wire::output_slot<T> *>( s.mtr() ); v != nullptr )
-                {
-                    // can connect
-                    _output_slot = v ;
-                    if( propagate )
-                    {
-                        s->connect( motor::share( this ), false ) ;
-                    }
-                    // upon connect, it must exchange the value independent of
-                    // the fact the output slot changed or not.
-                    this_t::force_exchange() ;
-                    return true ;
-                }
-
-                motor::release( s ) ;
-                return false ;
-            }
-
-            this_ref_t operator = ( T const & v ) noexcept
-            {
-                _value = v ;
-                _has_changed = true ;
-                return *this ;
-            }
-
-            this_t::os_mtr_safe_t get_os( void_t ) noexcept
-            {
-                return motor::share( _output_slot ) ;
-            }
-
-            this_t::os_mtr_safe_t get_output_slot( void_t ) noexcept
-            {
-                return this_t::get_os() ;
-            }
-
-        public:
-
-            // 1. exchanges the value from the output slot
-            // 2. returns the new value.
-            T const & pull_data( void_t ) noexcept 
-            {
-                this->exchange() ;
-                return this_t::get_value() ;
-            }
-
-            // this function will only set out if
-            // an exchange has happened.
-            bool_t pull_data( T & out ) noexcept 
-            {
-                auto res = this->exchange() ;
-                if( res ) out = this_t::get_value() ;
-                return res ;
-            }
-
-            // Returns the value of the slot
-            // Does not reset the changed flag.
-            // @see get_value_and_reset
-            T const & get_value( void_t ) const noexcept
-            {
-                return _value ;
-            }
-
-            bool_t has_changed( void_t ) const noexcept
-            {
-                return _has_changed ;
-            }
-
-            // get the value in v if the value has changed
-            // returns the "changed flag" and also resets it
-            bool_t get_value_and_reset( T & v ) noexcept
-            {
-                if( _has_changed ) 
-                {
-                    v = _value ;
-                    _has_changed = false ;
-                    return true ;
-                }
-                
-                return false ;
-            }
-
-            T const & get_value_and_reset( void_t ) noexcept
-            {
-                _has_changed = false ;
-                return _value ;
-            }
-
-            // 
-            void_t set_value( T const v ) noexcept
-            {
-                _value = v ;
-                _has_changed = true ;
-            }
-
-            static void_t release( core::mtr_safe< this_t > & s ) noexcept
-            {
-                if( s != nullptr ) s->disconnect() ;
-                motor::release( motor::move( s ) ) ;
-            }
-
-            static void_t release( core::mtr_safe< this_t > && s ) noexcept
-            {
-                if( s != nullptr ) s->disconnect() ;
-                motor::release( motor::move( s ) ) ;
-            }
-        };
+        this_t::disconnect();
+        _output_slot = motor::move( rhv._output_slot );
     }
-}
+
+    input_slot( this_cref_t ) = delete;
+
+    virtual ~input_slot( void_t ) noexcept
+    {
+        if( _output_slot != nullptr )
+        {
+            _output_slot->disconnect( this );
+            motor::memory::release_ptr( _output_slot );
+        }
+    }
+
+    void_t force_exchange( void_t ) noexcept
+    {
+        if( _output_slot != nullptr )
+        {
+            _has_changed = true;
+            _value = _output_slot->get_value();
+        }
+    }
+
+    virtual bool_t exchange( void_t ) noexcept
+    {
+        bool_t res = false;
+        if( _output_slot != nullptr )
+        {
+            res = _output_slot->get_value( _value );
+        }
+        return res;
+    }
+
+    virtual void_t disconnect( bool_t const propagate = true ) noexcept
+    {
+        if( _output_slot == nullptr ) return;
+        if( propagate ) _output_slot->disconnect( this, false );
+        motor::memory::release_ptr( motor::move( _output_slot ) );
+
+        //_value = T( 0 ) ;
+    }
+
+    virtual void_t disconnect(
+        motor::wire::ioutput_slot_ptr_t sig, bool_t const propagate = true ) noexcept
+    {
+        if( sig == _output_slot && _output_slot != nullptr )
+        {
+            if( propagate ) _output_slot->disconnect( this );
+            motor::memory::release_ptr( motor::move( _output_slot ) );
+        }
+    }
+
+    virtual bool_t connect(
+        motor::wire::ioutput_slot_mtr_safe_t s, bool_t const propagate = true ) noexcept
+    {
+        // first check is slot is already connected.
+        if( _output_slot == s )
+        {
+            motor::release( motor::move( s ) );
+            return s == nullptr ? false : true;
+        }
+
+        if( auto * v = dynamic_cast< motor::wire::output_slot< T > * >( s.mtr() ); v != nullptr )
+        {
+            // can connect
+            _output_slot = v;
+            if( propagate )
+            {
+                s->connect( motor::share( this ), false );
+            }
+            // upon connect, it must exchange the value independent of
+            // the fact the output slot changed or not.
+            this_t::force_exchange();
+            return true;
+        }
+
+        motor::release( s );
+        return false;
+    }
+
+    this_ref_t operator=( T const & v ) noexcept
+    {
+        _value = v;
+        _has_changed = true;
+        return *this;
+    }
+
+    this_t::os_mtr_safe_t get_os( void_t ) noexcept
+    {
+        return motor::share( _output_slot );
+    }
+
+    this_t::os_mtr_safe_t get_output_slot( void_t ) noexcept
+    {
+        return this_t::get_os();
+    }
+
+  public:
+
+    // 1. exchanges the value from the output slot
+    // 2. returns the new value.
+    T const & pull_data( void_t ) noexcept
+    {
+        this->exchange();
+        return this_t::get_value();
+    }
+
+    // this function will only set out if
+    // an exchange has happened.
+    bool_t pull_data( T & out ) noexcept
+    {
+        auto res = this->exchange();
+        if( res ) out = this_t::get_value();
+        return res;
+    }
+
+    // Returns the value of the slot
+    // Does not reset the changed flag.
+    // @see get_value_and_reset
+    T const & get_value( void_t ) const noexcept
+    {
+        return _value;
+    }
+
+    bool_t has_changed( void_t ) const noexcept
+    {
+        return _has_changed;
+    }
+
+    // get the value in v if the value has changed
+    // returns the "changed flag" and also resets it
+    bool_t get_value_and_reset( T & v ) noexcept
+    {
+        if( _has_changed )
+        {
+            v = _value;
+            _has_changed = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    T const & get_value_and_reset( void_t ) noexcept
+    {
+        _has_changed = false;
+        return _value;
+    }
+
+    //
+    void_t set_value( T const v ) noexcept
+    {
+        _value = v;
+        _has_changed = true;
+    }
+
+    static void_t release( core::mtr_safe< this_t > & s ) noexcept
+    {
+        if( s != nullptr ) s->disconnect();
+        motor::release( motor::move( s ) );
+    }
+
+    static void_t release( core::mtr_safe< this_t > && s ) noexcept
+    {
+        if( s != nullptr ) s->disconnect();
+        motor::release( motor::move( s ) );
+    }
+};
+
+motor_typedefs( input_slot< float_t >, is_float ) ;
+
+} // namespace motor::wire
