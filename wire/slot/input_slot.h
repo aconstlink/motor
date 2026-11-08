@@ -96,6 +96,8 @@ class input_slot : public iinput_slot
 
         if( auto * v = dynamic_cast< motor::wire::output_slot< T > * >( s.mtr() ); v != nullptr )
         {
+            this_t::disconnect() ;
+
             // can connect
             _output_slot = v;
             if( propagate )
