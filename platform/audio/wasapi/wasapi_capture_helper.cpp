@@ -177,7 +177,7 @@ bool_t wasapi_capture_helper::init( motor::audio::channels const, motor::audio::
                             size_t const src_idx = (i-start) * src_max_channels ;
 
                             float_t avg = 0.0f ;
-                            for( size_t c = 0; c<src_channels; ++c ) avg += float_cptr_t(buffer)[src_idx] ;
+                            for( size_t c = 0; c<src_channels; ++c ) avg += float_cptr_t(buffer)[src_idx+c] ;
                             avg /= float_t(src_channels) ;
                             samples[i] = avg ;
                         }
