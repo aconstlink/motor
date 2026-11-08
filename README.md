@@ -78,8 +78,8 @@ APIs and internal systems are still evolving; motor is not a finished SDK.
 ## AI-Assisted Development
 
 I use AI for test applications, bug investigation, targeted fixes, and technical
-discussions. I review the changes I accept and remain responsible for motor's
-architecture and direction. I do not use AI to add features I do not understand.
+discussions. I review the very few changes I accept and remain responsible for motor's
+architecture and direction. I do not use AI to add any features.
 
 This support has revitalized development. With limited time available, spending
 less time tracking down bugs lets me focus on coding, experimenting, and building
