@@ -14,8 +14,8 @@ namespace motor
             invalid_argument,
 
             repeat,
-            no_descent,
-            break_traversal,
+            no_descent,         // difference to break_traversal?
+            break_traversal,    // difference to no_descent?
             not_implemented
         };
 

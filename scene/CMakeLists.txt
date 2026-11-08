@@ -39,7 +39,8 @@ set( sources
     "visitor/search_by_name_visitor.hpp"
     "visitor/camera_collector_visitor.hpp"
     "visitor/light_collector_visitor.hpp"
-    
+    "visitor/for_each_node_visitor.hpp"
+
     "visitor/graphics/render_visitor.h"
     "visitor/graphics/render_visitor.cpp"
     "visitor/graphics/add_msl_to_set_visitor.hpp"
@@ -47,7 +48,7 @@ set( sources
     "visitor/graphics/light_pass_render_visitor.cpp"
     "visitor/graphics/connect_msl_slot_visitor.hpp"
     "visitor/graphics/debug_graphics_visitor.hpp"
-    
+
     "component/typeid_definitions.cpp"
     "component/icomponent.h"
     "component/icontroller.h"
