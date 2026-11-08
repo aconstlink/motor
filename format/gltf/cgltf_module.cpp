@@ -1298,6 +1298,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 auto merger_node = motor::shared(
                     motor::wire::funk_node_t( [ = ]( motor::wire::funk_node_ptr_t ) {} ) );
 
+                start_node->set_name( "gltf_start_node" ) ;
+                merger_node->set_name( "gltf_merger_node" ) ;
+
                 for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
                 {
                     auto const & ani = data->animations[ ani_idx ];

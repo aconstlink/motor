@@ -91,7 +91,7 @@ class animation_track : public animation_controller
         _is = motor::shared( is_t( 0 ) );
         _os = motor::shared( os_t() );
 
-        auto node = motor::wire::funk_node_t( [ & ]( motor::wire::funk_node_ptr_t /*self*/ )
+        auto node = motor::wire::funk_node_t( "animation_track", [ & ]( motor::wire::funk_node_ptr_t /*self*/ )
         { this->evaluate(); } );
 
         node.inputs().add( motor::share( _is ) );

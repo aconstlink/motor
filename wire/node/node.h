@@ -72,6 +72,7 @@ class MOTOR_WIRE_API inode
     void_t disconnect( void_t ) noexcept;
 
     motor::string_cref_t name( void_t ) const noexcept;
+    void_t set_name( motor::string_cref_t ) noexcept;
 
   public:
 

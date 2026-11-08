@@ -207,6 +207,7 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
     void_t make_and_set_composer_funk( void_t ) noexcept
     {
         this_t::set_funk( this_t::make_funk() );
+        this_t::set_name( "trafo_composer" ) ;
     }
 };
 motor_typedefs( trafo3_composer< float_t >, trafo3f_composer );

@@ -116,6 +116,12 @@ motor::string_cref_t inode::name( void_t ) const noexcept
 }
 
 //*****************************************************
+void_t inode::set_name( motor::string_cref_t name ) noexcept
+{
+    _name = name ;
+}
+
+//*****************************************************
 void_t inode::add_incoming( this_ptr_t other ) noexcept
 {
     motor::concurrent::mrsw_t::writer_lock_t lk( _mtx_in ) ;
