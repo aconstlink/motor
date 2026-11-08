@@ -22,18 +22,9 @@ set( SOURCES
 
 add_library( imnodes ${MOTOR_LIBRARY_BUILD_TYPE} ${SOURCES} )
 
-# fix the dll-hell. The self provided imconfig.h 
-# sets the IMGUI_API properly for dll export/import
-target_compile_definitions( imnodes 
-  PUBLIC $<BUILD_INTERFACE:IMNODES_USER_CONFIG="../imnodes_config.h">
-  PUBLIC $<INSTALL_INTERFACE:IMNODES_USER_CONFIG="imnodes_config.h">
-  #PUBLIC -DIMGUI_DISABLE_INCLUDE_IMCONFIG_H
-)
-
-if( MOTOR_LIBRARY_BUILD_SHARED )
-  target_compile_options( imnodes
-    PRIVATE -DMOTOR_IMNODES_EXPORT 
-    INTERFACE -DMOTOR_IMNODES_IMPORT )
+if( MSVC AND MOTOR_LIBRARY_BUILD_SHARED )
+  # Export upstream functions without carrying a patched imnodes.h.
+  set_target_properties( imnodes PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON )
 endif()
 
 target_link_libraries( imnodes 
