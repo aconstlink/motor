@@ -69,7 +69,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
     if( _zoom == 0 )
     {
         _zoom = std::max(
-            size_t( 1 ), size_t( _max_milli / size_t( ImGui::GetContentRegionAvail().x ) ) );
+            size_t( 1 ), _max_milli / size_t( std::max( 1.0f, ImGui::GetContentRegionAvail().x ) ) );
     }
 
     float_t const top_line_height = 10.0f;
@@ -115,9 +115,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
     // float_t const scroll_max_x = ImGui::GetScrollMaxX() ;
     float_t const scroll_x = ImGui::GetScrollX();
 
-    float_t const mouse_x =
-        std::max( 0.0f, std::min( ImGui::GetMousePos().x - ImGui::GetWindowPos().x + scroll_x,
-                            float_t( this_t::milli_to_pixel( ti.max_milli ) ) ) );
+    float_t const mouse_x = std::max( 0.0f, ImGui::GetMousePos().x - capture_pos.x );
 
     // motor::log::global_t::status( motor::to_string(mouse_x) ) ;
 
@@ -133,81 +131,59 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
         auto const f = ImGui::IsKeyDown( ImGuiKey::ImGuiKey_LeftShift ) ? 10.0f : 1.0f;
         auto const mw = ImGui::GetIO().MouseWheel;
         int_t tmp = int_t( -mw * f );
-        if( tmp < 0 && _zoom >= size_t( std::abs( tmp ) ) )
-        {
-            _zoom += tmp;
-            _zoom = std::max( size_t( 10 ), _zoom );
-        }
-        else
-        {
-            _zoom += tmp;
-            _zoom = std::min( size_t( 100000 ), _zoom );
-        }
-
         if( tmp != 0 )
+        {
+            _zoom = size_t( std::clamp( double( _zoom ) + tmp, 1.0, 100000.0 ) );
             ImGui::SetScrollX(
                 std::max( mouse_x - ImGui::GetContentRegionAvail().x * 0.5f, 0.0f ) );
+        }
     }
 
     ImGui::SetCursorScreenPos( capture_pos );
 
-    // draw time line
+    // Choose the tick interval in milliseconds, not pixels, so labels are exact.
+    float_t const label_width = ImGui::CalcTextSize( "00:00:000" ).x + 8.0f;
+    size_t major_ms = 100;
+    for( size_t const step : { 100, 200, 500, 1000, 2000, 5000, 10000, 15000, 30000,
+             60000, 120000, 300000, 600000, 900000, 1800000, 3600000 } )
     {
-        float_t const small = 10.0f;
-        size_t const steps = 5;
-        float_t const big = small * float_t( steps );
-
-        float_t const offset_x = motor::math::fn< float_t >::fract( scroll_x / big ) * big;
-        ImVec2 const start =
-            ImGui::GetCursorScreenPos() + ImVec2( scroll_x - offset_x, top_line_height );
-
-        // draw small lines
-        {
-            size_t const num_steps = size_t( ImGui::GetContentRegionAvail().x / small ) + steps;
-            for( size_t i = 0; i < num_steps; ++i )
-            {
-                ImVec2 const p0 = start + ImVec2( small * float_t( i ), 0.0f );
-                ImVec2 const p1 = start + ImVec2( small * float_t( i ), small_line_height );
-                draw_list->AddLine( p0, p1, IM_COL32( 150, 150, 150, 255 ), 1.0f );
-            }
-        }
-
-        ImGui::SetCursorScreenPos( capture_pos );
-
-// draw big lines
-#if 1
-        {
-            size_t const the_big = size_t( scroll_x ) / size_t( big );
-            size_t const num_steps = size_t( ImGui::GetContentRegionAvail().x / big ) + 2;
-            // need to draw one less (-1), otherwise, a infinite scroll appears
-            for( size_t i = 0; i < num_steps - 1; ++i )
-            {
-                ImVec2 const p0 = start + ImVec2( big * float_t( i ), 0.0f );
-                ImVec2 const p1 = start + ImVec2( big * float_t( i ), big_line_height );
-                draw_list->AddLine( p0, p1, IM_COL32( 200, 200, 200, 255 ), 1.0f );
-
-                size_t const cur_milli = this_t::pixel_to_milli( ( the_big + i ) * size_t( big ) );
-
-#if 1
-                ImGui::SetCursorScreenPos(
-                    p0 + ImVec2( 2.0f, height * 0.25f ) +
-                    ImVec2( 0.0f, ( ( the_big + i ) % 2 ) * ImGui::GetTextLineHeight() * 0.5 ) );
-                // ImGui::SetWindowFontScale( 1.0f ) ;
-                ImGui::TextUnformatted( this_t::make_time_string2( cur_milli ) );
-                // ImGui::SetWindowFontScale( 1.0f ) ;
-                ImGui::SameLine();
-#endif
-            }
-        }
-#endif
+        major_ms = size_t( step );
+        if( this_t::milli_to_pixel( major_ms ) >= label_width ) break;
     }
+    while( this_t::milli_to_pixel( major_ms ) < label_width ) major_ms *= 2;
+    size_t const minor_ms = major_ms / 5;
+    size_t const last_pixel = this_t::milli_to_pixel( ti.max_milli );
+    size_t const mouse_pixel = std::min( last_pixel, size_t( mouse_x ) );
+    size_t hover_ms = mouse_pixel == last_pixel ? ti.max_milli : this_t::pixel_to_milli( mouse_pixel );
 
-    ImGui::SetCursorScreenPos( capture_pos );
+    size_t const left_pixel = size_t( std::max( 0.0f, draw_list->GetClipRectMin().x - capture_pos.x ) );
+    size_t const right_pixel = size_t( std::max( 0.0f, draw_list->GetClipRectMax().x - capture_pos.x ) );
+    size_t const first = this_t::pixel_to_milli( std::min( last_pixel, left_pixel ) ) / minor_ms;
+    size_t const last = std::min( ti.max_milli,
+        this_t::pixel_to_milli( std::min( last_pixel, right_pixel ) ) + _zoom - 1 ) / minor_ms;
+    float_t const y = capture_pos.y + top_line_height;
+    for( size_t i = first; i <= last; ++i )
+    {
+        size_t const ms = i * minor_ms;
+        size_t const px = this_t::milli_to_pixel( ms );
+        float_t const x = capture_pos.x + float_t( px );
+        bool_t const major = i % 5 == 0;
+        draw_list->AddLineV( x, y, y + ( major ? big_line_height : small_line_height ),
+            major ? IM_COL32( 200, 200, 200, 255 ) : IM_COL32( 150, 150, 150, 255 ) );
+        if( major )
+        {
+            draw_list->AddText( ImVec2( x + 2.0f, y + height * 0.25f ),
+                ImGui::GetColorU32( ImGuiCol_Text ), major_ms < 1000 ?
+                    this_t::make_time_string( ms ) : this_t::make_time_string2( ms ) );
+        }
+        // A screen pixel can represent several milliseconds. On a tick, use its exact time.
+        if( mouse_pixel == px ) hover_ms = ms;
+    }
 
     // line moving with mouse : hover
     if( mouse_in_cr )
     {
-        ImGui::SetCursorScreenPos( ImGui::GetCursorScreenPos() + ImVec2( mouse_x, 0.0f ) );
+        ImGui::SetCursorScreenPos( capture_pos + ImVec2( float_t( mouse_pixel ), 0.0f ) );
 
         ImVec2 const pos = ImGui::GetCursorScreenPos();
 
@@ -216,7 +192,7 @@ bool_t timeline::begin( motor::tool::time_info_ref_t ti ) noexcept
             ImVec2 const p1 = p0 + ImVec2( 0.0f, top_line_height );
             draw_list->AddLine( p0, p1, IM_COL32( 255, 255, 0, 255 ), 1.0f );
 
-            _hover = this_t::pixel_to_milli( size_t( mouse_x ) );
+            _hover = hover_ms;
         }
     }
     else
