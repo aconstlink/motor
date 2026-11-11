@@ -32,6 +32,7 @@ set( SOURCES ${SOURCES}
 
     "kit/trafo3_composer.hpp"
     "kit/time_node.hpp"
+    "kit/trigger_filter_node.hpp"
     )
 
 motor_vs_src_dir( SOURCES )
