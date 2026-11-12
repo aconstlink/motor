@@ -14,6 +14,13 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
 
   public:
 
+    enum class trigger_behavoir
+    {
+        reset_on_trigger,
+        ignore_while_active,
+        num_behavoirs
+    };
+
     using trigger_is_t = motor::wire::input_slot< uint_t >;
     using trigger_os_t = motor::wire::output_slot< uint_t >;
 
@@ -68,6 +75,8 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
         signal_is_t * sig_is = motor::shared( signal_is_t( 0.0f ) );
         signal_os_t * sig_os = motor::shared( signal_os_t( 0.0f ) );
 
+        this_t::trigger_behavoir tb = this_t::trigger_behavoir::ignore_while_active;
+
         // by default, the filtered output will be linear.
         filter_kernel_t fk = []( this_t::filter_data const & d )
         {
@@ -79,14 +88,6 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
   public:
 
     trigger_filter_node( void_t ) noexcept : base_t( "trigger/filter", this_t::make_funk() )
-    {
-        this_t::init_slots();
-    }
-
-    // All times are seconds. Zero repetitions loops indefinitely.
-    trigger_filter_node( float_t const scene_start, float_t const clip_start,
-        float_t const clip_end, size_t const repetitions = 0 ) noexcept
-        : base_t( "trigger/filter", this_t::make_funk() )
     {
         this_t::init_slots();
     }
@@ -113,7 +114,13 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
         }
     }
 
-    size_t add_filter( this_t::filter_kernel_t && funk ) noexcept
+    struct add_data
+    {
+        float_t duration = -1.0f;
+        this_t::trigger_behavoir tb = this_t::trigger_behavoir::ignore_while_active;
+    };
+
+    size_t add_filter( this_t::filter_kernel_t funk, add_data d ) noexcept
     {
         size_t idx = size_t( -1 );
         while( ++idx < _datas.size() && _datas[ idx ].used );
@@ -125,8 +132,15 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
 
         _datas[ idx ].used = true;
         _datas[ idx ].fk = std::move( funk );
+        _datas[ idx ].tb = d.tb;
+        _datas[ idx ].duration_is->set_value( d.duration );
 
         return idx;
+    }
+
+    size_t add_filter( this_t::filter_kernel_t funk ) noexcept
+    {
+        return this_t::add_filter( std::move( funk ), {} );
     }
 
     void_t remove_filter( size_t const id ) noexcept
@@ -136,6 +150,7 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
         auto & d = _datas[ id ];
 
         d.used = false;
+        d.fk = {};
 
         d.active_os->set_and_exchange( 0.0f );
         d.active_os->disconnect();
@@ -143,6 +158,7 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
         d.duration_is->set_value( -1.0f );
         d.duration_is->disconnect();
 
+        d.reset_sig = false;
         d.sig_is->set_value( 0.0f );
         d.sig_is->disconnect();
         d.sig_os->set_value( 0.0f );
@@ -232,7 +248,7 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
     {
         if( id >= _datas.size() || !_datas[ id ].used ) return false;
         _datas[ id ].reset_sig = b;
-        return true ;
+        return true;
     }
 
   private:
@@ -252,9 +268,13 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
                 float_t const start_time = d.start_time;
                 float_t const duration = d.duration_is->get_value();
 
+                auto const duration_zero =
+                    std::abs( duration ) <= std::numeric_limits< float_t >::epsilon();
+
                 if( !d.used || d.active_os->get_value() < 0.5f || duration < 0.0f ) continue;
 
-                if( ( start_time > cur_time ) || ( cur_time - start_time >= duration ) )
+                if( ( start_time > cur_time ) || duration_zero ||
+                    ( cur_time - start_time >= duration ) )
                 {
                     d.start_time = 0.0f;
                     d.start_sig = 0.0f;
@@ -269,12 +289,17 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
             {
                 for( auto & d : self->_datas )
                 {
-                    if( !d.used ) continue;
+                    float_t const duration = d.duration_is->get_value();
+                    auto const duration_zero =
+                        std::abs( duration ) <= std::numeric_limits< float_t >::epsilon();
+
+                    if( !d.used || duration_zero ) continue;
 
                     // if inactive => activate
-                    if( d.active_os->get_value() < 0.5f )
+                    if( d.active_os->get_value() < 0.5f ||
+                        d.tb == this_t::trigger_behavoir::reset_on_trigger )
                     {
-                        d.active_os->set_and_exchange( 1.0f );
+                        if( d.active_os->get_value() < 0.5f ) d.active_os->set_and_exchange( 1.0f );
                         d.start_time = cur_time;
                         d.last_time = cur_time;
                         d.start_sig = d.sig_is->get_value();
