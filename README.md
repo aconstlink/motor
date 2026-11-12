@@ -79,7 +79,7 @@ APIs and internal systems are still evolving; motor is not a finished SDK.
 
 I use AI for building test applications, finding bugs and technical
 discussions. I fully review the very few changes I may accept and remain responsible for motor's
-architecture and direction in full scale. I do not use AI to add any new features or anything I do not understand.
+architecture and direction in full scale. I do not use AI to add any new features or anything I do not understand. 99.5% is still handcoded. But I couldn't resist to take one or two bug fixes.
 
 AI discussions has revitalized development to be quite honest and with limited time available, spending
 less time tracking down bugs lets me focus on coding, experimenting, and building
