@@ -75,13 +75,13 @@ on the consuming machine.
 Active development, currently focused on demos and scene-based integration tests.
 APIs and internal systems are still evolving; motor is not a finished SDK.
 
-## AI-Assisted Development
+## A little bit of AI Assistance is used
 
-I use AI for test applications, bug investigation, targeted fixes, and technical
-discussions. I review the very few changes I accept and remain responsible for motor's
-architecture and direction. I do not use AI to add any features.
+I use AI for building test applications, finding bugs and technical
+discussions. I fully review the very few changes I may accept and remain responsible for motor's
+architecture and direction in full scale. I do not use AI to add any new features or anything I do not understand.
 
-This support has revitalized development. With limited time available, spending
+AI discussions has revitalized development to be quite honest and with limited time available, spending
 less time tracking down bugs lets me focus on coding, experimenting, and building
 my demos and games.
 
