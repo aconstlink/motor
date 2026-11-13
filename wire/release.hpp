@@ -23,6 +23,7 @@ void_t release( motor::core::mtr_safe< T > && s ) noexcept
     if( s != nullptr ) s->disconnect();
     motor::release( motor::move( s ) );
 }
+
 #else
 static void_t release( motor::core::mtr_safe< islot > & s ) noexcept
 {

@@ -70,6 +70,7 @@ class MOTOR_WIRE_API inode
     motor::concurrent::task_mtr_safe_t get_task( void_t ) noexcept;
 
     void_t disconnect( void_t ) noexcept;
+    static void_t disconnect( this_ptr_t ) noexcept ;
 
     motor::string_cref_t name( void_t ) const noexcept;
     void_t set_name( motor::string_cref_t ) noexcept;

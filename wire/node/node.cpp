@@ -110,6 +110,12 @@ void_t inode::disconnect( void_t ) noexcept
 }
 
 //*****************************************************
+void_t inode::disconnect( this_ptr_t nptr ) noexcept 
+{
+    if( nptr ) nptr->disconnect() ;
+}
+
+//*****************************************************
 motor::string_cref_t inode::name( void_t ) const noexcept 
 {
     return _name ;

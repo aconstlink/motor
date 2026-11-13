@@ -143,5 +143,5 @@ private:
         return _onset ;
     }
 };
-
+motor_typedef( onset_detector ) ;
 } // namespace motor::audio
