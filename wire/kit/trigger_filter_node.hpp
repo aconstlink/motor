@@ -87,10 +87,12 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
 
   public:
 
-    trigger_filter_node( void_t ) noexcept : base_t( "trigger/filter", this_t::make_funk() )
+    trigger_filter_node( motor::string_in_t name ) noexcept : base_t( name, this_t::make_funk() )
     {
         this_t::init_slots();
     }
+
+    trigger_filter_node( void_t ) noexcept : trigger_filter_node( "trigger/filter" ) {}
 
     trigger_filter_node( this_cref_t ) = delete;
     trigger_filter_node( this_rref_t rhv ) noexcept
@@ -229,12 +231,12 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
         return true;
     }
 
-    bool_t conenct_time_is( motor::core::mtr_safe< time_os_t > os ) noexcept
+    bool_t connect_time_is( motor::core::mtr_safe< time_os_t > os ) noexcept
     {
         return _time_is->connect( motor::move( os ) );
     }
 
-    bool_t conenct_trigger_is( motor::core::mtr_safe< trigger_os_t > os ) noexcept
+    bool_t connect_trigger_is( motor::core::mtr_safe< trigger_os_t > os ) noexcept
     {
         return _trigger_is->connect( motor::move( os ) );
     }
