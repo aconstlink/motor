@@ -143,7 +143,7 @@ app::window_id_t app::create_window( motor::application::window_info_cref_t wi )
         std::lock_guard< std::mutex > lk( _mtx_window_cq ) ;
         _creation_queue.emplace_back( this_t::window_data
             { wid, static_cast<motor::application::window_ptr_t>( wnd ), msgl, nullptr,
-            motor::shared( motor::tool::imgui_t( motor::to_string( wid ) ) ) } ) ;
+            motor::shared( motor::tool::imgui_frontend_t( motor::to_string( wid ) ) ) } ) ;
     }
 
     return wid ;

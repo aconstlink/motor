@@ -292,7 +292,7 @@ void_t sprite_editor::on_update( void_t ) noexcept
 }
 
 //********************************************************************************************
-void_t sprite_editor::on_tool( motor::graphics::gen4::frontend_ptr_t fe, motor::tool::imgui_ptr_t imgui ) noexcept
+void_t sprite_editor::on_tool( motor::graphics::gen4::frontend_ptr_t fe, motor::tool::imgui_frontend_ptr_t imgui ) noexcept
 {
     if( !_srp->initialized )
     {
@@ -1551,7 +1551,7 @@ void_t sprite_editor::handle_mouse_drag_for_anim_pivot( int_t const selection )
 }
 
 //********************************************************************************************
-void_t sprite_editor::show_image( motor::tool::imgui_ptr_t imgui, int_t const selected )
+void_t sprite_editor::show_image( motor::tool::imgui_frontend_ptr_t imgui, int_t const selected )
 {
     _screen_pos_image = motor::math::vec2f_t(
         ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y ) ;

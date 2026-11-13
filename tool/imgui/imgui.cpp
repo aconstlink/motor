@@ -5,10 +5,10 @@
 
 #include <motor/math/camera/3d/orthographic_projection.hpp>
 
-using namespace motor::tool ;
+using namespace motor::tool::imgui ;
 
 //***
-imgui::imgui( motor::string_cref_t name ) noexcept
+frontend::frontend( motor::string_cref_t name ) noexcept
 {
     _vars.emplace_back( motor::memory::create_ptr( 
         motor::graphics::variable_set_t(), "imgui variable set" ) ) ;
@@ -21,7 +21,7 @@ imgui::imgui( motor::string_cref_t name ) noexcept
 }
 
 //***
-imgui::imgui( this_rref_t rhv ) noexcept
+frontend::frontend( this_rref_t rhv ) noexcept
 {
     _name = std::move( rhv._name ) ;
 
@@ -39,7 +39,7 @@ imgui::imgui( this_rref_t rhv ) noexcept
 }
 
 //***
-imgui::~imgui( void_t ) noexcept
+frontend::~frontend( void_t ) noexcept
 {
     if ( _in_ctx != nullptr )
     {
@@ -69,7 +69,7 @@ imgui::~imgui( void_t ) noexcept
 }
 
 //***
-void_t imgui::execute( exec_funk_t funk ) noexcept
+void_t frontend::execute( exec_funk_t funk ) noexcept
 {  
     auto * old = ImGui::GetCurrentContext() ;
     auto * old_ip = ImPlot::GetCurrentContext() ;
@@ -89,7 +89,7 @@ void_t imgui::execute( exec_funk_t funk ) noexcept
 }
 
 //***
-void_t imgui::init( motor::string_cref_t name ) noexcept 
+void_t frontend::init( motor::string_cref_t name ) noexcept 
 {
     _name = name ;
 
@@ -352,7 +352,7 @@ void_t imgui::init( motor::string_cref_t name ) noexcept
 }
 
 //***
-void_t imgui::begin( void_t ) noexcept
+void_t frontend::begin( void_t ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -360,7 +360,7 @@ void_t imgui::begin( void_t ) noexcept
     ImGui::SetCurrentContext( old_ctx ) ;
 }
 
-void_t imgui::end( void_t ) noexcept
+void_t frontend::end( void_t ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -369,7 +369,7 @@ void_t imgui::end( void_t ) noexcept
 }
 
 //***
-void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
+void_t frontend::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -728,7 +728,7 @@ void_t imgui::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 }
 
 //*****************************************************************************
-void_t imgui::deinit( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
+void_t frontend::deinit( motor::graphics::gen4::frontend_mtr_t fe ) noexcept 
 {
     fe->release( motor::move( _gc ) ) ;
     fe->release( motor::move( _rc ) ) ;
@@ -742,7 +742,7 @@ void_t imgui::deinit( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 }
 
 //*****************************************************************************
-void_t imgui::do_default_imgui_init( void_t ) 
+void_t frontend::do_default_imgui_init( void_t ) 
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -818,7 +818,7 @@ void_t imgui::do_default_imgui_init( void_t )
 }
 
 //****
-void_t imgui::update( window_data_cref_t data ) noexcept
+void_t frontend::update( window_data_cref_t data ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -832,7 +832,7 @@ void_t imgui::update( window_data_cref_t data ) noexcept
 }
 
 //****
-bool_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexcept
+bool_t frontend::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -927,7 +927,7 @@ bool_t imgui::update( motor::controls::three_device_borrow_t::mtr_t dev ) noexce
 }
 
 //****
-void_t imgui::update( motor::controls::ascii_device_borrow_t::mtr_t dev ) noexcept
+void_t frontend::update( motor::controls::ascii_device_borrow_t::mtr_t dev ) noexcept
 {
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
@@ -1098,7 +1098,7 @@ void_t imgui::update( motor::controls::ascii_device_borrow_t::mtr_t dev ) noexce
 }
 
 //****
-ImTextureID imgui::texture( motor::string_in_t name ) noexcept 
+ImTextureID frontend::texture( motor::string_in_t name ) noexcept 
 {
     size_t i = 0 ;
 

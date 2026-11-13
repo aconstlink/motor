@@ -202,7 +202,7 @@ namespace motor
                 motor::io::location_cref_t loc ) noexcept ;
 
             void_t on_update( void_t ) noexcept ;
-            void_t on_tool( motor::graphics::gen4::frontend_ptr_t, motor::tool::imgui_ptr_t ) noexcept ;
+            void_t on_tool( motor::graphics::gen4::frontend_ptr_t, motor::tool::imgui_frontend_ptr_t ) noexcept ;
 
             void_t store( motor::io::database_mtr_safe_t db ) noexcept ;
 
@@ -213,7 +213,7 @@ namespace motor
             void_t handle_mouse_drag_for_anim_pivot( int_t const ) ;
 
             // show the selected image in the content region
-            void_t show_image( motor::tool::imgui_ptr_t imgui, int_t const selected ) ;
+            void_t show_image( motor::tool::imgui_frontend_ptr_t imgui, int_t const selected ) ;
 
             // handle the rect the user draws with the mouse
             bool_t handle_rect( this_t::rect_drag_info_ref_t, motor::math::vec4ui_ref_t ) ;

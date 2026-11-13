@@ -92,7 +92,7 @@ namespace motor
                 motor::application::window_mtr_t wnd = nullptr ;
                 motor::application::window_message_listener_mtr_t lst = nullptr ;
                 motor::graphics::ifrontend_ptr_t fe = nullptr ;
-                motor::tool::imgui_mtr_t imgui ;
+                motor::tool::imgui_frontend_ptr_t imgui ;
 
                 bool_t first_frame = true ;
                 
@@ -207,7 +207,7 @@ namespace motor
             struct tool_data
             {
                 motor::graphics::gen4::frontend_ptr_t fe ;
-                motor::tool::imgui_ptr_t imgui ;
+                motor::tool::imgui_frontend_ptr_t imgui ;
 
                 float_t sec_dt ;
                 size_t micro_dt ;
