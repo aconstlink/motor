@@ -146,6 +146,8 @@ class frontend_view
 };
 motor_typedef( frontend_view );
 
+
+
 } // namespace motor::tool::imgui
 
 namespace motor::tool
@@ -154,6 +156,7 @@ motor_typedefs( motor::tool::imgui::frontend, imgui_frontend );
 motor_typedefs( motor::tool::imgui::frontend_view, imgui_frontend_view );
 } // namespace motor::tool
 
+#if 0
 static ImVec2 const operator+( ImVec2 const & lhv, ImVec2 const & rhv ) noexcept
 {
     return ImVec2( lhv.x + rhv.x, lhv.y + rhv.y );
@@ -163,3 +166,4 @@ static ImVec2 const operator-( ImVec2 const & lhv, ImVec2 const & rhv ) noexcept
 {
     return ImVec2( lhv.x - rhv.x, lhv.y - rhv.y );
 }
+#endif

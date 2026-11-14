@@ -10,6 +10,8 @@ set( sources
     "structs.h"
     "util.hpp"
 
+    "imgui/convert.hpp"
+
     "imgui/imgui.h"
     "imgui/imgui.cpp"
     "imgui/sprite_editor.h"
@@ -27,7 +29,8 @@ set( sources
     "imgui/player_controller.cpp"
     "imgui/engine_profiling.h"
     "imgui/engine_profiling.cpp"
-
+    "imgui/canvas_2d.h"
+    "imgui/canvas_2d.cpp"
     "imgui/imnodes_wire.h"
     "imgui/imnodes_wire.cpp"
     "imgui/imgui_property.h"
