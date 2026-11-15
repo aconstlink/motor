@@ -255,6 +255,22 @@ void_t canvas_2d::draw_circle( draw_circle_info const & info ) noexcept
         dl->AddCircleFilled(
             this_t::world_to_screen( info.point ), info.radius * _zoom, info.color );
     else
-        dl->AddCircle(
-            this_t::world_to_screen( info.point ), info.radius * _zoom, info.color );
+        dl->AddCircle( this_t::world_to_screen( info.point ), info.radius * _zoom, info.color );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_poly_line( poly_line_info const & info ) noexcept
+{
+
+    auto dl = ImGui::GetWindowDrawList();
+
+    if( _point_cache.size() < info.points.size() ) _point_cache.resize( info.points.size() );
+
+    size_t i = size_t( -1 );
+    for( auto const & p : info.points )
+    {
+        _point_cache[ ++i ] = this_t::world_to_screen( p ) ;
+    }
+
+    dl->AddPolyline( _point_cache.data(), info.points.size(), info.color, info.thickness ) ;
 }

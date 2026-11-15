@@ -16,7 +16,7 @@ class MOTOR_TOOL_API canvas_2d
 
     motor_this_typedefs( canvas_2d );
 
-  private:
+  private: // view management stuff
 
     bool_t _in_section = false;
 
@@ -51,6 +51,10 @@ class MOTOR_TOOL_API canvas_2d
     ImVec2 _available_region;
     ImVec2 world_to_screen( motor::math::vec2f_cref_t const & ) noexcept;
     motor::math::vec2f_t screen_to_world( ImVec2 const & ) noexcept;
+
+  private: // cache
+
+    motor::vector< ImVec2 > _point_cache;
 
   public:
 
@@ -104,11 +108,19 @@ class MOTOR_TOOL_API canvas_2d
     struct draw_circle_info
     {
         motor::math::vec2f_t point;
-        float_t radius = 1.0f ;
+        float_t radius = 1.0f;
         ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
-        bool_t filled = true ;
+        bool_t filled = true;
     };
-    void_t draw_circle( draw_circle_info const & info ) noexcept ;
+    void_t draw_circle( draw_circle_info const & info ) noexcept;
+
+    struct poly_line_info
+    {
+        float_t thickness ;
+        motor::vector< motor::math::vec2f_t > points;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+    };
+    void_t draw_poly_line( poly_line_info const & ) noexcept;
 };
 motor_typedef( canvas_2d );
 } // namespace motor::tool::imgui
