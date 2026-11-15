@@ -37,8 +37,7 @@ class MOTOR_TOOL_API canvas_2d
     motor::math::vec2f_t _world_center ;
     float_t _zoom = 1.0f ;
 
-    ImVec2 _middle_mouse_pos ;
-    bool_t _middle_mouse_tracked = false ;
+    motor::math::vec2f_t _middle_mouse_pos ;
 
     motor::math::vec2f_t view_center( void_t ) const noexcept
     {
@@ -76,7 +75,15 @@ class MOTOR_TOOL_API canvas_2d
         return _world_region;
     }
 
-    bool_t begin( char const * const name, ImVec2 const & ) noexcept;
+    struct draw_options
+    {
+        bool_t draw_grid = true ;
+        bool_t draw_outline = true ;
+        bool_t draw_grid_coords = true ;
+        uint_t draw_grid_coords_every = 2 ;
+        ImColor grid_color = ImColor( 0.5f, 0.5f, 0.5f ) ;
+    };
+    bool_t begin( char const * const name, ImVec2 const &, draw_options = {} ) noexcept;
     void_t end( void_t ) noexcept;
 
   public:

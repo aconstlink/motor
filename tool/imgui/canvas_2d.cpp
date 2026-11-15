@@ -4,6 +4,7 @@
 #include <motor/math/camera/3d/orthographic_projection.hpp>
 
 #include <cmath>
+#include <algorithm>
 
 using namespace motor::tool::imgui;
 
@@ -35,7 +36,7 @@ motor::math::vec2f_t canvas_2d::screen_to_world( ImVec2 const & p ) noexcept
 }
 
 //********************************************************************
-bool_t canvas_2d::begin( char const * const name, ImVec2 const & ) noexcept
+bool_t canvas_2d::begin( char const * const name, ImVec2 const &, draw_options do_ ) noexcept
 {
     if( _in_section ) return true;
 
@@ -44,61 +45,67 @@ bool_t canvas_2d::begin( char const * const name, ImVec2 const & ) noexcept
     ImVec2 s = ImGui::GetContentRegionAvail();
     _available_region = s;
 
-    motor::math::vec2f_t const vd( s.x / _zoom, s.y / _zoom );
-
     auto draw_list = ImGui::GetWindowDrawList();
     auto start = ImGui::GetCursorScreenPos();
     _start_screen_pos = start;
 
     ImGui::InvisibleButton( "##canvas", s, ImGuiButtonFlags_MouseButtonMiddle );
-
-    const float wheel = ImGui::GetIO().MouseWheel;
-    if( ImGui::IsItemHovered() && wheel != 0.0f )
+    // handle zoom and zoom to mouse
     {
-        // Positiv: reinzoomen. Negativ: rauszoomen.
-        // zoom_at( ImGui::GetMousePos(), std::pow( 1.15f, wheel ) );
-
-        _zoom += motor::math::fn< float_t >::sign( wheel ) * 0.1f; // std::pow( 1.0005f, wheel );
-        _zoom = std::max( 0.001f, _zoom );
-    }
-
-    if( ImGui::IsMouseDown( ImGuiMouseButton_Middle ) )
-    {
-        if( !_middle_mouse_tracked )
+        const float wheel = ImGui::GetIO().MouseWheel;
+        if( ImGui::IsItemHovered() && wheel != 0.0f )
         {
-            _middle_mouse_pos = ImGui::GetMousePos();
-            _middle_mouse_tracked = true;
+            ImVec2 const mouse = ImGui::GetMousePos();
+            auto const anchor = this_t::screen_to_world( mouse );
+            _zoom = std::clamp( _zoom * std::pow( 1.15f, wheel ), 0.001f, 1000.0f );
+            auto const after = this_t::screen_to_world( mouse );
+            _world_center += anchor - after;
         }
+    }
 
-        auto const dif =
-            motor::tool::imgui::convert::from( ImGui::GetMousePos() - _middle_mouse_pos );
-        _world_center -= dif * motor::math::vec2f_t( 1.0f, -1.0f );
-        _middle_mouse_pos = ImGui::GetMousePos();
-    }
-    else
+    // handle panning
     {
-        _middle_mouse_tracked = false;
+        if( ImGui::IsItemHovered() && ImGui::IsMouseDown( ImGuiMouseButton_Middle ) )
+        {
+            auto const mouse_world = this_t::screen_to_world( ImGui::GetMousePos() );
+            auto const dif = mouse_world - _middle_mouse_pos;
+            _world_center -= dif;
+        }
+        _middle_mouse_pos = this_t::screen_to_world( ImGui::GetMousePos() );
     }
+
+    motor::math::vec2f_t const vd( s.x / _zoom, s.y / _zoom );
+    ImVec4 outline_rect = ImVec4( start.x, start.y, s.x, s.y );
 
     // draw outline
+    if( do_.draw_outline )
     {
-        draw_list->AddLine( ImVec2( 0.0f, 0.0f ) + start, ImVec2( s.x, 0.0f ) + start,
-            ImColor( 0.5f, 0.5f, 0.5f ) );
+        draw_list->AddLine(
+            ImVec2( 0.0f, 0.0f ) + start, ImVec2( s.x, 0.0f ) + start, do_.grid_color );
 
         draw_list->AddLine(
-            ImVec2( s.x, 0.0f ) + start, ImVec2( s.x, s.y ) + start, ImColor( 0.5f, 0.5f, 0.5f ) );
+            ImVec2( s.x, 0.0f ) + start, ImVec2( s.x, s.y ) + start, do_.grid_color );
 
         draw_list->AddLine(
-            ImVec2( s.x, s.y ) + start, ImVec2( 0.0f, s.y ) + start, ImColor( 0.5f, 0.5f, 0.5f ) );
+            ImVec2( s.x, s.y ) + start, ImVec2( 0.0f, s.y ) + start, do_.grid_color );
 
-        draw_list->AddLine( ImVec2( 0.0f, s.y ) + start, ImVec2( 0.0f, 0.0f ) + start,
-            ImColor( 0.5f, 0.5f, 0.5f ) );
+        draw_list->AddLine(
+            ImVec2( 0.0f, s.y ) + start, ImVec2( 0.0f, 0.0f ) + start, do_.grid_color );
     }
 
     // draw grid
+    if( do_.draw_grid )
     {
-        float_t const line_column_width = 50.0f / _zoom;
-        float_t const line_row_height = 50.0f / _zoom;
+        // smallest rounded world step with min. 50 pixel distance
+        // between lines. step in the end determines how much apart
+        // the lines are drawn. this is now adaptive based on zoom level.
+        float_t const wanted = 50.0f / _zoom;
+        float_t const decade = std::pow( 10.0f, std::floor( std::log10( wanted ) ) );
+        float_t const rel = wanted / decade;
+        float_t const step = decade * ( rel <= 1 ? 1 : rel <= 2 ? 2 : rel <= 5 ? 5 : 10 );
+
+        float_t const line_column_width = step;
+        float_t const line_row_height = step;
 
         size_t const num_vert = std::ceil( vd.x() / line_column_width );
         size_t const num_horz = std::ceil( vd.y() / line_row_height );
@@ -107,14 +114,14 @@ bool_t canvas_2d::begin( char const * const name, ImVec2 const & ) noexcept
         float_t const height = vd.y();
 
         float_t const x_start =
-            std::floor( _world_center.x() / line_column_width ) *
-            (line_column_width)-std::floor( ( width * 0.5f ) / line_column_width ) *
-            (line_column_width)-line_column_width;
+            line_column_width * ( std::floor( _world_center.x() / line_column_width ) -
+                                    std::floor( width * 0.5f / line_column_width ) - 1.0f );
 
         float_t const y_start =
             std::floor( _world_center.y() / line_row_height ) * line_row_height -
-            std::floor( ( height * 0.5f ) / line_row_height ) * line_row_height;
+            std::floor( ( height * 0.5f ) / line_row_height ) * line_row_height - line_row_height;
 
+        // draw vertical lines
         {
             for( size_t x = 0; x <= num_vert; ++x )
             {
@@ -123,11 +130,29 @@ bool_t canvas_2d::begin( char const * const name, ImVec2 const & ) noexcept
                 motor::math::vec2f_t const v1( x_start + float_t( x ) * line_column_width,
                     y_start + height + 2.0f * line_row_height );
 
-                draw_list->AddLine( this_t::world_to_screen( v0 ), this_t::world_to_screen( v1 ),
-                    ImColor( 0.5f, 0.5f, 0.5f ) );
+                auto const s_v0 = this_t::world_to_screen( v0 );
+                auto const s_v1 = this_t::world_to_screen( v1 );
+
+                draw_list->AddLine( s_v0, s_v1, do_.grid_color );
+
+                int_t const gx = std::floor( v0.x() / line_column_width );
+                if( do_.draw_grid_coords && ( std::abs( gx ) % do_.draw_grid_coords_every ) == 0 )
+                {
+                    char text[ 256 ];
+                    std::snprintf( text, sizeof( text ), "%.0f", v0.x() );
+                    auto const ts = ImGui::CalcTextSize( text );
+
+                    ImVec2 p = this_t::world_to_screen( v0 );
+                    // p.x = std::min( std::max( p.x, start.x ), s.x );
+                    p.x -= ts.x * 0.5f;
+                    p.y = s.y - ts.y + start.y;
+
+                    draw_list->AddText( p, do_.grid_color, text );
+                }
             }
         }
 
+        // draw horizontal lines
         {
             for( size_t y = 0; y <= num_horz; ++y )
             {
@@ -135,8 +160,25 @@ bool_t canvas_2d::begin( char const * const name, ImVec2 const & ) noexcept
                 motor::math::vec2f_t const v1( x_start + width + 2.0f * line_column_width,
                     y_start + float_t( y ) * line_row_height );
 
-                draw_list->AddLine( this_t::world_to_screen( v0 ), this_t::world_to_screen( v1 ),
-                    ImColor( 0.5f, 0.5f, 0.5f ) );
+                auto const s_v0 = this_t::world_to_screen( v0 );
+                auto const s_v1 = this_t::world_to_screen( v1 );
+
+                draw_list->AddLine( s_v0, s_v1, do_.grid_color );
+
+                int_t const gx = std::floor( v0.y() / line_row_height );
+                if( do_.draw_grid_coords && ( std::abs( gx ) % do_.draw_grid_coords_every ) == 0 )
+                {
+                    char text[ 256 ];
+                    std::snprintf( text, sizeof( text ), "%.0f", v0.y() );
+                    auto const ts = ImGui::CalcTextSize( text );
+
+                    ImVec2 p = this_t::world_to_screen( v0 );
+
+                    p.x = start.x;
+                    p.y -= ts.y;
+
+                    draw_list->AddText( p, do_.grid_color, text );
+                }
             }
         }
     }
