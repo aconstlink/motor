@@ -77,7 +77,7 @@ APIs and internal systems are still evolving; motor is not a finished SDK.
 
 ## A little bit of AI Assistance is used
 
-I use AI for building [test applications](https://github.com/aconstlink/motor_ai_suites) (another repo), finding bugs and technical
+I use AI for building [AI generated test applications](https://github.com/aconstlink/motor_ai_suites) (another repo and its main and sole purpose is to test and just find bugs!), finding bugs and technical
 discussions. I do not use AI to add any new features or anything I do not understand. 99.8% is still handcoded but I couldn't resist to take one or two bug fixes.
 
 Discussions with AI really has revitalized development to be quite honest and with limited time available, spending
