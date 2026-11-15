@@ -237,5 +237,24 @@ void_t canvas_2d::draw_line( this_t::draw_line_info const & dl ) noexcept
     auto draw_list = ImGui::GetWindowDrawList();
 
     draw_list->AddLine( this_t::world_to_screen( motor::math::vec2f_t( dl.start ) ),
-        this_t::world_to_screen( dl.end ), ImColor( 1.0f, 1.0f, 1.0f ) );
+        this_t::world_to_screen( dl.end ), dl.color );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_point( draw_point_info const & info ) noexcept
+{
+    auto dl = ImGui::GetWindowDrawList();
+    dl->AddCircleFilled( this_t::world_to_screen( info.point ), 2.0f, info.color );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_circle( draw_circle_info const & info ) noexcept
+{
+    auto dl = ImGui::GetWindowDrawList();
+    if( info.filled )
+        dl->AddCircleFilled(
+            this_t::world_to_screen( info.point ), info.radius * _zoom, info.color );
+    else
+        dl->AddCircle(
+            this_t::world_to_screen( info.point ), info.radius * _zoom, info.color );
 }

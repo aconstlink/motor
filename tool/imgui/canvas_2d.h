@@ -18,11 +18,9 @@ class MOTOR_TOOL_API canvas_2d
 
   private:
 
-    
     bool_t _in_section = false;
 
-
-    motor::math::mat4f_t _proj ;
+    motor::math::mat4f_t _proj;
 
     // what is in view
     // xy: center
@@ -34,10 +32,10 @@ class MOTOR_TOOL_API canvas_2d
     // zw: top right
     motor::math::vec4f_t _world_region;
 
-    motor::math::vec2f_t _world_center ;
-    float_t _zoom = 1.0f ;
+    motor::math::vec2f_t _world_center;
+    float_t _zoom = 1.0f;
 
-    motor::math::vec2f_t _middle_mouse_pos ;
+    motor::math::vec2f_t _middle_mouse_pos;
 
     motor::math::vec2f_t view_center( void_t ) const noexcept
     {
@@ -49,10 +47,10 @@ class MOTOR_TOOL_API canvas_2d
         return _view_region.zw();
     }
 
-    ImVec2 _start_screen_pos ;
-    ImVec2 _available_region ;
-    ImVec2 world_to_screen( motor::math::vec2f_cref_t const & ) noexcept ;
-    motor::math::vec2f_t  screen_to_world( ImVec2 const & ) noexcept ;
+    ImVec2 _start_screen_pos;
+    ImVec2 _available_region;
+    ImVec2 world_to_screen( motor::math::vec2f_cref_t const & ) noexcept;
+    motor::math::vec2f_t screen_to_world( ImVec2 const & ) noexcept;
 
   public:
 
@@ -77,11 +75,11 @@ class MOTOR_TOOL_API canvas_2d
 
     struct draw_options
     {
-        bool_t draw_grid = true ;
-        bool_t draw_outline = true ;
-        bool_t draw_grid_coords = true ;
-        uint_t draw_grid_coords_every = 2 ;
-        ImColor grid_color = ImColor( 0.5f, 0.5f, 0.5f ) ;
+        bool_t draw_grid = true;
+        bool_t draw_outline = true;
+        bool_t draw_grid_coords = true;
+        uint_t draw_grid_coords_every = 2;
+        ImColor grid_color = ImColor( 0.5f, 0.5f, 0.5f );
     };
     bool_t begin( char const * const name, ImVec2 const &, draw_options = {} ) noexcept;
     void_t end( void_t ) noexcept;
@@ -90,10 +88,27 @@ class MOTOR_TOOL_API canvas_2d
 
     struct draw_line_info
     {
-        motor::math::vec2f_t start ;
-        motor::math::vec2f_t end ;
+        motor::math::vec2f_t start;
+        motor::math::vec2f_t end;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f );
     };
     void_t draw_line( this_t::draw_line_info const & dl ) noexcept;
+
+    struct draw_point_info
+    {
+        motor::math::vec2f_t point;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+    };
+    void_t draw_point( draw_point_info const & ) noexcept;
+
+    struct draw_circle_info
+    {
+        motor::math::vec2f_t point;
+        float_t radius = 1.0f ;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        bool_t filled = true ;
+    };
+    void_t draw_circle( draw_circle_info const & info ) noexcept ;
 };
 motor_typedef( canvas_2d );
 } // namespace motor::tool::imgui
