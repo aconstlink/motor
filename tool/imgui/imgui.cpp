@@ -4,6 +4,7 @@
 #include "imgui.h"
 
 #include <motor/math/camera/3d/orthographic_projection.hpp>
+#include <algorithm>
 
 using namespace motor::tool::imgui ;
 
@@ -374,18 +375,6 @@ void_t frontend::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
 
-    // setup projection matrix
-    {
-        motor::math::mat4f_t const proj = motor::math::m3d::orthographic<float_t>::create(
-            float_t(_width), float_t(_height), 0.0f, .1f);
-
-        for (auto& vars : _vars)
-        {
-            auto* var = vars->data_variable< motor::math::mat4f_t >("u_proj");
-            var->set(proj);
-        }
-    }
-    
     ImGui::Render() ;
     ImDrawData* draw_data = ImGui::GetDrawData() ;
 
@@ -424,7 +413,8 @@ void_t frontend::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                     }
                 } ) ;
 
-                size_t const id = _images.size() ;
+                auto const free_slot = std::find( _images.begin(), _images.end(), nullptr ) ;
+                size_t const id = size_t( free_slot - _images.begin() ) ;
 
                 auto ic = motor::graphics::image_object_t( "motor.system.imgui."+_name+"."+motor::to_string(id)+".image", 
                     std::move( img ) )                    
@@ -436,21 +426,23 @@ void_t frontend::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
 
 
                 
-                _images.emplace_back( motor::shared( std::move(ic), "[imgui] : image object" ) ) ;
+                motor::graphics::image_object_mtr_t image = motor::shared( std::move(ic), "[imgui] : image object" ) ;
+                if( free_slot == _images.end() ) _images.emplace_back( image ) ;
+                else *free_slot = image ;
+                fe->configure<motor::graphics::image_object_t>( image ) ;
 
-                fe->configure<motor::graphics::image_object_t>( _images[id] ) ;
-
-                tex->SetTexID( ImTextureID( id ) ) ;
+                // Draw commands carry a varset index; uploads need the actual image.
+                tex->BackendUserData = image ;
+                tex->SetTexID( this_t::texture( image->name() ) ) ;
+                _texture_added = true ;
                 tex->SetStatus(ImTextureStatus_OK);
             }
                 break ;
             case ImTextureStatus_WantUpdates:
             {
-                size_t const idx = size_t( tex->GetTexID() ) ;
-                if( idx < _images.size() )
+                auto * img_ptr = static_cast<motor::graphics::image_object_mtr_t>( tex->BackendUserData ) ;
+                if( img_ptr != nullptr )
                 {
-                    auto *img_ptr = _images[idx] ;
-
                     const void *pixels = tex->GetPixels();
 
                     img_ptr->image().update(
@@ -482,18 +474,30 @@ void_t frontend::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
                         });
 
                     fe->update( img_ptr ) ;
+                    tex->SetStatus(ImTextureStatus_OK);
                 }
                 else
                 {
                   motor::log::global::warning(
-                      "ImTextureStatus_WantUpdates invalid index ");
+                      "ImTextureStatus_WantUpdates missing image" );
                 }
-                tex->SetStatus(ImTextureStatus_OK);
             }
                 break ;
-            case ImTextureStatus_WantDestroy: 
-                motor::log::global::warning( "ImTextureStatus_WantDestroy not implemented" ) ;
+            case ImTextureStatus_WantDestroy:
+            {
+                if( tex->UnusedFrames == 0 ) break ;
+                auto * image = static_cast<motor::graphics::image_object_mtr_t>( tex->BackendUserData ) ;
+                auto const slot = std::find( _images.begin(), _images.end(), image ) ;
+                if( image != nullptr && slot != _images.end() )
+                {
+                    if( !fe->release( motor::move( image ) ) ) break ;
+                    *slot = nullptr ;
+                }
+                tex->BackendUserData = nullptr ;
+                tex->SetTexID( ImTextureID_Invalid ) ;
+                tex->SetStatus( ImTextureStatus_Destroyed ) ;
                 break ;
+            }
             
             case ImTextureStatus_Destroyed:
             case ImTextureStatus_OK:
@@ -504,6 +508,12 @@ void_t frontend::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
         }
     }
                 
+    // Include varsets created by this frame's atlas requests.
+    auto const proj = motor::math::m3d::orthographic<float_t>::create(
+        float_t(_width), float_t(_height), 0.0f, .1f ) ;
+    for( auto * vars : _vars )
+        vars->data_variable<motor::math::mat4f_t>( "u_proj" )->set( proj ) ;
+
     if( !_init )
     {
         fe->configure<motor::graphics::state_object_t>( _rs ) ;
@@ -512,6 +522,7 @@ void_t frontend::render( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
         fe->configure<motor::graphics::render_object_t>( _rc ) ;
 
         _init = true ;
+        _texture_added = false ;
     }
 
     // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
@@ -735,9 +746,10 @@ void_t frontend::deinit( motor::graphics::gen4::frontend_mtr_t fe ) noexcept
     fe->release( motor::move( _sc ) ) ;
     fe->release( motor::move( _rs ) ) ;
 
-    for( auto * mtr : _images )
+    for( auto & slot : _images )
     {
-        fe->release( motor::move( mtr ) ) ;
+        auto * image = slot ;
+        if( image != nullptr && fe->release( motor::move( image ) ) ) slot = nullptr ;
     }
 }
 
