@@ -37,6 +37,9 @@ class MOTOR_TOOL_API canvas_2d
     motor::math::vec2f_t _world_center ;
     float_t _zoom = 1.0f ;
 
+    ImVec2 _middle_mouse_pos ;
+    bool_t _middle_mouse_tracked = false ;
+
     motor::math::vec2f_t view_center( void_t ) const noexcept
     {
         return _view_region.xy();
