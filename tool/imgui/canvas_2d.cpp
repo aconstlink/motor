@@ -20,6 +20,8 @@ canvas_2d::~canvas_2d( void_t ) noexcept {}
 //********************************************************************
 ImVec2 canvas_2d::world_to_screen( motor::math::vec2f_cref_t const & v ) noexcept
 {
+    assert( _in_section );
+
     // #1 : transform to world center and zoom
     auto const v0 = ( v - _world_center ) * _zoom;
     // #2 : flipp y coordinate
@@ -31,6 +33,8 @@ ImVec2 canvas_2d::world_to_screen( motor::math::vec2f_cref_t const & v ) noexcep
 //********************************************************************
 motor::math::vec2f_t canvas_2d::screen_to_world( ImVec2 const & p ) noexcept
 {
+    assert( _in_section );
+
     auto const d = p - ( _start_screen_pos + _available_region * 0.5f );
     return _world_center + motor::math::vec2f_t( d.x, -d.y ) / _zoom;
 }
@@ -38,11 +42,12 @@ motor::math::vec2f_t canvas_2d::screen_to_world( ImVec2 const & p ) noexcept
 //********************************************************************
 bool_t canvas_2d::begin( char const * const name, ImVec2 const & pos_in ) noexcept
 {
-    return this_t::begin( name, pos_in, {} ) ;
+    return this_t::begin( name, pos_in, {} );
 }
 
 //********************************************************************
-bool_t canvas_2d::begin( char const * const name, ImVec2 const & pos_in, draw_options const & do_ ) noexcept
+bool_t canvas_2d::begin(
+    char const * const name, ImVec2 const & pos_in, draw_options const & do_ ) noexcept
 {
     if( _in_section ) return true;
 
@@ -298,49 +303,27 @@ void_t canvas_2d::draw_polygon( polygon_info const & info ) noexcept
 }
 
 //********************************************************************
-void_t canvas_2d::draw_node( node_info const & info ) noexcept
+void_t canvas_2d::draw_rect_filled( rect_filled_info const & info ) noexcept
 {
     auto * dl = ImGui::GetWindowDrawList();
-    auto const screen_top_left = world_to_screen( info.pos );
-    auto const screen_bottom_right =
-        world_to_screen( info.pos + motor::math::vec2f_t( info.size.x(), -info.size.y() ) );
 
-    float_t const header_h = _header_height * _zoom;
-    float_t const radius = 6.0f * _zoom;
+    auto const p0 = this_t::world_to_screen( info.pos );
+    auto const p1 = this_t::world_to_screen( info.pos + info.size );
+
+    ImVec2 const pmin = { p0.x, p1.y };
+    ImVec2 const pmax = { p1.x, p0.y };
+
+    dl->AddRectFilled( pmin, pmax, info.color, info.radius * _zoom, info.flags );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_text( text_info const & info ) noexcept 
+{
+    auto * dl = ImGui::GetWindowDrawList();
+
+    auto const p0 = this_t::world_to_screen( info.pos );
     float_t const pad = 8.0f * _zoom;
-    float_t const split_y = screen_top_left.y + header_h;
+    float_t const height = info.font_height * _zoom ;
 
-
-    dl->AddRectFilled(
-        screen_top_left, ImVec2( screen_bottom_right.x, split_y ), info.header_color, radius, ImDrawFlags_RoundTop );
-    dl->AddRectFilled(
-        ImVec2( screen_top_left.x, split_y ), screen_bottom_right, info.body_color, radius, ImDrawFlags_RoundBottom );
-
-    float_t const font_h = ImGui::GetFontSize() * _zoom;
-    dl->PushClipRect( screen_top_left, ImVec2( screen_bottom_right.x - pad, split_y ), true );
-    dl->AddText( ImGui::GetFont(), font_h,
-        ImVec2( screen_top_left.x + pad, screen_top_left.y + ( header_h - font_h ) * 0.5f ), info.text_color, info.title );
-    dl->PopClipRect();
-
-    dl->AddRect( screen_top_left, screen_bottom_right, info.border_color, radius, 1.0f );
-}
-
-//********************************************************************
-void_t canvas_2d::draw_link( link_info const & li ) noexcept
-{
-    auto const a = world_to_screen( this_t::exec_pin_position( {li.from, li.from_size, this_t::exec_pin::out} ) );
-    auto const b = world_to_screen( this_t::exec_pin_position( {li.to, li.to_size, this_t::exec_pin::in} ) );
-
-    float_t const bend =
-        std::clamp( 0.5f * std::abs( li.to.x() - li.from.x() ), 24.0f, 100.0f ) * _zoom;
-
-    ImGui::GetWindowDrawList()->AddBezierCubic(
-        a, ImVec2( a.x + bend, a.y ), ImVec2( b.x - bend, b.y ), b, li.color, 2.0f );
-}
-
-//********************************************************************
-motor::math::vec2f_t canvas_2d::exec_pin_position( this_t::exec_pin_info const & ifo ) noexcept
-{
-    float_t const x = ifo.pin == exec_pin::out ? ifo.node_size.x() : 0.0f;
-    return ifo.node_pos + motor::math::vec2f_t( x, -0.5f * _header_height );
+    dl->AddText( ImGui::GetFont(), height, {p0.x, p0.y-height}, info.color, info.title );
 }
