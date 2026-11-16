@@ -100,7 +100,7 @@ class MOTOR_TOOL_API canvas_2d
 
     // only valid within begin/end
     motor::math::vec2f_t screen_to_world( ImVec2 const & ) noexcept;
-    motor::math::vec2f_t measure_text_size( char const * text, float_t const height) noexcept;
+    motor::math::vec2f_t measure_text_size( char const * text, float_t const height ) noexcept;
 
     float_t zoom( void_t ) const noexcept
     {
@@ -174,12 +174,12 @@ class MOTOR_TOOL_API canvas_2d
 
         ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
-        float_t thickness = 1.0f ;
+        float_t thickness = 1.0f;
 
         float_t radius = 0.0f;
         ImDrawFlags flags = 0;
     };
-    void_t draw_rect( rect_info const & ) noexcept ;
+    void_t draw_rect( rect_info const & ) noexcept;
 
     struct text_info
     {
@@ -192,21 +192,20 @@ class MOTOR_TOOL_API canvas_2d
 
     struct bezier_curve_info
     {
-        std::array< motor::math::vec2f_t, 4 > cp ;
+        std::array< motor::math::vec2f_t, 4 > cp;
         ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
-        float_t thickness = 1.0f ;
-        int_t num_segments = 0 ;
-
+        float_t thickness = 1.0f;
+        int_t num_segments = 0;
     };
-    void_t draw_bezier_curve( bezier_curve_info const & ) ;
+    void_t draw_bezier_curve( bezier_curve_info const & );
 
     struct clip_rect_info
     {
-        motor::math::vec2f_t pos ;
-        motor::math::vec2f_t size ;
+        motor::math::vec2f_t pos;
+        motor::math::vec2f_t size;
     };
-    void_t push_clip_rect( clip_rect_info const & ) noexcept ;
-    void_t pop_clip_rect( void_t ) noexcept ;
+    void_t push_clip_rect( clip_rect_info const & ) noexcept;
+    void_t pop_clip_rect( void_t ) noexcept;
 };
 motor_typedef( canvas_2d );
 } // namespace motor::tool::imgui

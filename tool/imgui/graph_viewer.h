@@ -4,6 +4,7 @@
 #pragma once
 
 #include "canvas_2d.h"
+#include "../typedefs.h"
 
 namespace motor::tool::imgui
 {
@@ -15,32 +16,10 @@ class MOTOR_TOOL_API graph_viewer
 
     using canvas2d_t = motor::tool::imgui::canvas_2d_t;
 
-  private:
-
-    struct rect_cache_entry
-    {
-        motor::math::vec2f_t bottom_left;
-        motor::math::vec2f_t top_right;
-    };
-    motor::vector< rect_cache_entry > _rect_cache;
-    size_t _cur_rect = size_t(-1) ;
-
-    canvas2d_t * _can = nullptr;
-
-  public: // imgui like
-
-    bool_t _is_in = false;
-
-  public:
-
-    bool_t begin( canvas2d_t * ) noexcept;
-    void_t end( void_t ) noexcept;
-
-  public: // nodes
-
     struct node_info
     {
-        char const * title;
+        motor::string_t title;
+
         // world pos
         motor::math::vec2f_t pos;
         // x: width; y: height
@@ -50,12 +29,54 @@ class MOTOR_TOOL_API graph_viewer
         ImColor text_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
         ImColor border_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
     };
-    size_t draw_node( node_info const & info ) noexcept;
+
+  private:
+
+    struct node_entry
+    {
+        bool_t used = false;
+
+        motor::string_t title;
+
+        motor::math::vec2f_t bottom_left;
+        motor::math::vec2f_t top_right;
+
+        ImColor header_color = ImColor( .40f, .30f, .70f, 1.0f );
+        ImColor body_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        ImColor text_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        ImColor border_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+
+        motor::math::vec2f_t title_size;
+
+        motor::math::vec2f_t size( void_t ) const noexcept
+        {
+            return ( bottom_left - top_right ).abs();
+        }
+    };
+    motor::vector< node_entry > _nodes;
+
+    canvas2d_t * _can = nullptr;
+
+  public: // imgui like
+
+    // begin/end section
+    bool_t _is_in = false;
+
+  public:
+
+    bool_t begin( canvas2d_t * ) noexcept;
+    void_t end( void_t ) noexcept;
+
+  public: // nodes
+
+    size_t add_node( node_info const & info ) noexcept;
+    bool_t remove_node( size_t const ) noexcept;
+    bool_t draw_node( size_t const ) noexcept;
 
     struct link_info
     {
-        size_t node_id_from ;
-        size_t node_id_to ;
+        size_t node_id_from;
+        size_t node_id_to;
 
         ImColor color = ImColor( .40f, .30f, .70f, 1.0f );
     };
@@ -70,7 +91,7 @@ class MOTOR_TOOL_API graph_viewer
     };
     struct exec_pin_info
     {
-        size_t node_id ;
+        size_t node_id;
         this_t::exec_pin pin;
     };
     motor::math::vec2f_t exec_pin_position( this_t::exec_pin_info const & ) noexcept;

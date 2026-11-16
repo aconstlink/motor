@@ -18,69 +18,106 @@ void_t graph_viewer::end( void_t ) noexcept
 {
     assert( _is_in );
     _is_in = false;
-    _rect_cache.clear();
-    _cur_rect = size_t( -1 );
 }
 
 //********************************************************************
-size_t graph_viewer::draw_node( node_info const & info ) noexcept
+size_t graph_viewer::add_node( node_info const & info ) noexcept
 {
+    size_t idx = size_t( -1 );
+    while( ++idx < _nodes.size() && _nodes[ idx ].used );
+
+    if( idx == _nodes.size() )
+    {
+        _nodes.emplace_back( this_t::node_entry{} );
+    }
+
+    auto & n = _nodes[ idx ];
+
+    n.used = true;
+    n.bottom_left = info.pos;
+    n.top_right = info.pos + info.size;
+    n.body_color = info.body_color;
+    n.border_color = info.border_color;
+    n.text_color = info.text_color;
+    n.header_color = info.header_color;
+    n.title = info.title;
+
+    return idx;
+}
+
+//********************************************************************
+bool_t graph_viewer::remove_node( size_t const idx ) noexcept
+{
+    if( idx >= _nodes.size() ) return false;
+
+    _nodes[ idx ].used = false;
+
+    return true;
+}
+
+//********************************************************************
+bool_t graph_viewer::draw_node( size_t const idx ) noexcept
+{
+    if( idx >= _nodes.size() || !_nodes[ idx ].used ) return false;
+
+    auto & n = _nodes[ idx ];
+
     float_t const font_scale = 0.8f;
     float_t const header_h = 24.0f; //_header_height * _zoom;
-    float_t const pad = 8.0f;       //* _zoom;
 
-    auto const title_size = _can->measure_text_size( info.title, header_h * font_scale );
-    auto size = info.size;
+    auto const title_size = _can->measure_text_size( n.title.c_str(), header_h * font_scale );
+    auto size = n.size();
 
-    if( info.size.x() <= title_size.x() )
+    float_t const pad = 8.0f; //* _zoom;
+
+    if( size.x() <= title_size.x() )
     {
         size.x( title_size.x() + 2.0f * pad );
     }
 
+    n.top_right = n.bottom_left + size;
+    n.title_size = title_size;
+
+    auto const pos = n.bottom_left;
+
+    // size = abs( bottom_left - top_right )
     float_t const body_h = size.y() - header_h;
 
     float_t const radius = 6.0f;
 
     // draw header
-    _can->draw_rect_filled( { { info.pos.x(), info.pos.y() + body_h }, { size.x(), header_h },
-        info.header_color, 6.0f, ImDrawFlags_RoundTop } );
+    _can->draw_rect_filled( { { pos.x(), pos.y() + body_h }, { size.x(), header_h }, n.header_color,
+        6.0f, ImDrawFlags_RoundTop } );
 
     // draw body
     _can->draw_rect_filled(
-        { info.pos, { size.x(), body_h }, info.body_color, radius, ImDrawFlags_RoundBottom } );
+        { pos, { size.x(), body_h }, n.body_color, radius, ImDrawFlags_RoundBottom } );
 
     _can->push_clip_rect(
-        { .pos = info.pos + motor::math::vec2f_t( pad, body_h ), .size = title_size } );
+        { .pos = pos + motor::math::vec2f_t( pad, body_h ), .size = n.title_size } );
 
-    _can->draw_text( { .title = info.title,
-        .pos = info.pos + motor::math::vec2f_t( pad, body_h ),
+    _can->draw_text( { .title = n.title.c_str(),
+        .pos = pos + motor::math::vec2f_t( pad, body_h ),
         .font_height = int_t( std::floor( header_h * font_scale ) ),
-        .color = info.text_color } );
+        .color = n.text_color } );
 
     _can->pop_clip_rect();
 
-    _can->draw_rect(
-        { .pos = info.pos, .size = size, .color = info.border_color, .radius = radius } );
+    _can->draw_rect( { .pos = pos, .size = size, .color = n.border_color, .radius = radius } );
 
-    // add to node cache
-    if( _rect_cache.size() <= ++_cur_rect )
-    {
-        _rect_cache.resize( _rect_cache.size() + 10 );
-    }
-    _rect_cache[ _cur_rect ] = { info.pos, info.pos + size };
-    return _cur_rect;
+    return true;
 }
 
 //********************************************************************
 void_t graph_viewer::draw_link( link_info const & li ) noexcept
 {
-    if( li.node_id_from > _cur_rect || 
-    li.node_id_to > _cur_rect ) return ;
+    if( li.node_id_from >= _nodes.size() || !_nodes[ li.node_id_from ].used ) return;
+    if( li.node_id_to >= _nodes.size() || !_nodes[ li.node_id_to ].used ) return;
 
     auto const a = this_t::exec_pin_position( { li.node_id_from, this_t::exec_pin::out } );
     auto const b = this_t::exec_pin_position( { li.node_id_to, this_t::exec_pin::in } );
 
-    float_t const bend = (b-a).length() * 1.0f / 4.0f ;
+    float_t const bend = ( b - a ).length() * 1.0f / 4.0f;
 
     _can->draw_bezier_curve(
         { { a, { a.x() + bend, a.y() }, { b.x() - bend, b.y() }, b }, li.color, 2.0f } );
@@ -88,9 +125,9 @@ void_t graph_viewer::draw_link( link_info const & li ) noexcept
 
 //********************************************************************
 motor::math::vec2f_t graph_viewer::exec_pin_position( this_t::exec_pin_info const & ifo ) noexcept
-{    
-    auto const p0 = _rect_cache[ ifo.node_id ].top_right ;
-    auto const p1 = _rect_cache[ ifo.node_id ].bottom_left ;
+{
+    auto const p0 = _nodes[ ifo.node_id ].top_right;
+    auto const p1 = _nodes[ ifo.node_id ].bottom_left;
 
     auto const pos = ifo.pin == exec_pin::out ? p0 : motor::math::vec2f_t{ p1.x(), p0.y() };
     return pos + motor::math::vec2f_t( 0.0f, -0.5f * 24.0f /*header height*/ );
