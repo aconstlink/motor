@@ -35,6 +35,8 @@ class MOTOR_TOOL_API graph_viewer
     struct node_entry
     {
         bool_t used = false;
+        bool_t is_hovered = false;
+        bool_t is_dragged = false;
 
         motor::string_t title;
 
@@ -54,6 +56,9 @@ class MOTOR_TOOL_API graph_viewer
         }
     };
     motor::vector< node_entry > _nodes;
+
+    size_t _dragging_idx = size_t(-1);
+    motor::math::vec2f_t _mouse_pos ;
 
     canvas2d_t * _can = nullptr;
 

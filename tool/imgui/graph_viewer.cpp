@@ -10,6 +10,51 @@ bool_t graph_viewer::begin( canvas2d_t * can ) noexcept
 {
     _can = can;
     _is_in = true;
+
+    auto const mouse_world = can->screen_to_world( ImGui::GetMousePos() );
+
+    if( !ImGui::IsMouseDown( ImGuiMouseButton_Left ) && _dragging_idx != size_t( -1 ) )
+    {
+        _nodes[ _dragging_idx ].is_dragged = false;
+        _nodes[ _dragging_idx ].is_hovered = false;
+        _dragging_idx = size_t( -1 );
+    }
+
+    if( _dragging_idx == size_t( -1 ) )
+    {
+        for( size_t i = 0; i < _nodes.size(); ++i )
+        {
+            auto & n = _nodes[ i ];
+
+            // keep hovered if n.is_dragged
+            n.is_hovered =
+                n.is_dragged || ( mouse_world.greater_equal_than( n.bottom_left ).all() &&
+                                    mouse_world.less_equal_than( n.top_right ).all() );
+
+            // only start dragging if the mouse actually clicked inside region.
+            // without the click condition, the drag would start if the user clicks
+            // anywhere in the canvas and drags the mouse over a node while holding the
+            // left mouse button.
+            if( ImGui::IsMouseClicked( ImGuiMouseButton_Left ) && n.is_hovered )
+                n.is_dragged = ImGui::IsMouseDown( ImGuiMouseButton_Left ) && n.is_hovered;
+
+            // if one is dragged, just break out.
+            if( n.is_dragged )
+            {
+                _dragging_idx = i;
+                break;
+            }
+        }
+    }
+
+    if( _dragging_idx != size_t( -1 ) )
+    {
+        auto & n = _nodes[ _dragging_idx ];
+        n.bottom_left += mouse_world - _mouse_pos;
+        n.top_right += mouse_world - _mouse_pos;
+    }
+
+    _mouse_pos = mouse_world;
     return true;
 }
 
@@ -103,7 +148,16 @@ bool_t graph_viewer::draw_node( size_t const idx ) noexcept
 
     _can->pop_clip_rect();
 
-    _can->draw_rect( { .pos = pos, .size = size, .color = n.border_color, .radius = radius } );
+    {
+        motor::math::vec3f_t bc = {
+            n.border_color.Value.x, n.border_color.Value.y, n.border_color.Value.z };
+
+        if( n.is_hovered ) bc.negate();
+
+        ImColor border_color = { bc.x(), bc.y(), bc.z(), n.border_color.Value.w };
+
+        _can->draw_rect( { .pos = pos, .size = size, .color = border_color, .radius = radius } );
+    }
 
     return true;
 }
