@@ -74,8 +74,8 @@ size_t graph_viewer::draw_node( node_info const & info ) noexcept
 //********************************************************************
 void_t graph_viewer::draw_link( link_info const & li ) noexcept
 {
-    if( li.node_id_from >= _rect_cache.size() || 
-    li.node_id_to >= _rect_cache.size() ) return ;
+    if( li.node_id_from > _cur_rect || 
+    li.node_id_to > _cur_rect ) return ;
 
     auto const a = this_t::exec_pin_position( { li.node_id_from, this_t::exec_pin::out } );
     auto const b = this_t::exec_pin_position( { li.node_id_to, this_t::exec_pin::in } );
