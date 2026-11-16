@@ -6,13 +6,30 @@
 using namespace motor::tool::imgui;
 
 //********************************************************************
-void_t graph_viewer::draw_node( canvas2d_t & can, node_info const & info ) noexcept
+bool_t graph_viewer::begin( canvas2d_t * can ) noexcept
 {
-    float_t const font_scale = 0.8f ;
+    _can = can;
+    _is_in = true;
+    return true;
+}
+
+//********************************************************************
+void_t graph_viewer::end( void_t ) noexcept
+{
+    assert( _is_in );
+    _is_in = false;
+    _rect_cache.clear();
+    _cur_rect = size_t( -1 );
+}
+
+//********************************************************************
+size_t graph_viewer::draw_node( node_info const & info ) noexcept
+{
+    float_t const font_scale = 0.8f;
     float_t const header_h = 24.0f; //_header_height * _zoom;
     float_t const pad = 8.0f;       //* _zoom;
 
-    auto const title_size = can.measure_text_size( info.title, header_h * font_scale );
+    auto const title_size = _can->measure_text_size( info.title, header_h * font_scale );
     auto size = info.size;
 
     if( info.size.x() <= title_size.x() )
@@ -25,61 +42,56 @@ void_t graph_viewer::draw_node( canvas2d_t & can, node_info const & info ) noexc
     float_t const radius = 6.0f;
 
     // draw header
-    can.draw_rect_filled( { { info.pos.x(), info.pos.y() + body_h }, { size.x(), header_h },
+    _can->draw_rect_filled( { { info.pos.x(), info.pos.y() + body_h }, { size.x(), header_h },
         info.header_color, 6.0f, ImDrawFlags_RoundTop } );
 
     // draw body
-    can.draw_rect_filled(
+    _can->draw_rect_filled(
         { info.pos, { size.x(), body_h }, info.body_color, radius, ImDrawFlags_RoundBottom } );
 
-    can.push_clip_rect(
+    _can->push_clip_rect(
         { .pos = info.pos + motor::math::vec2f_t( pad, body_h ), .size = title_size } );
 
-    can.draw_text( { .title = info.title,
+    _can->draw_text( { .title = info.title,
         .pos = info.pos + motor::math::vec2f_t( pad, body_h ),
         .font_height = int_t( std::floor( header_h * font_scale ) ),
         .color = info.text_color } );
 
-    can.pop_clip_rect();
+    _can->pop_clip_rect();
 
-    can.draw_rect(
+    _can->draw_rect(
         { .pos = info.pos, .size = size, .color = info.border_color, .radius = radius } );
-#if 0
-   
 
-    float_t const font_h = ImGui::GetFontSize() * _zoom;
-    dl->PushClipRect( screen_top_left, ImVec2( screen_bottom_right.x - pad, split_y ), true );
-    
-    dl->PopClipRect();
-
-    dl->AddRect( screen_top_left, screen_bottom_right, info.border_color, radius, 1.0f );
-
-#endif
+    // add to node cache
+    if( _rect_cache.size() <= ++_cur_rect )
+    {
+        _rect_cache.resize( _rect_cache.size() + 10 );
+    }
+    _rect_cache[ _cur_rect ] = { info.pos, info.pos + size };
+    return _cur_rect;
 }
 
 //********************************************************************
-void_t graph_viewer::draw_link( canvas2d_t * can, link_info const & li ) noexcept
+void_t graph_viewer::draw_link( link_info const & li ) noexcept
 {
-#if 0
-    auto const a = can->world_to_screen( this_t::exec_pin_position( {li.from, li.from_size, this_t::exec_pin::out} ) );
-    auto const b = can->world_to_screen( this_t::exec_pin_position( {li.to, li.to_size, this_t::exec_pin::in} ) );
+    if( li.node_id_from >= _rect_cache.size() || 
+    li.node_id_to >= _rect_cache.size() ) return ;
 
-    float_t const bend =
-        std::clamp( 0.5f * std::abs( li.to.x() - li.from.x() ), 24.0f, 100.0f ) * _zoom;
+    auto const a = this_t::exec_pin_position( { li.node_id_from, this_t::exec_pin::out } );
+    auto const b = this_t::exec_pin_position( { li.node_id_to, this_t::exec_pin::in } );
 
-    ImGui::GetWindowDrawList()->AddBezierCubic(
-        a, ImVec2( a.x + bend, a.y ), ImVec2( b.x - bend, b.y ), b, li.color, 2.0f );
-#endif
+    float_t const bend = (b-a).length() * 1.0f / 4.0f ;
+
+    _can->draw_bezier_curve(
+        { { a, { a.x() + bend, a.y() }, { b.x() - bend, b.y() }, b }, li.color, 2.0f } );
 }
 
 //********************************************************************
-motor::math::vec2f_t graph_viewer::exec_pin_position(
-    canvas2d_t * can, this_t::exec_pin_info const & ifo ) noexcept
-{
-#if 1
-    return motor::math::vec2f_t();
-#else
-    float_t const x = ifo.pin == exec_pin::out ? ifo.node_size.x() : 0.0f;
-    return ifo.node_pos + motor::math::vec2f_t( x, -0.5f * _header_height );
-#endif
+motor::math::vec2f_t graph_viewer::exec_pin_position( this_t::exec_pin_info const & ifo ) noexcept
+{    
+    auto const p0 = _rect_cache[ ifo.node_id ].top_right ;
+    auto const p1 = _rect_cache[ ifo.node_id ].bottom_left ;
+
+    auto const pos = ifo.pin == exec_pin::out ? p0 : motor::math::vec2f_t{ p1.x(), p0.y() };
+    return pos + motor::math::vec2f_t( 0.0f, -0.5f * 24.0f /*header height*/ );
 }

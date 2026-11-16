@@ -190,6 +190,15 @@ class MOTOR_TOOL_API canvas_2d
     };
     void_t draw_text( text_info const & ) noexcept;
 
+    struct bezier_curve_info
+    {
+        std::array< motor::math::vec2f_t, 4 > cp ;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        float_t thickness = 1.0f ;
+        int_t num_segments = 0 ;
+
+    };
+    void_t draw_bezier_curve( bezier_curve_info const & ) ;
 
     struct clip_rect_info
     {

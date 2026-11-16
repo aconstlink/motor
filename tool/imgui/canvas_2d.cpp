@@ -353,6 +353,19 @@ void_t canvas_2d::draw_text( text_info const & info ) noexcept
 }
 
 //********************************************************************
+void_t canvas_2d::draw_bezier_curve( bezier_curve_info const & info ) 
+{
+    auto * dl = ImGui::GetWindowDrawList();
+
+    auto const p0 = this_t::world_to_screen( info.cp[0] ) ;
+    auto const p1 = this_t::world_to_screen( info.cp[1] ) ;
+    auto const p2 = this_t::world_to_screen( info.cp[2] ) ;
+    auto const p3 = this_t::world_to_screen( info.cp[3] ) ;
+
+    dl->AddBezierCubic( p0, p1, p2, p3, info.color, info.thickness * _zoom, info.num_segments ) ;
+}
+
+//********************************************************************
 void_t canvas_2d::push_clip_rect( clip_rect_info const & info ) noexcept
 {
     auto * dl = ImGui::GetWindowDrawList();
