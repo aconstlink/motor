@@ -25,6 +25,7 @@ bool_t graph_viewer::begin( canvas2d_t * can ) noexcept
         for( size_t i = 0; i < _nodes.size(); ++i )
         {
             auto & n = _nodes[ i ];
+            if( !n.used ) continue ;
 
             // keep hovered if n.is_dragged
             n.is_hovered =
@@ -36,11 +37,12 @@ bool_t graph_viewer::begin( canvas2d_t * can ) noexcept
             // anywhere in the canvas and drags the mouse over a node while holding the
             // left mouse button.
             if( ImGui::IsMouseClicked( ImGuiMouseButton_Left ) && n.is_hovered )
-                n.is_dragged = ImGui::IsMouseDown( ImGuiMouseButton_Left ) && n.is_hovered;
+                n.is_dragged = ImGui::IsItemHovered() && ImGui::IsMouseDown( ImGuiMouseButton_Left ) && n.is_hovered;
 
             // if one is dragged, just break out.
             if( n.is_dragged )
             {
+                _mouse_pos = mouse_world ;
                 _dragging_idx = i;
                 break;
             }
@@ -96,7 +98,10 @@ bool_t graph_viewer::remove_node( size_t const idx ) noexcept
     if( idx >= _nodes.size() ) return false;
 
     _nodes[ idx ].used = false;
-
+    if( _dragging_idx == idx ) 
+    {
+        _dragging_idx = size_t(-1) ;
+    }
     return true;
 }
 
