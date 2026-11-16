@@ -4,12 +4,10 @@
 [![CMake on Win32 with DirectX 11](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml/badge.svg)](https://github.com/aconstlink/motor/actions/workflows/cmake-win32-dx11.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-motor is an independently developed C++20 real-time framework for graphics,
-tooling, runtime systems, and interactive applications.
+motor is my personal C++20 real-time framework for graphics, tooling, runtime systems, and interactive applications.
 
-I build motor for my own demos and game projects, and to explore how the systems
-behind them fit together. Applications can use the graphics layer directly or
-build on the scene graph.
+I build motor for my own demos and game projects, and to explore how the systems behind them fit together. 
+Applications can use the graphics layer directly or build on the scene graph.
 
 ## History
 
