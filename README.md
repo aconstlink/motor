@@ -60,7 +60,7 @@ cmake --install build --config Release --prefix path/to/motor-package
 Point `CMAKE_PREFIX_PATH` at the install directory in a consuming project:
 
 ```cmake
-find_package(motor 0.0.2 EXACT CONFIG REQUIRED)
+find_package(motor 0.1.0 EXACT CONFIG REQUIRED)
 target_link_libraries(my_app PRIVATE motor::complete)
 ```
 
