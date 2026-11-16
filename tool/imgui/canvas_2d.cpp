@@ -36,7 +36,13 @@ motor::math::vec2f_t canvas_2d::screen_to_world( ImVec2 const & p ) noexcept
 }
 
 //********************************************************************
-bool_t canvas_2d::begin( char const * const name, ImVec2 const &, draw_options const & do_ ) noexcept
+bool_t canvas_2d::begin( char const * const name, ImVec2 const & pos_in ) noexcept
+{
+    return this_t::begin( name, pos_in, {} ) ;
+}
+
+//********************************************************************
+bool_t canvas_2d::begin( char const * const name, ImVec2 const & pos_in, draw_options const & do_ ) noexcept
 {
     if( _in_section ) return true;
 

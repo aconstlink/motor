@@ -87,7 +87,8 @@ class MOTOR_TOOL_API canvas_2d
         uint_t draw_grid_coords_every = 2;
         ImColor grid_color = ImColor( 0.5f, 0.5f, 0.5f );
     };
-    bool_t begin( char const * const name, ImVec2 const &, draw_options const & = draw_options() ) noexcept;
+    bool_t begin( char const * const name, ImVec2 const & ) noexcept;
+    bool_t begin( char const * const name, ImVec2 const &, draw_options const & ) noexcept;
     void_t end( void_t ) noexcept;
 
   public:
