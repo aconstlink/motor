@@ -93,8 +93,10 @@ class MOTOR_TOOL_API canvas_2d
 
     // only valid within begin/end
     ImVec2 world_to_screen( motor::math::vec2f_cref_t const & ) noexcept;
+
     // only valid within begin/end
     motor::math::vec2f_t screen_to_world( ImVec2 const & ) noexcept;
+    motor::math::vec2f_t measure_text_size( char const * text, float_t const height) noexcept;
 
     float_t zoom( void_t ) const noexcept
     {
@@ -154,21 +156,44 @@ class MOTOR_TOOL_API canvas_2d
 
         ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
-        float_t radius = 1.0f ;
-        ImDrawFlags flags = 0 ;
-
-        
+        float_t radius = 1.0f;
+        ImDrawFlags flags = 0;
     };
-    void_t draw_rect_filled( rect_filled_info const & ) noexcept ;
+    void_t draw_rect_filled( rect_filled_info const & ) noexcept;
+
+    struct rect_info
+    {
+        // world pos
+        motor::math::vec2f_t pos;
+        // x: width; y: height
+        motor::math::vec2f_t size;
+
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+
+        float_t thickness = 1.0f ;
+
+        float_t radius = 0.0f;
+        ImDrawFlags flags = 0;
+    };
+    void_t draw_rect( rect_info const & ) noexcept ;
 
     struct text_info
     {
-        char const * title = nullptr ;
-        motor::math::vec2f_t pos ;
-        int_t font_height = 10 ;
+        char const * title = nullptr;
+        motor::math::vec2f_t pos;
+        int_t font_height = 10;
         ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
     };
-    void_t draw_text( text_info const & ) noexcept ;
+    void_t draw_text( text_info const & ) noexcept;
+
+
+    struct clip_rect_info
+    {
+        motor::math::vec2f_t pos ;
+        motor::math::vec2f_t size ;
+    };
+    void_t push_clip_rect( clip_rect_info const & ) noexcept ;
+    void_t pop_clip_rect( void_t ) noexcept ;
 };
 motor_typedef( canvas_2d );
 } // namespace motor::tool::imgui

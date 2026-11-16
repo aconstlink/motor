@@ -40,6 +40,16 @@ motor::math::vec2f_t canvas_2d::screen_to_world( ImVec2 const & p ) noexcept
 }
 
 //********************************************************************
+motor::math::vec2f_t canvas_2d::measure_text_size(
+    char const * text, float_t const font_height ) noexcept
+{
+    float_t const height_px = font_height * _zoom;
+    ImVec2 const size_px = ImGui::GetFont()->CalcTextSizeA( height_px, FLT_MAX, 0.0f, text );
+
+    return { size_px.x / _zoom, size_px.y / _zoom };
+}
+
+//********************************************************************
 bool_t canvas_2d::begin( char const * const name, ImVec2 const & pos_in ) noexcept
 {
     return this_t::begin( name, pos_in, {} );
@@ -317,13 +327,42 @@ void_t canvas_2d::draw_rect_filled( rect_filled_info const & info ) noexcept
 }
 
 //********************************************************************
-void_t canvas_2d::draw_text( text_info const & info ) noexcept 
+void_t canvas_2d::draw_rect( rect_info const & info ) noexcept
+{
+    auto * dl = ImGui::GetWindowDrawList();
+
+    auto const bl = this_t::world_to_screen( info.pos );
+    auto const tr = this_t::world_to_screen( info.pos + info.size );
+
+    dl->AddRect( {bl.x, tr.y},{tr.x, bl.y}, info.color, info.radius * _zoom, info.thickness * _zoom, info.flags );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_text( text_info const & info ) noexcept
 {
     auto * dl = ImGui::GetWindowDrawList();
 
     auto const p0 = this_t::world_to_screen( info.pos );
     float_t const pad = 8.0f * _zoom;
-    float_t const height = info.font_height * _zoom ;
+    float_t const height = info.font_height * _zoom;
 
-    dl->AddText( ImGui::GetFont(), height, {p0.x, p0.y-height}, info.color, info.title );
+    dl->AddText( ImGui::GetFont(), height, { p0.x, p0.y - height }, info.color, info.title );
+}
+
+//********************************************************************
+void_t canvas_2d::push_clip_rect( clip_rect_info const & info ) noexcept
+{
+    auto * dl = ImGui::GetWindowDrawList();
+
+    auto const bottom_left = this_t::world_to_screen( info.pos );
+    auto const top_right = this_t::world_to_screen( info.pos + info.size );
+
+    dl->PushClipRect( { bottom_left.x, top_right.y }, { top_right.x, bottom_left.y }, true );
+}
+
+//********************************************************************
+void_t canvas_2d::pop_clip_rect( void_t ) noexcept
+{
+    auto * dl = ImGui::GetWindowDrawList();
+    dl->PopClipRect();
 }
