@@ -52,6 +52,8 @@ class MOTOR_TOOL_API canvas_2d
     ImVec2 world_to_screen( motor::math::vec2f_cref_t const & ) noexcept;
     motor::math::vec2f_t screen_to_world( ImVec2 const & ) noexcept;
 
+    float_t _header_height = 24.0f;
+
   private: // cache
 
     motor::vector< ImVec2 > _point_cache;
@@ -116,11 +118,64 @@ class MOTOR_TOOL_API canvas_2d
 
     struct poly_line_info
     {
-        float_t thickness ;
+        float_t thickness;
         motor::vector< motor::math::vec2f_t > points;
         ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
     };
     void_t draw_poly_line( poly_line_info const & ) noexcept;
+
+    struct polygon_info
+    {
+        // convex, cw
+        motor::vector< motor::math::vec2f_t > points;
+        ImColor fill_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        ImColor outline_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        float_t outline_width = 1.0f;
+    };
+    void_t draw_polygon( polygon_info const & info ) noexcept;
+
+  public: // nodes
+
+    struct node_info
+    {
+        char const * title;
+        // world pos
+        motor::math::vec2f_t pos;
+        // x: width; y: height
+        motor::math::vec2f_t size;
+        ImColor header_color = ImColor( .40f, .30f, .70f, 1.0f );
+        ImColor body_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        ImColor text_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        ImColor border_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+    };
+    void_t draw_node( node_info const & info ) noexcept;
+
+    struct link_info
+    {
+        motor::math::vec2f_t from;
+        motor::math::vec2f_t from_size ;
+
+        motor::math::vec2f_t to;
+        motor::math::vec2f_t to_size ;
+
+        ImColor color = ImColor( .40f, .30f, .70f, 1.0f );
+    };
+    void_t draw_link( link_info const & ) noexcept;
+
+  private:
+
+    enum class exec_pin
+    {
+        in,
+        out
+    };
+    struct exec_pin_info
+    {
+        motor::math::vec2f_t node_pos;
+        motor::math::vec2f_t node_size;
+        this_t::exec_pin pin;
+    };
+    motor::math::vec2f_t exec_pin_position( this_t::exec_pin_info const & ) noexcept;
 };
 motor_typedef( canvas_2d );
 } // namespace motor::tool::imgui

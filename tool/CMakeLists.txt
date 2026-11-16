@@ -20,7 +20,7 @@ set( sources
     "imgui/custom_widgets.cpp"
     "imgui/imgui_custom.h"
     "imgui/imgui_custom.cpp"
-
+    
     "imgui/timeline.h"
     "imgui/timeline.cpp"
     "imgui/keyframe_editor.h"
@@ -31,6 +31,8 @@ set( sources
     "imgui/engine_profiling.cpp"
     "imgui/canvas_2d.h"
     "imgui/canvas_2d.cpp"
+    "imgui/graph_viewer.h"
+    "imgui/graph_viewer.cpp"
     "imgui/imnodes_wire.h"
     "imgui/imnodes_wire.cpp"
     "imgui/imgui_property.h"

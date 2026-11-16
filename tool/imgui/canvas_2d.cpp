@@ -269,8 +269,72 @@ void_t canvas_2d::draw_poly_line( poly_line_info const & info ) noexcept
     size_t i = size_t( -1 );
     for( auto const & p : info.points )
     {
-        _point_cache[ ++i ] = this_t::world_to_screen( p ) ;
+        _point_cache[ ++i ] = this_t::world_to_screen( p );
     }
 
-    dl->AddPolyline( _point_cache.data(), info.points.size(), info.color, info.thickness ) ;
+    dl->AddPolyline( _point_cache.data(), info.points.size(), info.color, info.thickness );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_polygon( polygon_info const & info ) noexcept
+{
+    auto const n = int( info.points.size() );
+    if( n < 3 ) return;
+
+    _point_cache.resize( n );
+    for( int i = 0; i < n; ++i ) _point_cache[ i ] = world_to_screen( info.points[ i ] );
+
+    auto * dl = ImGui::GetWindowDrawList();
+    dl->AddConvexPolyFilled( _point_cache.data(), n, info.fill_color );
+    if( info.outline_width > 0.0f )
+        dl->AddPolyline(
+            _point_cache.data(), n, info.outline_color, info.outline_width, ImDrawFlags_Closed );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_node( node_info const & info ) noexcept
+{
+    auto * dl = ImGui::GetWindowDrawList();
+    auto const screen_top_left = world_to_screen( info.pos );
+    auto const screen_bottom_right =
+        world_to_screen( info.pos + motor::math::vec2f_t( info.size.x(), -info.size.y() ) );
+
+    float_t const header_h = _header_height * _zoom;
+    float_t const radius = 6.0f * _zoom;
+    float_t const pad = 8.0f * _zoom;
+    float_t const split_y = screen_top_left.y + header_h;
+
+
+    dl->AddRectFilled(
+        screen_top_left, ImVec2( screen_bottom_right.x, split_y ), info.header_color, radius, ImDrawFlags_RoundTop );
+    dl->AddRectFilled(
+        ImVec2( screen_top_left.x, split_y ), screen_bottom_right, info.body_color, radius, ImDrawFlags_RoundBottom );
+
+    float_t const font_h = ImGui::GetFontSize() * _zoom;
+    dl->PushClipRect( screen_top_left, ImVec2( screen_bottom_right.x - pad, split_y ), true );
+    dl->AddText( ImGui::GetFont(), font_h,
+        ImVec2( screen_top_left.x + pad, screen_top_left.y + ( header_h - font_h ) * 0.5f ), info.text_color, info.title );
+    dl->PopClipRect();
+
+    dl->AddRect( screen_top_left, screen_bottom_right, info.border_color, radius, 1.0f );
+}
+
+//********************************************************************
+void_t canvas_2d::draw_link( link_info const & li ) noexcept
+{
+    auto const a = world_to_screen( this_t::exec_pin_position( {li.from, li.from_size, this_t::exec_pin::out} ) );
+    auto const b = world_to_screen( this_t::exec_pin_position( {li.to, li.to_size, this_t::exec_pin::in} ) );
+
+    float_t const bend =
+        std::clamp( 0.5f * std::abs( li.to.x() - li.from.x() ), 24.0f, 100.0f ) * _zoom;
+
+    ImGui::GetWindowDrawList()->AddBezierCubic(
+        a, ImVec2( a.x + bend, a.y ), ImVec2( b.x - bend, b.y ), b, li.color, 2.0f );
+}
+
+//********************************************************************
+motor::math::vec2f_t canvas_2d::exec_pin_position( this_t::exec_pin_info const & ifo ) noexcept
+{
+    float_t const x = ifo.pin == exec_pin::out ? ifo.node_size.x() : 0.0f;
+    return ifo.node_pos + motor::math::vec2f_t( x, -0.5f * _header_height );
 }
