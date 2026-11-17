@@ -18,7 +18,6 @@
 
 #include <imgui.h>
 #include <implot.h>
-#include <imnodes.h>
 
 namespace motor::tool::imgui
 {
@@ -32,7 +31,6 @@ class MOTOR_TOOL_API frontend
 
     ImGuiContext * _ctx = nullptr;
     ImPlotContext * _ip_ctx = nullptr;
-    ImNodesContext * _in_ctx = nullptr;
 
     motor::string_t _name;
 

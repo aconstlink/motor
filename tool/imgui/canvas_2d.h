@@ -1,3 +1,7 @@
+
+// SPDX-FileCopyrightText: 2023-2026 Alex Link
+// SPDX-License-Identifier: MIT
+
 #pragma once
 
 #include "../api.h"
@@ -22,35 +26,15 @@ class MOTOR_TOOL_API canvas_2d
 
     motor::math::mat4f_t _proj;
 
-    // what is in view
-    // xy: center
-    // zw: width/height
-    motor::math::vec4f_t _view_region = motor::math::vec4f_t( 0.0f, 0.0f, 100.0f, 100.0f );
-
-    // the maximum region of the world
-    // xy: bottom left
-    // zw: top right
-    motor::math::vec4f_t _world_region;
-
     motor::math::vec2f_t _world_center;
     float_t _zoom = 1.0f;
 
+    // caching mouse position if middle mouse buttom
+    // for panning for example.
     motor::math::vec2f_t _middle_mouse_pos;
-
-    motor::math::vec2f_t view_center( void_t ) const noexcept
-    {
-        return _view_region.xy();
-    }
-
-    motor::math::vec2f_t view_dims( void_t ) const noexcept
-    {
-        return _view_region.zw();
-    }
 
     ImVec2 _start_screen_pos;
     ImVec2 _available_region;
-    ImVec2 world_to_screen( motor::math::vec2f_cref_t const & ) noexcept;
-    motor::math::vec2f_t screen_to_world( ImVec2 const & ) noexcept;
 
     float_t _header_height = 24.0f;
 
@@ -67,18 +51,6 @@ class MOTOR_TOOL_API canvas_2d
 
   public:
 
-#if 0
-    motor::math::vec4f_cref_t view_region( void_t ) const noexcept
-    {
-        return _view_region;
-    }
-#endif
-
-    motor::math::vec4f_cref_t wrld_region( void_t ) const noexcept
-    {
-        return _world_region;
-    }
-
     struct draw_options
     {
         bool_t draw_grid = true;
@@ -91,7 +63,23 @@ class MOTOR_TOOL_API canvas_2d
     bool_t begin( char const * const name, ImVec2 const &, draw_options const & ) noexcept;
     void_t end( void_t ) noexcept;
 
-  public:
+    // only valid within begin/end
+    ImVec2 world_to_screen( motor::math::vec2f_cref_t const & ) noexcept;
+
+    // only valid within begin/end
+    motor::math::vec2f_t screen_to_world( ImVec2 const & ) noexcept;
+    motor::math::vec2f_t measure_text_size( char const * text, float_t const height ) noexcept;
+
+    float_t zoom( void_t ) const noexcept
+    {
+        return _zoom;
+    }
+
+    // move the view to this position
+    void_t focus_via_dims( motor::math::vec2f_in_t pos, motor::math::vec2f_in_t dims ) noexcept ;
+    void_t focus_via_rect( motor::math::vec2f_in_t min, motor::math::vec2f_in_t max ) noexcept ;
+    
+  public: // draw wrappers
 
     struct draw_line_info
     {
@@ -135,48 +123,61 @@ class MOTOR_TOOL_API canvas_2d
     };
     void_t draw_polygon( polygon_info const & info ) noexcept;
 
-  public: // nodes
-
-    struct node_info
+    struct rect_filled_info
     {
-        char const * title;
         // world pos
         motor::math::vec2f_t pos;
         // x: width; y: height
         motor::math::vec2f_t size;
-        ImColor header_color = ImColor( .40f, .30f, .70f, 1.0f );
-        ImColor body_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
-        ImColor text_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
-        ImColor border_color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
-    };
-    void_t draw_node( node_info const & info ) noexcept;
 
-    struct link_info
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+
+        float_t radius = 1.0f;
+        ImDrawFlags flags = 0;
+    };
+    void_t draw_rect_filled( rect_filled_info const & ) noexcept;
+
+    struct rect_info
     {
-        motor::math::vec2f_t from;
-        motor::math::vec2f_t from_size ;
+        // world pos
+        motor::math::vec2f_t pos;
+        // x: width; y: height
+        motor::math::vec2f_t size;
 
-        motor::math::vec2f_t to;
-        motor::math::vec2f_t to_size ;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
 
-        ImColor color = ImColor( .40f, .30f, .70f, 1.0f );
+        float_t thickness = 1.0f;
+
+        float_t radius = 0.0f;
+        ImDrawFlags flags = 0;
     };
-    void_t draw_link( link_info const & ) noexcept;
+    void_t draw_rect( rect_info const & ) noexcept;
 
-  private:
-
-    enum class exec_pin
+    struct text_info
     {
-        in,
-        out
+        char const * title = nullptr;
+        motor::math::vec2f_t pos;
+        int_t font_height = 10;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
     };
-    struct exec_pin_info
+    void_t draw_text( text_info const & ) noexcept;
+
+    struct bezier_curve_info
     {
-        motor::math::vec2f_t node_pos;
-        motor::math::vec2f_t node_size;
-        this_t::exec_pin pin;
+        std::array< motor::math::vec2f_t, 4 > cp;
+        ImColor color = ImColor( 1.0f, 1.0f, 1.0f, 1.0f );
+        float_t thickness = 1.0f;
+        int_t num_segments = 0;
     };
-    motor::math::vec2f_t exec_pin_position( this_t::exec_pin_info const & ) noexcept;
+    void_t draw_bezier_curve( bezier_curve_info const & );
+
+    struct clip_rect_info
+    {
+        motor::math::vec2f_t pos;
+        motor::math::vec2f_t size;
+    };
+    void_t push_clip_rect( clip_rect_info const & ) noexcept;
+    void_t pop_clip_rect( void_t ) noexcept;
 };
 motor_typedef( canvas_2d );
 } // namespace motor::tool::imgui
