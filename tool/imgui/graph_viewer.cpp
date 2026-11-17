@@ -3,6 +3,9 @@
 
 #include "graph_viewer.h"
 
+#include <utility>
+#include <limits>
+
 using namespace motor::tool::imgui;
 
 //********************************************************************
@@ -20,12 +23,19 @@ bool_t graph_viewer::begin( canvas2d_t * can ) noexcept
         _dragging_idx = size_t( -1 );
     }
 
+    // check if still hovered
+    if( _hovered_idx != size_t( -1 ) )
+    {
+        _hovered_idx = _nodes[ _hovered_idx ].is_hovered ? _hovered_idx : size_t( -1 );
+    }
+
+    // determine hovering and dragging
     if( _dragging_idx == size_t( -1 ) )
     {
         for( size_t i = 0; i < _nodes.size(); ++i )
         {
             auto & n = _nodes[ i ];
-            if( !n.used ) continue ;
+            if( !n.used ) continue;
 
             // keep hovered if n.is_dragged
             n.is_hovered =
@@ -37,13 +47,20 @@ bool_t graph_viewer::begin( canvas2d_t * can ) noexcept
             // anywhere in the canvas and drags the mouse over a node while holding the
             // left mouse button.
             if( ImGui::IsMouseClicked( ImGuiMouseButton_Left ) && n.is_hovered )
-                n.is_dragged = ImGui::IsItemHovered() && ImGui::IsMouseDown( ImGuiMouseButton_Left ) && n.is_hovered;
+                n.is_dragged = ImGui::IsItemHovered() &&
+                               ImGui::IsMouseDown( ImGuiMouseButton_Left ) && n.is_hovered;
 
             // if one is dragged, just break out.
             if( n.is_dragged )
             {
-                _mouse_pos = mouse_world ;
+                _mouse_pos = mouse_world;
                 _dragging_idx = i;
+                break;
+            }
+
+            if( n.is_hovered )
+            {
+                _hovered_idx = i;
                 break;
             }
         }
@@ -98,9 +115,56 @@ bool_t graph_viewer::remove_node( size_t const idx ) noexcept
     if( idx >= _nodes.size() ) return false;
 
     _nodes[ idx ].used = false;
-    if( _dragging_idx == idx ) 
+    if( _dragging_idx == idx )
     {
-        _dragging_idx = size_t(-1) ;
+        _dragging_idx = size_t( -1 );
+    }
+
+    if( _hovered_idx == idx )
+    {
+        _hovered_idx = size_t( -1 );
+    }
+    return true;
+}
+
+//********************************************************************
+graph_viewer::min_max_t graph_viewer::calculate_extend( void_t ) const noexcept
+{
+    motor::math::vec2f_t min( std::numeric_limits< float_t >::max() );
+    motor::math::vec2f_t max( -std::numeric_limits< float_t >::max() );
+
+    for( auto & n : _nodes )
+    {
+        min = min.min( n.bottom_left );
+        max = max.max( n.top_right );
+    }
+
+    return std::make_pair( min, max ) ;
+}
+
+//********************************************************************
+bool_t graph_viewer::draw_all_nodes( void_t ) noexcept
+{
+    // draw all before hovered
+    {
+        size_t end = std::min( _nodes.size(), _hovered_idx );
+        for( size_t i = 0; i < end; ++i )
+        {
+            this_t::draw_node( i );
+        }
+    }
+
+    {
+        size_t begin = std::min( _nodes.size(), _hovered_idx );
+        for( size_t i = begin + 1; i < _nodes.size(); ++i )
+        {
+            this_t::draw_node( i );
+        }
+    }
+
+    if( _hovered_idx != size_t( -1 ) )
+    {
+        this_t::draw_node( _hovered_idx );
     }
     return true;
 }

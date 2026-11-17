@@ -35,6 +35,8 @@ set( sources
     "imgui/graph_viewer.cpp"
     "imgui/imnodes_wire.h"
     "imgui/imnodes_wire.cpp"
+    "imgui/graph_view_wire.h"
+    "imgui/graph_view_wire.cpp"
     "imgui/imgui_property.h"
     "imgui/imgui_property.cpp"
 

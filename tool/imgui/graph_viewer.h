@@ -57,8 +57,9 @@ class MOTOR_TOOL_API graph_viewer
     };
     motor::vector< node_entry > _nodes;
 
-    size_t _dragging_idx = size_t(-1);
-    motor::math::vec2f_t _mouse_pos ;
+    size_t _dragging_idx = size_t( -1 );
+    size_t _hovered_idx = size_t( -1 );
+    motor::math::vec2f_t _mouse_pos;
 
     canvas2d_t * _can = nullptr;
 
@@ -67,23 +68,27 @@ class MOTOR_TOOL_API graph_viewer
     // begin/end section
     bool_t _is_in = false;
 
-  public:
-
-    bool_t begin( canvas2d_t * ) noexcept;
-    void_t end( void_t ) noexcept;
-
-  public: // nodes
+  public: // node management
 
     size_t add_node( node_info const & info ) noexcept;
     bool_t remove_node( size_t const ) noexcept;
+    
+    using min_max_t = std::pair< motor::math::vec2f_t, motor::math::vec2f_t > ;
+    min_max_t calculate_extend( void_t ) const noexcept;
+
+  public: // draw related
+
+    bool_t begin( canvas2d_t * ) noexcept;
+    void_t end( void_t ) noexcept;
     bool_t draw_node( size_t const ) noexcept;
+    bool_t draw_all_nodes( void_t ) noexcept;
 
     struct link_info
     {
         size_t node_id_from;
         size_t node_id_to;
 
-        ImColor color = ImColor( .40f, .30f, .70f, 1.0f );
+        ImColor color = ImColor( 0.8f, 0.8f, 0.8f, 1.0f );
     };
     void_t draw_link( link_info const & ) noexcept;
 

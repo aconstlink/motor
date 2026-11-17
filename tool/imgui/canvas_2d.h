@@ -26,32 +26,12 @@ class MOTOR_TOOL_API canvas_2d
 
     motor::math::mat4f_t _proj;
 
-    // what is in view
-    // xy: center
-    // zw: width/height
-    motor::math::vec4f_t _view_region = motor::math::vec4f_t( 0.0f, 0.0f, 100.0f, 100.0f );
-
-    // the maximum region of the world
-    // xy: bottom left
-    // zw: top right
-    motor::math::vec4f_t _world_region;
-
     motor::math::vec2f_t _world_center;
     float_t _zoom = 1.0f;
 
     // caching mouse position if middle mouse buttom
     // for panning for example.
     motor::math::vec2f_t _middle_mouse_pos;
-
-    motor::math::vec2f_t view_center( void_t ) const noexcept
-    {
-        return _view_region.xy();
-    }
-
-    motor::math::vec2f_t view_dims( void_t ) const noexcept
-    {
-        return _view_region.zw();
-    }
 
     ImVec2 _start_screen_pos;
     ImVec2 _available_region;
@@ -70,18 +50,6 @@ class MOTOR_TOOL_API canvas_2d
     ~canvas_2d( void_t ) noexcept;
 
   public:
-
-#if 0
-    motor::math::vec4f_cref_t view_region( void_t ) const noexcept
-    {
-        return _view_region;
-    }
-#endif
-
-    motor::math::vec4f_cref_t wrld_region( void_t ) const noexcept
-    {
-        return _world_region;
-    }
 
     struct draw_options
     {
@@ -107,7 +75,11 @@ class MOTOR_TOOL_API canvas_2d
         return _zoom;
     }
 
-  public:
+    // move the view to this position
+    void_t focus_via_dims( motor::math::vec2f_in_t pos, motor::math::vec2f_in_t dims ) noexcept ;
+    void_t focus_via_rect( motor::math::vec2f_in_t min, motor::math::vec2f_in_t max ) noexcept ;
+    
+  public: // draw wrappers
 
     struct draw_line_info
     {

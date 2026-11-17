@@ -256,6 +256,29 @@ void_t canvas_2d::end( void_t ) noexcept
 }
 
 //********************************************************************
+void_t canvas_2d::focus_via_dims(
+    motor::math::vec2f_in_t pos, motor::math::vec2f_in_t dims ) noexcept
+{
+    auto const vr = motor::tool::imgui::convert::from( _available_region );
+    if( vr.x() <= 0.0f || vr.y() <= 0.0f ) return;
+
+    _world_center = pos;
+    auto const zoom_x = vr.x() / std::max( dims.x() * 1.15f, 0.001f );
+    auto const zoom_y = vr.y() / std::max( dims.y() * 1.15f, 0.001f );
+    _zoom = std::clamp( std::min( zoom_x, zoom_y ), 0.001f, 1000.0f );
+}
+
+//********************************************************************
+void_t canvas_2d::focus_via_rect(
+    motor::math::vec2f_in_t min, motor::math::vec2f_in_t max ) noexcept
+{
+    auto const pos = ( max + min ) * 0.5f;
+    auto const size = ( max - min ).abs();
+
+    this_t::focus_via_dims( pos, size );
+}
+
+//********************************************************************
 void_t canvas_2d::draw_line( this_t::draw_line_info const & dl ) noexcept
 {
     auto draw_list = ImGui::GetWindowDrawList();
