@@ -16,7 +16,6 @@ frontend::frontend( motor::string_cref_t name ) noexcept
 
     _ctx = ImGui::CreateContext() ;
     _ip_ctx = ImPlot::CreateContext() ;
-    _in_ctx = ImNodes::CreateContext() ;
 
     this_t::init( name ) ;
 }
@@ -28,7 +27,6 @@ frontend::frontend( this_rref_t rhv ) noexcept
 
     _ctx = motor::move( rhv._ctx ) ;
     _ip_ctx = motor::move( rhv._ip_ctx ) ;
-    _in_ctx = motor::move( rhv._in_ctx ) ;
 
     _rc = motor::move( rhv._rc ) ;
     _sc = motor::move( rhv._sc ) ;
@@ -42,11 +40,6 @@ frontend::frontend( this_rref_t rhv ) noexcept
 //***
 frontend::~frontend( void_t ) noexcept
 {
-    if ( _in_ctx != nullptr )
-    {
-        ImNodes::DestroyContext( _in_ctx ) ;
-    }
-
     if ( _ip_ctx != nullptr )
     {
         ImPlot::DestroyContext( _ip_ctx );
@@ -74,17 +67,14 @@ void_t frontend::execute( exec_funk_t funk ) noexcept
 {  
     auto * old = ImGui::GetCurrentContext() ;
     auto * old_ip = ImPlot::GetCurrentContext() ;
-    auto * old_in = ImNodes::GetCurrentContext() ;
 
     ImGui::SetCurrentContext( _ctx ) ;
     ImPlot::SetCurrentContext( _ip_ctx ) ;
-    ImNodes::SetCurrentContext( _in_ctx ) ;
 
     this_t::begin() ;
     funk() ;
     this_t::end() ;
     
-    ImNodes::SetCurrentContext( old_in ) ;
     ImPlot::SetCurrentContext( old_ip ) ;
     ImGui::SetCurrentContext( old ) ;
 }
@@ -96,9 +86,6 @@ void_t frontend::init( motor::string_cref_t name ) noexcept
 
     auto * old_ctx = ImGui::GetCurrentContext() ;
     ImGui::SetCurrentContext( _ctx ) ;
-
-    auto * old_in = ImNodes::GetCurrentContext() ;
-    ImNodes::SetCurrentContext( _in_ctx ) ;
 
     // geometry
     {
@@ -337,18 +324,6 @@ void_t frontend::init( motor::string_cref_t name ) noexcept
         ImGui::StyleColorsDark() ;
     }
 
-    // imnodes init
-    {
-        ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
-        ImNodesIO & io = ImNodes::GetIO();
-        io.LinkDetachWithModifierClick.Modifier = &ImGui::GetIO().KeyCtrl;
-        io.MultipleSelectModifier.Modifier = &ImGui::GetIO().KeyCtrl;
-
-        ImNodesStyle & style = ImNodes::GetStyle();
-        style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
-    }
-
-    ImNodes::SetCurrentContext( old_in ) ;
     ImGui::SetCurrentContext( old_ctx ) ;
 }
 

@@ -33,8 +33,7 @@ set( sources
     "imgui/canvas_2d.cpp"
     "imgui/graph_viewer.h"
     "imgui/graph_viewer.cpp"
-    "imgui/imnodes_wire.h"
-    "imgui/imnodes_wire.cpp"
+    
     "imgui/graph_view_wire.h"
     "imgui/graph_view_wire.cpp"
     "imgui/imgui_property.h"
@@ -57,7 +56,6 @@ target_link_libraries( ${cur_lib_name}
   PRIVATE stb
   PUBLIC imgui
   PUBLIC implot
-  PUBLIC imnodes
   PUBLIC motor::io
   PUBLIC motor::controls
   PUBLIC motor::graphics
