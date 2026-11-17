@@ -64,9 +64,11 @@ bool_t canvas_2d::begin(
 {
     if( _in_section ) return true;
 
+    ImVec2 s = ImGui::GetContentRegionAvail();
+
+    if( s.x <= 1.0f || s.y <= 1.0f ) return false;
     _in_section = true;
 
-    ImVec2 s = ImGui::GetContentRegionAvail();
     _available_region = s;
 
     auto draw_list = ImGui::GetWindowDrawList();
