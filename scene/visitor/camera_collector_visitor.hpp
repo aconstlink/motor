@@ -48,9 +48,14 @@ class camera_collector_visitor : public motor::scene::default_visitor
         this_t::release();
     }
 
-    cameras_t get_cameras( void_t ) noexcept
+    cameras_t borrow_cameras( void_t ) noexcept
     {
         return _cameras;
+    }
+
+    cameras_t move_cameras( void_t ) noexcept
+    {
+        return std::move( _cameras );
     }
 
     void_t release( void_t ) noexcept
