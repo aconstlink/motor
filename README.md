@@ -73,13 +73,15 @@ on the consuming machine.
 Active development, currently focused on demos and scene-based integration tests.
 APIs and internal systems are still evolving; motor is not a finished SDK.
 
-## A little bit of AI Assistance is used
+## My AI View and Usage
 
-I use AI for building [AI generated test applications](https://github.com/aconstlink/motor_ai_suites) (another repo and its main and sole purpose is to test and just find bugs!), finding bugs and technical
-discussions. I do not use AI to add any new features or anything I do not understand. 99.8% is still handcoded but I couldn't resist to take one or two bug fixes.
+I **DO NOT** use AI for any new features into the engine or let it generate any code. I worked many years on the engine and many many hours, day and night. If I'd use AI to vibe anything into existence now, that would invalidate everything I did so far and I could stop doing this today. The original reason was, and still is, to learn many things and finally release some demos at some demos parties. And also finally make a game with the engine! Those were the original reasons I started coding engines 2009, I think it was.
 
-Discussions with AI really has revitalized development to be quite honest and with limited time available, spending
-less time tracking down bugs lets me focus on coding, experimenting, and building my demos and games. 
+My stance is clear. With an absolute zero Ai tolerance, i.e. no AI at any level, I'd be absolutely lost and left behind. So there are the following three Ai use cases for me that I practice in reality:
+
+1. Finding bugs: Just having the AI find the bugs is a tremendous help! 
+2. Technical discussions: But I always suggest something. I do have to have my own ideas and opinions.
+3. Writing separate [test applications](https://github.com/aconstlink/motor_ai_suites) : I need this. So many thing can go wrong and I(and motor) just need the tests. And non of that code will see any production light of day.
 
 ## License
 
