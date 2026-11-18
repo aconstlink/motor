@@ -1297,7 +1297,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 }
             }
 
-            // handle animaions
+            // handle animations
             {
                 auto start_node = motor::shared( motor::wire::time_node_t() );
                 auto merger_node = motor::shared(
