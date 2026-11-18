@@ -1255,22 +1255,27 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     auto light = lights[ lidx ];
 
-                    auto * data = gltf_node.light != nullptr ? gltf_node.light->extras.data
-                                                             : gltf_node.extras.data;
-
-                    // determine extras from light node
-                    if( data )
                     {
-                        using json = nlohmann::json;
-
-                        json extras = json::parse( data );
-                        auto const type_iter = extras.find( "motor.cast_shadow" );
-                        if( type_iter != extras.end() )
+                        auto check_for_cast_shadow = [ light ]( char const * data )
                         {
-                            bool_t const do_cast = *type_iter;
-                            light->set_shadow_casting( do_cast );
-                        }
+                            if( !data ) return false;
+
+                            using json = nlohmann::json;
+
+                            json extras = json::parse( data );
+                            auto const type_iter = extras.find( "motor.cast_shadow" );
+                            if( type_iter != extras.end() )
+                            {
+                                bool_t const do_cast = *type_iter;
+                                light->set_shadow_casting( do_cast );
+                            }
+                            return true;
+                        };
+
+                        check_for_cast_shadow( gltf_node.extras.data );
+                        check_for_cast_shadow( gltf_node.light->extras.data );
                     }
+
                     motor::scene::light_component_mtr_t ptr;
                     if( !node->has_component_and_borrow< motor::scene::light_component_t >( ptr ) )
                     {
@@ -1298,8 +1303,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 auto merger_node = motor::shared(
                     motor::wire::funk_node_t( [ = ]( motor::wire::funk_node_ptr_t ) {} ) );
 
-                start_node->set_name( "gltf_start_node" ) ;
-                merger_node->set_name( "gltf_merger_node" ) ;
+                start_node->set_name( "gltf_start_node" );
+                merger_node->set_name( "gltf_merger_node" );
 
                 for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
                 {
