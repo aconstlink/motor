@@ -27,11 +27,11 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
     using active_is_t = motor::wire::input_slot< float_t >;
     using active_os_t = motor::wire::output_slot< float_t >;
 
-    using time_is_t = motor::wire::input_slot< float_t >;
-    using time_os_t = motor::wire::output_slot< float_t >;
+    motor_typedefs( motor::wire::input_slot< float_t >, time_is );
+    motor_typedefs( motor::wire::output_slot< float_t >, time_os );
 
-    using signal_is_t = motor::wire::input_slot< float_t >;
-    using signal_os_t = motor::wire::output_slot< float_t >;
+    motor_typedefs( motor::wire::input_slot< float_t >, signal_is );
+    motor_typedefs( motor::wire::output_slot< float_t >, signal_os );
 
     struct filter_data
     {
@@ -179,6 +179,26 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
         return _datas[ id ].sig_is->connect( motor::move( os ) );
     }
 
+    std::pair< bool_t, signal_os_mtr_t > borrow_signal_os( size_t const id ) noexcept
+    {
+        if( id >= _datas.size() || !_datas[ id ].used )
+        {
+            return std::make_pair( false, nullptr );
+        }
+
+        return std::make_pair( true, _datas[ id ].sig_os );
+    }
+
+    std::pair< bool_t, signal_os_mtr_safe_t > get_signal_os( size_t const id ) noexcept
+    {
+        if( id >= _datas.size() || !_datas[ id ].used )
+        {
+            return std::make_pair( false, nullptr );
+        }
+
+        return std::make_pair( true, motor::share( _datas[ id ].sig_os ) );
+    }    
+
     bool_t connect_signal_os(
         size_t const id, motor::core::mtr_safe< signal_is_t > is ) const noexcept
     {
@@ -229,6 +249,11 @@ class trigger_filter_node : public motor::wire::funk_node< motor::wire::unnamed_
         if( id >= _datas.size() || !_datas[ id ].used ) return false;
         _datas[ id ].duration_is->set_value( dur );
         return true;
+    }
+
+    time_is_mtr_safe_t get_time_is( void_t ) noexcept
+    {
+        return motor::share( _time_is );
     }
 
     bool_t connect_time_is( motor::core::mtr_safe< time_os_t > os ) noexcept
