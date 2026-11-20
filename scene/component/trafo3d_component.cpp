@@ -6,8 +6,8 @@
 
 using namespace motor::scene;
 
-uint64_t const trafo3d_component::tid = motor::scene::global::register_internal_type( 
-    "motor::scene::trafo3d_component" ) ;
+uint64_t const trafo3d_component::tid =
+    motor::scene::global::register_internal_type( "motor::scene::trafo3d_component" );
 
 //********************************************************************************
 trafo3d_component::trafo3d_component( void_t ) noexcept
@@ -41,51 +41,40 @@ trafo3d_component::~trafo3d_component( void_t ) noexcept
     // if( _trafo_is ) _trafo_is->disconnect();
     // if( _computed_os ) _computed_os->disconnect();
 
-    for( auto * ptr : _composer )
+    for( auto & var : _composer )
     {
         // the owner needs to disconnect, otherwise
         // there will be some dangling node pointers.
-        ptr->disconnect();
-        motor::release( motor::move( ptr ) );
+
+        this_t::disconnect( var );
+        this_t::release( var );
     }
 }
 
 //********************************************************************************
-trafo3d_component::trafo_composer_mtr_safe_t trafo3d_component::create_composer( void_t ) noexcept
+void_t trafo3d_component::disconnect( composer_variant_t & var ) const noexcept
 {
-    auto ret = motor::shared( this_t::trafo_composer_t() );
-    _composer.emplace_back( motor::share( ret ) );
-    return motor::move( ret );
-}
-
-//********************************************************************************
-trafo3d_component::trafo_composer_mtr_t trafo3d_component::create_composer_and_borrow(
-    void_t ) noexcept
-{
-    auto ret = motor::shared( this_t::trafo_composer_t() );
-    _composer.emplace_back( motor::move( ret ) );
-    return _composer.back();
-}
-
-//********************************************************************************
-bool_t trafo3d_component::attach_composer( trafo_composer_mtr_safe_t mtr ) noexcept
-{
-    auto iter = std::find( _composer.begin(), _composer.end(), mtr.mtr() );
-    if( iter != _composer.end() )
+    std::visit( []( auto && arg )
     {
-        motor::release( motor::move( mtr ) );
-        return false;
-    }
-
-    _composer.emplace_back( motor::move( mtr ) );
-    return true;
+        using T = std::decay_t< decltype( arg ) >;
+        if constexpr( !std::is_same_v< T, std::nullptr_t > )
+        {
+            arg->disconnect();
+        }
+    }, var );
 }
 
 //********************************************************************************
-bool_t trafo3d_component::has_composer( trafo_composer_mtr_t ptr ) const noexcept
+void_t trafo3d_component::release( composer_variant_t & var ) const noexcept
 {
-    auto iter = std::find( _composer.begin(), _composer.end(), ptr );
-    return iter != _composer.end() ? true : false;
+    std::visit( []( auto && arg )
+    {
+        using T = std::decay_t< decltype( arg ) >;
+        if constexpr( !std::is_same_v< T, std::nullptr_t > )
+        {
+            motor::release( motor::move( arg ) );
+        }
+    }, var );
 }
 
 //**********************************************************************************

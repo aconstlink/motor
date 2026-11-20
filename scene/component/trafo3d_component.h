@@ -11,6 +11,8 @@
 #include <motor/wire/kit/trafo3_composer.hpp>
 #include <motor/math/utility/3d/transformation.hpp>
 
+#include <variant>
+
 namespace motor
 {
 namespace scene
@@ -34,7 +36,6 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 
     motor_typedefs( motor::wire::input_slot< motor::math::m3d::trafof_t >, in_slot );
     motor_typedefs( motor::wire::output_slot< motor::math::m3d::trafof_t >, out_slot );
-    motor_typedefs( motor::wire::trafo3f_composer_t, trafo_composer );
 
     // borrowed slot pointer for local transformation.
     in_slot_ptr_t _trafo_is = nullptr;
@@ -44,7 +45,12 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
 
     // we can have multiple composers per trafo.
     // all composers could be attached to a mixer
-    motor::vector< this_t::trafo_composer_mtr_t > _composer;
+    using composer_variant_t = std::variant< std::nullptr_t, motor::wire::trafo3f_composer_mtr_t,
+        motor::wire::trs3f_composer_mtr_t >;
+    motor::vector< composer_variant_t > _composer;
+
+    void_t disconnect( composer_variant_t & v ) const noexcept;
+    void_t release( composer_variant_t & v ) const noexcept;
 
     // @todo mixer
 
@@ -119,23 +125,47 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
         return _trafo_is;
     }
 
-#if 0
-    in_slot_mtr_safe_t get_input_slot( void_t ) noexcept
-    {
-        return motor::share( _trafo );
-    }
-    out_slot_mtr_safe_t get_output_slot( void_t ) noexcept
-    {
-        return motor::share( _computed );
-    }
-#endif
-
   public:
 
-    trafo_composer_mtr_safe_t create_composer( void_t ) noexcept;
-    trafo_composer_mtr_t create_composer_and_borrow( void_t ) noexcept;
-    bool_t attach_composer( trafo_composer_mtr_safe_t ) noexcept;
-    bool_t has_composer( trafo_composer_mtr_t ) const noexcept;
+    template < typename comp_type_t >
+    motor::wire::trafo3f_composer_mtr_safe_t create_trafo_composer(
+        motor::string_in_t name ) noexcept
+    {
+        auto ret = motor::shared( comp_type_t( name ) );
+        _composer.emplace_back( composer_variant_t( motor::share( ret ) ) );
+        return motor::move( ret );
+    }
+
+    template < typename comp_type_t >
+    motor::wire::trafo3f_composer_mtr_t create_trafo_composer_and_borrow(
+        motor::string_in_t name ) noexcept
+    {
+        auto ret = motor::shared( comp_type_t( name ) );
+        _composer.emplace_back( ret ); // remember the shared
+        return ret;                    // return borrowed
+    }
+
+    template < typename comp_type_t >
+    bool_t attach_composer( motor::core::mtr_safe< comp_type_t > comp ) noexcept
+    {
+        if( comp.mtr() == nullptr ) return false;
+
+        if( this_t::has_composer( comp.mtr() ) )
+        {
+            motor::release( motor::move( comp ) );
+            return false;
+        }
+
+        _composer.emplace_back( this_t::composer_variant_t( motor::move( comp ) ) );
+        return true;
+    }
+
+    template < typename comp_type_t >
+    bool_t has_composer( comp_type_t * ptr ) const noexcept
+    {
+        composer_variant_t const needle( ptr );
+        return std::find( _composer.begin(), _composer.end(), needle ) != _composer.end();
+    }
 
   public:
 

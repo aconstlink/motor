@@ -4,25 +4,30 @@
 #pragma once
 
 #include "../node/node.h"
-#include <motor/math/utility/3d/transformation.hpp>
+#include <motor/math/utility/3d/trs.hpp>
 #include <motor/math/quaternion/quaternion4.hpp>
+#include <type_traits>
 
 namespace motor
 {
 namespace wire
 {
+
 // this adapter node allows to compose a trafo from position, scale and rotation.
-// output_slot : transformatoin > trafo3
+// output_slot : transformation (default) or separate TRS values
 // input_slot0 : position > vec3
 // input_slot1 : scale > vec3
 // input_slot2 : rotation > quaternion maybe?
-template < typename T >
+template < typename T, typename Out = motor::math::m3d::transformation< T > >
 class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot_sheet_policy >
 {
     using base_t = motor::wire::funk_node< motor::wire::unnamed_slot_sheet_policy >;
+
     motor_this_typedefs( trafo3_composer );
 
-    motor_typedefs( motor::math::m3d::transformation< T >, trafo );
+    motor_typedefs( Out, trafo );
+    static constexpr bool stores_trs = std::is_same_v< Out, motor::math::m3d::trs< T > >;
+    static_assert( stores_trs || std::is_same_v< Out, motor::math::m3d::transformation< T > > );
     motor_typedefs( motor::math::vector3< T >, vec3 );
     motor_typedefs( motor::math::quaternion4< T >, quat4 );
 
@@ -40,7 +45,10 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
   public:
 
-    trafo3_composer( void_t ) noexcept : base_t( this_t::make_funk() ) {}
+    trafo3_composer( motor::string_in_t name = "trafo3_composer" ) noexcept
+        : base_t( name, this_t::make_funk() )
+    {
+    }
     trafo3_composer( this_cref_t ) = delete;
     trafo3_composer( this_rref_t rhv ) noexcept
         : base_t( std::move( rhv ) ), _os( motor::move( rhv._os ) ),
@@ -187,17 +195,26 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
 
             if( _is_scl != nullptr )
             {
-                t.set_scale( _is_scl->get_value() );
+                if constexpr( stores_trs )
+                    t.scale = _is_scl->get_value();
+                else
+                    t.set_scale( _is_scl->get_value() );
             }
 
             if( _is_rot != nullptr )
             {
-                t.rotate_by_quaternion_fl( _is_rot->get_value() );
+                if constexpr( stores_trs )
+                    t.rotation = _is_rot->get_value();
+                else
+                    t.rotate_by_quaternion_fl( _is_rot->get_value() );
             }
 
             if( _is_pos != nullptr )
             {
-                t.set_translation( _is_pos->get_value() );
+                if constexpr( stores_trs )
+                    t.translation = _is_pos->get_value();
+                else
+                    t.set_translation( _is_pos->get_value() );
             }
 
             _os->set_and_exchange( t );
@@ -207,9 +224,12 @@ class trafo3_composer : public motor::wire::funk_node< motor::wire::unnamed_slot
     void_t make_and_set_composer_funk( void_t ) noexcept
     {
         this_t::set_funk( this_t::make_funk() );
-        this_t::set_name( "trafo_composer" ) ;
     }
 };
 motor_typedefs( trafo3_composer< float_t >, trafo3f_composer );
+
+using _trs3f_composer_t = trafo3_composer< float_t, motor::math::m3d::trs< float_t > >;
+motor_typedefs( _trs3f_composer_t, trs3f_composer );
+
 } // namespace wire
 } // namespace motor
