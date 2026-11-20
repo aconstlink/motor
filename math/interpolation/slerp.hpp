@@ -23,7 +23,7 @@ struct interpolation< motor::math::quaternion4< T > >
         auto q0 = p1.normalized();
         auto q1 = p2.normalized();
 
-        T d = q0.real() * q1.real() + q0.i() * q1.i() + q0.j() * q1.j() + q0.k() * q1.k();
+        T d = q0.dot( q1 );
 
         if( d < 0.0f )
         {

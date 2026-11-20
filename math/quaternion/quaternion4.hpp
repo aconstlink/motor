@@ -191,6 +191,11 @@ namespace motor
         public: // operator *
 
             //************************************************************************************
+            this_t operator * ( type_t s ) const noexcept {
+                return this_t( real()*s, i()*s, j()*s, k()*s ) ;
+            }
+
+            //************************************************************************************
             this_t operator * ( this_cref_t rhv ) const {
                 this_t q ;
                 q.real() = _elem[0]*rhv.real()-this->vec().dot(rhv.vec()) ;
@@ -280,6 +285,11 @@ namespace motor
             this_t conjugated( void ) const{
                 this_t quat(*this) ;
                 return quat.conjugate() ;
+            }
+
+            //************************************************************************************
+            type_t dot( this_cref_t rhv ) const noexcept {
+                return real()*rhv.real() + i()*rhv.i() + j()*rhv.j() + k()*rhv.k() ;
             }
 
             //************************************************************************************
