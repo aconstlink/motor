@@ -77,13 +77,12 @@ APIs and internal systems are still evolving; motor is not a finished SDK.
 
 X: **NO** new features are vibed into existence
 
-But:
+But, and please don't hate the project for that, I worked many many years on the engine:
 
 1. Finding bugs: Just having the AI find the bugs is a tremendous help. 
 2. Technical discussions: But I always suggest something. I do have to have my own ideas and opinions.
-3. Writing separate [test applications](https://github.com/aconstlink/motor_ai_suites) : I need this. So many thing can go wrong and I(and motor) just need the tests. And non of that code will see any production light of day.
-4. Writing the Wiki: I read all of it and I do also do corrections.
-5. Let it generate issue texts, sometimes
+3. Writing separate [test applications](https://github.com/aconstlink/motor_ai_suites) : So many thing can go wrong and I (and motor) just need the tests in addition to my own hand-written [test applications](https://github.com/aconstlink/motor_suites). Non of the AI code will see any production light of day.
+4. Writing the Wiki: I read all of it and I do also do corrections. And it is mainly for me. No one will read the wiki anyways...
 
 ## License
 
