@@ -1549,14 +1549,20 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ani_ctrl = motor::move( ani_track );
 
                                 trafo_component->reset_trafo_local_rotation();
-                                trafo_component->reset_trafo_local_position();
                             }
 
                             // #XX finally do execution slot connections
 
+                            // start node -> animation clip
                             start_node->then( motor::share( animation_clips[ ani_idx ] ) );
+
+                            // animation clip -> animation track
                             animation_clips[ ani_idx ]->then( ani_ctrl->get_node() );
+
+                            // animation track -> trafo composer
                             ani_ctrl->then( motor::share( trafo_composer ) );
+
+                            // trafo composer -> ( mixer ) -> merger
                             trafo_composer->then( motor::share( merger_node ) );
 
                             ani_comp->attach_controller( motor::move( ani_ctrl ) );

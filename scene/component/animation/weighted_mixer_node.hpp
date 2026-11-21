@@ -28,13 +28,13 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
   private:
 
     using vec3_t = motor::math::vec3f_t;
-    using pose_is_t = motor::wire::input_slot< pose_t >;
-    using weight_is_t = motor::wire::input_slot< float_t >;
+    motor_typedefs( motor::wire::input_slot< pose_t >, pose_is );
+    motor_typedefs( motor::wire::input_slot< float_t >, weight_is );
 
     struct input_pair
     {
-        pose_is_t * pose;
-        weight_is_t * weight;
+        pose_is_mtr_t pose;
+        weight_is_mtr_t weight;
     };
 
     trafo_t _rest;
