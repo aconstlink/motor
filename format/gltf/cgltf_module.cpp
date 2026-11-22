@@ -1310,6 +1310,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 merger_node->set_name( scene_name + ".animations:merger" );
 
                 motor::vector< motor::scene::animation_clip_node_mtr_t > animation_clips;
+                motor::vector< motor::wire::os_float_mtr_t > animation_weights;
 
                 for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
                 {
@@ -1322,9 +1323,15 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         animation_clips.emplace_back( motor::shared( std::move( clip ) ) );
                     }
 
+                    // weights
+                    {
+                        animation_weights.emplace_back(
+                            motor::shared( motor::wire::os_float_t( 0.0f ) ) );
+                    }
+
                     using component_to_composer_t =
                         motor::hash_map< motor::scene::trafo3d_component_mtr_t,
-                            motor::wire::trafo3f_composer_mtr_t >;
+                            motor::wire::trs3f_composer_mtr_t >;
 
                     // a single animation can target multiple nodes => multiple transformation
                     // components. so this node remembers the composer, because for a single node
@@ -1378,13 +1385,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                         // search the trafo composer for the trafo component.
                         // then attach the next channel to it. This must be PER animation!
-                        motor::wire::trafo3f_composer_mtr_t trafo_composer = nullptr;
+                        motor::wire::trs3f_composer_mtr_t trafo_composer = nullptr;
                         {
                             auto iter = ctoc.find( trafo_component );
                             if( iter == ctoc.end() )
                             {
                                 trafo_composer = trafo_component->create_trafo_composer_and_borrow<
-                                    motor::wire::trafo3f_composer_t >(
+                                    motor::wire::trs3f_composer_t >(
                                     motor::string_t( ani.name ) + ":composer" );
                                 ctoc[ trafo_component ] = trafo_composer;
                             }
@@ -1562,57 +1569,59 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // animation track -> trafo composer
                             ani_ctrl->then( motor::share( trafo_composer ) );
 
-                            // trafo composer -> ( mixer ) -> merger
-                            trafo_composer->then( motor::share( merger_node ) );
-
                             ani_comp->attach_controller( motor::move( ani_ctrl ) );
                         }
-#if 0
-                        switch( in_ac->component_type )
-                        {
-                        case cgltf_component_type_r_8:
-                            break; /* BYTE */
-                        case cgltf_component_type_r_8u:
-                            break; /* UNSIGNED_BYTE */
-                        case cgltf_component_type_r_16:
-                            break; /* SHORT */
-                        case cgltf_component_type_r_16u:
-                            break; /* UNSIGNED_SHORT */
-                        case cgltf_component_type_r_32u:
-                            break; /* UNSIGNED_INT */
-                        case cgltf_component_type_r_32f:
-                            break;
-                        default:
-                            break;
-                        }
-#endif
+
                         out_stride = os_bv->stride != 0 ? os_bv->stride : out_stride;
-
-#if 0
-                        size_t in_offset = in_ac->offset + in_bv->offset;
-
-                        byte_ptr_t in_dptr =
-                            reinterpret_cast< byte_ptr_t >( in_bf->data ) + in_offset;
-
-                        for( size_t e = 0; e < num_elems; ++e )
-                        {
-                            float_t const time_stamp = time_conv_funk( in_dptr );
-                            in_dptr += in_stride;
-                            time_stamps[ e ] = time_stamp;
-                        }
-
-                        for( size_t b = 0; b < in_bv->size; ++b )
-                        {
-                        }
-#endif
                     }
+
+                    // connect composer to mixer here after all channels are done for
+                    // this animation. Now we have all trafo components and all composers
+                    // that are used for this animation, so we can connect to a data slot
+                    // in the mixer of the trafo component.
+                    {
+                        for( auto & item : ctoc )
+                        {
+                            motor::scene::trafo3d_component_mtr_t trafo_component = item.first;
+                            motor::wire::trs3f_composer_mtr_t trafo_composer = item.second;
+
+                            trafo_component->connect_mixer();
+
+                            // execution path:
+                            // trafo composer -> mixer -> merger
+                            trafo_composer->then( trafo_component->get_mixer() )
+                                ->then( motor::share( merger_node ) );
+
+                            // data path:
+                            trafo_component->borrow_mixer()->add_input(
+                                trafo_composer->ensure_and_get_os(),
+                                motor::share( animation_weights[ ani_idx ] ), 
+                                motor::string_t( ani.name ) );
+                        }
+                    }
+
                 } // animations
 
-                for( auto * ani_clip : animation_clips )
+                // TEST: I think. The clips need to be moved to the outside.
+                // release and clear animation clips
                 {
-                    motor::release( motor::move( ani_clip ) ) ;
+                    // by default, set the first weight to 1.0f
+                    if( data->animations_count > 0 )
+                    {
+                        animation_weights[ 0 ]->set_and_exchange( 1.0f );
+                    }
+
+                    for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
+                    {
+                        auto * ani_clip = animation_clips[ ani_idx ];
+                        motor::release( motor::move( ani_clip ) );
+
+                        auto * weight = animation_weights[ ani_idx ];
+                        motor::release( motor::move( weight ) );
+                    }
+                    animation_clips.clear();
+                    animation_weights.clear();
                 }
-                animation_clips.clear() ;
 
                 if( data->animations_count == 0 )
                 {

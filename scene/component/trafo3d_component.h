@@ -5,6 +5,8 @@
 
 #include "icomponent.h"
 
+#include "animation/weighted_mixer_node.hpp"
+
 #include <motor/wire/slot/sheet.hpp>
 #include <motor/wire/slot/input_slot.h>
 #include <motor/wire/slot/output_slot.h>
@@ -53,6 +55,7 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
     void_t release( composer_variant_t & v ) const noexcept;
 
     // @todo mixer
+    motor::scene::weighted_mixer_node_mtr_t _mixer = nullptr;
 
   private: // domain data
 
@@ -125,10 +128,10 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
         return _trafo_is;
     }
 
-  public:
+  public: // composer
 
     template < typename comp_type_t >
-    motor::wire::trafo3f_composer_mtr_safe_t create_trafo_composer(
+    motor::core::mtr_safe<comp_type_t> create_trafo_composer(
         motor::string_in_t name ) noexcept
     {
         auto ret = motor::shared( comp_type_t( name ) );
@@ -137,7 +140,7 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
     }
 
     template < typename comp_type_t >
-    motor::wire::trafo3f_composer_mtr_t create_trafo_composer_and_borrow(
+    comp_type_t * create_trafo_composer_and_borrow(
         motor::string_in_t name ) noexcept
     {
         auto ret = motor::shared( comp_type_t( name ) );
@@ -166,6 +169,19 @@ class MOTOR_SCENE_API trafo3d_component : public icomponent
         composer_variant_t const needle( ptr );
         return std::find( _composer.begin(), _composer.end(), needle ) != _composer.end();
     }
+
+  public: // mixer
+
+    // connect the mixer to the trafo is, if the mixer should
+    // be used. if you do not want to use the mixer,
+    // just connect another slot to the trafo is. This will
+    // automaticall disconnect the mixer.
+    // if this function is called, the mixer will be used
+    // and mixes in weighted inputs into the output trafo.
+    void_t connect_mixer( void_t ) noexcept;
+
+    motor::scene::weighted_mixer_node_mtr_t borrow_mixer( void_t ) noexcept;
+    motor::scene::weighted_mixer_node_mtr_safe_t get_mixer( void_t ) noexcept;
 
   public:
 

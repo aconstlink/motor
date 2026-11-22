@@ -59,7 +59,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
     }
 
     // Wire the data edges as a pair. Execution edges are owned by the caller.
-    bool_t add_input( pose_os_mtr_safe_t pose, weight_os_mtr_safe_t weight ) noexcept
+    bool_t add_input( pose_os_mtr_safe_t pose, weight_os_mtr_safe_t weight, motor::string_in_t name = "" ) noexcept
     {
         if( pose == nullptr || weight == nullptr )
         {
@@ -72,8 +72,8 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
         input_pair p{
             motor::shared( pose_is_t( pose_t{} ) ), motor::shared( weight_is_t( 0.0f ) ) };
 
-        inputs().add( "trafo." + id, motor::share_unsafe( p.pose ) );
-        inputs().add( "weight." + id, motor::share_unsafe( p.weight ) );
+        inputs().add( name + ".trafo." + id, motor::share_unsafe( p.pose ) );
+        inputs().add( name + ".weight." + id, motor::share_unsafe( p.weight ) );
 
         p.pose->connect( motor::move( pose ) );
         p.weight->connect( motor::move( weight ) );
@@ -94,7 +94,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
   private:
 
-    void_t mix() noexcept
+    void_t mix() noexcept 
     {
         input_pair const * strongest = nullptr;
         double_t total = 0.0;

@@ -29,7 +29,7 @@ trafo3d_component::trafo3d_component( this_rref_t rhv ) noexcept
     : icomponent( std::move( rhv ) ), _trafo_is( motor::move( rhv._trafo_is ) ),
       _computed_os( motor::move( rhv._computed_os ) ), _composer( std::move( rhv._composer ) ),
       _trafo( std::move( rhv._trafo ) ), _trafo_local( std::move( rhv._trafo_local ) ),
-      _computed( std::move( rhv._computed ) )
+      _computed( std::move( rhv._computed ) ), _mixer( motor::move( rhv._mixer ) )
 {
 }
 
@@ -49,6 +49,8 @@ trafo3d_component::~trafo3d_component( void_t ) noexcept
         this_t::disconnect( var );
         this_t::release( var );
     }
+
+    motor::release( motor::move( _mixer ) );
 }
 
 //********************************************************************************
@@ -93,6 +95,8 @@ void_t trafo3d_component::init_slots( void_t ) noexcept
         this_t::create_input_slot< motor::math::m3d::trafof_t >( "[trafo3d_component] : trafo_is" );
     _computed_os = this_t::create_output_slot< motor::math::m3d::trafof_t >(
         "[trafo3d_component] : trafo_os" );
+
+    _mixer = motor::shared( motor::scene::weighted_mixer_node_t( "trafo_mixer" ) );
 }
 
 //**********************************************************************************
@@ -102,6 +106,24 @@ void_t trafo3d_component::sync_inputs( void_t ) noexcept
         _trafo = _trafo_local * _trafo_is->pull_data();
     else
         _trafo = _trafo_local;
+}
+
+//**********************************************************************************
+void_t trafo3d_component::connect_mixer( void_t ) noexcept
+{
+    _mixer->borrow_trafo_os()->connect( motor::share( _trafo_is ) );
+}
+
+//**********************************************************************************
+motor::scene::weighted_mixer_node_mtr_t trafo3d_component::borrow_mixer( void_t ) noexcept
+{
+    return _mixer;
+}
+
+//**********************************************************************************
+motor::scene::weighted_mixer_node_mtr_safe_t trafo3d_component::get_mixer( void_t ) noexcept
+{
+    return motor::share( _mixer ) ;
 }
 
 //**********************************************************************************
