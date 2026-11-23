@@ -1309,6 +1309,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 start_node->set_name( scene_name + ".animations:begin" );
                 merger_node->set_name( scene_name + ".animations:merger" );
 
+                motor::vector< motor::string_t > animation_names;
                 motor::vector< motor::scene::animation_clip_node_mtr_t > animation_clips;
                 motor::vector< motor::wire::os_float_mtr_t > animation_weights;
 
@@ -1321,6 +1322,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         motor::scene::animation_clip_node_t clip(
                             motor::string_t( ani.name ) + ":clip" );
                         animation_clips.emplace_back( motor::shared( std::move( clip ) ) );
+                        animation_names.emplace_back( motor::string_t( ani.name ) );
                     }
 
                     // weights
@@ -1555,7 +1557,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 ani_ctrl = motor::move( ani_track );
 
-                                trafo_component->reset_trafo_local_rotation();
+                                trafo_component->reset_trafo_local_position();
                             }
 
                             // #XX finally do execution slot connections
@@ -1595,15 +1597,14 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // data path:
                             trafo_component->borrow_mixer()->add_input(
                                 trafo_composer->ensure_and_get_os(),
-                                motor::share( animation_weights[ ani_idx ] ), 
+                                motor::share( animation_weights[ ani_idx ] ),
                                 motor::string_t( ani.name ) );
                         }
                     }
 
                 } // animations
 
-                // TEST: I think. The clips need to be moved to the outside.
-                // release and clear animation clips
+                // The clips need to be moved to the outside.
                 {
                     // by default, set the first weight to 1.0f
                     if( data->animations_count > 0 )
@@ -1613,14 +1614,16 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
                     {
-                        auto * ani_clip = animation_clips[ ani_idx ];
-                        motor::release( motor::move( ani_clip ) );
+                        motor::format::scene_item::animation_data ad{
+                            .name = animation_names[ ani_idx ],
+                            .node = motor::move( animation_clips[ ani_idx ] ),
+                            .weight = motor::move( animation_weights[ ani_idx ] ) };
 
-                        auto * weight = animation_weights[ ani_idx ];
-                        motor::release( motor::move( weight ) );
+                        ret.animations.emplace_back( std::move( ad ) );
                     }
                     animation_clips.clear();
                     animation_weights.clear();
+                    animation_names.clear();
                 }
 
                 if( data->animations_count == 0 )

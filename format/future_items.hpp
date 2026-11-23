@@ -6,6 +6,7 @@
 #include "future_item.hpp"
 
 #include <motor/scene/node/node.h>
+#include <motor/scene/component/animation/animation_clip_node.hpp>
 #include <motor/wire/kit/time_node.hpp>
 
 #include <motor/gfx/camera/generic_camera.h>
@@ -13,6 +14,7 @@
 #include <motor/audio/object/buffer_object.hpp>
 #include <motor/graphics/texture/image.hpp>
 #include <motor/font/glyph_atlas.h>
+
 
 #include <future>
 
@@ -122,6 +124,16 @@ struct scene_item : public item
 
     // can be used as notification of animation end
     motor::wire::funk_node_mtr_t merger_node = nullptr;
+
+    // one per animation
+    struct animation_data
+    {
+        motor::string_t name ;
+        motor::scene::animation_clip_node_mtr_t node ;
+        motor::wire::os_float_mtr_t weight ;
+    };
+    
+    motor::vector< animation_data > animations ;
 
     struct camera_sequence_item
     {
