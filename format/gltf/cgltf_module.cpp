@@ -200,7 +200,7 @@ struct keyframe_creator
     using value_t = typename kfs_t::value_t;
 
     static kfs_t fill_kfs( size_t const num_elems, byte_ptr_t in_ptr, byte_ptr_t out_ptr,
-        size_t const in_stride, size_t const out_stride )
+        size_t const in_stride, size_t const out_stride, value_t previous = {} )
     {
         kfs_t ret;
 
@@ -209,8 +209,15 @@ struct keyframe_creator
             float_t const time_stamp = cgltf_module_file::converter< value_t >::time( in_ptr );
             in_ptr += in_stride;
 
-            value_t const value = cgltf_module_file::converter< value_t >::value( out_ptr );
+            value_t value = cgltf_module_file::converter< value_t >::value( out_ptr );
             out_ptr += out_stride;
+
+            if constexpr( std::is_same_v< value_t, motor::math::quat4f_t > )
+            {
+                // Lift the track continuously from the node's rest rotation, even when seeking.
+                if( previous.dot( value ) < 0.0f ) value = value * -1.0f;
+                previous = value;
+            }
 
             ret.insert( { motor::math::time_ms_t( time_stamp * 1000.0f ), value_t( value ) } );
         }
@@ -1388,19 +1395,42 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         // search the trafo composer for the trafo component.
                         // then attach the next channel to it. This must be PER animation!
                         motor::wire::trs3f_composer_mtr_t trafo_composer = nullptr;
+                        if( auto iter = ctoc.find( trafo_component ); iter != ctoc.end() )
                         {
-                            auto iter = ctoc.find( trafo_component );
-                            if( iter == ctoc.end() )
+                            trafo_composer = iter->second;
+                        }
+                        else
+                        {
+                            trafo_composer = trafo_component->create_trafo_composer_and_borrow<
+                                motor::wire::trs3f_composer_t >( motor::string_t( ani.name ) + ":composer" );
+                            ctoc[ trafo_component ] = trafo_composer;
+
+                            motor::math::trs3f_t rest{}; // T = 0, R = Identität, S = 1
+
                             {
-                                trafo_composer = trafo_component->create_trafo_composer_and_borrow<
-                                    motor::wire::trs3f_composer_t >(
-                                    motor::string_t( ani.name ) + ":composer" );
-                                ctoc[ trafo_component ] = trafo_composer;
+                                auto const & src = *channel.target_node;
+
+                                if( src.has_translation )
+                                    rest.translation =
+                                        motor::math::vec3f_t::from_array( src.translation );
+
+                                if( src.has_rotation )
+                                {
+                                    auto const & q = src.rotation; // glTF: x, y, z, w
+                                    rest.rotation =
+                                        motor::math::quat4f_t( q[ 3 ], q[ 0 ], q[ 1 ], q[ 2 ] );
+                                }
+
+                                if( src.has_scale )
+                                    rest.scale = motor::math::vec3f_t::from_array( src.scale );
                             }
-                            else
-                            {
-                                trafo_composer = iter->second;
-                            }
+
+                            trafo_composer->ensure_and_borrow_position_is()->set_value(
+                                rest.translation );
+                            trafo_composer->ensure_and_borrow_rotation_is()->set_value(
+                                rest.rotation );
+                            trafo_composer->ensure_and_borrow_scaling_is()->set_value( rest.scale );
+                            trafo_component->borrow_mixer()->set_rest( rest.to_transformation() );
                         }
 
                         auto * in_ac = sampler.input;
@@ -1464,7 +1494,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #1 create keyframes
 
                                 kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
-                                    num_elems, in_dptr, os_dptr, in_stride, os_stride );
+                                    num_elems, in_dptr, os_dptr, in_stride, os_stride,
+                                    trafo_composer->ensure_and_borrow_rotation_is()->get_value() );
 
                                 // #2 create animation track
 
@@ -1474,10 +1505,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 // #3 do data slot connections
 
-                                // start_node:time_os -> animation_clip:time_is
-                                start_node->borrow_ms_os()->connect(
-                                    animation_clips[ ani_idx ]->get_time_is() );
-
                                 // animation_clip:time_os -> animation_track:time_is
                                 animation_clips[ ani_idx ]->borrow_time_os()->connect(
                                     ani_track->get_is() );
@@ -1485,14 +1512,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_rotation_is() );
 
-                                trafo_component->borrow_trafo_is()->connect(
-                                    trafo_composer->ensure_and_get_os() );
-
                                 // #4 pass out
 
                                 ani_ctrl = motor::move( ani_track );
-
-                                trafo_component->reset_trafo_local_rotation();
                             }
                             else if( channel.target_path ==
                                      cgltf_animation_path_type::cgltf_animation_path_type_scale )
@@ -1515,10 +1537,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 // #3 do data slot connections
 
-                                // start_node:time_os -> animation_clip:time_is
-                                start_node->borrow_ms_os()->connect(
-                                    animation_clips[ ani_idx ]->get_time_is() );
-
                                 // animation_clip:time_os -> animation_track:time_is
                                 animation_clips[ ani_idx ]->borrow_time_os()->connect(
                                     ani_track->get_is() );
@@ -1526,14 +1544,9 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_scaling_is() );
 
-                                trafo_component->borrow_trafo_is()->connect(
-                                    trafo_composer->ensure_and_get_os() );
-
                                 // #4 pass out
 
                                 ani_ctrl = motor::move( ani_track );
-
-                                trafo_component->reset_trafo_local_scale();
                             }
                             else if( channel.target_path ==
                                      cgltf_animation_path_type::
@@ -1557,10 +1570,6 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 // #3 do data slot connections
 
-                                // start_node:time_os -> animation_clib:time_is
-                                start_node->borrow_ms_os()->connect(
-                                    animation_clips[ ani_idx ]->get_time_is() );
-
                                 // animation_clip:time_os -> animation_track:time_is
                                 animation_clips[ ani_idx ]->borrow_time_os()->connect(
                                     ani_track->get_is() );
@@ -1568,20 +1577,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_position_is() );
 
-                                trafo_component->borrow_trafo_is()->connect(
-                                    trafo_composer->ensure_and_get_os() );
-
                                 // #4 pass out
 
                                 ani_ctrl = motor::move( ani_track );
-
-                                trafo_component->reset_trafo_local_position();
                             }
 
                             // #XX finally do execution slot connections
-
-                            // start node -> animation clip
-                            start_node->then( motor::share( animation_clips[ ani_idx ] ) );
 
                             // animation clip -> animation track
                             animation_clips[ ani_idx ]->then( ani_ctrl->get_node() );
@@ -1595,6 +1596,21 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         out_stride = os_bv->stride != 0 ? os_bv->stride : out_stride;
                     }
 
+                    // data path:
+                    // start_node:time_os -> animation_clib:time_is
+                    start_node->borrow_ms_os()->connect(
+                        animation_clips[ ani_idx ]->get_time_is() );
+
+                    // execution path:
+                    // start node -> animation clip
+                    start_node->then( motor::share( animation_clips[ ani_idx ] ) );
+
+                    // data path:
+                    // allows to control the animation from the outside
+                    // animation_clip:weight_is -> global:weight_os
+                    animation_clips[ ani_idx ]->borrow_weight_is()->connect(
+                        motor::share( animation_weights[ ani_idx ] ) );
+
                     // connect composer to mixer here after all channels are done for
                     // this animation. Now we have all trafo components and all composers
                     // that are used for this animation, so we can connect to a data slot
@@ -1605,7 +1621,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             motor::scene::trafo3d_component_mtr_t trafo_component = item.first;
                             motor::wire::trs3f_composer_mtr_t trafo_composer = item.second;
 
-                            // connect mixer trafo output to trafo components' trafo input
+                            // The mixer supplies the complete local pose, not an offset.
+                            trafo_component->set_trafo_local( motor::math::m3d::trafof_t{} );
                             trafo_component->connect_mixer();
 
                             // execution path:
@@ -1614,18 +1631,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ->then( motor::share( merger_node ) );
 
                             // data path:
-                            // allows to control the animation from the outside
-                            // animation_clip:weight_is -> global:weight_os
-                            animation_clips[ ani_idx ]->borrow_weight_is()->connect(
-                                motor::share( animation_weights[ ani_idx ] ) );
-
-                            // data path:
                             // mixer:trafo_is -> composer:trafo_os
                             // mixer:weight_is -> animation_clip:weight_os
                             trafo_component->borrow_mixer()->add_input(
                                 trafo_composer->ensure_and_get_os(),
                                 animation_clips[ ani_idx ]->get_weight_os(),
-                                animation_names[ ani_idx ] );
+                                animation_names[ ani_idx ],
+                                motor::scene::weighted_mixer_node_t::rotation_path::continuous_track );
                         }
                     }
 
@@ -1641,6 +1653,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
                     {
+                        animation_weights[ ani_idx ]->set_and_exchange( 1.0f );
+
                         motor::format::scene_item::animation_data ad{
                             .name = animation_names[ ani_idx ],
                             .node = motor::move( animation_clips[ ani_idx ] ),

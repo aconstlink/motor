@@ -18,6 +18,9 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
   public:
 
+    // Continuous tracks have already aligned their keys to a common rest rotation.
+    enum class rotation_path { shortest, continuous_track };
+
     using pose_t = motor::math::trs3f_t;
     motor_typedefs( motor::wire::output_slot< pose_t >, pose_os );
 
@@ -35,6 +38,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
     {
         pose_is_mtr_t pose;
         weight_is_mtr_t weight;
+        rotation_path path;
     };
 
     trafo_t _rest;
@@ -59,7 +63,9 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
     }
 
     // Wire the data edges as a pair. Execution edges are owned by the caller.
-    bool_t add_input( pose_os_mtr_safe_t pose, weight_os_mtr_safe_t weight, motor::string_in_t name = "" ) noexcept
+    bool_t add_input( pose_os_mtr_safe_t pose, weight_os_mtr_safe_t weight,
+        motor::string_in_t name = "",
+        rotation_path const path = rotation_path::shortest ) noexcept
     {
         if( pose == nullptr || weight == nullptr )
         {
@@ -70,7 +76,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
         auto const id = motor::to_string( _pairs.size() );
         input_pair p{
-            motor::shared( pose_is_t( pose_t{} ) ), motor::shared( weight_is_t( 0.0f ) ) };
+            motor::shared( pose_is_t( pose_t{} ) ), motor::shared( weight_is_t( 0.0f ) ), path };
 
         inputs().add( name + ".trafo." + id, motor::share_unsafe( p.pose ) );
         inputs().add( name + ".weight." + id, motor::share_unsafe( p.weight ) );
@@ -81,6 +87,12 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
         _pairs.emplace_back( p );
 
         return true;
+    }
+
+    void_t set_rest( trafo_t const & rest ) noexcept
+    {
+        _rest = rest;
+        _out->set_value( rest );
     }
 
     trafo_os_mtr_t borrow_trafo_os() noexcept
@@ -99,6 +111,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
         input_pair const * strongest = nullptr;
         double_t total = 0.0;
         size_t count = 0;
+        bool_t continuous = true;
 
         // determine strongest pose
         for( auto const & p : _pairs )
@@ -106,6 +119,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
             float_t const w = p.weight->pull_data();
             if( !( w > 0.0f ) || !std::isfinite( w ) ) continue;
             p.pose->pull_data();
+            continuous = continuous && p.path == rotation_path::continuous_track;
             if( !strongest || w > strongest->weight->get_value() ) strongest = &p;
             total += w;
             ++count;
@@ -122,7 +136,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
         motor::math::quat4f_t sum;
 
-        // q and -q describe the same rotation. Align signs before averaging.
+        // For unaligned inputs choose the short arc. Imported tracks retain their signed path.
         auto const & reference = strongest->pose->get_value().rotation;
         for( auto const & p : _pairs )
         {
@@ -134,9 +148,10 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
             result.translation += pose.translation * t;
             result.scale += pose.scale * t;
             auto const & q = pose.rotation;
-            sum += q * ( reference.dot( q ) < 0.0f ? -t : t );
+            sum += q * ( !continuous && reference.dot( q ) < 0.0f ? -t : t );
         }
-        result.rotation = sum.normalized();
+        // Opposite signed paths can cancel at equal weight; no unique blend exists there.
+        result.rotation = sum.dot( sum ) > 1.e-12f ? sum.normalized() : reference;
         _out->set_value( result.to_transformation() );
     }
 };
