@@ -1474,7 +1474,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 // #3 do data slot connections
 
-                                start_node->borrow_ms_os()->connect( ani_track->get_is() );
+                                // start_node:time_os -> animation_clip:time_is
+                                start_node->borrow_ms_os()->connect(
+                                    animation_clips[ ani_idx ]->get_time_is() );
+
+                                // animation_clip:time_os -> animation_track:time_is
+                                animation_clips[ ani_idx ]->borrow_time_os()->connect(
+                                    ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_rotation_is() );
@@ -1509,7 +1515,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 // #3 do data slot connections
 
-                                start_node->borrow_ms_os()->connect( ani_track->get_is() );
+                                // start_node:time_os -> animation_clip:time_is
+                                start_node->borrow_ms_os()->connect(
+                                    animation_clips[ ani_idx ]->get_time_is() );
+
+                                // animation_clip:time_os -> animation_track:time_is
+                                animation_clips[ ani_idx ]->borrow_time_os()->connect(
+                                    ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_scaling_is() );
@@ -1545,7 +1557,13 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 // #3 do data slot connections
 
-                                start_node->borrow_ms_os()->connect( ani_track->get_is() );
+                                // start_node:time_os -> animation_clib:time_is
+                                start_node->borrow_ms_os()->connect(
+                                    animation_clips[ ani_idx ]->get_time_is() );
+
+                                // animation_clip:time_os -> animation_track:time_is
+                                animation_clips[ ani_idx ]->borrow_time_os()->connect(
+                                    ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
                                     trafo_composer->ensure_and_get_position_is() );
@@ -1587,6 +1605,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             motor::scene::trafo3d_component_mtr_t trafo_component = item.first;
                             motor::wire::trs3f_composer_mtr_t trafo_composer = item.second;
 
+                            // connect mixer trafo output to trafo components' trafo input
                             trafo_component->connect_mixer();
 
                             // execution path:
@@ -1595,10 +1614,18 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ->then( motor::share( merger_node ) );
 
                             // data path:
+                            // allows to control the animation from the outside
+                            // animation_clip:weight_is -> global:weight_os
+                            animation_clips[ ani_idx ]->borrow_weight_is()->connect(
+                                motor::share( animation_weights[ ani_idx ] ) );
+
+                            // data path:
+                            // mixer:trafo_is -> composer:trafo_os
+                            // mixer:weight_is -> animation_clip:weight_os
                             trafo_component->borrow_mixer()->add_input(
                                 trafo_composer->ensure_and_get_os(),
-                                motor::share( animation_weights[ ani_idx ] ),
-                                motor::string_t( ani.name ) );
+                                animation_clips[ ani_idx ]->get_weight_os(),
+                                animation_names[ ani_idx ] );
                         }
                     }
 

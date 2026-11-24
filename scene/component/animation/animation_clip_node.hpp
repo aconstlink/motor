@@ -57,18 +57,23 @@ class animation_clip_node : public motor::wire::funk_node_named_t
     {
     }
 
+    // in milli seconds
     time_is_mtr_t borrow_time_is() noexcept
     {
         return _time_is;
     }
+
+    // in milli seconds
     time_os_mtr_t borrow_time_os() noexcept
     {
         return _time_os;
     }
+
     weight_is_mtr_t borrow_weight_is() noexcept
     {
         return _weight_is;
     }
+
     weight_os_mtr_t borrow_weight_os() noexcept
     {
         return _weight_os;
