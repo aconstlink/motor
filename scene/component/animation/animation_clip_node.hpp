@@ -20,6 +20,8 @@ class animation_clip_node : public motor::wire::funk_node_named_t
     motor_typedefs( motor::wire::input_slot< float_t >, weight_is );
     motor_typedefs( motor::wire::output_slot< float_t >, weight_os );
 
+    using time_range_t = std::pair< motor::math::time_ms_t, motor::math::time_ms_t >;
+
   private:
 
     // The named slot sheets own the slots; these pointers are borrowed.
@@ -27,6 +29,10 @@ class animation_clip_node : public motor::wire::funk_node_named_t
     time_os_mtr_t _time_os = nullptr;
     weight_is_mtr_t _weight_is = nullptr;
     weight_os_mtr_t _weight_os = nullptr;
+
+    // the min/max time range of all animation data
+    // this clip groups together.
+    time_range_t _time_range = { 0, 0 };
 
   public:
 
@@ -53,7 +59,7 @@ class animation_clip_node : public motor::wire::funk_node_named_t
     animation_clip_node( this_rref_t rhv ) noexcept
         : base_t( std::move( rhv ) ), _time_is( motor::move( rhv._time_is ) ),
           _time_os( motor::move( rhv._time_os ) ), _weight_is( motor::move( rhv._weight_is ) ),
-          _weight_os( motor::move( rhv._weight_os ) )
+          _weight_os( motor::move( rhv._weight_os ) ), _time_range( std::move( rhv._time_range ) )
     {
     }
 
@@ -94,6 +100,17 @@ class animation_clip_node : public motor::wire::funk_node_named_t
     weight_os_mtr_safe_t get_weight_os() noexcept
     {
         return motor::share( _weight_os );
+    }
+
+    void_t update_time_range( this_t::time_range_t const & tr ) noexcept
+    {
+        _time_range.first = std::min( _time_range.first, tr.first );
+        _time_range.second = std::max( _time_range.second, tr.second );
+    }
+
+    time_range_t get_time_range( void_t ) const noexcept
+    {
+        return _time_range;
     }
 };
 motor_typedef( animation_clip_node );

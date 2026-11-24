@@ -1497,6 +1497,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     num_elems, in_dptr, os_dptr, in_stride, os_stride,
                                     trafo_composer->ensure_and_borrow_rotation_is()->get_value() );
 
+                                auto const time_range = kfs.get_time_range() ;
+                                ret.update_keyframe_time_range( time_range ) ;
+
+                                // we also update the clip itself
+                                animation_clips[ ani_idx ]->update_time_range( time_range ) ;
+
                                 // #2 create animation track
 
                                 auto ani_track = motor::shared(
@@ -1528,6 +1534,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
                                     num_elems, in_dptr, os_dptr, in_stride, os_stride );
+
+                                auto const time_range = kfs.get_time_range() ;
+                                ret.update_keyframe_time_range( time_range ) ;
+
+                                // we also update the clip itself
+                                animation_clips[ ani_idx ]->update_time_range( time_range ) ;
 
                                 // #2 create animation track
 
@@ -1561,6 +1573,12 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                                 kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
                                     num_elems, in_dptr, os_dptr, in_stride, os_stride );
+
+                                auto const time_range = kfs.get_time_range() ;
+                                ret.update_keyframe_time_range( time_range ) ;
+
+                                // we also update the clip itself
+                                animation_clips[ ani_idx ]->update_time_range( time_range ) ;
 
                                 // #2 create animation track
 
