@@ -89,7 +89,11 @@ class output_slot : public ioutput_slot
         // first check is slot is already connected.
         for( auto * in_s : _inputs )
         {
-            if( in_s == s ) return true;
+            if( in_s == s ) 
+            {
+                motor::release( motor::move( s ) ) ;
+                return true;
+            }
         }
 
         if( auto * v = dynamic_cast< motor::wire::input_slot< T > * >( s.mtr() ); v != nullptr )
