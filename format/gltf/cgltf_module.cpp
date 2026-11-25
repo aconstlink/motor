@@ -1402,7 +1402,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                         else
                         {
                             trafo_composer = trafo_component->create_trafo_composer_and_borrow<
-                                motor::wire::trs3f_composer_t >( motor::string_t( ani.name ) + ":composer" );
+                                motor::wire::trs3f_composer_t >(
+                                motor::string_t( ani.name ) + ":composer" );
                             ctoc[ trafo_component ] = trafo_composer;
 
                             motor::math::trs3f_t rest{}; // T = 0, R = Identität, S = 1
@@ -1497,11 +1498,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                     num_elems, in_dptr, os_dptr, in_stride, os_stride,
                                     trafo_composer->ensure_and_borrow_rotation_is()->get_value() );
 
-                                auto const time_range = kfs.get_time_range() ;
-                                ret.update_keyframe_time_range( time_range ) ;
+                                auto const time_range = kfs.get_time_range();
+                                ret.update_keyframe_time_range( time_range );
 
                                 // we also update the clip itself
-                                animation_clips[ ani_idx ]->update_time_range( time_range ) ;
+                                animation_clips[ ani_idx ]->update_time_range( time_range );
 
                                 // #2 create animation track
 
@@ -1512,7 +1513,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #3 do data slot connections
 
                                 // animation_clip:time_os -> animation_track:time_is
-                                animation_clips[ ani_idx ]->borrow_time_os()->connect(
+                                animation_clips[ ani_idx ]->borrow_time_ms_os()->connect(
                                     ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
@@ -1535,11 +1536,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
                                     num_elems, in_dptr, os_dptr, in_stride, os_stride );
 
-                                auto const time_range = kfs.get_time_range() ;
-                                ret.update_keyframe_time_range( time_range ) ;
+                                auto const time_range = kfs.get_time_range();
+                                ret.update_keyframe_time_range( time_range );
 
                                 // we also update the clip itself
-                                animation_clips[ ani_idx ]->update_time_range( time_range ) ;
+                                animation_clips[ ani_idx ]->update_time_range( time_range );
 
                                 // #2 create animation track
 
@@ -1550,7 +1551,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #3 do data slot connections
 
                                 // animation_clip:time_os -> animation_track:time_is
-                                animation_clips[ ani_idx ]->borrow_time_os()->connect(
+                                animation_clips[ ani_idx ]->borrow_time_ms_os()->connect(
                                     ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
@@ -1574,11 +1575,11 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 kfs = cgltf_module_file::keyframe_creator< kfs_t >::fill_kfs(
                                     num_elems, in_dptr, os_dptr, in_stride, os_stride );
 
-                                auto const time_range = kfs.get_time_range() ;
-                                ret.update_keyframe_time_range( time_range ) ;
+                                auto const time_range = kfs.get_time_range();
+                                ret.update_keyframe_time_range( time_range );
 
                                 // we also update the clip itself
-                                animation_clips[ ani_idx ]->update_time_range( time_range ) ;
+                                animation_clips[ ani_idx ]->update_time_range( time_range );
 
                                 // #2 create animation track
 
@@ -1589,7 +1590,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #3 do data slot connections
 
                                 // animation_clip:time_os -> animation_track:time_is
-                                animation_clips[ ani_idx ]->borrow_time_os()->connect(
+                                animation_clips[ ani_idx ]->borrow_time_ms_os()->connect(
                                     ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
@@ -1616,8 +1617,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     // data path:
                     // start_node:time_os -> animation_clib:time_is
-                    start_node->borrow_ms_os()->connect(
-                        animation_clips[ ani_idx ]->get_time_is() );
+                    animation_clips[ ani_idx ]->connect_time_is( start_node->get_sec_os() );
 
                     // execution path:
                     // start node -> animation clip
@@ -1655,7 +1655,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 trafo_composer->ensure_and_get_os(),
                                 animation_clips[ ani_idx ]->get_weight_os(),
                                 animation_names[ ani_idx ],
-                                motor::scene::weighted_mixer_node_t::rotation_path::continuous_track );
+                                motor::scene::weighted_mixer_node_t::rotation_path::
+                                    continuous_track );
                         }
                     }
 
