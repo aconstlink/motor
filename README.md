@@ -73,15 +73,16 @@ on the consuming machine.
 Active development, currently focused on demos and scene-based integration tests.
 APIs and internal systems are still evolving; motor is not a finished SDK.
 
-## My AI View and Usage
+## AI Usage
 
-I **DO NOT** use AI for any new features into the engine or let it generate any code. I worked many years on the engine and many many hours, day and night. If I'd use AI to vibe anything into existence now, that would invalidate everything I did so far and I could stop doing this today. The original reason was, and still is, to learn many things and finally release some demos at some demos parties. And also finally make a game with the engine! Those were the original reasons I started coding engines 2009, I think it was.
+X: **NO** new features are vibed into existence
 
-My stance is clear. With an absolute zero Ai tolerance, i.e. no AI at any level, I'd be absolutely lost and left behind. So there are the following three Ai use cases for me that I practice in reality:
+But, and please don't hate the project for that, I worked many many years on the engine:
 
-1. Finding bugs: Just having the AI find the bugs is a tremendous help! 
+1. Finding bugs: Just having the AI find the bugs is a tremendous help. 
 2. Technical discussions: But I always suggest something. I do have to have my own ideas and opinions.
-3. Writing separate [test applications](https://github.com/aconstlink/motor_ai_suites) : I need this. So many thing can go wrong and I(and motor) just need the tests. And non of that code will see any production light of day.
+3. Writing separate [test applications](https://github.com/aconstlink/motor_ai_suites) : So many thing can go wrong and I (and motor) just need the tests in addition to my own hand-written [test applications](https://github.com/aconstlink/motor_suites). Non of the AI code will see any production light of day.
+4. Writing the Wiki: I read all of it and I do also do corrections. And it is mainly for me. No one will read the wiki anyways...
 
 ## License
 
