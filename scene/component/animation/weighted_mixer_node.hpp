@@ -127,7 +127,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
         for( auto const & p : _pairs )
         {
-            float_t const w = std::abs( p.weight->get_value() );
+            float_t const w = std::abs( p.weight->pull_data() );
 
             auto const & pose = p.pose->pull_data();
 
