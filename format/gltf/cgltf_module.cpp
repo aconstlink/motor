@@ -1431,7 +1431,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             trafo_composer->ensure_and_borrow_rotation_is()->set_value(
                                 rest.rotation );
                             trafo_composer->ensure_and_borrow_scaling_is()->set_value( rest.scale );
-                            trafo_component->borrow_mixer()->set_rest( rest.to_transformation() );
+                            trafo_component->borrow_mixer()->set_rest( rest );
                         }
 
                         auto * in_ac = sampler.input;
