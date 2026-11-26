@@ -1316,9 +1316,17 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                 start_node->set_name( scene_name + ".animations:begin" );
                 merger_node->set_name( scene_name + ".animations:merger" );
 
-                motor::vector< motor::string_t > animation_names;
-                motor::vector< motor::scene::animation_clip_node_mtr_t > animation_clips;
-                motor::vector< motor::wire::os_float_mtr_t > animation_weights;
+                struct per_animation_data
+                {
+                    motor::string_t name;
+                    motor::scene::animation_clip_node_mtr_t node = nullptr;
+                    motor::wire::os_float_mtr_t weight = nullptr;
+                    motor::scene::weighted_mixer_node_t::mix_mode mm =
+                        motor::scene::weighted_mixer_node_t::mix_mode::blend;
+                };
+                motor::vector< per_animation_data > animation_datas;
+
+                animation_datas.resize( data->animations_count );
 
                 for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
                 {
@@ -1328,14 +1336,36 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     {
                         motor::scene::animation_clip_node_t clip(
                             motor::string_t( ani.name ) + ":clip" );
-                        animation_clips.emplace_back( motor::shared( std::move( clip ) ) );
-                        animation_names.emplace_back( motor::string_t( ani.name ) );
+                        animation_datas[ ani_idx ].node = motor::shared( std::move( clip ) );
+                        animation_datas[ ani_idx ].name = motor::string_t( ani.name );
                     }
 
                     // weights
                     {
-                        animation_weights.emplace_back(
-                            motor::shared( motor::wire::os_float_t( 0.0f ) ) );
+                        animation_datas[ ani_idx ].weight =
+                            motor::shared( motor::wire::os_float_t( 0.0f ) );
+                    }
+
+                    // check animation extras
+                    if( ani.extras.data )
+                    {
+                        using json = nlohmann::json;
+
+                        json extras = json::parse( ani.extras.data );
+                        auto const type_iter = extras.find( "motor.mix_mode" );
+                        if( type_iter != extras.end() )
+                        {
+                            if( *type_iter == "blend" )
+                            {
+                                animation_datas[ ani_idx ].mm =
+                                    motor::scene::weighted_mixer_node::mix_mode::blend;
+                            }
+                            else if( *type_iter == "additive" )
+                            {
+                                animation_datas[ ani_idx ].mm =
+                                    motor::scene::weighted_mixer_node::mix_mode::additive;
+                            }
+                        }
                     }
 
                     using component_to_composer_t =
@@ -1343,8 +1373,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             motor::wire::trs3f_composer_mtr_t >;
 
                     // a single animation can target multiple nodes => multiple transformation
-                    // components. so this node remembers the composer, because for a single node
-                    // and a single animation, we use a single composer.
+                    // components. so this node remembers the composer, because for a single
+                    // node and a single animation, we use a single composer.
                     // @note This is PER ANIMATION!
                     component_to_composer_t ctoc;
 
@@ -1444,15 +1474,16 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                         if( in_ac->count != os_ac->count )
                         {
-                            motor::log::global_t::warning(
-                                "[gltf_module] : animatoin sampler input/output count mismatch" );
+                            motor::log::global_t::warning( "[gltf_module] : animatoin sampler "
+                                                           "input/output count mismatch" );
                             continue;
                         }
 
                         if( in_ac->component_type != cgltf_component_type_r_32f )
                         {
                             motor::log::global_t::warning(
-                                "[gltf_module] : animation comp_type for sampler input can only be "
+                                "[gltf_module] : animation comp_type for sampler input can "
+                                "only be "
                                 "cgltf_component_type_r_32f." );
                             continue;
                         }
@@ -1502,7 +1533,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ret.update_keyframe_time_range( time_range );
 
                                 // we also update the clip itself
-                                animation_clips[ ani_idx ]->update_time_range( time_range );
+                                animation_datas[ ani_idx ].node->update_time_range( time_range );
 
                                 // #2 create animation track
 
@@ -1513,7 +1544,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #3 do data slot connections
 
                                 // animation_clip:time_os -> animation_track:time_is
-                                animation_clips[ ani_idx ]->borrow_time_ms_os()->connect(
+                                animation_datas[ ani_idx ].node->borrow_time_ms_os()->connect(
                                     ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
@@ -1540,7 +1571,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ret.update_keyframe_time_range( time_range );
 
                                 // we also update the clip itself
-                                animation_clips[ ani_idx ]->update_time_range( time_range );
+                                animation_datas[ ani_idx ].node->update_time_range( time_range );
 
                                 // #2 create animation track
 
@@ -1551,7 +1582,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #3 do data slot connections
 
                                 // animation_clip:time_os -> animation_track:time_is
-                                animation_clips[ ani_idx ]->borrow_time_ms_os()->connect(
+                                animation_datas[ ani_idx ].node->borrow_time_ms_os()->connect(
                                     ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
@@ -1579,7 +1610,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 ret.update_keyframe_time_range( time_range );
 
                                 // we also update the clip itself
-                                animation_clips[ ani_idx ]->update_time_range( time_range );
+                                animation_datas[ ani_idx ].node->update_time_range( time_range );
 
                                 // #2 create animation track
 
@@ -1590,7 +1621,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                                 // #3 do data slot connections
 
                                 // animation_clip:time_os -> animation_track:time_is
-                                animation_clips[ ani_idx ]->borrow_time_ms_os()->connect(
+                                animation_datas[ ani_idx ].node->borrow_time_ms_os()->connect(
                                     ani_track->get_is() );
 
                                 ani_track->borrow_os()->connect(
@@ -1604,7 +1635,7 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // #XX finally do execution slot connections
 
                             // animation clip -> animation track
-                            animation_clips[ ani_idx ]->then( ani_ctrl->get_node() );
+                            animation_datas[ ani_idx ].node->then( ani_ctrl->get_node() );
 
                             // animation track -> trafo composer
                             ani_ctrl->then( motor::share( trafo_composer ) );
@@ -1617,17 +1648,17 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
 
                     // data path:
                     // start_node:time_os -> animation_clib:time_is
-                    animation_clips[ ani_idx ]->connect_time_is( start_node->get_sec_os() );
+                    animation_datas[ ani_idx ].node->connect_time_is( start_node->get_sec_os() );
 
                     // execution path:
                     // start node -> animation clip
-                    start_node->then( motor::share( animation_clips[ ani_idx ] ) );
+                    start_node->then( motor::share( animation_datas[ ani_idx ].node ) );
 
                     // data path:
                     // allows to control the animation from the outside
                     // animation_clip:weight_is -> global:weight_os
-                    animation_clips[ ani_idx ]->borrow_weight_is()->connect(
-                        motor::share( animation_weights[ ani_idx ] ) );
+                    animation_datas[ ani_idx ].node->borrow_weight_is()->connect(
+                        motor::share( animation_datas[ ani_idx ].weight ) );
 
                     // connect composer to mixer here after all channels are done for
                     // this animation. Now we have all trafo components and all composers
@@ -1653,10 +1684,8 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                             // mixer:weight_is -> animation_clip:weight_os
                             trafo_component->borrow_mixer()->add_input(
                                 trafo_composer->ensure_and_get_os(),
-                                animation_clips[ ani_idx ]->get_weight_os(),
-                                animation_names[ ani_idx ],
-                                motor::scene::weighted_mixer_node_t::rotation_path::
-                                    continuous_track );
+                                animation_datas[ ani_idx ].node->get_weight_os(),
+                                animation_datas[ ani_idx ].name, animation_datas[ ani_idx ].mm );
                         }
                     }
 
@@ -1667,23 +1696,21 @@ motor::format::future_item_t cgltf_module::import_from( motor::io::location_cref
                     // by default, set the first weight to 1.0f
                     if( data->animations_count > 0 )
                     {
-                        animation_weights[ 0 ]->set_and_exchange( 1.0f );
+                        animation_datas[ 0 ].weight->set_and_exchange( 1.0f );
                     }
 
                     for( size_t ani_idx = 0; ani_idx < data->animations_count; ++ani_idx )
                     {
-                        animation_weights[ ani_idx ]->set_and_exchange( 1.0f );
+                        animation_datas[ ani_idx ].weight->set_and_exchange( 1.0f );
 
                         motor::format::scene_item::animation_data ad{
-                            .name = animation_names[ ani_idx ],
-                            .node = motor::move( animation_clips[ ani_idx ] ),
-                            .weight = motor::move( animation_weights[ ani_idx ] ) };
+                            .name = animation_datas[ ani_idx ].name,
+                            .node = motor::move( animation_datas[ ani_idx ].node ),
+                            .weight = motor::move( animation_datas[ ani_idx ].weight ) };
 
                         ret.animations.emplace_back( std::move( ad ) );
                     }
-                    animation_clips.clear();
-                    animation_weights.clear();
-                    animation_names.clear();
+                    animation_datas.clear();
                 }
 
                 if( data->animations_count == 0 )

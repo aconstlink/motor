@@ -30,13 +30,6 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
   public:
 
-    // Continuous tracks have already aligned their keys to a common rest rotation.
-    enum class rotation_path
-    {
-        shortest,
-        continuous_track
-    };
-
     using pose_t = motor::math::trs3f_t;
     motor_typedefs( motor::wire::output_slot< pose_t >, pose_os );
 
@@ -54,7 +47,6 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
     {
         pose_is_mtr_t pose;
         weight_is_mtr_t weight;
-        rotation_path path;
         mix_mode mm;
     };
 
@@ -80,7 +72,7 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
     // Wire the data edges as a pair. Execution edges are owned by the caller.
     bool_t add_input( pose_os_mtr_safe_t pose, weight_os_mtr_safe_t weight,
-        motor::string_in_t name = "", rotation_path const path = rotation_path::shortest ) noexcept
+        motor::string_in_t name = "", mix_mode const mm = mix_mode::blend ) noexcept
     {
         if( pose == nullptr || weight == nullptr )
         {
@@ -89,12 +81,11 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
             return false;
         }
 
-        auto const id = motor::to_string( _pairs.size() );
         input_pair p{
-            motor::shared( pose_is_t( pose_t{} ) ), motor::shared( weight_is_t( 0.0f ) ), path };
+            motor::shared( pose_is_t( pose_t{} ) ), motor::shared( weight_is_t( 0.0f ) ), mm };
 
-        inputs().add( name + ".trafo." + id, motor::share_unsafe( p.pose ) );
-        inputs().add( name + ".weight." + id, motor::share_unsafe( p.weight ) );
+        inputs().add( name + ".trafo", motor::share_unsafe( p.pose ) );
+        inputs().add( name + ".weight", motor::share_unsafe( p.weight ) );
 
         p.pose->connect( motor::move( pose ) );
         p.weight->connect( motor::move( weight ) );
@@ -109,6 +100,8 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
         _rest = rest;
         _out->set_value( rest.to_transformation() );
     }
+
+    void_t set_mix_mode( this_t::mix_mode const mm ) noexcept {}
 
     trafo_os_mtr_t borrow_trafo_os() noexcept
     {
@@ -131,14 +124,24 @@ class weighted_mixer_node : public motor::wire::funk_node_named_t
 
             auto const & pose = p.pose->pull_data();
 
-            result.translation = motor::math::interpolation< pose_t::translation_t >::linear(
-                result.translation, pose.translation, w );
+            if( p.mm == this_t::mix_mode::blend )
+            {
+                result.translation = motor::math::interpolation< pose_t::translation_t >::linear(
+                    result.translation, pose.translation, w );
 
-            result.rotation = motor::math::interpolation< pose_t::rotation_t >::linear(
-                result.rotation, pose.rotation, w );
+                result.rotation = motor::math::interpolation< pose_t::rotation_t >::linear(
+                    result.rotation, pose.rotation, w );
 
-            result.scale = motor::math::interpolation< pose_t::scale_t >::linear(
-                result.scale, pose.scale, w );
+                result.scale = motor::math::interpolation< pose_t::scale_t >::linear(
+                    result.scale, pose.scale, w );
+            }
+            else if( p.mm == this_t::mix_mode::additive )
+            {
+                // result.translation += pose.translation * w;
+                result.rotation *= motor::math::interpolation< pose_t::rotation_t >::linear(
+                    _rest.rotation, pose.rotation, w );
+                // result.scale += pose.scale * w;
+            }
         }
         _out->set_value( result.to_transformation() );
     }
