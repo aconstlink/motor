@@ -80,6 +80,8 @@ set( sources
     "component/animation/animation_controller.h"
     "component/animation/animation_controller.cpp"
     "component/animation/animation_track.hpp"
+    "component/animation/animation_clip_node.hpp"
+    "component/animation/weighted_mixer_node.hpp"
     )
 
 motor_vs_src_dir( sources )

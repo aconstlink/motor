@@ -179,15 +179,13 @@ bool_t graph_viewer::draw_node( size_t const idx ) noexcept
     float_t const font_scale = 0.8f;
     float_t const header_h = 24.0f; //_header_height * _zoom;
 
-    auto const title_size = _can->measure_text_size( n.title.c_str(), header_h * font_scale );
+    int_t const font_height = int_t( std::floor( header_h * font_scale ) );
+    auto const title_size = _can->measure_text_size( n.title.c_str(), float_t( font_height ) );
     auto size = n.size();
 
-    float_t const pad = 8.0f; //* _zoom;
+    float_t const pad = 8.0f;
 
-    if( size.x() <= title_size.x() )
-    {
-        size.x( title_size.x() + 2.0f * pad );
-    }
+    size.x( std::max( size.x(), title_size.x() + 2.0f * pad ) );
 
     n.top_right = n.bottom_left + size;
     n.title_size = title_size;
@@ -212,7 +210,7 @@ bool_t graph_viewer::draw_node( size_t const idx ) noexcept
 
     _can->draw_text( { .title = n.title.c_str(),
         .pos = pos + motor::math::vec2f_t( pad, body_h ),
-        .font_height = int_t( std::floor( header_h * font_scale ) ),
+        .font_height = font_height,
         .color = n.text_color } );
 
     _can->pop_clip_rect();

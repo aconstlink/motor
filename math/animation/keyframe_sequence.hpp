@@ -240,6 +240,16 @@ namespace motor
 
         public:
 
+            std::pair< time_stamp_t, time_stamp_t > get_time_range( void_t ) const noexcept 
+            {
+                if( _keyframes.size() == 0 ) return std::make_pair(0,0) ;
+
+                time_stamp_t const b = _keyframes.front().get_time() ;
+                time_stamp_t const e = _keyframes.back().get_time() ;
+
+                return std::make_pair( b, e ) ;
+            }
+
             /// checks if ts is in range and if so, returns where
             /// ts is in that range in [0,1]. The direct return value
             /// is true if in range, false otherwise.
@@ -248,8 +258,7 @@ namespace motor
                 if( _keyframes.size() < 2 ) 
                     return motor::math::evaluation_result::invalid ;
 
-                time_stamp_t const b = _keyframes.front().get_time() ;
-                time_stamp_t const e = _keyframes.back().get_time() ;
+                auto const [b,e] = this_t::get_time_range() ;
             
                 // if ts not E [b, e]
                 {

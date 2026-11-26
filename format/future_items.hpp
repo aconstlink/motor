@@ -6,6 +6,7 @@
 #include "future_item.hpp"
 
 #include <motor/scene/node/node.h>
+#include <motor/scene/component/animation/animation_clip_node.hpp>
 #include <motor/wire/kit/time_node.hpp>
 
 #include <motor/gfx/camera/generic_camera.h>
@@ -27,7 +28,7 @@ struct image_item : public item
 
     motor::graphics::image_mtr_t img;
 
-    virtual void_t release( void_t ) noexcept 
+    virtual void_t release( void_t ) noexcept
     {
         motor::release( motor::move( img ) );
     }
@@ -41,7 +42,7 @@ struct audio_item : public item
 
     motor::audio::buffer_mtr_t obj;
 
-    virtual void_t release( void_t ) noexcept 
+    virtual void_t release( void_t ) noexcept
     {
         motor::release( motor::move( obj ) );
     }
@@ -55,7 +56,7 @@ struct glyph_atlas_item : public item
 
     motor::font::glyph_atlas_mtr_t obj;
 
-    virtual void_t release( void_t ) noexcept 
+    virtual void_t release( void_t ) noexcept
     {
         motor::release( motor::move( obj ) );
     }
@@ -101,7 +102,7 @@ struct mesh_item : public item
 
     motor::vector< image > images;
 
-    virtual void_t release( void_t ) noexcept 
+    virtual void_t release( void_t ) noexcept
     {
         for( auto & img : images )
         {
@@ -123,12 +124,39 @@ struct scene_item : public item
     // can be used as notification of animation end
     motor::wire::funk_node_mtr_t merger_node = nullptr;
 
+    // one per animation
+    struct animation_data
+    {
+        motor::string_t name;
+        motor::scene::animation_clip_node_mtr_t node;
+        motor::wire::os_float_mtr_t weight;
+    };
+
+    motor::vector< animation_data > animations;
+
+    using time_range_t = std::pair< motor::math::time_ms_t, motor::math::time_ms_t > ;
+    // during import, this is the min of all keyframe times
+    motor::math::time_ms_t keyframe_time_min = 0;
+    // during import, this is the max of all keyframe times
+    motor::math::time_ms_t keyframe_time_max = 0;
+
+    time_range_t keyframes_time_range( void_t ) const noexcept 
+    {
+        return std::make_pair( keyframe_time_min, keyframe_time_max ) ;
+    }
+
+    void_t update_keyframe_time_range( time_range_t const & tr ) noexcept
+    {
+        keyframe_time_min = std::min( keyframe_time_min, tr.first ) ; 
+        keyframe_time_max = std::max( keyframe_time_max, tr.second ) ;
+    }
+
     struct camera_sequence_item
     {
-        motor::math::time_ms_t start = 0 ;
+        motor::math::time_ms_t start = 0;
         motor::math::time_ms_t end = 0;
         motor::string_t node_name;
-        motor::gfx::generic_camera_mtr_t cam = nullptr ;
+        motor::gfx::generic_camera_mtr_t cam = nullptr;
     };
 
     // import a camera sequence.
@@ -144,10 +172,10 @@ struct scene_item : public item
 
     struct material_item
     {
-        motor::string_t name ;
-        motor::math::vec4f_t base_color ;
+        motor::string_t name;
+        motor::math::vec4f_t base_color;
     };
-    motor::vector< material_item > materials ;
+    motor::vector< material_item > materials;
 
     virtual void_t release( void_t ) noexcept
     {
@@ -155,8 +183,7 @@ struct scene_item : public item
         motor::release( motor::move( start_node ) );
         motor::release( motor::move( merger_node ) );
 
-        for( auto & csi : camera_sequence )
-            motor::release( motor::move( csi.cam ) );
+        for( auto & csi : camera_sequence ) motor::release( motor::move( csi.cam ) );
 
         for( auto & ci : cameras )
         {

@@ -6,8 +6,8 @@
 
 using namespace motor::scene;
 
-uint64_t const trafo3d_component::tid = motor::scene::global::register_internal_type( 
-    "motor::scene::trafo3d_component" ) ;
+uint64_t const trafo3d_component::tid =
+    motor::scene::global::register_internal_type( "motor::scene::trafo3d_component" );
 
 //********************************************************************************
 trafo3d_component::trafo3d_component( void_t ) noexcept
@@ -29,7 +29,7 @@ trafo3d_component::trafo3d_component( this_rref_t rhv ) noexcept
     : icomponent( std::move( rhv ) ), _trafo_is( motor::move( rhv._trafo_is ) ),
       _computed_os( motor::move( rhv._computed_os ) ), _composer( std::move( rhv._composer ) ),
       _trafo( std::move( rhv._trafo ) ), _trafo_local( std::move( rhv._trafo_local ) ),
-      _computed( std::move( rhv._computed ) )
+      _computed( std::move( rhv._computed ) ), _mixer( motor::move( rhv._mixer ) )
 {
 }
 
@@ -41,51 +41,42 @@ trafo3d_component::~trafo3d_component( void_t ) noexcept
     // if( _trafo_is ) _trafo_is->disconnect();
     // if( _computed_os ) _computed_os->disconnect();
 
-    for( auto * ptr : _composer )
+    for( auto & var : _composer )
     {
         // the owner needs to disconnect, otherwise
         // there will be some dangling node pointers.
-        ptr->disconnect();
-        motor::release( motor::move( ptr ) );
+
+        this_t::disconnect( var );
+        this_t::release( var );
     }
+
+    motor::release( motor::move( _mixer ) );
 }
 
 //********************************************************************************
-trafo3d_component::trafo_composer_mtr_safe_t trafo3d_component::create_composer( void_t ) noexcept
+void_t trafo3d_component::disconnect( composer_variant_t & var ) const noexcept
 {
-    auto ret = motor::shared( this_t::trafo_composer_t() );
-    _composer.emplace_back( motor::share( ret ) );
-    return motor::move( ret );
-}
-
-//********************************************************************************
-trafo3d_component::trafo_composer_mtr_t trafo3d_component::create_composer_and_borrow(
-    void_t ) noexcept
-{
-    auto ret = motor::shared( this_t::trafo_composer_t() );
-    _composer.emplace_back( motor::move( ret ) );
-    return _composer.back();
-}
-
-//********************************************************************************
-bool_t trafo3d_component::attach_composer( trafo_composer_mtr_safe_t mtr ) noexcept
-{
-    auto iter = std::find( _composer.begin(), _composer.end(), mtr.mtr() );
-    if( iter != _composer.end() )
+    std::visit( []( auto && arg )
     {
-        motor::release( motor::move( mtr ) );
-        return false;
-    }
-
-    _composer.emplace_back( motor::move( mtr ) );
-    return true;
+        using T = std::decay_t< decltype( arg ) >;
+        if constexpr( !std::is_same_v< T, std::nullptr_t > )
+        {
+            arg->disconnect();
+        }
+    }, var );
 }
 
 //********************************************************************************
-bool_t trafo3d_component::has_composer( trafo_composer_mtr_t ptr ) const noexcept
+void_t trafo3d_component::release( composer_variant_t & var ) const noexcept
 {
-    auto iter = std::find( _composer.begin(), _composer.end(), ptr );
-    return iter != _composer.end() ? true : false;
+    std::visit( []( auto && arg )
+    {
+        using T = std::decay_t< decltype( arg ) >;
+        if constexpr( !std::is_same_v< T, std::nullptr_t > )
+        {
+            motor::release( motor::move( arg ) );
+        }
+    }, var );
 }
 
 //**********************************************************************************
@@ -104,6 +95,8 @@ void_t trafo3d_component::init_slots( void_t ) noexcept
         this_t::create_input_slot< motor::math::m3d::trafof_t >( "[trafo3d_component] : trafo_is" );
     _computed_os = this_t::create_output_slot< motor::math::m3d::trafof_t >(
         "[trafo3d_component] : trafo_os" );
+
+    _mixer = motor::shared( motor::scene::weighted_mixer_node_t( "trafo_mixer" ) );
 }
 
 //**********************************************************************************
@@ -113,6 +106,24 @@ void_t trafo3d_component::sync_inputs( void_t ) noexcept
         _trafo = _trafo_local * _trafo_is->pull_data();
     else
         _trafo = _trafo_local;
+}
+
+//**********************************************************************************
+void_t trafo3d_component::connect_mixer( void_t ) noexcept
+{
+    _mixer->borrow_trafo_os()->connect( motor::share( _trafo_is ) );
+}
+
+//**********************************************************************************
+motor::scene::weighted_mixer_node_mtr_t trafo3d_component::borrow_mixer( void_t ) noexcept
+{
+    return _mixer;
+}
+
+//**********************************************************************************
+motor::scene::weighted_mixer_node_mtr_safe_t trafo3d_component::get_mixer( void_t ) noexcept
+{
+    return motor::share( _mixer ) ;
 }
 
 //**********************************************************************************

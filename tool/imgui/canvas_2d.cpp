@@ -46,10 +46,9 @@ motor::math::vec2f_t canvas_2d::screen_to_world( ImVec2 const & p ) noexcept
 motor::math::vec2f_t canvas_2d::measure_text_size(
     char const * text, float_t const font_height ) noexcept
 {
-    float_t const height_px = font_height * _zoom;
-    ImVec2 const size_px = ImGui::GetFont()->CalcTextSizeA( height_px, FLT_MAX, 0.0f, text );
-
-    return { size_px.x / _zoom, size_px.y / _zoom };
+    // Layout is in canvas units; only rendering depends on the zoom.
+    ImVec2 const size = ImGui::GetFont()->CalcTextSizeA( font_height, FLT_MAX, 0.0f, text );
+    return { size.x, size.y };
 }
 
 //********************************************************************

@@ -76,6 +76,7 @@ set( non_arch_sources
     
     utility/3d/ortho_basis.hpp
     utility/3d/transformation.hpp
+    utility/3d/trs.hpp
 
 
     utility/2d/viewport.hpp

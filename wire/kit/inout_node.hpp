@@ -38,8 +38,8 @@ class inout_node : public motor::wire::funk_node_named_t
     {
         _input = motor::shared( input_slot_t( input_t{} ) );
         _output = motor::shared( output_slot_t( output_t{} ) );
-        base_t::inputs().add( input_name, motor::share( _input ) );
-        base_t::outputs().add( output_name, motor::share( _output ) );
+        base_t::inputs().add( input_name, motor::share_unsafe( _input ) );
+        base_t::outputs().add( output_name, motor::share_unsafe( _output ) );
     }
 
     inout_node( this_t const & ) = delete;
